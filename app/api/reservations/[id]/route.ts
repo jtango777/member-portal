@@ -1,0 +1,100 @@
+import { createClient, createAdminClient } from '@/lib/supabase/server'
+import { NextResponse } from 'next/server'
+import { sendCancellationEmail } from '@/lib/email'
+import { format } from 'date-fns'
+import { isSameDay } from '@/lib/utils'
+
+export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
+  const supabase      = await createClient()
+  const adminSupabase = createAdminClient()
+
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  const { data: profile } = await supabase.from('profiles').select('is_admin').eq('id', user.id).single()
+  if (!profile?.is_admin) return NextResponse.json({ error: 'Admins only' }, { status: 403 })
+
+  const body = await request.json()
+  const { room_id, title, notes, start_time, end_time } = body
+
+  if (new Date(end_time) <= new Date(start_time)) {
+    return NextResponse.json({ error: 'End time must be after start time' }, { status: 400 })
+  }
+
+  // Check conflicts (excluding this reservation)
+  const { data: conflicts } = await adminSupabase
+    .from('reservations')
+    .select('id')
+    .eq('room_id', room_id)
+    .neq('id', id)
+    .lt('start_time', end_time)
+    .gt('end_time', start_time)
+
+  if (conflicts && conflicts.length > 0) {
+    return NextResponse.json({ error: 'This room is already booked for that time.' }, { status: 409 })
+  }
+
+  const { data, error } = await adminSupabase
+    .from('reservations')
+    .update({ room_id, title, notes: notes || null, start_time, end_time })
+    .eq('id', id)
+    .select()
+    .single()
+
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  return NextResponse.json(data)
+}
+
+export async function DELETE(_request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
+  const supabase      = await createClient()
+  const adminSupabase = createAdminClient()
+
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  const { data: profile } = await supabase.from('profiles').select('is_admin').eq('id', user.id).single()
+
+  // Fetch the reservation to check ownership
+  const { data: reservation } = await adminSupabase
+    .from('reservations')
+    .select('*, profiles(full_name), rooms(name, locations(name))')
+    .eq('id', id)
+    .single()
+
+  if (!reservation) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+
+  if (!profile?.is_admin) {
+    // Regular user: can only cancel their own future (not same-day) reservations
+    if (reservation.user_id !== user.id) {
+      return NextResponse.json({ error: 'You can only cancel your own reservations.' }, { status: 403 })
+    }
+    const startDate = new Date(reservation.start_time)
+    if (isSameDay(startDate, new Date()) || startDate < new Date()) {
+      return NextResponse.json({ error: 'Same-day reservations cannot be cancelled online. Please contact an admin.' }, { status: 403 })
+    }
+  }
+
+  const { error } = await adminSupabase.from('reservations').delete().eq('id', id)
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+  // Send cancellation email (non-blocking)
+  try {
+    const { data: { user: authUser } } = await adminSupabase.auth.admin.getUserById(reservation.user_id)
+    if (authUser?.email) {
+      const room = (reservation as any).rooms
+      const start = new Date(reservation.start_time)
+      const end   = new Date(reservation.end_time)
+      await sendCancellationEmail(authUser.email, {
+        title:    reservation.title,
+        room:     room?.name ?? '',
+        location: room?.locations?.name ?? '',
+        date:     format(start, 'EEEE, MMMM d, yyyy'),
+        time:     `${format(start, 'h:mm a')} – ${format(end, 'h:mm a')}`,
+      })
+    }
+  } catch (_) {}
+
+  return NextResponse.json({ ok: true })
+}
