@@ -20,6 +20,14 @@ export async function POST(request: Request) {
   const token = generateToken()
   await admin.from('permitted_emails').update({ invite_token: token, invited_at: new Date().toISOString() }).eq('id', member_id)
 
-  await sendInviteEmail(invite.email, token)
-  return NextResponse.json({ ok: true })
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
+  const inviteLink = `${appUrl}/setup-account?token=${token}`
+  let emailSent = false
+
+  try {
+    await sendInviteEmail(invite.email, token)
+    emailSent = true
+  } catch (_) {}
+
+  return NextResponse.json({ ok: true, inviteLink, emailSent })
 }

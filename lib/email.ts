@@ -9,7 +9,7 @@ export async function sendInviteEmail(to: string, token: string) {
   await resend.emails.send({
     from: FROM,
     to,
-    subject: 'You're invited to BizHaus',
+    subject: "You're invited to BizHaus",
     html: `
       <div style="font-family:sans-serif;max-width:480px;margin:0 auto;">
         <h2 style="color:#0f172a;">Welcome to BizHaus</h2>

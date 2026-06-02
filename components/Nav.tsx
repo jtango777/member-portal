@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Profile } from '@/types'
-import { LogOut, CalendarDays, Users, Building2, Clock, ChevronDown } from 'lucide-react'
+import { LogOut, CalendarDays, Users, Building2, Clock, ChevronDown, LayoutDashboard, DoorOpen, BarChart2 } from 'lucide-react'
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu'
 import { cn } from '@/lib/utils'
 
@@ -22,10 +22,13 @@ export default function Nav({ profile }: Props) {
   }
 
   const adminLinks = [
+    { href: '/dashboard/admin',              label: 'Dashboard',        icon: LayoutDashboard },
     { href: '/dashboard/admin/reservations', label: 'All Reservations', icon: CalendarDays },
     { href: '/dashboard/admin/members',      label: 'Members',          icon: Users },
     { href: '/dashboard/admin/companies',    label: 'Companies',        icon: Building2 },
+    { href: '/dashboard/admin/rooms',        label: 'Rooms',            icon: DoorOpen },
     { href: '/dashboard/admin/time-usage',   label: 'Time Usage',       icon: Clock },
+    { href: '/dashboard/admin/reports',      label: 'Reports',          icon: BarChart2 },
   ]
 
   return (
@@ -62,7 +65,7 @@ export default function Nav({ profile }: Props) {
                       href={link.href}
                       className={cn(
                         'flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50 cursor-pointer outline-none',
-                        pathname === link.href ? 'font-semibold text-blue-600' : ''
+                        pathname === link.href ? 'font-semibold text-blue-600' : 'text-gray-700'
                       )}
                     >
                       <link.icon size={15} className="text-gray-500" />

@@ -24,11 +24,16 @@ export async function POST(request: Request) {
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
+  const inviteLink = `${appUrl}/setup-account?token=${token}`
+  let emailSent = false
+
   try {
     await sendInviteEmail(email, token)
-  } catch (e: any) {
-    return NextResponse.json({ error: `Invite saved but email failed: ${e.message}` }, { status: 500 })
+    emailSent = true
+  } catch (_) {
+    // Email failure doesn't block the invite — admin can copy the link manually
   }
 
-  return NextResponse.json({ ok: true })
+  return NextResponse.json({ ok: true, inviteLink, emailSent })
 }

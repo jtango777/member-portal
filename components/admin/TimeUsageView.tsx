@@ -37,9 +37,9 @@ export default function TimeUsageView({ summaries, month }: Props) {
                 <tr key={s.company.id} className="border-b border-gray-100 last:border-0 hover:bg-gray-50">
                   <td className="px-4 py-3 font-medium text-gray-900">{s.company.name}</td>
                   <td className="px-4 py-3 text-gray-600">{s.company.monthly_hours_allotment}h</td>
-                  <td className="px-4 py-3 text-gray-800">{s.hours_used.toFixed(1)}h</td>
+                  <td className="px-4 py-3 text-gray-800">{s.hours_used === 0 ? '0h' : `${s.hours_used.toFixed(1)}h`}</td>
                   <td className={`px-4 py-3 font-semibold ${over ? 'text-red-600' : 'text-green-700'}`}>
-                    {over ? '0h' : `${s.hours_remaining.toFixed(1)}h`}
+                    {over ? '0h' : s.hours_remaining === 0 ? '0h' : `${s.hours_remaining.toFixed(1)}h`}
                     {over && <span className="text-xs font-normal text-red-400 ml-1">(over by {(s.hours_used - s.company.monthly_hours_allotment).toFixed(1)}h)</span>}
                   </td>
                   <td className="px-4 py-3">

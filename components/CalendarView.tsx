@@ -226,7 +226,7 @@ export default function CalendarView({ locations, profile, company, hoursUsed }:
                         style={{ top: i * SLOT_H, height: SLOT_H }}
                         className={cn(
                           'absolute inset-x-0 cursor-pointer hover:bg-blue-50 transition-colors',
-                          i % 2 === 0 ? 'border-t border-gray-100' : 'border-t border-dashed border-gray-100'
+                          i % 2 === 0 ? 'border-t border-gray-200' : 'border-t border-dashed border-gray-200'
                         )}
                       />
                     ))}
