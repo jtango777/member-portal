@@ -158,11 +158,16 @@ export default function RoomsManager({ locations, initialRooms }: Props) {
             {locRooms.length === 0 ? (
               <p className="px-4 py-6 text-sm text-gray-400 text-center">No rooms yet.</p>
             ) : (
-              <table className="w-full text-sm">
+              <table className="w-full text-sm table-fixed">
+                <colgroup>
+                  <col className="w-[55%]" />
+                  <col className="w-[15%]" />
+                  <col className="w-[30%]" />
+                </colgroup>
                 <thead>
                   <tr className="border-b border-gray-100">
                     <th className="text-left font-semibold text-gray-500 px-4 py-2.5 text-xs uppercase tracking-wide">Room</th>
-                    <th className="text-center font-semibold text-gray-500 px-4 py-2.5 text-xs uppercase tracking-wide w-28">Capacity</th>
+                    <th className="text-center font-semibold text-gray-500 px-4 py-2.5 text-xs uppercase tracking-wide">Capacity</th>
                     <th className="px-4 py-2.5" />
                   </tr>
                 </thead>
@@ -177,7 +182,7 @@ export default function RoomsManager({ locations, initialRooms }: Props) {
                           <span className="font-medium text-gray-900">{room.name}</span>
                         )}
                       </td>
-                      <td className="px-4 py-3 text-center w-28">
+                      <td className="px-4 py-3 text-center">
                         {editing?.id === room.id ? (
                           <input type="number" min="1" value={editing.capacity}
                             onChange={e => setEditing(v => v ? { ...v, capacity: e.target.value } : v)}
