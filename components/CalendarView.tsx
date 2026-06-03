@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useCallback, useRef, useEffect } from 'react'
-import { format, addDays, subDays, isToday, isBefore, startOfDay } from 'date-fns'
+import { format, addDays, subDays, isToday, isBefore, startOfDay, startOfMonth, endOfMonth, eachDayOfInterval, getDay, addMonths, subMonths } from 'date-fns'
 import { ChevronLeft, ChevronRight, Lock, FileText, Plus, Users, Clock } from 'lucide-react'
 import { Location, Room, Reservation, Profile, Company } from '@/types'
 import { cn, formatTime, isSameDay } from '@/lib/utils'
@@ -35,7 +35,21 @@ export default function CalendarView({ locations, profile, company, hoursUsed, d
   const [reservations, setReservations]         = useState<Reservation[]>([])
   const [loading, setLoading]                   = useState(false)
   const [modal, setModal]                       = useState<ModalState>({ mode: 'closed' })
-  const scrollRef = useRef<HTMLDivElement>(null)
+  const [showPicker, setShowPicker]             = useState(false)
+  const [pickerMonth, setPickerMonth]           = useState(new Date())
+  const scrollRef  = useRef<HTMLDivElement>(null)
+  const pickerRef  = useRef<HTMLDivElement>(null)
+
+  // Close date picker when clicking outside
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (pickerRef.current && !pickerRef.current.contains(e.target as Node)) {
+        setShowPicker(false)
+      }
+    }
+    if (showPicker) document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [showPicker])
 
   const fetchData = useCallback(async () => {
     setLoading(true)
@@ -107,10 +121,12 @@ export default function CalendarView({ locations, profile, company, hoursUsed, d
             onClick={() => setSelectedDate(new Date())}
             className={cn(
               'px-3 py-1 text-sm rounded font-medium transition-colors',
-              isToday(selectedDate) ? 'bg-blue-600 text-white' : 'hover:bg-gray-100 text-gray-700'
+              isToday(selectedDate)
+                ? 'bg-blue-600 text-white'
+                : 'bg-blue-600 hover:bg-blue-700 text-white'
             )}
           >
-            Today
+            {isToday(selectedDate) ? 'Today' : '← Return to Today'}
           </button>
           <button
             onClick={() => setSelectedDate(d => addDays(d, 1))}
@@ -118,9 +134,59 @@ export default function CalendarView({ locations, profile, company, hoursUsed, d
           >
             <ChevronRight size={18} />
           </button>
-          <span className="text-sm font-semibold text-gray-900 ml-1">
-            {format(selectedDate, 'EEEE, MMMM d, yyyy')}
-          </span>
+
+          {/* Clickable date → mini month picker */}
+          <div className="relative ml-1" ref={pickerRef}>
+            <button
+              onClick={() => { setPickerMonth(selectedDate); setShowPicker(v => !v) }}
+              className="text-sm font-semibold text-gray-900 hover:text-blue-600 transition-colors"
+            >
+              {format(selectedDate, 'EEEE, MMMM d, yyyy')}
+            </button>
+
+            {showPicker && (
+              <div className="absolute top-full left-0 mt-2 z-50 bg-white rounded-xl shadow-xl border border-gray-200 p-3 w-64">
+                {/* Month navigation */}
+                <div className="flex items-center justify-between mb-2">
+                  <button onClick={() => setPickerMonth(m => subMonths(m, 1))} className="p-1 hover:bg-gray-100 rounded transition-colors">
+                    <ChevronLeft size={14} />
+                  </button>
+                  <span className="text-sm font-semibold text-gray-900">{format(pickerMonth, 'MMMM yyyy')}</span>
+                  <button onClick={() => setPickerMonth(m => addMonths(m, 1))} className="p-1 hover:bg-gray-100 rounded transition-colors">
+                    <ChevronRight size={14} />
+                  </button>
+                </div>
+                {/* Day headers */}
+                <div className="grid grid-cols-7 mb-1">
+                  {['S','M','T','W','T','F','S'].map((d, i) => (
+                    <div key={i} className="text-center text-xs text-gray-400 font-medium py-1">{d}</div>
+                  ))}
+                </div>
+                {/* Day grid */}
+                <div className="grid grid-cols-7 gap-0.5">
+                  {Array.from({ length: getDay(startOfMonth(pickerMonth)) }).map((_, i) => (
+                    <div key={`pad-${i}`} />
+                  ))}
+                  {eachDayOfInterval({ start: startOfMonth(pickerMonth), end: endOfMonth(pickerMonth) }).map(day => (
+                    <button
+                      key={day.toISOString()}
+                      onClick={() => { setSelectedDate(day); setShowPicker(false) }}
+                      className={cn(
+                        'text-center text-xs py-1.5 rounded-md transition-colors',
+                        isSameDay(day, selectedDate)
+                          ? 'bg-blue-600 text-white font-semibold'
+                          : isToday(day)
+                          ? 'bg-blue-50 text-blue-600 font-semibold'
+                          : 'hover:bg-gray-100 text-gray-700'
+                      )}
+                    >
+                      {format(day, 'd')}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
 
         <div className="flex items-center gap-3">
