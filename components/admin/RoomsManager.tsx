@@ -158,73 +158,61 @@ export default function RoomsManager({ locations, initialRooms }: Props) {
             {locRooms.length === 0 ? (
               <p className="px-4 py-6 text-sm text-gray-400 text-center">No rooms yet.</p>
             ) : (
-              <table className="w-full text-sm table-fixed">
-                <colgroup>
-                  <col className="w-[55%]" />
-                  <col className="w-[15%]" />
-                  <col className="w-[30%]" />
-                </colgroup>
-                <thead>
-                  <tr className="border-b border-gray-100">
-                    <th className="text-left font-semibold text-gray-500 px-4 py-2.5 text-xs uppercase tracking-wide">Room</th>
-                    <th className="text-center font-semibold text-gray-500 px-4 py-2.5 text-xs uppercase tracking-wide">Capacity</th>
-                    <th className="px-4 py-2.5" />
-                  </tr>
-                </thead>
-                <tbody>
-                  {locRooms.map(room => (
-                    <tr key={room.id} className="border-b border-gray-100 last:border-0 hover:bg-gray-50">
-                      <td className="px-4 py-3">
-                        {editing?.id === room.id ? (
-                          <input value={editing.name} onChange={e => setEditing(v => v ? { ...v, name: e.target.value } : v)}
-                            className="border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 w-full max-w-xs" />
-                        ) : (
-                          <span className="font-medium text-gray-900">{room.name}</span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 text-center">
-                        {editing?.id === room.id ? (
-                          <input type="number" min="1" value={editing.capacity}
-                            onChange={e => setEditing(v => v ? { ...v, capacity: e.target.value } : v)}
-                            className="border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 w-20 text-center" />
-                        ) : (
-                          <span className="text-gray-600">{room.capacity}</span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="flex items-center justify-end gap-2">
-                          {editing?.id === room.id ? (
-                            <>
-                              <button onClick={handleSaveEdit} disabled={saving}
-                                className="flex items-center gap-1 text-xs bg-blue-600 text-white px-2.5 py-1.5 rounded-md font-medium">
-                                <Check size={12} /> {saving ? 'Saving…' : 'Save'}
-                              </button>
-                              <button onClick={() => setEditing(null)}
-                                className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-700">
-                                <X size={12} /> Cancel
-                              </button>
-                            </>
-                          ) : (
-                            <>
-                              <button
-                                onClick={() => setEditing({ id: room.id, name: room.name, capacity: String(room.capacity) })}
-                                className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 font-medium">
-                                <Edit2 size={12} /> Edit
-                              </button>
-                              <button
-                                onClick={() => handleDeleteClick(room)}
-                                disabled={loadingDelete === room.id}
-                                className="flex items-center gap-1 text-xs text-red-500 hover:text-red-700 font-medium disabled:opacity-40">
-                                <Trash2 size={12} /> {loadingDelete === room.id ? '…' : 'Remove'}
-                              </button>
-                            </>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+              <div className="text-sm">
+                {/* Header */}
+                <div className="flex items-center border-b border-gray-100 px-4 py-2.5 bg-gray-50">
+                  <span className="flex-1 text-xs font-semibold text-gray-500 uppercase tracking-wide">Room</span>
+                  <span className="w-20 text-center text-xs font-semibold text-gray-500 uppercase tracking-wide">Capacity</span>
+                  <span className="w-40" />
+                </div>
+                {/* Rows */}
+                {locRooms.map(room => (
+                  <div key={room.id} className="flex items-center border-b border-gray-100 last:border-0 hover:bg-gray-50 px-4 py-3">
+                    <div className="flex-1">
+                      {editing?.id === room.id ? (
+                        <input value={editing.name} onChange={e => setEditing(v => v ? { ...v, name: e.target.value } : v)}
+                          className="border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 w-full max-w-xs" />
+                      ) : (
+                        <span className="font-medium text-gray-900">{room.name}</span>
+                      )}
+                    </div>
+                    <div className="w-20 text-center">
+                      {editing?.id === room.id ? (
+                        <input type="number" min="1" value={editing.capacity}
+                          onChange={e => setEditing(v => v ? { ...v, capacity: e.target.value } : v)}
+                          className="border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 w-16 text-center" />
+                      ) : (
+                        <span className="text-gray-600">{room.capacity}</span>
+                      )}
+                    </div>
+                    <div className="w-40 flex items-center justify-end gap-2">
+                      {editing?.id === room.id ? (
+                        <>
+                          <button onClick={handleSaveEdit} disabled={saving}
+                            className="flex items-center gap-1 text-xs bg-blue-600 text-white px-2.5 py-1.5 rounded-md font-medium">
+                            <Check size={12} /> {saving ? 'Saving…' : 'Save'}
+                          </button>
+                          <button onClick={() => setEditing(null)}
+                            className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-700">
+                            <X size={12} /> Cancel
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <button onClick={() => setEditing({ id: room.id, name: room.name, capacity: String(room.capacity) })}
+                            className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 font-medium">
+                            <Edit2 size={12} /> Edit
+                          </button>
+                          <button onClick={() => handleDeleteClick(room)} disabled={loadingDelete === room.id}
+                            className="flex items-center gap-1 text-xs text-red-500 hover:text-red-700 font-medium disabled:opacity-40">
+                            <Trash2 size={12} /> {loadingDelete === room.id ? '…' : 'Remove'}
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
             )}
           </div>
         ))}
