@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Profile } from '@/types'
-import { LogOut, CalendarDays, Users, Building2, Clock, ChevronDown, LayoutDashboard, DoorOpen, BarChart2 } from 'lucide-react'
+import { LogOut, CalendarDays, Users, Building2, Clock, ChevronDown, LayoutDashboard, DoorOpen, BarChart2, BookMarked, Settings } from 'lucide-react'
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu'
 import { cn } from '@/lib/utils'
 
@@ -37,14 +37,15 @@ export default function Nav({ profile }: Props) {
         <Link href="/dashboard" className="text-xl font-bold tracking-tight hover:text-slate-200">
           BizHaus
         </Link>
-        <Link
-          href="/dashboard"
-          className={cn(
-            'text-sm font-medium transition-colors',
-            pathname === '/dashboard' ? 'text-white' : 'text-slate-400 hover:text-white'
-          )}
-        >
+        <Link href="/dashboard"
+          className={cn('text-sm font-medium transition-colors',
+            pathname === '/dashboard' ? 'text-white' : 'text-slate-400 hover:text-white')}>
           Calendar
+        </Link>
+        <Link href="/dashboard/my-reservations"
+          className={cn('text-sm font-medium transition-colors',
+            pathname === '/dashboard/my-reservations' ? 'text-white' : 'text-slate-400 hover:text-white')}>
+          My Reservations
         </Link>
         {profile.is_admin && (
           <DropdownMenu.Root>
@@ -84,11 +85,14 @@ export default function Nav({ profile }: Props) {
           {profile.full_name}
           {profile.is_admin && <span className="ml-2 text-xs bg-blue-600 text-white px-1.5 py-0.5 rounded">Admin</span>}
         </span>
-        <button
-          onClick={signOut}
+        <Link href="/dashboard/settings"
+          className={cn('text-slate-400 hover:text-white transition-colors', pathname === '/dashboard/settings' ? 'text-white' : '')}
+          title="Settings">
+          <Settings size={16} />
+        </Link>
+        <button onClick={signOut}
           className="flex items-center gap-1.5 text-sm text-slate-400 hover:text-white transition-colors"
-          title="Sign out"
-        >
+          title="Sign out">
           <LogOut size={16} />
           <span className="hidden sm:inline">Sign out</span>
         </button>
