@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { Company } from '@/types'
-import { Plus, Send, Check, Shield, ShieldOff, Download, Copy, Link, Search } from 'lucide-react'
+import { Plus, Send, Check, Shield, ShieldOff, Download, Copy, Link, Search, Edit2, Trash2, X } from 'lucide-react'
 import { formatShortDate } from '@/lib/utils'
 import toast from 'react-hot-toast'
 
@@ -33,6 +33,10 @@ export default function MembersManager({ companies }: Props) {
   const [lastInviteLink, setLastInviteLink] = useState<string | null>(null)
   const [togglingAdmin, setTogglingAdmin]   = useState<string | null>(null)
   const [resending, setResending]   = useState<string | null>(null)
+  const [editingCompany, setEditingCompany] = useState<{ id: string; companyId: string } | null>(null)
+  const [savingCompany, setSavingCompany]   = useState(false)
+  const [confirmRemove, setConfirmRemove]   = useState<string | null>(null)
+  const [removing, setRemoving]             = useState<string | null>(null)
 
   const refresh = useCallback(async () => {
     const r = await fetch('/api/admin/members/details')
@@ -115,6 +119,43 @@ export default function MembersManager({ companies }: Props) {
       toast.error(d.error ?? 'Failed')
     }
     setTogglingAdmin(null)
+  }
+
+  // ── Edit company ──────────────────────────────────────────────────────────
+
+  async function saveCompany(memberId: string) {
+    if (!editingCompany) return
+    setSavingCompany(true)
+    const res = await fetch(`/api/admin/members/${memberId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ company_id: editingCompany.companyId }),
+    })
+    if (res.ok) {
+      toast.success('Company updated')
+      setEditingCompany(null)
+      await refresh()
+    } else {
+      const d = await res.json()
+      toast.error(d.error ?? 'Failed')
+    }
+    setSavingCompany(false)
+  }
+
+  // ── Remove member ──────────────────────────────────────────────────────────
+
+  async function handleRemove(memberId: string) {
+    setRemoving(memberId)
+    const res = await fetch(`/api/admin/members/${memberId}`, { method: 'DELETE' })
+    if (res.ok) {
+      toast.success('Member removed')
+      setConfirmRemove(null)
+      await refresh()
+    } else {
+      const d = await res.json()
+      toast.error(d.error ?? 'Failed')
+    }
+    setRemoving(null)
   }
 
   // ── CSV download ───────────────────────────────────────────────────────────
@@ -247,31 +288,66 @@ export default function MembersManager({ companies }: Props) {
                 <tr key={m.id} className="border-b border-gray-100 last:border-0 hover:bg-gray-50">
                   <td className="px-4 py-3 font-medium text-gray-900">{m.full_name ?? '—'}</td>
                   <td className="px-4 py-3 text-gray-600">{m.email}</td>
-                  <td className="px-4 py-3 text-gray-600">{m.company_name}</td>
+                  <td className="px-4 py-3">
+                    {editingCompany?.id === m.id ? (
+                      <div className="flex items-center gap-1.5">
+                        <select value={editingCompany.companyId}
+                          onChange={e => setEditingCompany({ id: m.id, companyId: e.target.value })}
+                          className="border border-gray-300 rounded px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500">
+                          {companies.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                        </select>
+                        <button onClick={() => saveCompany(m.id)} disabled={savingCompany}
+                          className="text-xs text-blue-600 font-medium hover:text-blue-800">{savingCompany ? '…' : 'Save'}</button>
+                        <button onClick={() => setEditingCompany(null)}
+                          className="text-gray-400 hover:text-gray-600"><X size={12} /></button>
+                      </div>
+                    ) : (
+                      <span className="text-gray-600">{m.company_name}</span>
+                    )}
+                  </td>
                   <td className="px-4 py-3">
                     {m.is_admin
                       ? <span className="inline-flex items-center gap-1 text-xs font-medium text-blue-700 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-full"><Shield size={10} /> Admin</span>
                       : <span className="text-xs text-gray-400">Member</span>}
                   </td>
                   <td className="px-4 py-3 text-gray-500 text-xs">{formatShortDate(new Date(m.accepted_at!))}</td>
-                  <td className="px-4 py-3 text-right">
-                    {m.user_id && (
-                      <button
-                        onClick={() => toggleAdmin(m.user_id!, m.is_admin)}
-                        disabled={togglingAdmin === m.user_id}
-                        title={m.is_admin ? 'Remove admin access' : 'Grant admin access'}
-                        className={`flex items-center gap-1 text-xs font-medium px-2.5 py-1.5 rounded-md transition-colors ${
-                          m.is_admin
-                            ? 'text-red-600 hover:bg-red-50'
-                            : 'text-blue-600 hover:bg-blue-50'
-                        }`}>
-                        {togglingAdmin === m.user_id
-                          ? '…'
-                          : m.is_admin
-                          ? <><ShieldOff size={12} /> Remove Admin</>
-                          : <><Shield size={12} /> Make Admin</>}
-                      </button>
-                    )}
+                  <td className="px-4 py-3">
+                    <div className="flex items-center justify-end gap-1">
+                      {editingCompany?.id !== m.id && (
+                        <button onClick={() => setEditingCompany({ id: m.id, companyId: m.company_id })}
+                          className="p-1.5 text-gray-400 hover:text-gray-600 rounded" title="Change company">
+                          <Edit2 size={13} />
+                        </button>
+                      )}
+                      {m.user_id && (
+                        <button
+                          onClick={() => toggleAdmin(m.user_id!, m.is_admin)}
+                          disabled={togglingAdmin === m.user_id}
+                          title={m.is_admin ? 'Remove admin access' : 'Grant admin access'}
+                          className={`flex items-center gap-1 text-xs font-medium px-2 py-1.5 rounded-md transition-colors ${
+                            m.is_admin ? 'text-red-600 hover:bg-red-50' : 'text-blue-600 hover:bg-blue-50'
+                          }`}>
+                          {togglingAdmin === m.user_id ? '…' : m.is_admin
+                            ? <><ShieldOff size={12} /> Remove Admin</>
+                            : <><Shield size={12} /> Make Admin</>}
+                        </button>
+                      )}
+                      {confirmRemove === m.id ? (
+                        <div className="flex items-center gap-1.5 ml-1">
+                          <span className="text-xs text-red-600">Remove?</span>
+                          <button onClick={() => handleRemove(m.id)} disabled={removing === m.id}
+                            className="text-xs bg-red-600 text-white px-2 py-1 rounded font-medium">
+                            {removing === m.id ? '…' : 'Yes'}
+                          </button>
+                          <button onClick={() => setConfirmRemove(null)} className="text-xs text-gray-400">No</button>
+                        </div>
+                      ) : (
+                        <button onClick={() => setConfirmRemove(m.id)}
+                          className="p-1.5 text-gray-400 hover:text-red-500 rounded" title="Remove member">
+                          <Trash2 size={13} />
+                        </button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -293,12 +369,33 @@ export default function MembersManager({ companies }: Props) {
               {pending.map(m => (
                 <tr key={m.id} className="border-b border-gray-100 last:border-0 hover:bg-gray-50">
                   <td className="px-4 py-3 text-gray-700">{m.email}</td>
-                  <td className="px-4 py-3 text-gray-600">{m.company_name}</td>
+                  <td className="px-4 py-3">
+                    {editingCompany?.id === m.id ? (
+                      <div className="flex items-center gap-1.5">
+                        <select value={editingCompany.companyId}
+                          onChange={e => setEditingCompany({ id: m.id, companyId: e.target.value })}
+                          className="border border-gray-300 rounded px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500">
+                          {companies.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                        </select>
+                        <button onClick={() => saveCompany(m.id)} disabled={savingCompany}
+                          className="text-xs text-blue-600 font-medium hover:text-blue-800">{savingCompany ? '…' : 'Save'}</button>
+                        <button onClick={() => setEditingCompany(null)}
+                          className="text-gray-400 hover:text-gray-600"><X size={12} /></button>
+                      </div>
+                    ) : (
+                      <span className="text-gray-600">{m.company_name}</span>
+                    )}
+                  </td>
                   <td className="px-4 py-3"><StatusBadge m={m} /></td>
                   <td className="px-4 py-3 text-gray-500 text-xs">{formatShortDate(new Date(m.invited_at))}</td>
                   <td className="px-4 py-3">
                     <div className="flex items-center justify-end gap-2">
-                      {/* Show copy button if we have a stored link for this row */}
+                      {editingCompany?.id !== m.id && (
+                        <button onClick={() => setEditingCompany({ id: m.id, companyId: m.company_id })}
+                          className="p-1.5 text-gray-400 hover:text-gray-600 rounded" title="Change company">
+                          <Edit2 size={13} />
+                        </button>
+                      )}
                       {m.invite_token?.startsWith('http') && (
                         <button onClick={() => copyLink(m.invite_token!, m.id)}
                           className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-700">
@@ -306,12 +403,25 @@ export default function MembersManager({ companies }: Props) {
                           {copiedLink === m.id ? 'Copied' : 'Copy link'}
                         </button>
                       )}
-                      <button
-                        onClick={() => handleResend(m.id)}
-                        disabled={resending === m.id}
+                      <button onClick={() => handleResend(m.id)} disabled={resending === m.id}
                         className="text-xs text-blue-600 hover:text-blue-800 font-medium disabled:opacity-50">
                         {resending === m.id ? '…' : 'Get link / Resend'}
                       </button>
+                      {confirmRemove === m.id ? (
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-xs text-red-600">Remove?</span>
+                          <button onClick={() => handleRemove(m.id)} disabled={removing === m.id}
+                            className="text-xs bg-red-600 text-white px-2 py-1 rounded font-medium">
+                            {removing === m.id ? '…' : 'Yes'}
+                          </button>
+                          <button onClick={() => setConfirmRemove(null)} className="text-xs text-gray-400">No</button>
+                        </div>
+                      ) : (
+                        <button onClick={() => setConfirmRemove(m.id)}
+                          className="p-1.5 text-gray-400 hover:text-red-500 rounded" title="Remove">
+                          <Trash2 size={13} />
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>
