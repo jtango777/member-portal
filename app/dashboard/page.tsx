@@ -36,6 +36,7 @@ export default async function DashboardPage() {
       profile={profile}
       company={profile.companies ?? null}
       hoursUsed={hoursUsed}
+      defaultLocationId={profile.default_location_id ?? null}
     />
   )
 }

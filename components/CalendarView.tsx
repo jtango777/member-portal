@@ -20,14 +20,16 @@ type ModalState =
   | { mode: 'view';   reservation: Reservation }
 
 type Props = {
-  locations:    Location[]
-  profile:      Profile
-  company:      Company | null
-  hoursUsed:    number
+  locations:         Location[]
+  profile:           Profile
+  company:           Company | null
+  hoursUsed:         number
+  defaultLocationId: string | null
 }
 
-export default function CalendarView({ locations, profile, company, hoursUsed }: Props) {
-  const [selectedLocation, setSelectedLocation] = useState<Location>(locations[0])
+export default function CalendarView({ locations, profile, company, hoursUsed, defaultLocationId }: Props) {
+  const defaultLocation = locations.find(l => l.id === defaultLocationId) ?? locations[0]
+  const [selectedLocation, setSelectedLocation] = useState<Location>(defaultLocation)
   const [selectedDate, setSelectedDate]         = useState<Date>(new Date())
   const [rooms, setRooms]                       = useState<Room[]>([])
   const [reservations, setReservations]         = useState<Reservation[]>([])

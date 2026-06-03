@@ -2,7 +2,7 @@ import { createAdminClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 
 export async function POST(request: Request) {
-  const { token, name, password } = await request.json()
+  const { token, name, password, default_location_id } = await request.json()
 
   if (!token || !name || !password) {
     return NextResponse.json({ error: 'Missing fields' }, { status: 400 })
@@ -42,10 +42,11 @@ export async function POST(request: Request) {
 
   // Create profile
   await admin.from('profiles').insert({
-    id:         userId,
-    company_id: invite.company_id,
-    full_name:  name.trim(),
-    is_admin:   false,
+    id:                  userId,
+    company_id:          invite.company_id,
+    full_name:           name.trim(),
+    is_admin:            false,
+    default_location_id: default_location_id ?? null,
   })
 
   // Mark invite as accepted

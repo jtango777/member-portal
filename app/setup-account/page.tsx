@@ -4,17 +4,21 @@ import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import toast from 'react-hot-toast'
 
+type Location = { id: string; name: string }
+
 function SetupForm() {
   const router = useRouter()
   const params = useSearchParams()
   const token = params.get('token') ?? ''
 
-  const [name, setName] = useState('')
-  const [password, setPassword] = useState('')
+  const [name, setName]           = useState('')
+  const [password, setPassword]   = useState('')
   const [password2, setPassword2] = useState('')
-  const [loading, setLoading] = useState(false)
+  const [locationId, setLocationId] = useState('')
+  const [locations, setLocations] = useState<Location[]>([])
+  const [loading, setLoading]     = useState(false)
   const [tokenValid, setTokenValid] = useState<boolean | null>(null)
-  const [email, setEmail] = useState('')
+  const [email, setEmail]         = useState('')
 
   useEffect(() => {
     if (!token) { setTokenValid(false); return }
@@ -25,17 +29,26 @@ function SetupForm() {
         else setTokenValid(false)
       })
       .catch(() => setTokenValid(false))
+
+    // Fetch locations for the dropdown
+    fetch('/api/locations')
+      .then(r => r.json())
+      .then((data: Location[]) => {
+        setLocations(data)
+        if (data.length > 0) setLocationId(data[0].id)
+      })
   }, [token])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (password !== password2) { toast.error('Passwords do not match'); return }
-    if (password.length < 8) { toast.error('Password must be at least 8 characters'); return }
+    if (password.length < 8)    { toast.error('Password must be at least 8 characters'); return }
+    if (!locationId)             { toast.error('Please select a default location'); return }
     setLoading(true)
     const res = await fetch('/api/invites/accept', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ token, name, password }),
+      body: JSON.stringify({ token, name, password, default_location_id: locationId }),
     })
     const data = await res.json()
     if (!res.ok) {
@@ -67,42 +80,32 @@ function SetupForm() {
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
-          <input
-            type="text"
-            required
-            value={name}
-            onChange={e => setName(e.target.value)}
+          <input type="text" required value={name} onChange={e => setName(e.target.value)}
             className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            placeholder="Jane Smith"
-          />
+            placeholder="Jane Smith" />
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
-          <input
-            type="password"
-            required
-            value={password}
-            onChange={e => setPassword(e.target.value)}
+          <input type="password" required value={password} onChange={e => setPassword(e.target.value)}
             className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            placeholder="At least 8 characters"
-          />
+            placeholder="At least 8 characters" />
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Confirm Password</label>
-          <input
-            type="password"
-            required
-            value={password2}
-            onChange={e => setPassword2(e.target.value)}
+          <input type="password" required value={password2} onChange={e => setPassword2(e.target.value)}
             className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            placeholder="Repeat password"
-          />
+            placeholder="Repeat password" />
         </div>
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-semibold py-2 px-4 rounded-lg transition-colors"
-        >
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Default Location</label>
+          <p className="text-xs text-gray-400 mb-1.5">The calendar will open here every time you log in.</p>
+          <select required value={locationId} onChange={e => setLocationId(e.target.value)}
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+            {locations.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
+          </select>
+        </div>
+        <button type="submit" disabled={loading}
+          className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-semibold py-2 px-4 rounded-lg transition-colors">
           {loading ? 'Creating account…' : 'Create Account'}
         </button>
       </form>
