@@ -250,8 +250,8 @@ export default function CalendarView({ locations, profile, company, hoursUsed, d
                             'rounded-md px-2 py-1 cursor-pointer z-10 overflow-hidden',
                             'transition-all hover:brightness-110 select-none',
                             isOwn
-                              ? 'bg-blue-600 text-white ring-2 ring-blue-400 ring-inset'
-                              : 'bg-blue-500 text-white'
+                              ? 'bg-blue-600 text-white'
+                              : 'bg-gray-100 text-gray-600 border border-gray-200'
                           )}
                         >
                           <div className="flex items-center gap-1 text-xs font-medium opacity-90">

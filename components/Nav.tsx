@@ -85,11 +85,15 @@ export default function Nav({ profile }: Props) {
           {profile.full_name}
           {profile.is_admin && <span className="ml-2 text-xs bg-blue-600 text-white px-1.5 py-0.5 rounded">Admin</span>}
         </span>
-        <Link href="/dashboard/settings"
-          className={cn('text-slate-400 hover:text-white transition-colors', pathname === '/dashboard/settings' ? 'text-white' : '')}
-          title="Settings">
-          <Settings size={16} />
-        </Link>
+        <div className="relative group">
+          <Link href="/dashboard/settings"
+            className={cn('text-slate-400 hover:text-white transition-colors flex', pathname === '/dashboard/settings' ? 'text-white' : '')}>
+            <Settings size={16} />
+          </Link>
+          <span className="absolute top-full left-1/2 -translate-x-1/2 mt-1.5 px-2 py-1 text-xs bg-gray-900 text-white rounded whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity">
+            Settings
+          </span>
+        </div>
         <button onClick={signOut}
           className="flex items-center gap-1.5 text-sm text-slate-400 hover:text-white transition-colors"
           title="Sign out">

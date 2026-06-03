@@ -1,6 +1,8 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { format } from 'date-fns'
+import Link from 'next/link'
+import { CalendarDays, ChevronRight } from 'lucide-react'
 import CancelButton from '@/components/CancelButton'
 
 export const dynamic = 'force-dynamic'
@@ -21,11 +23,11 @@ export default async function MyReservationsPage() {
   const past     = (reservations ?? []).filter(r => new Date(r.start_time) <  now)
 
   function ReservationRow({ r }: { r: any }) {
-    const start    = new Date(r.start_time)
-    const end      = new Date(r.end_time)
-    const isToday  = start.toDateString() === now.toDateString()
-    const isFuture = start > now
-    const canCancel = isFuture && !isToday
+    const start      = new Date(r.start_time)
+    const end        = new Date(r.end_time)
+    const hoursUntil = (start.getTime() - now.getTime()) / 3600000
+    const canCancel  = hoursUntil > 24
+    const tooSoon    = hoursUntil > 0 && hoursUntil <= 24
 
     return (
       <tr className="border-b border-gray-100 last:border-0 hover:bg-gray-50">
@@ -41,12 +43,17 @@ export default async function MyReservationsPage() {
         <td className="px-4 py-3 text-gray-500 text-xs">
           {((end.getTime() - start.getTime()) / 3600000).toFixed(1)}h
         </td>
-        {canCancel && (
-          <td className="px-4 py-3 text-right">
-            <CancelButton reservationId={r.id} />
-          </td>
-        )}
-        {!canCancel && <td className="px-4 py-3" />}
+        <td className="px-4 py-3 text-right">
+          {canCancel && <CancelButton reservationId={r.id} />}
+          {tooSoon && (
+            <span
+              title="Reservations can't be cancelled within 24 hours of the start time. Contact your admin for help."
+              className="text-xs text-gray-400 cursor-help"
+            >
+              Within 24h ⓘ
+            </span>
+          )}
+        </td>
       </tr>
     )
   }
@@ -81,14 +88,25 @@ export default async function MyReservationsPage() {
 
         <div>
           <h2 className="text-sm font-semibold text-gray-700 mb-2">Upcoming ({upcoming.length})</h2>
-          {upcoming.length === 0
-            ? <p className="text-sm text-gray-400">No upcoming reservations.</p>
-            : <Table rows={upcoming} />}
+          {upcoming.length === 0 ? (
+            <div className="flex flex-col items-center gap-3 py-12 text-center">
+              <CalendarDays size={36} className="text-gray-200" />
+              <div>
+                <p className="text-sm font-medium text-gray-500">No upcoming reservations</p>
+                <p className="text-xs text-gray-400 mt-1">
+                  <Link href="/dashboard" className="text-blue-600 hover:underline">Make a reservation →</Link>
+                </p>
+              </div>
+            </div>
+          ) : (
+            <Table rows={upcoming} />
+          )}
         </div>
 
         {past.length > 0 && (
-          <details>
-            <summary className="text-sm text-gray-400 cursor-pointer hover:text-gray-600 select-none mb-2">
+          <details className="group">
+            <summary className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-gray-600 cursor-pointer list-none [-webkit-appearance:none] select-none mb-2 transition-colors">
+              <ChevronRight size={14} className="transition-transform group-open:rotate-90" />
               Past reservations ({past.length})
             </summary>
             <Table rows={past} />

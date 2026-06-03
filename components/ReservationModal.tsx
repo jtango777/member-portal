@@ -5,7 +5,7 @@ import { format, addMinutes } from 'date-fns'
 import * as Dialog from '@radix-ui/react-dialog'
 import { X, Lock, Trash2, Edit2, Check, AlertCircle } from 'lucide-react'
 import { Reservation, Room, Profile, Company } from '@/types'
-import { cn, buildTimeOptions, parseTimeValue, formatTime, isSameDay } from '@/lib/utils'
+import { cn, buildTimeOptions, parseTimeValue, formatTime } from '@/lib/utils'
 import toast from 'react-hot-toast'
 
 const START_HOUR = 7
@@ -71,11 +71,11 @@ export default function ReservationModal({
 
   const wouldExceed = !isAdmin && durationHours > hoursRemaining
 
-  // Can regular user cancel their own reservation?
-  const canCancel = isOwn && !isAdmin && reservation
-    ? !isSameDay(new Date(reservation.start_time), new Date()) &&
-      new Date(reservation.start_time) > new Date()
-    : false
+  const hoursUntilStart = reservation
+    ? (new Date(reservation.start_time).getTime() - Date.now()) / 3600000
+    : 0
+  const canCancel = isOwn && !isAdmin && !!reservation && hoursUntilStart > 24
+  const withinCancelPolicy = isOwn && !isAdmin && !!reservation && hoursUntilStart > 0 && hoursUntilStart <= 24
 
   const endOptions = TIME_OPTIONS.filter(opt => {
     const [h, m] = opt.value.split(':').map(Number)
@@ -298,6 +298,13 @@ export default function ReservationModal({
                       <Trash2 size={14} /> Delete
                     </button>
                   )
+                )}
+                {/* Within 24h policy warning */}
+                {withinCancelPolicy && !editing && (
+                  <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 text-xs text-amber-700">
+                    <AlertCircle size={13} className="flex-shrink-0 mt-0.5" />
+                    Can't cancel within 24 hours. Contact an admin.
+                  </div>
                 )}
                 {/* Regular user cancel */}
                 {canCancel && !editing && (

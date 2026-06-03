@@ -66,7 +66,7 @@ export default function CompaniesManager({ companies: initial }: Props) {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-bold text-gray-900">Companies</h1>
-          <p className="text-sm text-gray-500 mt-0.5">Manage member companies and monthly hour allotments.</p>
+          <p className="text-sm text-gray-500 mt-0.5">{companies.length} total</p>
         </div>
         <button
           onClick={() => setShowForm(v => !v)}

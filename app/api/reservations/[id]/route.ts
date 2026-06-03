@@ -2,7 +2,6 @@ import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 import { sendCancellationEmail } from '@/lib/email'
 import { format } from 'date-fns'
-import { isSameDay } from '@/lib/utils'
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -70,9 +69,10 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
     if (reservation.user_id !== user.id) {
       return NextResponse.json({ error: 'You can only cancel your own reservations.' }, { status: 403 })
     }
-    const startDate = new Date(reservation.start_time)
-    if (isSameDay(startDate, new Date()) || startDate < new Date()) {
-      return NextResponse.json({ error: 'Same-day reservations cannot be cancelled online. Please contact an admin.' }, { status: 403 })
+    const startDate  = new Date(reservation.start_time)
+    const hoursUntil = (startDate.getTime() - Date.now()) / 3600000
+    if (hoursUntil < 24) {
+      return NextResponse.json({ error: 'Reservations cannot be cancelled within 24 hours of the start time. Please contact an admin.' }, { status: 403 })
     }
   }
 
