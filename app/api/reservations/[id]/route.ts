@@ -1,7 +1,6 @@
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 import { sendCancellationEmail } from '@/lib/email'
-import { format } from 'date-fns'
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -83,15 +82,18 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
   try {
     const { data: { user: authUser } } = await adminSupabase.auth.admin.getUserById(reservation.user_id)
     if (authUser?.email) {
-      const room = (reservation as any).rooms
+      const room  = (reservation as any).rooms
       const start = new Date(reservation.start_time)
       const end   = new Date(reservation.end_time)
+      const tz    = 'America/Los_Angeles'
+      const fmtTime = (d: Date) => d.toLocaleString('en-US', { timeZone: tz, hour: 'numeric', minute: '2-digit', hour12: true })
+      const fmtDate = (d: Date) => d.toLocaleString('en-US', { timeZone: tz, weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
       await sendCancellationEmail(authUser.email, {
         title:    reservation.title,
         room:     room?.name ?? '',
         location: room?.locations?.name ?? '',
-        date:     format(start, 'EEEE, MMMM d, yyyy'),
-        time:     `${format(start, 'h:mm a')} – ${format(end, 'h:mm a')}`,
+        date:     fmtDate(start),
+        time:     `${fmtTime(start)} – ${fmtTime(end)}`,
       })
     }
   } catch (_) {}

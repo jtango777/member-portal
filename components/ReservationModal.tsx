@@ -95,6 +95,8 @@ export default function ReservationModal({
       notes: notes.trim() || null,
       start_time: startDate.toISOString(),
       end_time: endDate.toISOString(),
+      formatted_date: format(selectedDate, 'EEEE, MMMM d, yyyy'),
+      formatted_time: `${format(startDate, 'h:mm a')} – ${format(endDate, 'h:mm a')}`,
     }
 
     const res = reservation

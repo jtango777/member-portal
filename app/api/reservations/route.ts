@@ -55,7 +55,7 @@ export async function POST(request: Request) {
   if (!profile) return NextResponse.json({ error: 'Profile not found' }, { status: 403 })
 
   const body = await request.json()
-  const { room_id, title, notes, start_time, end_time } = body
+  const { room_id, title, notes, start_time, end_time, formatted_date, formatted_time } = body
 
   if (!room_id || !title || !start_time || !end_time) {
     return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
@@ -121,8 +121,8 @@ export async function POST(request: Request) {
       title,
       room:    room?.name ?? '',
       location: room?.locations?.name ?? '',
-      date:    format(start, 'EEEE, MMMM d, yyyy'),
-      time:    `${format(start, 'h:mm a')} – ${format(end, 'h:mm a')}`,
+      date:    formatted_date ?? format(start, 'EEEE, MMMM d, yyyy'),
+      time:    formatted_time ?? `${format(start, 'h:mm a')} – ${format(end, 'h:mm a')}`,
       booker:  profile.full_name,
     })
   } catch (_) { /* Email failure should not block the booking */ }
