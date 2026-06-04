@@ -37,6 +37,8 @@ export default function MembersManager({ companies }: Props) {
   const [savingCompany, setSavingCompany]   = useState(false)
   const [confirmRemove, setConfirmRemove]   = useState<string | null>(null)
   const [removing, setRemoving]             = useState<string | null>(null)
+  const [confirmInviteAll, setConfirmInviteAll] = useState(false)
+  const [invitingAll, setInvitingAll]           = useState(false)
 
   const refresh = useCallback(async () => {
     const r = await fetch('/api/admin/members/details')
@@ -158,6 +160,26 @@ export default function MembersManager({ companies }: Props) {
     setRemoving(null)
   }
 
+  // ── Invite all uninvited ───────────────────────────────────────────────────
+
+  async function handleInviteAll() {
+    setInvitingAll(true)
+    setConfirmInviteAll(false)
+    const res  = await fetch('/api/invites/send-all', { method: 'POST' })
+    const data = await res.json()
+    if (!res.ok) {
+      toast.error(data.error ?? 'Something went wrong')
+    } else if (data.sent === 0) {
+      toast.success('Everyone has already been invited!')
+    } else if (data.failed > 0) {
+      toast.success(`${data.sent} invites sent, ${data.failed} failed`)
+    } else {
+      toast.success(`${data.sent} invites sent!`)
+    }
+    await refresh()
+    setInvitingAll(false)
+  }
+
   // ── CSV download ───────────────────────────────────────────────────────────
 
   function downloadCSV() {
@@ -193,8 +215,9 @@ export default function MembersManager({ companies }: Props) {
     m.company_name.toLowerCase().includes(q)
   )
 
-  const active  = filtered.filter(m => !!m.accepted_at)
-  const pending = filtered.filter(m => !m.accepted_at)
+  const active      = filtered.filter(m => !!m.accepted_at)
+  const pending     = filtered.filter(m => !m.accepted_at)
+  const notInvited  = members.filter(m => !m.accepted_at && !m.invite_token)
 
   // ── Render ─────────────────────────────────────────────────────────────────
 
@@ -214,6 +237,23 @@ export default function MembersManager({ companies }: Props) {
             className="flex items-center gap-1.5 text-sm border border-gray-300 hover:bg-gray-50 text-gray-700 font-medium px-3 py-2 rounded-lg transition-colors">
             <Download size={14} /> Export CSV
           </button>
+          {notInvited.length > 0 && !confirmInviteAll && (
+            <button onClick={() => setConfirmInviteAll(true)} disabled={invitingAll}
+              className="flex items-center gap-1.5 text-sm border border-blue-300 hover:bg-blue-50 text-blue-700 font-medium px-3 py-2 rounded-lg transition-colors disabled:opacity-50">
+              <Send size={14} /> {invitingAll ? 'Sending…' : `Invite Uninvited (${notInvited.length})`}
+            </button>
+          )}
+          {confirmInviteAll && (
+            <div className="flex items-center gap-2 bg-blue-50 border border-blue-200 rounded-lg px-3 py-1.5">
+              <span className="text-xs text-blue-800 font-medium">Send {notInvited.length} invites?</span>
+              <button onClick={handleInviteAll}
+                className="text-xs bg-blue-600 hover:bg-blue-700 text-white font-semibold px-2.5 py-1 rounded">
+                Yes, send
+              </button>
+              <button onClick={() => setConfirmInviteAll(false)}
+                className="text-xs text-gray-500 hover:text-gray-700">Cancel</button>
+            </div>
+          )}
           <button onClick={() => { setShowForm(v => !v); setLastInviteLink(null) }}
             className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors">
             <Plus size={15} /> Add Member
