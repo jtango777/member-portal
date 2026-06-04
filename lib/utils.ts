@@ -1,6 +1,34 @@
 import { clsx, type ClassValue } from 'clsx'
 import { twMerge } from 'tailwind-merge'
-import { format, startOfMonth, endOfMonth } from 'date-fns'
+import { format } from 'date-fns'
+
+const PT = 'America/Los_Angeles'
+
+/** UTC start/end for a full calendar day in Pacific Time (handles DST automatically) */
+export function getPacificDayBounds(dateStr: string): { start: Date; end: Date } {
+  // Probe noon UTC on that date — safely away from any DST transition hour
+  const probe = new Date(`${dateStr}T12:00:00Z`)
+  const ptHour = parseInt(
+    new Intl.DateTimeFormat('en-US', { timeZone: PT, hour: '2-digit', hour12: false })
+      .formatToParts(probe)
+      .find(p => p.type === 'hour')!.value
+  )
+  const offsetMs = (12 - ptHour) * 3600000 // e.g. 12 - 5 = 7h for PDT
+  const midnight = new Date(`${dateStr}T00:00:00Z`).getTime() + offsetMs
+  return { start: new Date(midnight), end: new Date(midnight + 86400000 - 1) }
+}
+
+/** UTC start/end for a full calendar month in Pacific Time */
+export function getPacificMonthBounds(monthStr: string): { start: string; end: string } {
+  const [year, month] = monthStr.split('-').map(Number)
+  const { start }     = getPacificDayBounds(`${monthStr}-01`)
+  const nextYear      = month === 12 ? year + 1 : year
+  const nextMonth     = month === 12 ? 1 : month + 1
+  const { start: nextStart } = getPacificDayBounds(
+    `${nextYear}-${String(nextMonth).padStart(2, '0')}-01`
+  )
+  return { start: start.toISOString(), end: new Date(nextStart.getTime() - 1).toISOString() }
+}
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -23,10 +51,11 @@ export function formatMonthYear(date: Date): string {
 }
 
 export function getMonthBounds(date: Date) {
-  return {
-    start: startOfMonth(date).toISOString(),
-    end: endOfMonth(date).toISOString(),
-  }
+  const parts = new Intl.DateTimeFormat('en-US', { timeZone: PT, year: 'numeric', month: '2-digit' })
+    .formatToParts(date)
+  const year  = parts.find(p => p.type === 'year')!.value
+  const month = parts.find(p => p.type === 'month')!.value
+  return getPacificMonthBounds(`${year}-${month}`)
 }
 
 export function calcHoursUsed(reservations: { start_time: string; end_time: string }[]): number {

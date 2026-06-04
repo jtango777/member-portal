@@ -1,5 +1,6 @@
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
+import { getPacificMonthBounds } from '@/lib/utils'
 
 export async function GET(request: Request) {
   const supabase = await createClient()
@@ -13,8 +14,7 @@ export async function GET(request: Request) {
 
   if (!month) return NextResponse.json({ error: 'month param required (YYYY-MM)' }, { status: 400 })
 
-  const start = new Date(`${month}-01T00:00:00`)
-  const end   = new Date(start.getFullYear(), start.getMonth() + 1, 1)
+  const { start, end } = getPacificMonthBounds(month)
 
   const admin = createAdminClient()
   const { data, error } = await admin
@@ -25,8 +25,8 @@ export async function GET(request: Request) {
       companies ( name ),
       rooms ( name, locations ( name ) )
     `)
-    .gte('start_time', start.toISOString())
-    .lt('start_time', end.toISOString())
+    .gte('start_time', start)
+    .lt('start_time', end)
     .order('start_time')
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })

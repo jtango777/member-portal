@@ -1,6 +1,6 @@
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
-import { calcHoursUsed, getMonthBounds } from '@/lib/utils'
+import { calcHoursUsed, getMonthBounds, getPacificDayBounds } from '@/lib/utils'
 import { sendConfirmationEmail } from '@/lib/email'
 import { format } from 'date-fns'
 
@@ -19,8 +19,7 @@ export async function GET(request: Request) {
     .order('start_time')
 
   if (date) {
-    const start = new Date(date + 'T00:00:00')
-    const end   = new Date(date + 'T23:59:59')
+    const { start, end } = getPacificDayBounds(date)
     query = query.gte('start_time', start.toISOString()).lte('start_time', end.toISOString())
   }
 

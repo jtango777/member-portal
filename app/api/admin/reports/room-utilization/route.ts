@@ -1,5 +1,6 @@
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
+import { getPacificMonthBounds } from '@/lib/utils'
 
 export async function GET(request: Request) {
   const supabase = await createClient()
@@ -12,9 +13,8 @@ export async function GET(request: Request) {
   const month = searchParams.get('month')
   if (!month) return NextResponse.json({ error: 'month param required' }, { status: 400 })
 
-  const start      = new Date(`${month}-01T00:00:00`)
-  const end        = new Date(start.getFullYear(), start.getMonth() + 1, 1)
-  const daysInMonth = (end.getTime() - start.getTime()) / 86400000
+  const { start, end } = getPacificMonthBounds(month)
+  const daysInMonth    = (new Date(end).getTime() - new Date(start).getTime()) / 86400000
   const availableHoursPerRoom = daysInMonth * 15 // 7am–10pm = 15 hrs/day
 
   const admin = createAdminClient()
@@ -22,8 +22,8 @@ export async function GET(request: Request) {
     admin.from('rooms').select('id, name, capacity, sort_order, locations ( name )').order('sort_order'),
     admin.from('reservations')
       .select('room_id, start_time, end_time')
-      .gte('start_time', start.toISOString())
-      .lt('start_time', end.toISOString()),
+      .gte('start_time', start)
+      .lt('start_time', end),
   ])
 
   const result = (rooms ?? []).map(r => {
