@@ -74,6 +74,7 @@ export default function ReservationModal({
   const hoursUntilStart = reservation
     ? (new Date(reservation.start_time).getTime() - Date.now()) / 3600000
     : 0
+  const canEdit   = isOwn && !isAdmin && !!reservation && hoursUntilStart > 24
   const canCancel = isOwn && !isAdmin && !!reservation && hoursUntilStart > 24
   const withinCancelPolicy = isOwn && !isAdmin && !!reservation && hoursUntilStart > 0 && hoursUntilStart <= 24
 
@@ -305,7 +306,7 @@ export default function ReservationModal({
                 {withinCancelPolicy && !editing && (
                   <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 text-xs text-amber-700">
                     <AlertCircle size={13} className="flex-shrink-0 mt-0.5" />
-                    Can't cancel within 24 hours. Contact an admin.
+                    Can't edit or cancel within 24 hours. Contact an admin.
                   </div>
                 )}
                 {/* Regular user cancel */}
@@ -334,7 +335,7 @@ export default function ReservationModal({
                     <button onClick={() => onClose()} className="text-sm text-gray-500 hover:text-gray-700 px-3 py-1.5">
                       Close
                     </button>
-                    {isAdmin && (
+                    {(isAdmin || canEdit) && (
                       <button onClick={() => setEditing(true)}
                         className="flex items-center gap-1.5 text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1.5 rounded-lg font-medium">
                         <Edit2 size={13} /> Edit
