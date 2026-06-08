@@ -9,13 +9,20 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   const { data: profile } = await supabase.from('profiles').select('is_admin').eq('id', user.id).single()
   if (!profile?.is_admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
-  const { name, monthly_hours_allotment } = await request.json()
+  const body = await request.json()
   const admin = createAdminClient()
+
+  // Build update object from whatever fields were sent
+  const update: Record<string, unknown> = {}
+  if ('name'                   in body) update.name                   = body.name
+  if ('monthly_hours_allotment' in body) update.monthly_hours_allotment = body.monthly_hours_allotment
+  if ('membership_type_id'     in body) update.membership_type_id     = body.membership_type_id ?? null
+
   const { data, error } = await admin
     .from('companies')
-    .update({ name, monthly_hours_allotment })
+    .update(update)
     .eq('id', id)
-    .select()
+    .select('*, membership_types(*)')
     .single()
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })

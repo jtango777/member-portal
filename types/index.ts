@@ -12,11 +12,21 @@ export type Room = {
   sort_order: number
 }
 
+export type MembershipType = {
+  id: string
+  name: string
+  hours_per_month: number | null
+  sort_order: number
+  created_at: string
+}
+
 export type Company = {
   id: string
   name: string
   monthly_hours_allotment: number
+  membership_type_id: string | null
   created_at: string
+  membership_types?: MembershipType | null
 }
 
 export type Profile = {

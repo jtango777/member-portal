@@ -5,6 +5,9 @@ export const dynamic = 'force-dynamic'
 
 export default async function CompaniesPage() {
   const supabase = await createClient()
-  const { data: companies } = await supabase.from('companies').select('*').order('name')
-  return <CompaniesManager companies={companies ?? []} />
+  const [{ data: companies }, { data: membershipTypes }] = await Promise.all([
+    supabase.from('companies').select('*, membership_types(*)').order('name'),
+    supabase.from('membership_types').select('*').order('sort_order'),
+  ])
+  return <CompaniesManager companies={companies ?? []} membershipTypes={membershipTypes ?? []} />
 }

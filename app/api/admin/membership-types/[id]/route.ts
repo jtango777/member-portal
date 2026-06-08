@@ -9,30 +9,30 @@ async function assertAdmin() {
   return profile?.is_admin ? user : null
 }
 
-export async function GET() {
+export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
+  const user = await assertAdmin()
+  if (!user) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+
+  const { name, hours_per_month } = await request.json()
   const admin = createAdminClient()
   const { data, error } = await admin
-    .from('companies')
-    .select('*, membership_types(*)')
-    .order('name')
+    .from('membership_types')
+    .update({ name, hours_per_month: hours_per_month ?? null })
+    .eq('id', id)
+    .select().single()
+
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json(data)
 }
 
-export async function POST(request: Request) {
+export async function DELETE(_req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
   const user = await assertAdmin()
   if (!user) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
-  const { name, monthly_hours_allotment } = await request.json()
-  if (!name) return NextResponse.json({ error: 'Name is required' }, { status: 400 })
-
   const admin = createAdminClient()
-  const { data, error } = await admin
-    .from('companies')
-    .insert({ name, monthly_hours_allotment: monthly_hours_allotment ?? 0 })
-    .select()
-    .single()
-
+  const { error } = await admin.from('membership_types').delete().eq('id', id)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-  return NextResponse.json(data, { status: 201 })
+  return NextResponse.json({ ok: true })
 }

@@ -11,10 +11,7 @@ async function assertAdmin() {
 
 export async function GET() {
   const admin = createAdminClient()
-  const { data, error } = await admin
-    .from('companies')
-    .select('*, membership_types(*)')
-    .order('name')
+  const { data, error } = await admin.from('membership_types').select('*').order('sort_order')
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json(data)
 }
@@ -23,15 +20,17 @@ export async function POST(request: Request) {
   const user = await assertAdmin()
   if (!user) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
-  const { name, monthly_hours_allotment } = await request.json()
+  const { name, hours_per_month } = await request.json()
   if (!name) return NextResponse.json({ error: 'Name is required' }, { status: 400 })
 
   const admin = createAdminClient()
+  const { data: top } = await admin
+    .from('membership_types').select('sort_order').order('sort_order', { ascending: false }).limit(1).single()
+
   const { data, error } = await admin
-    .from('companies')
-    .insert({ name, monthly_hours_allotment: monthly_hours_allotment ?? 0 })
-    .select()
-    .single()
+    .from('membership_types')
+    .insert({ name, hours_per_month: hours_per_month ?? null, sort_order: (top?.sort_order ?? 0) + 1 })
+    .select().single()
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json(data, { status: 201 })
