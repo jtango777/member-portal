@@ -85,10 +85,13 @@ export default function CompaniesManager({ companies: initial, membershipTypes: 
 
   async function handleTypeChange(companyId: string, typeId: string | null) {
     setAssigningType(companyId)
+    const type = typeId ? membershipTypes.find(t => t.id === typeId) : null
+    const body: Record<string, unknown> = { membership_type_id: typeId }
+    if (type?.hours_per_month != null) body.monthly_hours_allotment = type.hours_per_month
     const res = await fetch(`/api/admin/companies/${companyId}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ membership_type_id: typeId }),
+      body: JSON.stringify(body),
     })
     if (res.ok) {
       await refreshCompanies()
