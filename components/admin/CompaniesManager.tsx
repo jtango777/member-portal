@@ -72,7 +72,7 @@ export default function CompaniesManager({ companies: initial, membershipTypes: 
     setNewMembershipTypeId(typeId)
     if (typeId) {
       const type = membershipTypes.find(t => t.id === typeId)
-      if (type?.hours_per_month != null) setNewHours(String(type.hours_per_month))
+      setNewHours(type?.hours_per_month != null ? String(type.hours_per_month) : '0')
     }
   }
 
