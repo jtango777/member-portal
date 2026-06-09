@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { Company, MembershipType } from '@/types'
-import { Plus, Edit2, Check, X, Wand2, Settings, Trash2 } from 'lucide-react'
+import { Plus, Edit2, Check, X, Settings, Trash2 } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 type Props = {
@@ -18,13 +18,13 @@ export default function CompaniesManager({ companies: initial, membershipTypes: 
   const [membershipTypes, setMembershipTypes] = useState(initialTypes)
   const [showForm,        setShowForm]        = useState(false)
   const [showManageTypes, setShowManageTypes] = useState(false)
-  const [newName,         setNewName]         = useState('')
-  const [newHours,        setNewHours]        = useState('0')
-  const [creating,        setCreating]        = useState(false)
-  const [editing,         setEditing]         = useState<EditState>(null)
-  const [saving,          setSaving]          = useState(false)
-  const [autoAssigning,   setAutoAssigning]   = useState(false)
-  const [assigningType,   setAssigningType]   = useState<string | null>(null)
+  const [newName,             setNewName]             = useState('')
+  const [newHours,            setNewHours]            = useState('0')
+  const [newMembershipTypeId, setNewMembershipTypeId] = useState('')
+  const [creating,            setCreating]            = useState(false)
+  const [editing,             setEditing]             = useState<EditState>(null)
+  const [saving,              setSaving]              = useState(false)
+  const [assigningType,       setAssigningType]       = useState<string | null>(null)
   // Manage types state
   const [newTypeName,     setNewTypeName]     = useState('')
   const [newTypeHours,    setNewTypeHours]    = useState('')
@@ -51,17 +51,29 @@ export default function CompaniesManager({ companies: initial, membershipTypes: 
     const res = await fetch('/api/admin/companies', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: newName, monthly_hours_allotment: parseFloat(newHours) }),
+      body: JSON.stringify({
+        name: newName,
+        monthly_hours_allotment: parseFloat(newHours),
+        membership_type_id: newMembershipTypeId || null,
+      }),
     })
     if (res.ok) {
       toast.success('Company created')
-      setNewName(''); setNewHours('0'); setShowForm(false)
+      setNewName(''); setNewHours('0'); setNewMembershipTypeId(''); setShowForm(false)
       await refreshCompanies()
     } else {
       const d = await res.json()
       toast.error(d.error ?? 'Failed to create company')
     }
     setCreating(false)
+  }
+
+  function handleNewTypeSelect(typeId: string) {
+    setNewMembershipTypeId(typeId)
+    if (typeId) {
+      const type = membershipTypes.find(t => t.id === typeId)
+      if (type?.hours_per_month != null) setNewHours(String(type.hours_per_month))
+    }
   }
 
   async function handleSaveEdit() {
@@ -85,13 +97,10 @@ export default function CompaniesManager({ companies: initial, membershipTypes: 
 
   async function handleTypeChange(companyId: string, typeId: string | null) {
     setAssigningType(companyId)
-    const type = typeId ? membershipTypes.find(t => t.id === typeId) : null
-    const body: Record<string, unknown> = { membership_type_id: typeId }
-    if (type?.hours_per_month != null) body.monthly_hours_allotment = type.hours_per_month
     const res = await fetch(`/api/admin/companies/${companyId}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
+      body: JSON.stringify({ membership_type_id: typeId }),
     })
     if (res.ok) {
       await refreshCompanies()
@@ -200,10 +209,6 @@ export default function CompaniesManager({ companies: initial, membershipTypes: 
             className="flex items-center gap-1.5 text-sm border border-gray-300 hover:bg-gray-50 text-gray-700 font-medium px-3 py-2 rounded-lg transition-colors">
             <Settings size={14} /> Manage Types
           </button>
-          <button onClick={handleAutoAssign} disabled={autoAssigning}
-            className="flex items-center gap-1.5 text-sm border border-blue-300 hover:bg-blue-50 text-blue-700 font-medium px-3 py-2 rounded-lg transition-colors disabled:opacity-50">
-            <Wand2 size={14} /> {autoAssigning ? 'Assigning…' : 'Auto-assign Types'}
-          </button>
           <button onClick={() => setShowForm(v => !v)}
             className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors">
             <Plus size={16} /> Add Company
@@ -297,7 +302,7 @@ export default function CompaniesManager({ companies: initial, membershipTypes: 
       {showForm && (
         <form onSubmit={handleCreate} className="bg-white border border-gray-200 rounded-xl p-4 space-y-3">
           <h3 className="font-semibold text-gray-900 text-sm">New Company</h3>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-3 gap-3">
             <div>
               <label className="block text-xs font-medium text-gray-700 mb-1">Company Name</label>
               <input required value={newName} onChange={e => setNewName(e.target.value)}
@@ -305,7 +310,17 @@ export default function CompaniesManager({ companies: initial, membershipTypes: 
                 placeholder="Acme Corp" />
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1">Monthly Hours Allotment</label>
+              <label className="block text-xs font-medium text-gray-700 mb-1">Membership Type</label>
+              <select value={newMembershipTypeId} onChange={e => handleNewTypeSelect(e.target.value)}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+                <option value="">— select type —</option>
+                {membershipTypes.map(t => (
+                  <option key={t.id} value={t.id}>{t.name}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">Monthly Hours</label>
               <input type="number" min="0" step="0.5" required value={newHours} onChange={e => setNewHours(e.target.value)}
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="4" />

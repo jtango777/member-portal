@@ -23,13 +23,13 @@ export async function POST(request: Request) {
   const user = await assertAdmin()
   if (!user) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
-  const { name, monthly_hours_allotment } = await request.json()
+  const { name, monthly_hours_allotment, membership_type_id } = await request.json()
   if (!name) return NextResponse.json({ error: 'Name is required' }, { status: 400 })
 
   const admin = createAdminClient()
   const { data, error } = await admin
     .from('companies')
-    .insert({ name, monthly_hours_allotment: monthly_hours_allotment ?? 0 })
+    .insert({ name, monthly_hours_allotment: monthly_hours_allotment ?? 0, membership_type_id: membership_type_id ?? null })
     .select()
     .single()
 
