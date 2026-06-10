@@ -72,7 +72,7 @@ export default function CompaniesManager({ companies: initial, membershipTypes: 
     setNewMembershipTypeId(typeId)
     if (typeId) {
       const type = membershipTypes.find(t => t.id === typeId)
-      setNewHours(type?.hours_per_month != null ? String(type.hours_per_month) : '0')
+      setNewHours(type?.hours_per_month != null ? String(type.hours_per_month) : '')
     }
   }
 
@@ -323,7 +323,7 @@ export default function CompaniesManager({ companies: initial, membershipTypes: 
               <label className="block text-xs font-medium text-gray-700 mb-1">Monthly Hours</label>
               <input type="number" min="0" step="0.5" required value={newHours} onChange={e => setNewHours(e.target.value)}
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="4" />
+                placeholder="enter hours" />
             </div>
           </div>
           <div className="flex gap-2">
