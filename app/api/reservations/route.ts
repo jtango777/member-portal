@@ -56,6 +56,32 @@ export async function POST(request: Request) {
   const body = await request.json()
   const { room_id, title, notes, start_time, end_time, formatted_date, formatted_time } = body
 
+  // ── Recurring admin block ──────────────────────────────────────────────────
+  if (body.occurrences && Array.isArray(body.occurrences)) {
+    if (!profile.is_admin) {
+      return NextResponse.json({ error: 'Only admins can create recurring blocks.' }, { status: 403 })
+    }
+    if (!room_id || !title) {
+      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
+    }
+    const groupId = crypto.randomUUID()
+    const records = (body.occurrences as Array<{ start_time: string; end_time: string }>).map(o => ({
+      room_id,
+      user_id:              user.id,
+      company_id:           profile.company_id,
+      title:                title.trim(),
+      notes:                notes?.trim() || null,
+      start_time:           o.start_time,
+      end_time:             o.end_time,
+      is_admin_block:       true,
+      recurrence_group_id:  groupId,
+    }))
+    const { error } = await adminSupabase.from('reservations').insert(records)
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    return NextResponse.json({ ok: true, recurrence_group_id: groupId, count: records.length }, { status: 201 })
+  }
+  // ──────────────────────────────────────────────────────────────────────────
+
   if (!room_id || !title || !start_time || !end_time) {
     return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
   }
@@ -88,12 +114,25 @@ export async function POST(request: Request) {
   // Check for conflicts on the same room
   const { data: conflicts } = await adminSupabase
     .from('reservations')
-    .select('id')
+    .select('id, title, start_time, end_time, profiles(full_name), companies(name)')
     .eq('room_id', room_id)
     .lt('start_time', end_time)
     .gt('end_time', start_time)
 
   if (conflicts && conflicts.length > 0) {
+    if (profile.is_admin) {
+      return NextResponse.json({
+        error: 'conflict',
+        conflicts: conflicts.map((c: any) => ({
+          id:         c.id,
+          title:      c.title,
+          start_time: c.start_time,
+          end_time:   c.end_time,
+          booked_by:  c.profiles?.full_name ?? 'Unknown',
+          company:    c.companies?.name ?? '',
+        })),
+      }, { status: 409 })
+    }
     return NextResponse.json({ error: 'This room is already booked for that time.' }, { status: 409 })
   }
 

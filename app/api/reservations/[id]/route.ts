@@ -69,13 +69,26 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   // Check conflicts (excluding this reservation)
   const { data: conflicts } = await adminSupabase
     .from('reservations')
-    .select('id')
+    .select('id, title, start_time, end_time, profiles(full_name), companies(name)')
     .eq('room_id', room_id)
     .neq('id', id)
     .lt('start_time', end_time)
     .gt('end_time', start_time)
 
   if (conflicts && conflicts.length > 0) {
+    if (profile.is_admin) {
+      return NextResponse.json({
+        error: 'conflict',
+        conflicts: conflicts.map((c: any) => ({
+          id:         c.id,
+          title:      c.title,
+          start_time: c.start_time,
+          end_time:   c.end_time,
+          booked_by:  c.profiles?.full_name ?? 'Unknown',
+          company:    c.companies?.name ?? '',
+        })),
+      }, { status: 409 })
+    }
     return NextResponse.json({ error: 'This room is already booked for that time.' }, { status: 409 })
   }
 
@@ -90,7 +103,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   return NextResponse.json(data)
 }
 
-export async function DELETE(_request: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const supabase      = await createClient()
   const adminSupabase = createAdminClient()
@@ -119,6 +132,18 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
     if (hoursUntil < 24) {
       return NextResponse.json({ error: 'Reservations cannot be cancelled within 24 hours of the start time. Please contact an admin.' }, { status: 403 })
     }
+  }
+
+  // Admin: scope=future deletes this occurrence + all future in the same recurring group
+  const scope = new URL(request.url).searchParams.get('scope')
+  if (scope === 'future' && profile?.is_admin && reservation.recurrence_group_id) {
+    const { error } = await adminSupabase
+      .from('reservations')
+      .delete()
+      .eq('recurrence_group_id', reservation.recurrence_group_id)
+      .gte('start_time', reservation.start_time)
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    return NextResponse.json({ ok: true })
   }
 
   const { error } = await adminSupabase.from('reservations').delete().eq('id', id)

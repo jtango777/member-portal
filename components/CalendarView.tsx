@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useRef, useEffect } from 'react'
 import { format, addDays, subDays, isToday, isBefore, startOfDay, startOfMonth, endOfMonth, eachDayOfInterval, getDay, addMonths, subMonths } from 'date-fns'
-import { ChevronLeft, ChevronRight, Lock, FileText, Plus, Users, Clock } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Lock, FileText, Plus, Users, Clock, Ban } from 'lucide-react'
 import { Location, Room, Reservation, Profile, Company } from '@/types'
 import { cn, formatTime, isSameDay } from '@/lib/utils'
 import ReservationModal from './ReservationModal'
@@ -301,11 +301,12 @@ export default function CalendarView({ locations, profile, company, hoursUsed, d
 
                     {/* Booking cards */}
                     {roomReservations.map(res => {
-                      const startSlot = Math.max(0, timeToSlot(res.start_time))
-                      const endSlot   = Math.min(TOTAL_SLOTS, timeToSlot(res.end_time))
-                      const top    = startSlot * SLOT_H
-                      const height = Math.max(SLOT_H / 2, (endSlot - startSlot) * SLOT_H)
-                      const isOwn  = res.user_id === profile.id
+                      const startSlot  = Math.max(0, timeToSlot(res.start_time))
+                      const endSlot    = Math.min(TOTAL_SLOTS, timeToSlot(res.end_time))
+                      const top        = startSlot * SLOT_H
+                      const height     = Math.max(SLOT_H / 2, (endSlot - startSlot) * SLOT_H)
+                      const isOwn      = res.user_id === profile.id
+                      const isBlock    = res.is_admin_block
 
                       return (
                         <div
@@ -314,28 +315,35 @@ export default function CalendarView({ locations, profile, company, hoursUsed, d
                           style={{ top: top + 2, height: height - 4, position: 'absolute', left: 3, right: 3 }}
                           className={cn(
                             'rounded-md px-2 py-1 cursor-pointer z-10 overflow-hidden',
-                            'transition-all hover:brightness-110 select-none',
-                            isOwn
+                            'transition-all hover:brightness-95 select-none',
+                            isBlock
+                              ? 'bg-slate-200 text-slate-600 border border-slate-300'
+                              : isOwn
                               ? 'bg-blue-600 text-white'
                               : 'bg-gray-100 text-gray-600 border border-gray-200'
                           )}
                         >
                           <div className="flex items-center gap-1 text-xs font-medium opacity-90">
-                            <Lock size={10} className="flex-shrink-0" />
+                            {isBlock
+                              ? <Ban size={10} className="flex-shrink-0" />
+                              : <Lock size={10} className="flex-shrink-0" />
+                            }
                             <span className="truncate">
                               {formatTime(new Date(res.start_time))} – {formatTime(new Date(res.end_time))}
                             </span>
-                            {res.notes && <FileText size={10} className="flex-shrink-0 ml-auto" />}
+                            {!isBlock && res.notes && <FileText size={10} className="flex-shrink-0 ml-auto" />}
                           </div>
                           {height >= SLOT_H && (
                             <>
                               <div className="font-semibold text-sm truncate mt-0.5 leading-tight">
                                 {res.title}
                               </div>
-                              <div className="text-xs opacity-75 truncate">
-                                {res.profiles?.full_name}
-                                {res.companies?.name ? ` · ${res.companies.name}` : ''}
-                              </div>
+                              {!isBlock && (
+                                <div className="text-xs opacity-75 truncate">
+                                  {res.profiles?.full_name}
+                                  {res.companies?.name ? ` · ${res.companies.name}` : ''}
+                                </div>
+                              )}
                             </>
                           )}
                         </div>

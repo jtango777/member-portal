@@ -10,6 +10,9 @@ export type Room = {
   name: string
   capacity: number
   sort_order: number
+  external_name: string | null
+  price_per_hour: number | null
+  external_bookable: boolean
 }
 
 export type MembershipType = {
@@ -58,6 +61,8 @@ export type Reservation = {
   start_time: string
   end_time: string
   created_at: string
+  recurrence_group_id: string | null
+  is_admin_block: boolean
   profiles?: Profile
   companies?: Company
   rooms?: Room
