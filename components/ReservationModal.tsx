@@ -127,7 +127,8 @@ export default function ReservationModal({
   const [deleting, setDeleting]         = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [deleteScope, setDeleteScope]   = useState<'this' | 'future' | null>(null)
-  const [adminConflicts, setAdminConflicts] = useState<ConflictItem[]>([])
+  const [adminConflicts, setAdminConflicts]     = useState<ConflictItem[]>([])
+  const [removingConflicts, setRemovingConflicts] = useState(false)
 
   // Recurrence state (admin create only)
   const [isRecurring, setIsRecurring]   = useState(false)
@@ -172,6 +173,15 @@ export default function ReservationModal({
 
   function toggleDayOfWeek(day: number) {
     setDaysOfWeek(prev => prev.includes(day) ? prev.filter(d => d !== day) : [...prev, day])
+  }
+
+  async function handleRemoveConflicts(ids: string[]) {
+    setRemovingConflicts(true)
+    await Promise.all(ids.map(id => fetch(`/api/reservations/${id}`, { method: 'DELETE' })))
+    const remaining = adminConflicts.filter(c => !ids.includes(c.id))
+    setAdminConflicts(remaining)
+    setRemovingConflicts(false)
+    if (remaining.length === 0) handleSave()
   }
 
   async function handleSave() {
@@ -442,11 +452,11 @@ export default function ReservationModal({
                     {isRecurring && (
                       <div className="mt-3 space-y-3 pl-1">
                         {/* Frequency buttons */}
-                        <div className="flex gap-1">
+                        <div className="flex gap-1.5">
                           {(['daily', 'weekly', 'monthly'] as const).map(f => (
                             <button key={f} type="button" onClick={() => setFrequency(f)}
                               className={cn(
-                                'px-3 py-1 text-xs font-medium rounded-md transition-colors capitalize',
+                                'px-3 py-1.5 text-sm font-medium rounded-lg transition-colors capitalize',
                                 frequency === f ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                               )}>
                               {f}
@@ -456,12 +466,12 @@ export default function ReservationModal({
 
                         {/* Days of week (weekly only) */}
                         {frequency === 'weekly' && (
-                          <div className="flex items-center gap-1">
-                            <span className="text-xs text-gray-500 mr-1 w-6">On:</span>
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-sm text-gray-500 mr-1">On:</span>
                             {DAYS.map(({ label, day }) => (
                               <button key={day} type="button" onClick={() => toggleDayOfWeek(day)}
                                 className={cn(
-                                  'w-7 h-7 text-xs font-medium rounded-full transition-colors',
+                                  'w-8 h-8 text-sm font-medium rounded-full transition-colors',
                                   daysOfWeek.includes(day) ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                                 )}>
                                 {label}
@@ -472,32 +482,32 @@ export default function ReservationModal({
 
                         {/* End condition */}
                         <div className="space-y-2">
-                          <span className="text-xs text-gray-500">Ends:</span>
+                          <span className="text-sm font-medium text-gray-700">Ends:</span>
                           <div className="flex items-center gap-2">
                             <input type="radio" name="recurEnd" value="date"
                               checked={endType === 'date'} onChange={() => setEndType('date')} />
-                            <span className="text-xs text-gray-700">On</span>
+                            <span className="text-sm text-gray-700">On</span>
                             <input type="date" value={recurEndDate}
                               onChange={e => setRecurEndDate(e.target.value)}
                               disabled={endType !== 'date'}
-                              className="text-xs border border-gray-300 rounded px-2 py-1 disabled:opacity-40 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                              className="text-sm border border-gray-300 rounded-lg px-3 py-2 disabled:opacity-40 focus:outline-none focus:ring-2 focus:ring-blue-500"
                             />
                           </div>
                           <div className="flex items-center gap-2">
                             <input type="radio" name="recurEnd" value="count"
                               checked={endType === 'count'} onChange={() => setEndType('count')} />
-                            <span className="text-xs text-gray-700">After</span>
+                            <span className="text-sm text-gray-700">After</span>
                             <input type="number" min={1} max={365} value={endCount}
                               onChange={e => setEndCount(Math.max(1, parseInt(e.target.value) || 1))}
                               disabled={endType !== 'count'}
-                              className="w-16 text-xs border border-gray-300 rounded px-2 py-1 disabled:opacity-40 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                              className="w-20 text-sm border border-gray-300 rounded-lg px-3 py-2 disabled:opacity-40 focus:outline-none focus:ring-2 focus:ring-blue-500"
                             />
-                            <span className="text-xs text-gray-700">occurrences</span>
+                            <span className="text-sm text-gray-700">occurrences</span>
                           </div>
                         </div>
 
                         {/* Preview count */}
-                        <p className={cn('text-xs', recurOccurrences.length > 0 ? 'text-gray-500' : 'text-red-500')}>
+                        <p className={cn('text-sm', recurOccurrences.length > 0 ? 'text-gray-500' : 'text-red-500')}>
                           {recurOccurrences.length > 0
                             ? `Will create ${recurOccurrences.length} occurrence${recurOccurrences.length !== 1 ? 's' : ''}`
                             : 'No occurrences — check settings'}
@@ -512,23 +522,41 @@ export default function ReservationModal({
 
             {/* Admin conflict warning */}
             {adminConflicts.length > 0 && (
-              <div className="bg-amber-50 border border-amber-200 rounded-lg px-3 py-2.5 space-y-1.5">
-                <p className="text-xs font-semibold text-amber-800 flex items-center gap-1.5">
+              <div className="bg-amber-50 border border-amber-200 rounded-lg px-3 py-2.5 space-y-2">
+                <p className="text-sm font-semibold text-amber-800 flex items-center gap-1.5">
                   <AlertCircle size={13} className="flex-shrink-0" />
                   This room isn't available for the selected time. The following bookings need to be removed first:
                 </p>
-                <ul className="space-y-1.5 pl-0.5">
+                <ul className="space-y-2">
                   {adminConflicts.map(c => (
-                    <li key={c.id} className="text-xs text-amber-700">
-                      <span className="font-medium">{c.title}</span>
-                      {c.company && <span className="text-amber-600"> · {c.company}</span>}
-                      {c.booked_by && <span className="text-amber-600"> · {c.booked_by}</span>}
-                      <span className="block text-amber-500 mt-0.5">
-                        {formatTime(new Date(c.start_time))} – {formatTime(new Date(c.end_time))}
-                      </span>
+                    <li key={c.id} className="flex items-start justify-between gap-2">
+                      <div className="text-sm text-amber-700">
+                        <span className="font-medium">{c.title}</span>
+                        {c.company && <span className="text-amber-600"> · {c.company}</span>}
+                        {c.booked_by && <span className="text-amber-600"> · {c.booked_by}</span>}
+                        <span className="block text-amber-500 mt-0.5">
+                          {formatTime(new Date(c.start_time))} – {formatTime(new Date(c.end_time))}
+                        </span>
+                      </div>
+                      <button
+                        onClick={() => handleRemoveConflicts([c.id])}
+                        disabled={removingConflicts}
+                        className="flex-shrink-0 text-sm font-medium text-red-600 hover:text-red-800 underline disabled:opacity-40 mt-0.5"
+                      >
+                        Remove
+                      </button>
                     </li>
                   ))}
                 </ul>
+                {adminConflicts.length > 1 && (
+                  <button
+                    onClick={() => handleRemoveConflicts(adminConflicts.map(c => c.id))}
+                    disabled={removingConflicts}
+                    className="text-sm font-medium text-red-600 hover:text-red-800 underline disabled:opacity-40"
+                  >
+                    {removingConflicts ? 'Removing…' : 'Remove all'}
+                  </button>
+                )}
               </div>
             )}
 
