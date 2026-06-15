@@ -201,6 +201,10 @@ export default function ReservationModal({
         toast.error('No occurrences generated — check your settings'); return
       }
       setLoading(true)
+      // If converting an existing reservation to recurring, delete the original first
+      if (reservation) {
+        await fetch(`/api/reservations/${reservation.id}`, { method: 'DELETE' })
+      }
       const res = await fetch('/api/reservations', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -435,8 +439,8 @@ export default function ReservationModal({
                   />
                 </div>
 
-                {/* ── Repeat (admin create only) ────────────────────────── */}
-                {isAdmin && mode === 'create' && (
+                {/* ── Repeat (admin only, create or edit) ──────────────── */}
+                {isAdmin && editing && (
                   <div className="border-t border-gray-100 pt-3">
                     <label className="flex items-center gap-2 text-sm font-medium text-gray-700 cursor-pointer select-none">
                       <input
