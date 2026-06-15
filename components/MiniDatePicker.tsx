@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay, addMonths, subMonths } from 'date-fns'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { cn, isSameDay } from '@/lib/utils'
@@ -13,42 +14,63 @@ type Props = {
 
 export default function MiniDatePicker({ value, onChange, disabled }: Props) {
   const [open, setOpen] = useState(false)
+  const [pos, setPos] = useState({ top: 0, left: 0 })
   const [pickerMonth, setPickerMonth] = useState(() => value ? new Date(value + 'T12:00:00') : new Date())
-  const ref = useRef<HTMLDivElement>(null)
+  const buttonRef  = useRef<HTMLButtonElement>(null)
+  const dropdownRef = useRef<HTMLDivElement>(null)
 
-  // Close on outside click
+  // Close on outside click — must check both button and dropdown
   useEffect(() => {
     function handleClick(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+      const target = e.target as Node
+      if (
+        buttonRef.current  && !buttonRef.current.contains(target) &&
+        dropdownRef.current && !dropdownRef.current.contains(target)
+      ) setOpen(false)
     }
     if (open) document.addEventListener('mousedown', handleClick)
     return () => document.removeEventListener('mousedown', handleClick)
   }, [open])
 
-  const selectedDate = value ? new Date(value + 'T12:00:00') : null
-  const today = new Date()
+  function handleOpen() {
+    if (disabled) return
+    if (buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect()
+      setPos({ top: rect.bottom + 4, left: rect.left })
+    }
+    setPickerMonth(value ? new Date(value + 'T12:00:00') : new Date())
+    setOpen(v => !v)
+  }
 
   function selectDay(day: Date) {
     onChange(format(day, 'yyyy-MM-dd'))
     setOpen(false)
   }
 
+  const selectedDate = value ? new Date(value + 'T12:00:00') : null
+  const today = new Date()
+
   return (
-    <div className="relative" ref={ref}>
+    <>
       <button
+        ref={buttonRef}
         type="button"
         disabled={disabled}
-        onClick={() => { if (!disabled) { setPickerMonth(selectedDate ?? new Date()); setOpen(v => !v) } }}
+        onClick={handleOpen}
         className={cn(
-          'w-full text-left border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white transition-colors',
+          'w-full text-left border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500',
           disabled ? 'opacity-40 cursor-not-allowed' : 'hover:border-gray-400 cursor-pointer',
         )}
       >
         {selectedDate ? format(selectedDate, 'MMM d, yyyy') : 'Select date'}
       </button>
 
-      {open && (
-        <div className="absolute top-full left-0 mt-1 z-50 bg-white rounded-xl shadow-xl border border-gray-200 p-3 w-64">
+      {open && typeof document !== 'undefined' && createPortal(
+        <div
+          ref={dropdownRef}
+          style={{ position: 'fixed', top: pos.top, left: pos.left, zIndex: 9999 }}
+          className="bg-white rounded-xl shadow-xl border border-gray-200 p-3 w-64"
+        >
           {/* Month navigation */}
           <div className="flex items-center justify-between mb-2">
             <button type="button" onClick={() => setPickerMonth(m => subMonths(m, 1))}
@@ -92,8 +114,9 @@ export default function MiniDatePicker({ value, onChange, disabled }: Props) {
               </button>
             ))}
           </div>
-        </div>
+        </div>,
+        document.body
       )}
-    </div>
+    </>
   )
 }
