@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { format, addDays, addMonths } from 'date-fns'
 import * as Dialog from '@radix-ui/react-dialog'
 import { X, Lock, Trash2, Edit2, Check, AlertCircle, Repeat, Ban } from 'lucide-react'
+import MiniDatePicker from './MiniDatePicker'
 import { Reservation, Room, Profile, Company } from '@/types'
 import { cn, buildTimeOptions, parseTimeValue, formatTime } from '@/lib/utils'
 import toast from 'react-hot-toast'
@@ -491,11 +492,13 @@ export default function ReservationModal({
                             <input type="radio" name="recurEnd" value="date"
                               checked={endType === 'date'} onChange={() => setEndType('date')} />
                             <span className="text-sm text-gray-700">On</span>
-                            <input type="date" value={recurEndDate}
-                              onChange={e => setRecurEndDate(e.target.value)}
-                              disabled={endType !== 'date'}
-                              className="text-sm border border-gray-300 rounded-lg px-3 py-2 disabled:opacity-40 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            />
+                            <div className="flex-1">
+                              <MiniDatePicker
+                                value={recurEndDate}
+                                onChange={setRecurEndDate}
+                                disabled={endType !== 'date'}
+                              />
+                            </div>
                           </div>
                           <div className="flex items-center gap-2">
                             <input type="radio" name="recurEnd" value="count"
