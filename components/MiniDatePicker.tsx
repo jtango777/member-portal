@@ -36,7 +36,12 @@ export default function MiniDatePicker({ value, onChange, disabled }: Props) {
     if (disabled) return
     if (buttonRef.current) {
       const rect = buttonRef.current.getBoundingClientRect()
-      setPos({ top: rect.bottom + 4, left: rect.left })
+      const PICKER_HEIGHT = 280
+      const spaceBelow = window.innerHeight - rect.bottom
+      const top = spaceBelow < PICKER_HEIGHT
+        ? rect.top - PICKER_HEIGHT - 4   // flip upward
+        : rect.bottom + 4                // open downward
+      setPos({ top, left: rect.left })
     }
     setPickerMonth(value ? new Date(value + 'T12:00:00') : new Date())
     setOpen(v => !v)
