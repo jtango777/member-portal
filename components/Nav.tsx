@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Profile } from '@/types'
-import { LogOut, CalendarDays, Users, Building2, Clock, ChevronDown, LayoutDashboard, DoorOpen, BarChart2, BookMarked, Settings } from 'lucide-react'
+import { LogOut, CalendarDays, Users, Building2, Clock, ChevronDown, LayoutDashboard, DoorOpen, BarChart2, Globe, Settings } from 'lucide-react'
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu'
 import { cn } from '@/lib/utils'
 
@@ -28,7 +28,8 @@ export default function Nav({ profile }: Props) {
     { href: '/dashboard/admin/companies',    label: 'Companies',        icon: Building2 },
     { href: '/dashboard/admin/rooms',        label: 'Rooms',            icon: DoorOpen },
     { href: '/dashboard/admin/time-usage',   label: 'Time Usage',       icon: Clock },
-    { href: '/dashboard/admin/reports',      label: 'Reports',          icon: BarChart2 },
+    { href: '/dashboard/admin/reports',            label: 'Reports',           icon: BarChart2 },
+    { href: '/dashboard/admin/external-bookings', label: 'External Bookings', icon: Globe },
   ]
 
   return (
