@@ -23,11 +23,6 @@ type BookLocation = {
 const CONTACT_PHONE = '(310) 870-1730'
 const CONTACT_EMAIL = 'bookings@bizhaus.com'
 
-const HEADCOUNT_OPTIONS = [
-  { label: '1–4 people', value: '1-4' },
-  { label: '5–8 people', value: '5-8' },
-  { label: '9+ people',  value: '9+'  },
-]
 
 function slotToMinutes(slot: string): number {
   const [h, m] = slot.split(':').map(Number)
@@ -62,12 +57,6 @@ for (let h = 9; h <= 17; h++) {
   }
 }
 
-function filterRooms(rooms: BookRoom[], headcount: string): BookRoom[] {
-  if (headcount === '1-4') return rooms.filter(r => r.capacity <= 7)
-  if (headcount === '5-8') return rooms.filter(r => r.capacity >= 5 && r.capacity <= 9)
-  if (headcount === '9+')  return rooms.filter(r => r.capacity >= 9)
-  return rooms
-}
 
 function isWeekend(dateStr: string): boolean {
   const day = new Date(dateStr + 'T12:00:00').getDay()
@@ -77,7 +66,6 @@ function isWeekend(dateStr: string): boolean {
 export default function AvailabilityView({ location, rooms }: { location: BookLocation; rooms: BookRoom[] }) {
   const today = format(new Date(), 'yyyy-MM-dd')
 
-  const [headcount,       setHeadcount]       = useState<string | null>(null)
   const [selectedRoom,    setSelectedRoom]    = useState<BookRoom | null>(null)
   const [selectedDate,    setSelectedDate]    = useState(today)
   const [blockedSlots,    setBlockedSlots]    = useState<string[]>([])
@@ -85,15 +73,7 @@ export default function AvailabilityView({ location, rooms }: { location: BookLo
   const [selectedStart,   setSelectedStart]   = useState<string | null>(null)
   const [selectedEnd,     setSelectedEnd]     = useState<string | null>(null)
 
-  const filteredRooms = headcount ? filterRooms(rooms, headcount) : []
   const weekend = isWeekend(selectedDate)
-
-  useEffect(() => {
-    if (selectedRoom && !filteredRooms.find(r => r.id === selectedRoom.id)) {
-      setSelectedRoom(null); setBlockedSlots([]); setSelectedStart(null); setSelectedEnd(null)
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [headcount])
 
   useEffect(() => {
     if (!selectedRoom) return
@@ -152,57 +132,32 @@ export default function AvailabilityView({ location, rooms }: { location: BookLo
         <p className="text-gray-500 mt-1">Check availability and book a meeting room</p>
       </div>
 
-      {/* Step 1 — Headcount */}
+      {/* Step 1 — Room */}
       <div>
-        <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 mb-3">Step 1 · How many people?</p>
-        <div className="flex flex-wrap gap-2">
-          {HEADCOUNT_OPTIONS.map(opt => (
-            <button key={opt.value}
-              onClick={() => { setHeadcount(opt.value); setSelectedRoom(null); setSelectedStart(null); setSelectedEnd(null) }}
+        <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 mb-3">Step 1 · Select a room</p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {rooms.map(room => (
+            <button key={room.id}
+              onClick={() => { setSelectedRoom(room); setSelectedStart(null); setSelectedEnd(null) }}
               className={cn(
-                'px-5 py-2.5 rounded-lg text-sm font-medium border transition-colors',
-                headcount === opt.value
+                'text-left border rounded-xl px-5 py-4 transition-colors',
+                selectedRoom?.id === room.id
                   ? 'bg-blue-600 text-white border-blue-600'
                   : 'bg-white text-gray-700 border-gray-200 hover:border-gray-400'
               )}>
-              {opt.label}
+              <div className="font-semibold text-base">{room.external_name}</div>
+              <div className={cn('text-sm mt-1', selectedRoom?.id === room.id ? 'text-blue-100' : 'text-gray-500')}>
+                Up to {room.capacity} people · ${room.price_per_hour}/hr
+              </div>
             </button>
           ))}
         </div>
       </div>
 
-      {/* Step 2 — Room */}
-      {headcount && (
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 mb-3">Step 2 · Select a room</p>
-          {filteredRooms.length === 0 ? (
-            <p className="text-sm text-gray-500">No rooms available for this group size at {location.name}.</p>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {filteredRooms.map(room => (
-                <button key={room.id}
-                  onClick={() => { setSelectedRoom(room); setSelectedStart(null); setSelectedEnd(null) }}
-                  className={cn(
-                    'text-left border rounded-xl px-5 py-4 transition-colors',
-                    selectedRoom?.id === room.id
-                      ? 'bg-blue-600 text-white border-blue-600'
-                      : 'bg-white text-gray-700 border-gray-200 hover:border-gray-400'
-                  )}>
-                  <div className="font-semibold text-base">{room.external_name}</div>
-                  <div className={cn('text-sm mt-1', selectedRoom?.id === room.id ? 'text-blue-100' : 'text-gray-500')}>
-                    Up to {room.capacity} people · ${room.price_per_hour}/hr
-                  </div>
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
-
       {/* Step 3 — Date */}
       {selectedRoom && (
         <div>
-          <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 mb-3">Step 3 · Pick a date</p>
+          <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 mb-3">Step 2 · Pick a date</p>
           <div className="flex items-center gap-2">
             <button onClick={prevDay} disabled={selectedDate <= today}
               className="p-2 rounded-lg border border-gray-200 hover:bg-gray-50 disabled:opacity-30 transition-colors">
@@ -241,7 +196,7 @@ export default function AvailabilityView({ location, rooms }: { location: BookLo
         <div className="space-y-6">
           {/* Start time */}
           <div>
-            <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 mb-3">Step 4 · Select a start time</p>
+            <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 mb-3">Step 3 · Select a start time</p>
             {loadingSlots ? (
               <p className="text-sm text-gray-400">Loading availability…</p>
             ) : (
@@ -281,7 +236,7 @@ export default function AvailabilityView({ location, rooms }: { location: BookLo
           {/* End time */}
           {selectedStart && (
             <div>
-              <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 mb-3">Step 5 · Select an end time</p>
+              <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 mb-3">Step 4 · Select an end time</p>
               {validEndSlots.length === 0 ? (
                 <p className="text-sm text-gray-500">No available end times from {startLabel} — the room is booked shortly after. Please choose a different start time.</p>
               ) : (
