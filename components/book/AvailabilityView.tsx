@@ -63,8 +63,8 @@ for (let h = 9; h <= 17; h++) {
 }
 
 function filterRooms(rooms: BookRoom[], headcount: string): BookRoom[] {
-  if (headcount === '1-4') return rooms.filter(r => r.capacity <= 8)
-  if (headcount === '5-8') return rooms.filter(r => r.capacity >= 5)
+  if (headcount === '1-4') return rooms.filter(r => r.capacity <= 7)
+  if (headcount === '5-8') return rooms.filter(r => r.capacity >= 5 && r.capacity <= 9)
   if (headcount === '9+')  return rooms.filter(r => r.capacity >= 9)
   return rooms
 }
