@@ -55,7 +55,7 @@ export default async function BookPage() {
               key={location.id}
               className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm flex flex-col"
             >
-              <div className="bg-gray-900 text-white px-5 py-4">
+              <div className="bg-blue-600 text-white px-5 py-4">
                 <h2 className="font-semibold text-base">{location.name}</h2>
               </div>
 
@@ -80,7 +80,7 @@ export default async function BookPage() {
               <div className="px-5 py-4 border-t border-gray-100">
                 <Link
                   href={`/book/${location.slug}`}
-                  className="block w-full text-center bg-gray-900 hover:bg-gray-700 text-white text-sm font-medium py-2 px-4 rounded-lg transition-colors"
+                  className="block w-full text-center bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium py-2 px-4 rounded-lg transition-colors"
                 >
                   Check Availability →
                 </Link>
