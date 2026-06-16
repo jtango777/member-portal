@@ -55,8 +55,8 @@ export default async function BookPage() {
               key={location.id}
               className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm flex flex-col"
             >
-              <div className="bg-blue-600 text-white px-5 py-4">
-                <h2 className="font-semibold text-base">{location.name}</h2>
+              <div className="px-5 py-4 border-b border-gray-100">
+                <h2 className="font-semibold text-base text-gray-900">{location.name}</h2>
               </div>
 
               <div className="divide-y divide-gray-100 flex-1">
