@@ -25,6 +25,15 @@ const CONTACT_EMAIL = 'bookings@bizhaus.com'
 
 const AMENITIES = ['Projector & Screen', 'AirPlay / HDMI', 'Speakerphone', 'High-speed WiFi', 'Power throughout']
 
+// Keyed by "location-slug:external_name" — add entries as photos become available
+const ROOM_IMAGES: Record<string, string> = {
+  'el-segundo:Large':     '/rooms/es-large.jpg',
+  'el-segundo:Medium +':  '/rooms/es-medium-plus.jpg',
+  'el-segundo:Medium':    '/rooms/es-medium.jpg',
+  'costa-mesa:Large':     '/rooms/cm-large.jpg',
+  'costa-mesa:Medium':    '/rooms/cm-medium.jpg',
+}
+
 const LOCATION_PERKS: Record<string, { icon: React.ReactNode; text: string }[]> = {
   'el-segundo': [
     { icon: <Coffee size={13} />, text: 'Complimentary coffee, tea & filtered water' },
@@ -163,18 +172,22 @@ export default function AvailabilityView({ location, rooms }: { location: BookLo
                   : 'border-gray-200 hover:border-gray-400 hover:shadow-sm'
               )}
             >
-              {/* ── Image placeholder — swap this div for <img> or carousel when photos are ready ── */}
-              <div className="relative bg-gray-100 aspect-[4/5] flex flex-col items-center justify-center gap-2 text-gray-300">
-                <ImageIcon size={28} />
-                <span className="text-sm">Photos coming soon</span>
-                {/* Carousel dot indicators — will stay once real images are added */}
-                <div className="absolute bottom-3 flex gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-gray-400" />
-                  <span className="w-1.5 h-1.5 rounded-full bg-gray-300" />
-                  <span className="w-1.5 h-1.5 rounded-full bg-gray-300" />
-                </div>
+              {/* ── Room image ── add entries to ROOM_IMAGES above as photos become available ── */}
+              <div className="relative bg-gray-100 aspect-[4/5] overflow-hidden">
+                {ROOM_IMAGES[`${location.slug}:${room.external_name}`] ? (
+                  <img
+                    src={ROOM_IMAGES[`${location.slug}:${room.external_name}`]}
+                    alt={room.external_name}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-full flex flex-col items-center justify-center gap-2 text-gray-300">
+                    <ImageIcon size={28} />
+                    <span className="text-sm">Photos coming soon</span>
+                  </div>
+                )}
               </div>
-              {/* ─────────────────────────────────────────────────────────────────────────────────── */}
+              {/* ──────────────────────────────────────────────────────────────────────────────────── */}
 
               <div className="px-5 py-4 space-y-2">
                 <div className="flex items-start justify-between gap-4">
