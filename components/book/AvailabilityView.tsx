@@ -1,9 +1,9 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { format, addDays, subDays } from 'date-fns'
-import { ArrowLeft, ImageIcon, Phone, Mail, ChevronLeft, ChevronRight } from 'lucide-react'
+import { ArrowLeft, ImageIcon, Phone, Mail, ChevronLeft, ChevronRight, Coffee, Car, Plane } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import MiniDatePicker from '@/components/MiniDatePicker'
 
@@ -22,6 +22,16 @@ type BookLocation = {
 
 const CONTACT_PHONE = '(310) 870-1730'
 const CONTACT_EMAIL = 'bookings@bizhaus.com'
+
+const AMENITIES = ['Projector & Screen', 'AirPlay / HDMI', 'Speakerphone', 'High-speed WiFi', 'Power throughout']
+
+const LOCATION_PERKS: Record<string, { icon: React.ReactNode; text: string }[]> = {
+  'el-segundo': [
+    { icon: <Coffee size={13} />, text: 'Complimentary coffee, tea & filtered water' },
+    { icon: <Car size={13} />,    text: 'Free street parking · No hourly limit' },
+    { icon: <Plane size={13} />,  text: '~10 min from LAX · 1730 E Holly Ave, El Segundo' },
+  ],
+}
 
 function slotToMinutes(s: string) {
   const [h, m] = s.split(':').map(Number)
@@ -165,18 +175,35 @@ export default function AvailabilityView({ location, rooms }: { location: BookLo
               </div>
               {/* ─────────────────────────────────────────────────────────────────────────────────── */}
 
-              <div className="px-5 py-4 flex items-center justify-between">
-                <div>
-                  <h3 className="font-semibold text-gray-900 text-base">{room.external_name}</h3>
-                  <p className="text-sm text-gray-500 mt-0.5">Up to {room.capacity} people</p>
+              <div className="px-5 py-4 space-y-2">
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <h3 className="font-semibold text-gray-900 text-base">{room.external_name}</h3>
+                    <p className="text-sm text-gray-500 mt-0.5">Up to {room.capacity} people</p>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <span className="font-semibold text-gray-900">${room.price_per_hour}</span>
+                    <span className="text-gray-400 text-sm">/hr</span>
+                  </div>
                 </div>
-                <div className="text-right">
-                  <span className="font-semibold text-gray-900">${room.price_per_hour}</span>
-                  <span className="text-gray-400 text-sm">/hr</span>
-                </div>
+                <p className="text-xs text-gray-400">{AMENITIES.join(' · ')}</p>
               </div>
             </div>
           ))}
+          {/* ── Location perks ───────────────────────────────────────── */}
+          {LOCATION_PERKS[location.slug] && (
+            <div className="rounded-xl border border-gray-200 bg-white px-5 py-4 space-y-3">
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">What's included</p>
+              <div className="space-y-2.5">
+                {LOCATION_PERKS[location.slug].map((perk, i) => (
+                  <div key={i} className="flex items-center gap-2.5 text-sm text-gray-600">
+                    <span className="text-gray-400 shrink-0">{perk.icon}</span>
+                    {perk.text}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* ── Right: Sticky booking widget ─────────────────────────── */}
