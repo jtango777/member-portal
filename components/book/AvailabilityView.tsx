@@ -135,6 +135,9 @@ export default function AvailabilityView({ location, rooms }: { location: BookLo
       {/* Step 1 — Room */}
       <div>
         <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 mb-3">Step 1 · Select a room</p>
+        <p className="text-xs text-gray-400 mb-3">
+          Rooms are furnished to their listed capacity. Please select a room that comfortably fits your group — we can't guarantee additional seating beyond what's listed.
+        </p>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {rooms.map(room => (
             <button key={room.id}
