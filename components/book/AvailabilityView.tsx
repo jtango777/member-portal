@@ -164,7 +164,7 @@ export default function AvailabilityView({ location, rooms }: { location: BookLo
               )}
             >
               {/* ── Image placeholder — swap this div for <img> or carousel when photos are ready ── */}
-              <div className="relative bg-gray-100 h-52 flex flex-col items-center justify-center gap-2 text-gray-300">
+              <div className="relative bg-gray-100 aspect-[4/5] flex flex-col items-center justify-center gap-2 text-gray-300">
                 <ImageIcon size={28} />
                 <span className="text-sm">Photos coming soon</span>
                 {/* Carousel dot indicators — will stay once real images are added */}
