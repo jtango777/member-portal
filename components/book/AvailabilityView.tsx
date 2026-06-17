@@ -151,6 +151,7 @@ export default function AvailabilityView({ location, rooms }: { location: BookLo
             Rooms are furnished to their listed capacity. Please select a room that comfortably fits your group.
           </p>
 
+          <div className="grid grid-cols-2 gap-4">
           {rooms.map(room => (
             <div
               key={room.id}
@@ -190,6 +191,8 @@ export default function AvailabilityView({ location, rooms }: { location: BookLo
               </div>
             </div>
           ))}
+          </div>
+
           {/* ── Location perks ───────────────────────────────────────── */}
           {LOCATION_PERKS[location.slug] && (
             <div className="rounded-xl border border-gray-200 bg-white px-5 py-4 space-y-3">
