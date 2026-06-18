@@ -31,7 +31,9 @@ const ROOM_IMAGES: Record<string, string> = {
   'el-segundo:Medium +':  '/rooms/es-medium-plus.jpg',
   'el-segundo:Medium':    '/rooms/es-medium.jpg',
   'costa-mesa:Large':     '/rooms/cm-large.jpg',
+  'costa-mesa:Medium +':  '/rooms/cm-medium-plus.jpg',
   'costa-mesa:Medium':    '/rooms/cm-medium.jpg',
+  'costa-mesa:Small':     '/rooms/cm-small.jpg',
 }
 
 const LOCATION_PERKS: Record<string, { icon: React.ReactNode; text: string }[]> = {
