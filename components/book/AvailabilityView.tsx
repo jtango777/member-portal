@@ -418,7 +418,7 @@ export default function AvailabilityView({ location, rooms }: { location: BookLo
       </div>
 
       {/* Fine print */}
-      <p className="text-xs text-gray-400 pt-4 border-t border-gray-100">
+      <p className="text-xs font-semibold text-gray-500 pt-4 border-t border-gray-100">
         Bookings are non-refundable. Need to cancel?{' '}
         <a href={`mailto:${CONTACT_EMAIL}`} className="underline hover:text-gray-600">Contact us</a>
         {' '}to inquire about credit toward a future booking.
