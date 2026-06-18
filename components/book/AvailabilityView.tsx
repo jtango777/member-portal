@@ -371,7 +371,7 @@ export default function AvailabilityView({ location, rooms }: { location: BookLo
                         href={`/book/request?room=${selectedRoom.id}&date=${selectedDate}&start=${encodeURIComponent(selectedStart)}&end=${encodeURIComponent(selectedEnd)}&location=${location.slug}`}
                         className="block w-full text-center bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold py-3 rounded-lg transition-colors"
                       >
-                        Request Booking →
+                        Proceed to Payment →
                       </Link>
                     ) : (
                       <button disabled
@@ -379,9 +379,6 @@ export default function AvailabilityView({ location, rooms }: { location: BookLo
                         Request Booking →
                       </button>
                     )}
-                    <p className="text-xs text-gray-400 text-center mt-3">
-                      Payment collected after confirmation. We'll follow up within 1 business day.
-                    </p>
                   </div>
                 )}
               </div>
