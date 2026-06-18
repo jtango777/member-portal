@@ -7,7 +7,7 @@ export const metadata: Metadata = {
 
 export default function BookLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+    <div className="min-h-screen bg-white flex flex-col">
       <header className="bg-slate-900 h-14 flex items-center flex-shrink-0 px-6">
         <span className="text-xl font-bold tracking-tight text-white">BizHaus</span>
       </header>

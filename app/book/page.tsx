@@ -41,10 +41,7 @@ export default async function BookPage() {
   return (
     <div className="max-w-5xl mx-auto px-6 py-12">
       <div className="mb-10">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Book a Meeting Room</h1>
-        <p className="text-gray-500">
-          Professional meeting spaces by the hour. No membership required.
-        </p>
+        <h1 className="text-3xl font-bold text-gray-900">Book a Meeting Room</h1>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

@@ -176,9 +176,7 @@ export default function AvailabilityView({ location, rooms }: { location: BookLo
 
         {/* ── Left: Room cards ─────────────────────────────────────── */}
         <div className="lg:col-span-3 space-y-4">
-          <p className="text-xs text-gray-400">
-            Rooms are furnished to their listed capacity. Please select a room that comfortably fits your group.
-          </p>
+
 
           <div className="grid grid-cols-2 gap-4">
           {rooms.map(room => (
