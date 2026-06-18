@@ -28,6 +28,7 @@ const ROOM_IMAGES: Record<string, string> = {
   'el-segundo:Large':     '/rooms/es-large.jpg',
   'el-segundo:Medium +':  '/rooms/es-medium-plus.jpg',
   'el-segundo:Medium':    '/rooms/es-medium.jpg',
+  'marina-del-rey:Small': '/rooms/mdr-conference.jpg',
   'costa-mesa:Large':     '/rooms/cm-large.jpg',
   'costa-mesa:Medium +':  '/rooms/cm-medium-plus.jpg',
   'costa-mesa:Medium':    '/rooms/cm-medium.jpg',
