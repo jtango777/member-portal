@@ -38,8 +38,9 @@ const ROOM_IMAGES: Record<string, string[]> = {
 
 // Location banner images — add slugs as photos become available
 const LOCATION_BANNERS: Record<string, string> = {
-  'el-segundo':    '/rooms/es-open-space.jpg',
+  'el-segundo':     '/rooms/es-open-space.jpg',
   'marina-del-rey': '/rooms/mdr-open-space.jpg',
+  'costa-mesa':     '/rooms/cm-open-space.jpg',
 }
 
 function slotToMinutes(s: string) {
