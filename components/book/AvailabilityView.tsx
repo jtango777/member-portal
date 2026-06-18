@@ -156,7 +156,7 @@ export default function AvailabilityView({ location, rooms }: { location: BookLo
       </Link>
 
       {LOCATION_BANNERS[location.slug] && (
-        <div className="rounded-xl overflow-hidden aspect-[4/1] w-full">
+        <div className="rounded-xl overflow-hidden h-48 w-full">
           <img
             src={LOCATION_BANNERS[location.slug]}
             alt={`${location.name} space`}
