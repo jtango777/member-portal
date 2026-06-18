@@ -173,7 +173,7 @@ export default function AvailabilityView({ location, rooms }: { location: BookLo
               )}
             >
               {/* ── Room image ── add entries to ROOM_IMAGES above as photos become available ── */}
-              <div className="relative bg-gray-100 aspect-[4/5] overflow-hidden">
+              <div className="relative bg-gray-100 aspect-[3/2] overflow-hidden">
                 {ROOM_IMAGES[`${location.slug}:${room.external_name}`] ? (
                   <img
                     src={ROOM_IMAGES[`${location.slug}:${room.external_name}`]}
