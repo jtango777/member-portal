@@ -26,8 +26,8 @@ const CONTACT_EMAIL = 'bookings@bizhaus.com'
 // Keyed by "location-slug:external_name" — arrays support carousel; first image is the cover
 const ROOM_IMAGES: Record<string, string[]> = {
   'el-segundo:Large':     ['/rooms/es-large.jpg'],
-  'el-segundo:Medium +':  ['/rooms/es-medium-plus.jpg'],
-  'el-segundo:Medium':    ['/rooms/es-medium.jpg'],
+  'el-segundo:Medium +':  ['/rooms/es-medium.jpg'],
+  'el-segundo:Medium':    ['/rooms/es-medium-plus.jpg'],
   'marina-del-rey:Small': ['/rooms/mdr-conference-3.jpg', '/rooms/mdr-conference-2.jpg'],
   'costa-mesa:Large':     ['/rooms/cm-large.jpg'],
   'costa-mesa:Medium +':  ['/rooms/cm-medium-plus.jpg'],
