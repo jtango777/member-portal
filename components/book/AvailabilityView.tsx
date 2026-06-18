@@ -38,7 +38,8 @@ const ROOM_IMAGES: Record<string, string[]> = {
 
 // Location banner images — add slugs as photos become available
 const LOCATION_BANNERS: Record<string, string> = {
-  'el-segundo': '/rooms/es-open-space.jpg',
+  'el-segundo':    '/rooms/es-open-space.jpg',
+  'marina-del-rey': '/rooms/mdr-open-space.jpg',
 }
 
 function slotToMinutes(s: string) {
@@ -156,7 +157,7 @@ export default function AvailabilityView({ location, rooms }: { location: BookLo
       </Link>
 
       {LOCATION_BANNERS[location.slug] && (
-        <div className="rounded-xl overflow-hidden h-48 w-full">
+        <div className="rounded-xl overflow-hidden h-64 w-full">
           <img
             src={LOCATION_BANNERS[location.slug]}
             alt={`${location.name} space`}
