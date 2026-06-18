@@ -172,7 +172,7 @@ export default function AvailabilityView({ location, rooms }: { location: BookLo
                   <img
                     src={ROOM_IMAGES[`${location.slug}:${room.external_name}`]}
                     alt={room.external_name}
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-cover object-[center_65%]"
                   />
                 ) : (
                   <div className="w-full h-full flex flex-col items-center justify-center gap-2 text-gray-300">
