@@ -29,19 +29,30 @@ export async function GET(request: Request) {
   const admin = createAdminClient()
   const { start, end } = getPacificDayBounds(date)
 
-  const { data, error } = await admin
-    .from('reservations')
-    .select('start_time, end_time')
-    .eq('room_id', roomId)
-    .lt('start_time', end.toISOString())
-    .gt('end_time', start.toISOString())
+  const [{ data: internal, error: err1 }, { data: external, error: err2 }] = await Promise.all([
+    admin
+      .from('reservations')
+      .select('start_time, end_time')
+      .eq('room_id', roomId)
+      .lt('start_time', end.toISOString())
+      .gt('end_time', start.toISOString()),
+    admin
+      .from('external_bookings')
+      .select('start_time, end_time')
+      .eq('room_id', roomId)
+      .in('status', ['pending', 'confirmed'])
+      .lt('start_time', end.toISOString())
+      .gt('end_time', start.toISOString()),
+  ])
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (err1 || err2) return NextResponse.json({ error: err1?.message ?? err2?.message }, { status: 500 })
 
-  // Walk each reservation in 30-min steps and collect blocked slot values
+  const allBookings = [...(internal ?? []), ...(external ?? [])]
+
+  // Walk each booking in 30-min steps and collect blocked slot values
   // Returns only time strings — no names or member data exposed
   const blocked = new Set<string>()
-  for (const res of data ?? []) {
+  for (const res of allBookings) {
     let cur = new Date(res.start_time)
     const resEnd = new Date(res.end_time)
     while (cur < resEnd) {
