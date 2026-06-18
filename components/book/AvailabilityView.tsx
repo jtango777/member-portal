@@ -324,11 +324,11 @@ export default function AvailabilityView({ location, rooms }: { location: BookLo
             {/* After-hours note */}
             {selectedRoom && !weekend && (
               <div className="px-5 py-3 bg-gray-50 border-t border-gray-100">
-                <p className="text-xs text-gray-400">
+                <p className="text-xs text-gray-600">
                   Need outside 9 AM–5 PM?{' '}
-                  <a href={`tel:${CONTACT_PHONE.replace(/\D/g,'')}`} className="underline hover:text-gray-600">{CONTACT_PHONE}</a>
+                  <a href={`tel:${CONTACT_PHONE.replace(/\D/g,'')}`} className="font-medium underline hover:text-gray-900">{CONTACT_PHONE}</a>
                   {' '}or{' '}
-                  <a href={`mailto:${CONTACT_EMAIL}`} className="underline hover:text-gray-600">{CONTACT_EMAIL}</a>
+                  <a href={`mailto:${CONTACT_EMAIL}`} className="font-medium underline hover:text-gray-900">{CONTACT_EMAIL}</a>
                 </p>
               </div>
             )}
