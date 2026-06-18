@@ -153,7 +153,7 @@ export default function AvailabilityView({ location, rooms }: { location: BookLo
             Rooms are furnished to their listed capacity. Please select a room that comfortably fits your group.
           </p>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-4">
           {rooms.map(room => (
             <div
               key={room.id}
@@ -166,7 +166,7 @@ export default function AvailabilityView({ location, rooms }: { location: BookLo
               )}
             >
               {/* ── Room image ── add entries to ROOM_IMAGES above as photos become available ── */}
-              <div className="relative bg-gray-100 aspect-[4/3] overflow-hidden">
+              <div className="relative bg-gray-100 aspect-[16/9] overflow-hidden">
                 {ROOM_IMAGES[`${location.slug}:${room.external_name}`] ? (
                   <img
                     src={ROOM_IMAGES[`${location.slug}:${room.external_name}`]}
@@ -325,7 +325,7 @@ export default function AvailabilityView({ location, rooms }: { location: BookLo
             {selectedRoom && !weekend && (
               <div className="px-5 py-3 bg-gray-50 border-t border-gray-100">
                 <p className="text-xs text-gray-600">
-                  Need outside 9 AM–5 PM?{' '}
+                  Need outside 9 AM–5 PM Monday–Friday?{' '}
                   <a href={`tel:${CONTACT_PHONE.replace(/\D/g,'')}`} className="font-medium underline hover:text-gray-900">{CONTACT_PHONE}</a>
                   {' '}or{' '}
                   <a href={`mailto:${CONTACT_EMAIL}`} className="font-medium underline hover:text-gray-900">{CONTACT_EMAIL}</a>
