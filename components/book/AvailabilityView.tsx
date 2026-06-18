@@ -202,7 +202,6 @@ export default function AvailabilityView({ location, rooms }: { location: BookLo
                     <span className="text-gray-400 text-sm">/hr</span>
                   </div>
                 </div>
-                <p className="text-xs text-gray-400">{AMENITIES.join(' · ')}</p>
               </div>
             </div>
           ))}
