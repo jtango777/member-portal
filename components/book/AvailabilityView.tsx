@@ -93,20 +93,27 @@ export default function AvailabilityView({ location, rooms }: { location: BookLo
       .catch(() => setLoadingSlots(false))
   }, [selectedRoom, selectedDate])
 
-  // Available start times — exclude blocked
-  const availableStartSlots = START_SLOTS.filter(s => !blockedSlots.includes(s.value))
+  // All start times — blocked ones shown as disabled
+  const startSlotsWithStatus = START_SLOTS.map(s => ({
+    ...s,
+    disabled: blockedSlots.includes(s.value),
+  }))
 
-  // Valid end times — after selected start, no blocked slots in range
-  const validEndSlots = selectedStart
-    ? END_SLOTS.filter(end => {
-        if (slotToMinutes(end.value) <= slotToMinutes(selectedStart)) return false
-        return !START_SLOTS.some(s =>
-          slotToMinutes(s.value) >= slotToMinutes(selectedStart) &&
-          slotToMinutes(s.value) <  slotToMinutes(end.value) &&
-          blockedSlots.includes(s.value)
-        )
-      })
+  // All end times after selected start — ones crossing a blocked slot shown as disabled
+  const endSlotsWithStatus = selectedStart
+    ? END_SLOTS
+        .filter(end => slotToMinutes(end.value) > slotToMinutes(selectedStart))
+        .map(end => ({
+          ...end,
+          disabled: START_SLOTS.some(s =>
+            slotToMinutes(s.value) >= slotToMinutes(selectedStart) &&
+            slotToMinutes(s.value) <  slotToMinutes(end.value) &&
+            blockedSlots.includes(s.value)
+          ),
+        }))
     : []
+
+  const validEndSlots = endSlotsWithStatus.filter(s => !s.disabled)
 
   // Reset end if no longer valid
   useEffect(() => {
@@ -296,19 +303,23 @@ export default function AvailabilityView({ location, rooms }: { location: BookLo
                               className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
                             >
                               <option value="">Start time</option>
-                              {availableStartSlots.map(s => (
-                                <option key={s.value} value={s.value}>{s.label}</option>
+                              {startSlotsWithStatus.map(s => (
+                                <option key={s.value} value={s.value} disabled={s.disabled}>
+                                  {s.label}{s.disabled ? ' — Unavailable' : ''}
+                                </option>
                               ))}
                             </select>
                             <select
                               value={selectedEnd}
                               onChange={e => setSelectedEnd(e.target.value)}
-                              disabled={!selectedStart || validEndSlots.length === 0}
+                              disabled={!selectedStart || endSlotsWithStatus.length === 0}
                               className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white disabled:opacity-40"
                             >
                               <option value="">End time</option>
-                              {validEndSlots.map(s => (
-                                <option key={s.value} value={s.value}>{s.label}</option>
+                              {endSlotsWithStatus.map(s => (
+                                <option key={s.value} value={s.value} disabled={s.disabled}>
+                                  {s.label}{s.disabled ? ' — Unavailable' : ''}
+                                </option>
                               ))}
                             </select>
                           </div>
