@@ -38,7 +38,7 @@ export default async function BookLocationPage({ params }: { params: Promise<{ l
     .order('sort_order')
 
   return (
-    <div className="max-w-3xl mx-auto px-6 py-12">
+    <div className="max-w-7xl mx-auto px-6 py-12">
       <AvailabilityView
         location={location as BookLocation}
         rooms={(rooms ?? []) as BookRoom[]}
