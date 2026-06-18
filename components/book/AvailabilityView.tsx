@@ -23,16 +23,16 @@ type BookLocation = {
 const CONTACT_PHONE = '(310) 870-1730'
 const CONTACT_EMAIL = 'bookings@bizhaus.com'
 
-// Keyed by "location-slug:external_name" — add entries as photos become available
-const ROOM_IMAGES: Record<string, string> = {
-  'el-segundo:Large':     '/rooms/es-large.jpg',
-  'el-segundo:Medium +':  '/rooms/es-medium-plus.jpg',
-  'el-segundo:Medium':    '/rooms/es-medium.jpg',
-  'marina-del-rey:Small': '/rooms/mdr-conference-3.jpg',
-  'costa-mesa:Large':     '/rooms/cm-large.jpg',
-  'costa-mesa:Medium +':  '/rooms/cm-medium-plus.jpg',
-  'costa-mesa:Medium':    '/rooms/cm-medium.jpg',
-  'costa-mesa:Small':     '/rooms/cm-small.jpg',
+// Keyed by "location-slug:external_name" — arrays support carousel; first image is the cover
+const ROOM_IMAGES: Record<string, string[]> = {
+  'el-segundo:Large':     ['/rooms/es-large.jpg'],
+  'el-segundo:Medium +':  ['/rooms/es-medium-plus.jpg'],
+  'el-segundo:Medium':    ['/rooms/es-medium.jpg'],
+  'marina-del-rey:Small': ['/rooms/mdr-conference-3.jpg', '/rooms/mdr-conference-2.jpg'],
+  'costa-mesa:Large':     ['/rooms/cm-large.jpg'],
+  'costa-mesa:Medium +':  ['/rooms/cm-medium-plus.jpg'],
+  'costa-mesa:Medium':    ['/rooms/cm-medium.jpg'],
+  'costa-mesa:Small':     ['/rooms/cm-small.jpg'],
 }
 
 
@@ -73,6 +73,7 @@ function isWeekend(dateStr: string) {
 export default function AvailabilityView({ location, rooms }: { location: BookLocation; rooms: BookRoom[] }) {
   const today = format(new Date(), 'yyyy-MM-dd')
 
+  const [carouselIndex, setCarouselIndex] = useState<Record<string, number>>({})
   const [selectedRoom,  setSelectedRoom]  = useState<BookRoom | null>(null)
   const [selectedDate,  setSelectedDate]  = useState(today)
   const [blockedSlots,  setBlockedSlots]  = useState<string[]>([])
@@ -166,21 +167,48 @@ export default function AvailabilityView({ location, rooms }: { location: BookLo
                   : 'border-gray-200 hover:border-gray-400 hover:shadow-sm'
               )}
             >
-              {/* ── Room image ── add entries to ROOM_IMAGES above as photos become available ── */}
-              <div className="relative bg-gray-100 aspect-[16/9] overflow-hidden">
-                {ROOM_IMAGES[`${location.slug}:${room.external_name}`] ? (
-                  <img
-                    src={ROOM_IMAGES[`${location.slug}:${room.external_name}`]}
-                    alt={room.external_name}
-                    className="w-full h-full object-cover object-[center_65%]"
-                  />
-                ) : (
-                  <div className="w-full h-full flex flex-col items-center justify-center gap-2 text-gray-300">
-                    <ImageIcon size={28} />
-                    <span className="text-sm">Photos coming soon</span>
+              {/* ── Room image / carousel ── add arrays to ROOM_IMAGES above as photos become available ── */}
+              {(() => {
+                const images = ROOM_IMAGES[`${location.slug}:${room.external_name}`]
+                const idx = carouselIndex[room.id] ?? 0
+                return (
+                  <div className="relative bg-gray-100 aspect-[16/9] overflow-hidden">
+                    {images?.length ? (
+                      <>
+                        <img
+                          src={images[idx]}
+                          alt={`${room.external_name} photo ${idx + 1}`}
+                          className="w-full h-full object-cover object-[center_65%]"
+                        />
+                        {images.length > 1 && (
+                          <>
+                            <button
+                              onClick={e => { e.stopPropagation(); setCarouselIndex(p => ({ ...p, [room.id]: (idx - 1 + images.length) % images.length })) }}
+                              className="absolute left-2 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white rounded-full p-1 shadow transition-colors"
+                            ><ChevronLeft size={15} /></button>
+                            <button
+                              onClick={e => { e.stopPropagation(); setCarouselIndex(p => ({ ...p, [room.id]: (idx + 1) % images.length })) }}
+                              className="absolute right-2 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white rounded-full p-1 shadow transition-colors"
+                            ><ChevronRight size={15} /></button>
+                            <div className="absolute bottom-2.5 left-1/2 -translate-x-1/2 flex gap-1.5">
+                              {images.map((_, i) => (
+                                <button key={i} onClick={e => { e.stopPropagation(); setCarouselIndex(p => ({ ...p, [room.id]: i })) }}
+                                  className={cn('w-1.5 h-1.5 rounded-full transition-colors', i === idx ? 'bg-white' : 'bg-white/50')}
+                                />
+                              ))}
+                            </div>
+                          </>
+                        )}
+                      </>
+                    ) : (
+                      <div className="w-full h-full flex flex-col items-center justify-center gap-2 text-gray-300">
+                        <ImageIcon size={28} />
+                        <span className="text-sm">Photos coming soon</span>
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
+                )
+              })()}
               {/* ──────────────────────────────────────────────────────────────────────────────────── */}
 
               <div className="px-5 py-4 space-y-2">
