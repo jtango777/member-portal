@@ -74,6 +74,7 @@ export default function AvailabilityView({ location, rooms }: { location: BookLo
   const today = format(new Date(), 'yyyy-MM-dd')
 
   const [carouselIndex, setCarouselIndex] = useState<Record<string, number>>({})
+  const [allDay,        setAllDay]        = useState(false)
   const [selectedRoom,  setSelectedRoom]  = useState<BookRoom | null>(null)
   const [selectedDate,  setSelectedDate]  = useState(today)
   const [blockedSlots,  setBlockedSlots]  = useState<string[]>([])
@@ -139,7 +140,7 @@ export default function AvailabilityView({ location, rooms }: { location: BookLo
     setSelectedStart(''); setSelectedEnd('')
   }
 
-  const canContinue = selectedRoom && selectedStart && selectedEnd && !weekend
+  const canContinue = selectedRoom && (allDay || (selectedStart && selectedEnd)) && !weekend
 
   return (
     <div className="space-y-8">
@@ -292,9 +293,34 @@ export default function AvailabilityView({ location, rooms }: { location: BookLo
                     <>
                       {/* Start / End time */}
                       <div>
-                        <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Time</label>
+                        <div className="flex items-center justify-between mb-1.5">
+                          <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Time</label>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const next = !allDay
+                              setAllDay(next)
+                              if (next) { setSelectedStart('9:00'); setSelectedEnd('17:00') }
+                              else      { setSelectedStart('');     setSelectedEnd('')      }
+                            }}
+                            className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-gray-700"
+                          >
+                            <span className={cn(
+                              'relative inline-flex h-4 w-7 items-center rounded-full transition-colors',
+                              allDay ? 'bg-blue-600' : 'bg-gray-300'
+                            )}>
+                              <span className={cn(
+                                'inline-block h-3 w-3 rounded-full bg-white shadow transition-transform',
+                                allDay ? 'translate-x-3.5' : 'translate-x-0.5'
+                              )} />
+                            </span>
+                            All day
+                          </button>
+                        </div>
                         {loadingSlots ? (
                           <p className="text-sm text-gray-400">Loading availability…</p>
+                        ) : allDay ? (
+                          <p className="text-sm text-gray-500 bg-gray-50 rounded-lg px-3 py-2">9:00 AM – 5:00 PM</p>
                         ) : (
                           <div className="grid grid-cols-2 gap-2">
                             <select

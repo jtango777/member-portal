@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { createPortal } from 'react-dom'
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay, addMonths, subMonths } from 'date-fns'
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay, addMonths, subMonths, isBefore, startOfDay } from 'date-fns'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { cn, isSameDay } from '@/lib/utils'
 
@@ -78,8 +78,10 @@ export default function MiniDatePicker({ value, onChange, disabled }: Props) {
         >
           {/* Month navigation */}
           <div className="flex items-center justify-between mb-2">
-            <button type="button" onClick={() => setPickerMonth(m => subMonths(m, 1))}
-              className="p-1 hover:bg-gray-100 rounded transition-colors">
+            <button type="button"
+              onClick={() => setPickerMonth(m => subMonths(m, 1))}
+              disabled={pickerMonth.getMonth() === today.getMonth() && pickerMonth.getFullYear() === today.getFullYear()}
+              className="p-1 hover:bg-gray-100 rounded transition-colors disabled:opacity-30 disabled:cursor-not-allowed">
               <ChevronLeft size={14} />
             </button>
             <span className="text-sm font-semibold text-gray-900">{format(pickerMonth, 'MMMM yyyy')}</span>
@@ -101,23 +103,29 @@ export default function MiniDatePicker({ value, onChange, disabled }: Props) {
             {Array.from({ length: getDay(startOfMonth(pickerMonth)) }).map((_, i) => (
               <div key={`pad-${i}`} />
             ))}
-            {eachDayOfInterval({ start: startOfMonth(pickerMonth), end: endOfMonth(pickerMonth) }).map(day => (
-              <button
-                key={day.toISOString()}
-                type="button"
-                onClick={() => selectDay(day)}
-                className={cn(
-                  'text-center text-xs py-1.5 rounded-md transition-colors',
-                  selectedDate && isSameDay(day, selectedDate)
-                    ? 'bg-blue-600 text-white font-semibold'
-                    : isSameDay(day, today)
-                    ? 'bg-blue-50 text-blue-600 font-semibold'
-                    : 'hover:bg-gray-100 text-gray-700'
-                )}
-              >
-                {format(day, 'd')}
-              </button>
-            ))}
+            {eachDayOfInterval({ start: startOfMonth(pickerMonth), end: endOfMonth(pickerMonth) }).map(day => {
+              const isPast = isBefore(day, startOfDay(today))
+              return (
+                <button
+                  key={day.toISOString()}
+                  type="button"
+                  disabled={isPast}
+                  onClick={() => !isPast && selectDay(day)}
+                  className={cn(
+                    'text-center text-xs py-1.5 rounded-md transition-colors',
+                    isPast
+                      ? 'text-gray-300 cursor-not-allowed'
+                      : selectedDate && isSameDay(day, selectedDate)
+                      ? 'bg-blue-600 text-white font-semibold'
+                      : isSameDay(day, today)
+                      ? 'bg-blue-50 text-blue-600 font-semibold'
+                      : 'hover:bg-gray-100 text-gray-700'
+                  )}
+                >
+                  {format(day, 'd')}
+                </button>
+              )
+            })}
           </div>
         </div>,
         document.body
