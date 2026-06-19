@@ -100,7 +100,7 @@ export default function RoomsManager({ locations, initialRooms }: Props) {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold text-gray-900">Conference Rooms</h1>
+          <h1 className="text-xl font-bold text-gray-900">Internal Conference Rooms</h1>
           <p className="text-sm text-gray-500 mt-0.5">Add or remove rooms across all locations.</p>
         </div>
         <button
