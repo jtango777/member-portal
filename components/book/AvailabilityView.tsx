@@ -255,15 +255,22 @@ export default function AvailabilityView({ location, rooms }: { location: BookLo
                   <button
                     type="button"
                     onClick={e => { e.stopPropagation(); setExpandedRoom(expandedRoom === room.id ? null : room.id) }}
-                    className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 font-medium transition-colors"
+                    className="flex items-center gap-1 text-xs text-gray-400 hover:text-gray-600 transition-colors"
                   >
-                    {expandedRoom === room.id ? '↑ Hide details' : '↓ See details on this room'}
+                    <ChevronRight
+                      size={13}
+                      className={cn('transition-transform duration-200', expandedRoom === room.id ? 'rotate-90' : 'rotate-0')}
+                    />
+                    See details on this room
                   </button>
-                  {expandedRoom === room.id && (
-                    <div className="mt-2 text-sm text-gray-500 leading-relaxed">
+                  <div className={cn(
+                    'overflow-hidden transition-all duration-300 ease-in-out',
+                    expandedRoom === room.id ? 'max-h-40 opacity-100 mt-2' : 'max-h-0 opacity-0'
+                  )}>
+                    <p className="text-sm text-gray-500 leading-relaxed">
                       {room.description ?? 'Details coming soon.'}
-                    </div>
-                  )}
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
