@@ -41,11 +41,22 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   const { data: profile } = await supabase.from('profiles').select('is_admin').eq('id', user.id).single()
   if (!profile?.is_admin) return NextResponse.json({ error: 'Admins only' }, { status: 403 })
 
-  const { name, capacity } = await request.json()
+  const body = await request.json()
+  const { name, capacity, external_bookable, external_name, price_per_hour, description, features } = body
+
+  const update: Record<string, unknown> = {}
+  if (name          !== undefined) update.name           = name?.trim()
+  if (capacity      !== undefined) update.capacity        = parseInt(capacity)
+  if (external_bookable !== undefined) update.external_bookable = external_bookable
+  if (external_name !== undefined) update.external_name  = external_name?.trim() || null
+  if (price_per_hour !== undefined) update.price_per_hour = parseFloat(price_per_hour)
+  if (description   !== undefined) update.description    = description?.trim() || null
+  if (features      !== undefined) update.features       = features
+
   const admin = createAdminClient()
   const { data, error } = await admin
     .from('rooms')
-    .update({ name: name?.trim(), capacity: capacity ? parseInt(capacity) : undefined })
+    .update(update)
     .eq('id', id)
     .select()
     .single()

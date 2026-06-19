@@ -31,7 +31,7 @@ export default async function BookLocationPage({ params }: { params: Promise<{ l
 
   const { data: rooms } = await admin
     .from('rooms')
-    .select('id, location_id, external_name, capacity, price_per_hour, sort_order')
+    .select('id, location_id, external_name, capacity, price_per_hour, sort_order, description')
     .eq('location_id', location.id)
     .eq('external_bookable', true)
     .order('price_per_hour', { ascending: false })

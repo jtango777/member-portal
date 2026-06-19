@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import RoomsManager from '@/components/admin/RoomsManager'
+import ExternalRoomsManager from '@/components/admin/ExternalRoomsManager'
 
 export const dynamic = 'force-dynamic'
 
@@ -11,5 +12,12 @@ export default async function RoomsPage() {
     supabase.from('rooms').select('*').order('sort_order'),
   ])
 
-  return <RoomsManager locations={locations ?? []} initialRooms={rooms ?? []} />
+  return (
+    <div className="space-y-12">
+      <RoomsManager locations={locations ?? []} initialRooms={rooms ?? []} />
+      <div className="border-t border-gray-200 pt-10">
+        <ExternalRoomsManager locations={locations ?? []} initialRooms={rooms ?? []} />
+      </div>
+    </div>
+  )
 }

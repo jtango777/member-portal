@@ -12,6 +12,7 @@ type BookRoom = {
   external_name: string
   capacity: number
   price_per_hour: number
+  description?: string | null
 }
 
 type BookLocation = {
@@ -82,6 +83,7 @@ export default function AvailabilityView({ location, rooms }: { location: BookLo
   const today = format(new Date(), 'yyyy-MM-dd')
 
   const [carouselIndex, setCarouselIndex] = useState<Record<string, number>>({})
+  const [expandedRoom,  setExpandedRoom]  = useState<string | null>(null)
   const [allDay,        setAllDay]        = useState(false)
   const [selectedRoom,  setSelectedRoom]  = useState<BookRoom | null>(null)
   const [selectedDate,  setSelectedDate]  = useState(today)
@@ -236,7 +238,7 @@ export default function AvailabilityView({ location, rooms }: { location: BookLo
               })()}
               {/* ──────────────────────────────────────────────────────────────────────────────────── */}
 
-              <div className="px-5 py-4 space-y-2">
+              <div className="px-5 py-4 space-y-3">
                 <div className="flex items-start justify-between gap-4">
                   <div>
                     <h3 className="font-semibold text-gray-900 text-base">{room.external_name}</h3>
@@ -246,6 +248,22 @@ export default function AvailabilityView({ location, rooms }: { location: BookLo
                     <span className="font-semibold text-gray-900">${room.price_per_hour}</span>
                     <span className="text-gray-400 text-sm">/hr</span>
                   </div>
+                </div>
+
+                {/* Details accordion */}
+                <div className="border-t border-gray-100 pt-2">
+                  <button
+                    type="button"
+                    onClick={e => { e.stopPropagation(); setExpandedRoom(expandedRoom === room.id ? null : room.id) }}
+                    className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 font-medium transition-colors"
+                  >
+                    {expandedRoom === room.id ? '↑ Hide details' : '↓ See details on this room'}
+                  </button>
+                  {expandedRoom === room.id && (
+                    <div className="mt-2 text-sm text-gray-500 leading-relaxed">
+                      {room.description ?? 'Details coming soon.'}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
