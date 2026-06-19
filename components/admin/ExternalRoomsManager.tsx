@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { Location, Room } from '@/types'
-import { Edit2, Check, X, Globe, GlobeOff } from 'lucide-react'
+import { Edit2, Check, X, Globe, EyeOff } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import toast from 'react-hot-toast'
 
@@ -121,7 +121,7 @@ export default function ExternalRoomsManager({ locations, initialRooms }: Props)
                         >
                           {room.external_bookable
                             ? <><Globe size={12} /> Live on /book/</>
-                            : <><GlobeOff size={12} /> Hidden</>
+                            : <><EyeOff size={12} /> Hidden</>
                           }
                         </button>
 
