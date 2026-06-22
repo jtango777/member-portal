@@ -37,10 +37,11 @@ export async function GET(request: Request) {
     }
 
     // Use the same date parsing as the real booking route
-    steps.push(`parsing dates — date: "${date}", start: "${start}", end: "${end}"`)
+    const padTime = (t: string) => t.includes(':') && t.indexOf(':') < 2 ? '0' + t : t
+    steps.push(`parsing dates — date: "${date}", start: "${start}" -> "${padTime(start)}", end: "${end}" -> "${padTime(end)}"`)
     const dateObj = new Date(date + 'T12:00:00')
-    const startObj = new Date(`2000-01-01T${start}:00`)
-    const endObj = new Date(`2000-01-01T${end}:00`)
+    const startObj = new Date(`2000-01-01T${padTime(start)}:00`)
+    const endObj = new Date(`2000-01-01T${padTime(end)}:00`)
     steps.push(`parsed — dateObj: ${dateObj}, startObj: ${startObj}, endObj: ${endObj}`)
 
     const formattedDate = format(dateObj, 'EEEE, MMMM d, yyyy')
