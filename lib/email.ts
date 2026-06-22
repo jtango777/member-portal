@@ -65,6 +65,76 @@ export async function sendConfirmationEmail(
   })
 }
 
+export async function sendExternalBookingReceipt(
+  to: string,
+  details: {
+    confirmationNumber: string
+    room: string
+    location: string
+    date: string
+    time: string
+    guestName: string
+    amountPaid: string
+    cardLast4: string | null
+    cardBrand: string | null
+    paymentDate: string
+  }
+) {
+  const cardLine = details.cardLast4
+    ? `${(details.cardBrand ?? 'Card').charAt(0).toUpperCase() + (details.cardBrand ?? 'card').slice(1)} ending in ${details.cardLast4}`
+    : 'Card on file'
+
+  await resend.emails.send({
+    from: FROM,
+    to,
+    subject: `BizHaus Receipt — ${details.room} on ${details.date}`,
+    html: emailWrapper(`
+      <h2 style="color:#0f172a;margin:0 0 4px;font-size:22px;font-weight:700;">Booking Confirmed ✓</h2>
+      <p style="color:#64748b;font-size:13px;margin:0 0 24px;">Confirmation #${details.confirmationNumber}</p>
+
+      <table style="border-collapse:collapse;width:100%;margin-bottom:24px;background:#f8fafc;border-radius:7px;overflow:hidden;">
+        <tr>
+          <td style="padding:10px 14px;color:#64748b;font-size:13px;width:110px;">Guest</td>
+          <td style="padding:10px 14px;font-weight:600;color:#0f172a;">${details.guestName}</td>
+        </tr>
+        <tr style="border-top:1px solid #e2e8f0;">
+          <td style="padding:10px 14px;color:#64748b;font-size:13px;">Room</td>
+          <td style="padding:10px 14px;color:#1e293b;">${details.room} — ${details.location}</td>
+        </tr>
+        <tr style="border-top:1px solid #e2e8f0;">
+          <td style="padding:10px 14px;color:#64748b;font-size:13px;">Date</td>
+          <td style="padding:10px 14px;color:#1e293b;">${details.date}</td>
+        </tr>
+        <tr style="border-top:1px solid #e2e8f0;">
+          <td style="padding:10px 14px;color:#64748b;font-size:13px;">Time</td>
+          <td style="padding:10px 14px;color:#1e293b;">${details.time}</td>
+        </tr>
+      </table>
+
+      <h3 style="color:#0f172a;margin:0 0 12px;font-size:15px;font-weight:700;">Payment Receipt</h3>
+      <table style="border-collapse:collapse;width:100%;margin-bottom:24px;background:#f8fafc;border-radius:7px;overflow:hidden;">
+        <tr>
+          <td style="padding:10px 14px;color:#64748b;font-size:13px;width:110px;">Amount</td>
+          <td style="padding:10px 14px;font-weight:700;color:#0f172a;">${details.amountPaid}</td>
+        </tr>
+        <tr style="border-top:1px solid #e2e8f0;">
+          <td style="padding:10px 14px;color:#64748b;font-size:13px;">Paid with</td>
+          <td style="padding:10px 14px;color:#1e293b;">${cardLine}</td>
+        </tr>
+        <tr style="border-top:1px solid #e2e8f0;">
+          <td style="padding:10px 14px;color:#64748b;font-size:13px;">Date</td>
+          <td style="padding:10px 14px;color:#1e293b;">${details.paymentDate}</td>
+        </tr>
+      </table>
+
+      <p style="color:#94a3b8;font-size:13px;margin:0;border-top:1px solid #f1f5f9;padding-top:20px;">
+        <strong style="color:#64748b;">Cancellation policy:</strong> Bookings are non-refundable. To inquire about credit toward a future booking, contact us at
+        <a href="mailto:bookings@bizhaus.com" style="color:#2563eb;text-decoration:none;">bookings@bizhaus.com</a>.
+      </p>
+    `),
+  })
+}
+
 export async function sendCancellationEmail(
   to: string,
   details: { title: string; room: string; location: string; date: string; time: string }

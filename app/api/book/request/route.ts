@@ -1,6 +1,11 @@
 import { createAdminClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 import { getPacificDayBounds } from '@/lib/utils'
+import { sendExternalBookingReceipt } from '@/lib/email'
+import Stripe from 'stripe'
+import { format } from 'date-fns'
+
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2025-05-28.basil' })
 
 function pacificToUTC(dateStr: string, timeStr: string): Date {
   const { start: dayStart } = getPacificDayBounds(dateStr)
@@ -12,7 +17,7 @@ export async function POST(request: Request) {
   const admin = createAdminClient()
   const body  = await request.json()
 
-  const { room_id, date, start, end, name, email, phone, company_name, notes } = body
+  const { room_id, date, start, end, name, email, phone, company_name, notes, stripe_payment_intent_id } = body
 
   if (!room_id || !date || !start || !end || !name || !email || !phone) {
     return NextResponse.json({ error: 'Missing required fields.' }, { status: 400 })
@@ -28,7 +33,7 @@ export async function POST(request: Request) {
   // Confirm room exists and is externally bookable
   const { data: room } = await admin
     .from('rooms')
-    .select('id, name')
+    .select('id, name, external_name, location:locations(name)')
     .eq('id', room_id)
     .eq('external_bookable', true)
     .single()
@@ -92,6 +97,45 @@ export async function POST(request: Request) {
     // Roll back the reservation if external booking fails
     await admin.from('reservations').delete().eq('id', reservation.id)
     return NextResponse.json({ error: 'Could not save booking. Please try again.' }, { status: 500 })
+  }
+
+  // Send confirmation / receipt email (non-blocking — don't fail the booking if email fails)
+  try {
+    let cardLast4: string | null = null
+    let cardBrand: string | null = null
+    let amountPaid = ''
+
+    if (stripe_payment_intent_id) {
+      const pi = await stripe.paymentIntents.retrieve(stripe_payment_intent_id)
+      amountPaid = `$${(pi.amount / 100).toFixed(2)}`
+
+      if (pi.latest_charge) {
+        const charge = await stripe.charges.retrieve(pi.latest_charge as string)
+        cardLast4 = charge.payment_method_details?.card?.last4 ?? null
+        cardBrand = charge.payment_method_details?.card?.brand ?? null
+      }
+    }
+
+    const formattedDate = format(new Date(date + 'T12:00:00'), 'EEEE, MMMM d, yyyy')
+    const startLabel = format(new Date(`2000-01-01T${start}`), 'h:mm a')
+    const endLabel = format(new Date(`2000-01-01T${end}`), 'h:mm a')
+    const loc = room.location as { name: string } | { name: string }[] | null
+    const locationName = Array.isArray(loc) ? loc[0]?.name ?? '' : loc?.name ?? ''
+
+    await sendExternalBookingReceipt(email.trim().toLowerCase(), {
+      confirmationNumber: booking.id.slice(0, 8).toUpperCase(),
+      room: (room.external_name ?? room.name) as string,
+      location: locationName,
+      date: formattedDate,
+      time: `${startLabel} – ${endLabel}`,
+      guestName: name.trim(),
+      amountPaid,
+      cardLast4,
+      cardBrand,
+      paymentDate: format(new Date(), 'MMMM d, yyyy'),
+    })
+  } catch (err) {
+    console.error('[email] Failed to send external booking receipt:', err)
   }
 
   return NextResponse.json({ ok: true, booking_id: booking.id }, { status: 201 })
