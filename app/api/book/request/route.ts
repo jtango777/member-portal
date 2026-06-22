@@ -88,7 +88,8 @@ export async function POST(request: Request) {
       notes:           notes?.trim() || null,
       start_time:      startTime.toISOString(),
       end_time:        endTime.toISOString(),
-      status:          'pending',
+      status:          'confirmed',
+      stripe_payment_intent_id: stripe_payment_intent_id ?? null,
     })
     .select('id')
     .single()
