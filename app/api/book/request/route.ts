@@ -101,19 +101,26 @@ export async function POST(request: Request) {
 
   // Send confirmation / receipt email (non-blocking — don't fail the booking if email fails)
   try {
+    console.log('[email] Starting receipt email flow', { stripe_payment_intent_id, email, booking_id: booking.id })
+
     let cardLast4: string | null = null
     let cardBrand: string | null = null
     let amountPaid = ''
 
     if (stripe_payment_intent_id) {
+      console.log('[email] Retrieving payment intent')
       const pi = await stripe.paymentIntents.retrieve(stripe_payment_intent_id)
       amountPaid = `$${(pi.amount / 100).toFixed(2)}`
+      console.log('[email] Got amount:', amountPaid, 'latest_charge:', pi.latest_charge)
 
       if (pi.latest_charge) {
         const charge = await stripe.charges.retrieve(pi.latest_charge as string)
         cardLast4 = charge.payment_method_details?.card?.last4 ?? null
         cardBrand = charge.payment_method_details?.card?.brand ?? null
+        console.log('[email] Got card:', cardBrand, cardLast4)
       }
+    } else {
+      console.log('[email] No stripe_payment_intent_id in request body')
     }
 
     const formattedDate = format(new Date(date + 'T12:00:00'), 'EEEE, MMMM d, yyyy')
@@ -122,6 +129,7 @@ export async function POST(request: Request) {
     const loc = room.location as { name: string } | { name: string }[] | null
     const locationName = Array.isArray(loc) ? loc[0]?.name ?? '' : loc?.name ?? ''
 
+    console.log('[email] Sending receipt to', email.trim().toLowerCase())
     await sendExternalBookingReceipt(email.trim().toLowerCase(), {
       confirmationNumber: booking.id.slice(0, 8).toUpperCase(),
       room: (room.external_name ?? room.name) as string,
@@ -134,6 +142,7 @@ export async function POST(request: Request) {
       cardBrand,
       paymentDate: format(new Date(), 'MMMM d, yyyy'),
     })
+    console.log('[email] Receipt sent successfully')
   } catch (err) {
     console.error('[email] Failed to send external booking receipt:', err)
   }
