@@ -2,6 +2,7 @@ import { createAdminClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 import { getPacificDayBounds } from '@/lib/utils'
 import { sendExternalBookingReceipt } from '@/lib/email'
+import { rateLimit } from '@/lib/rate-limit'
 import Stripe from 'stripe'
 import { format } from 'date-fns'
 
@@ -14,6 +15,11 @@ function pacificToUTC(dateStr: string, timeStr: string): Date {
 }
 
 export async function POST(request: Request) {
+  const ip = request.headers.get('x-forwarded-for') ?? 'unknown'
+  if (!rateLimit(ip, 10, 60_000)) {
+    return NextResponse.json({ error: 'Too many requests. Please try again later.' }, { status: 429 })
+  }
+
   const admin = createAdminClient()
   const body  = await request.json()
 
@@ -21,6 +27,14 @@ export async function POST(request: Request) {
 
   if (!room_id || !date || !start || !end || !name || !email || !phone) {
     return NextResponse.json({ error: 'Missing required fields.' }, { status: 400 })
+  }
+
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return NextResponse.json({ error: 'Invalid email address.' }, { status: 400 })
+  }
+
+  if (!/^[\d\s()+\-\.]{7,20}$/.test(phone)) {
+    return NextResponse.json({ error: 'Invalid phone number.' }, { status: 400 })
   }
 
   const startTime = pacificToUTC(date, start)
@@ -33,12 +47,24 @@ export async function POST(request: Request) {
   // Confirm room exists and is externally bookable
   const { data: room } = await admin
     .from('rooms')
-    .select('id, name, external_name, location:locations(name)')
+    .select('id, name, external_name, price_per_hour, location:locations(name)')
     .eq('id', room_id)
     .eq('external_bookable', true)
     .single()
 
   if (!room) return NextResponse.json({ error: 'Room not found.' }, { status: 404 })
+
+  // Verify payment amount matches expected price
+  if (stripe_payment_intent_id && room.price_per_hour) {
+    const pi = await stripe.paymentIntents.retrieve(stripe_payment_intent_id)
+    const [sh, sm] = start.split(':').map(Number)
+    const [eh, em] = end.split(':').map(Number)
+    const hours = ((eh * 60 + em) - (sh * 60 + sm)) / 60
+    const expectedCents = Math.round(hours * (room.price_per_hour as number) * 100)
+    if (pi.amount < expectedCents) {
+      return NextResponse.json({ error: 'Payment amount does not match the booking price.' }, { status: 400 })
+    }
+  }
 
   // Check for conflicts
   const { data: conflicts } = await admin
