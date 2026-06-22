@@ -123,14 +123,10 @@ export async function POST(request: Request) {
       console.log('[email] No stripe_payment_intent_id in request body')
     }
 
-    console.log('[email] Raw values — date:', date, 'start:', start, 'end:', end)
-    const dateObj = new Date(date + 'T12:00:00')
-    const startObj = new Date(`2000-01-01T${start}:00`)
-    const endObj = new Date(`2000-01-01T${end}:00`)
-    console.log('[email] Parsed dates:', dateObj, startObj, endObj)
-    const formattedDate = format(dateObj, 'EEEE, MMMM d, yyyy')
-    const startLabel = format(startObj, 'h:mm a')
-    const endLabel = format(endObj, 'h:mm a')
+    const padTime = (t: string) => t.includes(':') && t.indexOf(':') < 2 ? '0' + t : t
+    const formattedDate = format(new Date(date + 'T12:00:00'), 'EEEE, MMMM d, yyyy')
+    const startLabel = format(new Date(`2000-01-01T${padTime(start)}:00`), 'h:mm a')
+    const endLabel = format(new Date(`2000-01-01T${padTime(end)}:00`), 'h:mm a')
     const loc = room.location as { name: string } | { name: string }[] | null
     const locationName = Array.isArray(loc) ? loc[0]?.name ?? '' : loc?.name ?? ''
 
