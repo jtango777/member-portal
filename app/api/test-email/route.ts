@@ -8,6 +8,9 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2025-05
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
   const piId = searchParams.get('pi')
+  const date = searchParams.get('date') ?? '2026-10-01'
+  const start = searchParams.get('start') ?? '09:00'
+  const end = searchParams.get('end') ?? '10:00'
 
   const steps: string[] = []
 
@@ -30,20 +33,28 @@ export async function GET(request: Request) {
         cardLast4 = charge.payment_method_details?.card?.last4 ?? null
         cardBrand = charge.payment_method_details?.card?.brand ?? null
         steps.push('card: ' + cardBrand + ' ' + cardLast4)
-      } else {
-        steps.push('no latest_charge on PI')
       }
-    } else {
-      steps.push('no PI id provided, skipping stripe')
     }
+
+    // Use the same date parsing as the real booking route
+    steps.push(`parsing dates — date: "${date}", start: "${start}", end: "${end}"`)
+    const dateObj = new Date(date + 'T12:00:00')
+    const startObj = new Date(`2000-01-01T${start}:00`)
+    const endObj = new Date(`2000-01-01T${end}:00`)
+    steps.push(`parsed — dateObj: ${dateObj}, startObj: ${startObj}, endObj: ${endObj}`)
+
+    const formattedDate = format(dateObj, 'EEEE, MMMM d, yyyy')
+    const startLabel = format(startObj, 'h:mm a')
+    const endLabel = format(endObj, 'h:mm a')
+    steps.push(`formatted — ${formattedDate}, ${startLabel} – ${endLabel}`)
 
     steps.push('sending email...')
     await sendExternalBookingReceipt('caroline@bizhaus.com', {
       confirmationNumber: 'TEST1234',
       room: 'Test Room',
       location: 'El Segundo',
-      date: format(new Date(), 'EEEE, MMMM d, yyyy'),
-      time: '9:00 AM – 10:00 AM',
+      date: formattedDate,
+      time: `${startLabel} – ${endLabel}`,
       guestName: 'Test Guest',
       amountPaid,
       cardLast4,
