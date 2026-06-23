@@ -22,6 +22,7 @@ export async function POST(request: Request) {
   }
 
   const admin = createAdminClient()
+  console.log('[webhook] Event received:', event.type)
 
   if (event.type === 'payment_intent.succeeded') {
     const pi = event.data.object as Stripe.PaymentIntent
