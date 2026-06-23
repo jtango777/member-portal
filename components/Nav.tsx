@@ -35,12 +35,12 @@ export default function Nav({ profile }: Props) {
   return (
     <nav className="bg-slate-900 text-white px-4 h-14 flex items-center justify-between flex-shrink-0">
       <div className="flex items-center gap-6">
-        <Link href={pathname.startsWith('/dashboard/admin') ? '/dashboard/admin' : '/dashboard'} className="flex items-center gap-2 hover:opacity-90">
-          <span className="text-xl font-bold tracking-tight text-white">BizHaus</span>
+        <Link href={pathname.startsWith('/dashboard/admin') ? '/dashboard/admin' : '/dashboard'} className="flex items-center gap-2.5 hover:opacity-90">
+          <span className="text-xl font-bold tracking-tight text-white">BizHaus <span className="font-medium text-slate-400">Bookings</span></span>
           {pathname.startsWith('/dashboard/admin') ? (
-            <span className="text-[10px] font-semibold uppercase tracking-wider bg-blue-600 text-white px-2 py-0.5 rounded-full">Admin Hub</span>
+            <span className="text-[10px] font-bold uppercase tracking-wider bg-gradient-to-r from-blue-500 to-blue-600 text-white px-2.5 py-1 rounded-md shadow-sm shadow-blue-500/30">Admin Hub</span>
           ) : (
-            <span className="text-[10px] font-semibold uppercase tracking-wider bg-slate-700 text-slate-300 px-2 py-0.5 rounded-full">Member</span>
+            <span className="text-[10px] font-bold uppercase tracking-wider bg-gradient-to-r from-slate-600 to-slate-700 text-slate-200 px-2.5 py-1 rounded-md shadow-sm shadow-slate-500/20 border border-slate-500/30">Member</span>
           )}
         </Link>
         <Link href="/dashboard"
