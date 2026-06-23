@@ -16,12 +16,13 @@ export default function LoginPage() {
     e.preventDefault()
     setLoading(true)
     const supabase = createClient()
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
+    const { error, data } = await supabase.auth.signInWithPassword({ email, password })
     if (error) {
       toast.error(error.message)
       setLoading(false)
     } else {
-      router.push('/dashboard')
+      const { data: profile } = await supabase.from('profiles').select('is_admin').eq('id', data.user.id).single()
+      router.push(profile?.is_admin ? '/dashboard/admin' : '/dashboard')
       router.refresh()
     }
   }
