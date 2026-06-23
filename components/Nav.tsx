@@ -38,9 +38,9 @@ export default function Nav({ profile }: Props) {
         <Link href={pathname.startsWith('/dashboard/admin') ? '/dashboard/admin' : '/dashboard'} className="flex items-center gap-2 hover:opacity-90">
           <span className="text-xl font-bold tracking-tight text-white">BizHaus</span>
           {pathname.startsWith('/dashboard/admin') ? (
-            <span className="text-[9px] font-bold uppercase tracking-wider bg-blue-600 text-white px-1.5 py-0.5 rounded">Hub</span>
+            <span className="text-[10px] font-bold uppercase tracking-wider bg-blue-600 text-white px-2 py-0.5 rounded">Admin Hub</span>
           ) : (
-            <span className="text-[9px] font-bold uppercase tracking-wider bg-slate-700 text-slate-300 px-1.5 py-0.5 rounded border border-slate-600">Member</span>
+            <span className="text-[10px] font-bold uppercase tracking-wider bg-slate-700 text-slate-300 px-2 py-0.5 rounded border border-slate-600">Member</span>
           )}
         </Link>
         <Link href="/dashboard"
