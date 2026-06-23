@@ -31,7 +31,7 @@ export default function LoginPage() {
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-white tracking-tight">BizHaus</h1>
-          <p className="text-slate-400 mt-2 text-sm">Room Reservation System</p>
+          <span className="inline-block mt-2 text-[10px] font-bold uppercase tracking-wider bg-slate-700 text-slate-300 px-2 py-0.5 rounded border border-slate-600">Member Portal</span>
         </div>
         <div className="bg-white rounded-xl shadow-lg p-8">
           <h2 className="text-lg font-semibold text-gray-900 mb-6">Sign in to your account</h2>
