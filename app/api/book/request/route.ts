@@ -170,10 +170,12 @@ export async function POST(request: Request) {
 
   // Create QuickBooks sales receipt (non-blocking)
   try {
+    console.log('[qb] Starting sales receipt for location:', room.location_id)
     const [sh, sm] = start.split(':').map(Number)
     const [eh, em] = end.split(':').map(Number)
     const hours = ((eh * 60 + em) - (sh * 60 + sm)) / 60
     const totalAmount = hours * (room.price_per_hour as number)
+    console.log('[qb] Amount:', totalAmount, 'Hours:', hours)
 
     const padTime = (t: string) => t.includes(':') && t.indexOf(':') < 2 ? '0' + t : t
     const qbDate = format(new Date(date + 'T12:00:00'), 'EEEE, MMMM d, yyyy')
