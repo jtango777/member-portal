@@ -2,7 +2,6 @@ import { NextResponse } from 'next/server'
 import Stripe from 'stripe'
 import { createAdminClient } from '@/lib/supabase/server'
 import { createSalesReceipt } from '@/lib/quickbooks'
-import { format } from 'date-fns'
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2025-05-28.basil' })
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!
@@ -50,14 +49,16 @@ export async function POST(request: Request) {
           .single()
 
         if (room) {
+          const totalAmount = pi.amount_received / 100
+
           const startDt = new Date(booking.start_time)
           const endDt = new Date(booking.end_time)
-          const hours = (endDt.getTime() - startDt.getTime()) / 3_600_000
-          const totalAmount = hours * (room.price_per_hour ?? 0)
-
-          const padTime = (t: string) => t.includes(':') && t.indexOf(':') < 2 ? '0' + t : t
-          const startStr = padTime(`${startDt.getUTCHours()}:${String(startDt.getUTCMinutes()).padStart(2, '0')}`)
-          const endStr = padTime(`${endDt.getUTCHours()}:${String(endDt.getUTCMinutes()).padStart(2, '0')}`)
+          // Format times in Pacific (BizHaus locations are all in CA)
+          const timeOpts: Intl.DateTimeFormatOptions = { hour: 'numeric', minute: '2-digit', timeZone: 'America/Los_Angeles' }
+          const dateOpts: Intl.DateTimeFormatOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'America/Los_Angeles' }
+          const startLabel = startDt.toLocaleTimeString('en-US', timeOpts)
+          const endLabel = endDt.toLocaleTimeString('en-US', timeOpts)
+          const dateLabel = startDt.toLocaleDateString('en-US', dateOpts)
 
           console.log('[qb] Creating sales receipt — location:', room.location_id, 'amount:', totalAmount)
 
@@ -66,8 +67,8 @@ export async function POST(request: Request) {
             email: booking.external_email,
             phone: booking.external_phone,
             roomName: room.external_name ?? room.name,
-            date: format(startDt, 'EEEE, MMMM d, yyyy'),
-            time: `${format(new Date(`2000-01-01T${startStr}:00`), 'h:mm a')} – ${format(new Date(`2000-01-01T${endStr}:00`), 'h:mm a')}`,
+            date: dateLabel,
+            time: `${startLabel} – ${endLabel}`,
             amount: totalAmount,
           })
           console.log('[qb] Sales receipt created successfully')

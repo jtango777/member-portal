@@ -49,7 +49,6 @@ export async function GET(request: Request) {
       updated_at: new Date().toISOString(),
     }, { onConflict: 'location_id' })
 
-  const url = new URL('/dashboard/admin', request.url)
-  url.searchParams.set('qb', 'connected')
-  return NextResponse.redirect(url.toString())
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://betarooms.bizhaus.com'
+  return NextResponse.redirect(`${baseUrl}/dashboard/admin?qb=connected`)
 }
