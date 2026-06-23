@@ -2,7 +2,6 @@ import { createAdminClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 import { getPacificDayBounds } from '@/lib/utils'
 import { sendExternalBookingReceipt } from '@/lib/email'
-import { createSalesReceipt } from '@/lib/quickbooks'
 import { rateLimit } from '@/lib/rate-limit'
 import Stripe from 'stripe'
 import { format } from 'date-fns'
@@ -166,33 +165,6 @@ export async function POST(request: Request) {
     console.log('[email] Receipt sent successfully')
   } catch (err) {
     console.error('[email] Failed to send external booking receipt:', err)
-  }
-
-  // Create QuickBooks sales receipt (non-blocking)
-  try {
-    console.log('[qb] Starting sales receipt for location:', room.location_id)
-    const [sh, sm] = start.split(':').map(Number)
-    const [eh, em] = end.split(':').map(Number)
-    const hours = ((eh * 60 + em) - (sh * 60 + sm)) / 60
-    const totalAmount = hours * (room.price_per_hour as number)
-    console.log('[qb] Amount:', totalAmount, 'Hours:', hours)
-
-    const padTime = (t: string) => t.includes(':') && t.indexOf(':') < 2 ? '0' + t : t
-    const qbDate = format(new Date(date + 'T12:00:00'), 'EEEE, MMMM d, yyyy')
-    const qbStart = format(new Date(`2000-01-01T${padTime(start)}:00`), 'h:mm a')
-    const qbEnd = format(new Date(`2000-01-01T${padTime(end)}:00`), 'h:mm a')
-
-    await createSalesReceipt(room.location_id as string, {
-      guestName: name.trim(),
-      email: email.trim().toLowerCase(),
-      phone: phone.trim(),
-      roomName: (room.external_name ?? room.name) as string,
-      date: qbDate,
-      time: `${qbStart} – ${qbEnd}`,
-      amount: totalAmount,
-    })
-  } catch (err) {
-    console.error('[qb] Failed to create sales receipt:', err)
   }
 
   return NextResponse.json({ ok: true, booking_id: booking.id }, { status: 201 })
