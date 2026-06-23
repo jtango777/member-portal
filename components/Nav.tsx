@@ -35,8 +35,13 @@ export default function Nav({ profile }: Props) {
   return (
     <nav className="bg-slate-900 text-white px-4 h-14 flex items-center justify-between flex-shrink-0">
       <div className="flex items-center gap-6">
-        <Link href="/dashboard" className="text-xl font-bold tracking-tight hover:text-slate-200">
-          BizHaus
+        <Link href={pathname.startsWith('/dashboard/admin') ? '/dashboard/admin' : '/dashboard'} className="flex items-center gap-2 hover:opacity-90">
+          <span className="text-xl font-bold tracking-tight text-white">BizHaus</span>
+          {pathname.startsWith('/dashboard/admin') ? (
+            <span className="text-[10px] font-semibold uppercase tracking-wider bg-blue-600 text-white px-2 py-0.5 rounded-full">Admin Hub</span>
+          ) : (
+            <span className="text-[10px] font-semibold uppercase tracking-wider bg-slate-700 text-slate-300 px-2 py-0.5 rounded-full">Member</span>
+          )}
         </Link>
         <Link href="/dashboard"
           className={cn('text-sm font-medium transition-colors',
@@ -84,7 +89,6 @@ export default function Nav({ profile }: Props) {
       <div className="flex items-center gap-3">
         <span className="text-sm text-slate-300 hidden sm:block">
           {profile.full_name}
-          {profile.is_admin && <span className="ml-2 text-xs bg-blue-600 text-white px-1.5 py-0.5 rounded">Admin</span>}
         </span>
         <div className="relative group">
           <Link href="/dashboard/settings"

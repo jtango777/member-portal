@@ -10,6 +10,7 @@ export default function BookLayout({ children }: { children: React.ReactNode }) 
     <div className="min-h-screen bg-white flex flex-col">
       <header className="bg-slate-900 h-14 flex items-center flex-shrink-0 px-6">
         <span className="text-xl font-bold tracking-tight text-white">BizHaus</span>
+        <span className="ml-2.5 text-sm font-medium text-slate-400">Bookings</span>
       </header>
       <main className="flex-1">
         {children}
