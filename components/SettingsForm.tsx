@@ -10,9 +10,10 @@ type Props = {
   profile:   Profile
   company:   Company | null
   locations: Location[]
+  email:     string
 }
 
-export default function SettingsForm({ profile, company, locations }: Props) {
+export default function SettingsForm({ profile, company, locations, email }: Props) {
   const router = useRouter()
   const [fullName, setFullName]           = useState(profile.full_name)
   const [companyName, setCompanyName]     = useState(company?.name ?? '')
@@ -81,6 +82,10 @@ export default function SettingsForm({ profile, company, locations }: Props) {
       <div className="bg-white rounded-xl border border-gray-200 p-6">
         <h2 className="text-sm font-semibold text-gray-900 mb-4">Profile</h2>
         <form onSubmit={handleSaveProfile} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+            <p className="text-sm text-gray-900 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">{email}</p>
+          </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
             <input value={fullName} onChange={e => setFullName(e.target.value)} required

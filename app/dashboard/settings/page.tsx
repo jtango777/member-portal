@@ -25,6 +25,7 @@ export default async function SettingsPage() {
           profile={profile}
           company={(profile.companies as any) ?? null}
           locations={locations ?? []}
+          email={user.email ?? ''}
         />
       </div>
     </div>
