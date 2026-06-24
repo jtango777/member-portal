@@ -108,6 +108,7 @@ export default function ReservationModal({
   rooms, profile, company, hoursUsed, onClose
 }: Props) {
   const [editing, setEditing]     = useState(mode === 'create')
+  const [dateVal, setDateVal]     = useState(format(selectedDate, 'yyyy-MM-dd'))
   const [roomId, setRoomId]       = useState(initialRoomId ?? reservation?.room_id ?? rooms[0]?.id ?? '')
   const [title, setTitle]         = useState(reservation?.title ?? '')
   const [notes, setNotes]         = useState(reservation?.notes ?? '')
@@ -142,8 +143,8 @@ export default function ReservationModal({
   const isAdmin = profile.is_admin
   const isOwn   = reservation?.user_id === profile.id
 
-  const startDate = parseTimeValue(format(selectedDate, 'yyyy-MM-dd'), startVal)
-  const endDate   = parseTimeValue(format(selectedDate, 'yyyy-MM-dd'), endVal)
+  const startDate = parseTimeValue(dateVal, startVal)
+  const endDate   = parseTimeValue(dateVal, endVal)
 
   const durationHours = endDate > startDate
     ? (endDate.getTime() - startDate.getTime()) / 3600000
@@ -236,7 +237,7 @@ export default function ReservationModal({
       notes: notes.trim() || null,
       start_time: startDate.toISOString(),
       end_time:   endDate.toISOString(),
-      formatted_date: format(selectedDate, 'EEEE, MMMM d, yyyy'),
+      formatted_date: format(new Date(dateVal + 'T12:00:00'), 'EEEE, MMMM d, yyyy'),
       formatted_time: `${format(startDate, 'h:mm a')} – ${format(endDate, 'h:mm a')}`,
     }
 
@@ -366,6 +367,16 @@ export default function ReservationModal({
                     className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                     placeholder={isRecurring ? 'e.g. Staff Meeting' : 'e.g. Team Standup'}
                     autoFocus
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
+                  <input
+                    type="date"
+                    value={dateVal}
+                    onChange={e => setDateVal(e.target.value)}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
 
