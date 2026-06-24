@@ -387,7 +387,16 @@ export default function ReservationModal({
                     <label className="block text-sm font-medium text-gray-700 mb-1">Start Time</label>
                     <select
                       value={startVal}
-                      onChange={e => { setStartVal(e.target.value); setAdminConflicts([]) }}
+                      onChange={e => {
+                        const newStart = e.target.value
+                        setStartVal(newStart)
+                        setAdminConflicts([])
+                        const [sh, sm] = newStart.split(':').map(Number)
+                        const newEndMinutes = sh * 60 + sm + 30
+                        const nh = Math.floor(newEndMinutes / 60)
+                        const nm = newEndMinutes % 60
+                        if (nh <= 22) setEndVal(`${nh}:${nm === 0 ? '00' : '30'}`)
+                      }}
                       className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                     >
                       {TIME_OPTIONS.slice(0, -1).map(opt => (

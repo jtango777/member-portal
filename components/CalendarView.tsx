@@ -2,10 +2,13 @@
 
 import { useState, useCallback, useRef, useEffect } from 'react'
 import { format, addDays, subDays, isToday, isBefore, startOfDay, startOfMonth, endOfMonth, eachDayOfInterval, getDay, addMonths, subMonths } from 'date-fns'
-import { ChevronLeft, ChevronRight, Lock, FileText, Plus, Users, Clock, Ban } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Lock, FileText, Plus, Users, Clock, Ban, X } from 'lucide-react'
 import { Location, Room, Reservation, Profile, Company } from '@/types'
-import { cn, formatTime, isSameDay } from '@/lib/utils'
+import { cn, formatTime, isSameDay, buildTimeOptions, parseTimeValue } from '@/lib/utils'
 import ReservationModal from './ReservationModal'
+import toast from 'react-hot-toast'
+
+const TIME_OPTIONS = buildTimeOptions()
 
 // Calendar constants
 const START_HOUR = 7      // 7 AM
@@ -37,6 +40,13 @@ export default function CalendarView({ locations, profile, company, hoursUsed, d
   const [modal, setModal]                       = useState<ModalState>({ mode: 'closed' })
   const [showPicker, setShowPicker]             = useState(false)
   const [pickerMonth, setPickerMonth]           = useState(new Date())
+  const [showSidebarForm, setShowSidebarForm]   = useState(false)
+  const [sidebarRoomId, setSidebarRoomId]       = useState('')
+  const [sidebarTitle, setSidebarTitle]         = useState('')
+  const [sidebarNotes, setSidebarNotes]         = useState('')
+  const [sidebarStartVal, setSidebarStartVal]   = useState('9:00')
+  const [sidebarEndVal, setSidebarEndVal]       = useState('9:30')
+  const [sidebarLoading, setSidebarLoading]     = useState(false)
   const scrollRef  = useRef<HTMLDivElement>(null)
   const pickerRef  = useRef<HTMLDivElement>(null)
 
@@ -92,7 +102,7 @@ export default function CalendarView({ locations, profile, company, hoursUsed, d
 
   function handleSlotClick(roomId: string, slot: number) {
     if (isBefore(startOfDay(selectedDate), startOfDay(new Date())) && !isSameDay(selectedDate, new Date())) return
-    setModal({ mode: 'create', roomId, startSlot: slot })
+    openSidebarForm(roomId, slot)
   }
 
   function handleBookingClick(res: Reservation) {
@@ -104,132 +114,289 @@ export default function CalendarView({ locations, profile, company, hoursUsed, d
     if (refresh) fetchData()
   }
 
+  function openSidebarForm(roomId?: string, startSlot?: number) {
+    setSidebarRoomId(roomId ?? rooms[0]?.id ?? '')
+    setSidebarTitle('')
+    setSidebarNotes('')
+    const sv = startSlot !== undefined
+      ? `${START_HOUR + Math.floor(startSlot / 2)}:${startSlot % 2 === 0 ? '00' : '30'}`
+      : '9:00'
+    setSidebarStartVal(sv)
+    const [sh, sm] = sv.split(':').map(Number)
+    const em = sh * 60 + sm + 30
+    setSidebarEndVal(`${Math.floor(em / 60)}:${em % 60 === 0 ? '00' : '30'}`)
+    setShowSidebarForm(true)
+  }
+
+  async function handleSidebarSave() {
+    if (!sidebarTitle.trim()) { toast.error('Please enter a title'); return }
+    const startDate = parseTimeValue(format(selectedDate, 'yyyy-MM-dd'), sidebarStartVal)
+    const endDate = parseTimeValue(format(selectedDate, 'yyyy-MM-dd'), sidebarEndVal)
+    if (endDate <= startDate) { toast.error('End time must be after start time'); return }
+
+    const durationHrs = (endDate.getTime() - startDate.getTime()) / 3600000
+    if (!profile.is_admin && company) {
+      const remaining = Math.max(0, company.monthly_hours_allotment - hoursUsed)
+      if (durationHrs > remaining) { toast.error('Not enough hours remaining this month'); return }
+    }
+
+    setSidebarLoading(true)
+    const res = await fetch('/api/reservations', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        room_id: sidebarRoomId,
+        title: sidebarTitle.trim(),
+        notes: sidebarNotes.trim() || null,
+        start_time: startDate.toISOString(),
+        end_time: endDate.toISOString(),
+        formatted_date: format(selectedDate, 'EEEE, MMMM d, yyyy'),
+        formatted_time: `${format(startDate, 'h:mm a')} – ${format(endDate, 'h:mm a')}`,
+      }),
+    })
+    if (res.ok) {
+      toast.success('Reservation created')
+      setShowSidebarForm(false)
+      fetchData()
+    } else {
+      const data = await res.json()
+      toast.error(data.error ?? 'Something went wrong')
+    }
+    setSidebarLoading(false)
+  }
+
+  const sidebarEndOptions = TIME_OPTIONS.filter(opt => {
+    const [h, m] = opt.value.split(':').map(Number)
+    const [sh, sm] = sidebarStartVal.split(':').map(Number)
+    return h > sh || (h === sh && m > sm)
+  })
+
   const hoursRemaining = company ? Math.max(0, company.monthly_hours_allotment - hoursUsed) : null
 
   return (
-    <div className="flex flex-col h-full bg-white">
-      {/* Top bar */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 flex-shrink-0">
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setSelectedDate(d => subDays(d, 1))}
-            className="p-1.5 rounded hover:bg-gray-100 transition-colors"
-          >
-            <ChevronLeft size={18} />
-          </button>
-          <button
-            onClick={() => setSelectedDate(new Date())}
-            className={cn(
-              'px-3 py-1 text-sm rounded font-medium transition-colors',
-              isToday(selectedDate)
-                ? 'bg-blue-600 text-white'
-                : 'bg-blue-600 hover:bg-blue-700 text-white'
-            )}
-          >
-            {isToday(selectedDate) ? 'Today' : '← Return to Today'}
-          </button>
-          <button
-            onClick={() => setSelectedDate(d => addDays(d, 1))}
-            className="p-1.5 rounded hover:bg-gray-100 transition-colors"
-          >
-            <ChevronRight size={18} />
-          </button>
+    <div className="flex h-full bg-white">
+      {/* ── Left sidebar ── */}
+      <div className="w-64 flex-shrink-0 border-r border-gray-200 p-4 space-y-4 overflow-y-auto hidden lg:block">
+        {/* Date heading */}
+        <div className="flex items-center justify-between">
+          <p className="text-sm font-semibold text-gray-900">{format(selectedDate, 'MMMM d, yyyy')}</p>
+          {!isToday(selectedDate) && (
+            <button onClick={() => setSelectedDate(new Date())}
+              className="text-xs text-blue-600 font-medium hover:text-blue-800">Today</button>
+          )}
+        </div>
 
-          {/* Clickable date → mini month picker */}
-          <div className="relative ml-1" ref={pickerRef}>
-            <button
-              onClick={() => { setPickerMonth(selectedDate); setShowPicker(v => !v) }}
-              className="text-sm font-semibold text-gray-900 hover:text-blue-600 transition-colors"
-            >
-              {format(selectedDate, 'EEEE, MMMM d, yyyy')}
+        {/* Mini calendar */}
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <button onClick={() => setPickerMonth(m => subMonths(m, 1))} className="p-1 hover:bg-gray-100 rounded transition-colors">
+              <ChevronLeft size={14} />
             </button>
-
-            {showPicker && (
-              <div className="absolute top-full left-0 mt-2 z-50 bg-white rounded-xl shadow-xl border border-gray-200 p-3 w-64">
-                {/* Month navigation */}
-                <div className="flex items-center justify-between mb-2">
-                  <button onClick={() => setPickerMonth(m => subMonths(m, 1))} className="p-1 hover:bg-gray-100 rounded transition-colors">
-                    <ChevronLeft size={14} />
-                  </button>
-                  <span className="text-sm font-semibold text-gray-900">{format(pickerMonth, 'MMMM yyyy')}</span>
-                  <button onClick={() => setPickerMonth(m => addMonths(m, 1))} className="p-1 hover:bg-gray-100 rounded transition-colors">
-                    <ChevronRight size={14} />
-                  </button>
-                </div>
-                {/* Day headers */}
-                <div className="grid grid-cols-7 mb-1">
-                  {['S','M','T','W','T','F','S'].map((d, i) => (
-                    <div key={i} className="text-center text-xs text-gray-400 font-medium py-1">{d}</div>
-                  ))}
-                </div>
-                {/* Day grid */}
-                <div className="grid grid-cols-7 gap-0.5">
-                  {Array.from({ length: getDay(startOfMonth(pickerMonth)) }).map((_, i) => (
-                    <div key={`pad-${i}`} />
-                  ))}
-                  {eachDayOfInterval({ start: startOfMonth(pickerMonth), end: endOfMonth(pickerMonth) }).map(day => (
-                    <button
-                      key={day.toISOString()}
-                      onClick={() => { setSelectedDate(day); setShowPicker(false) }}
-                      className={cn(
-                        'text-center text-xs py-1.5 rounded-md transition-colors',
-                        isSameDay(day, selectedDate)
-                          ? 'bg-blue-600 text-white font-semibold'
-                          : isToday(day)
-                          ? 'bg-blue-50 text-blue-600 font-semibold'
-                          : 'hover:bg-gray-100 text-gray-700'
-                      )}
-                    >
-                      {format(day, 'd')}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
+            <span className="text-sm font-semibold text-gray-900">{format(pickerMonth, 'MMMM yyyy')}</span>
+            <button onClick={() => setPickerMonth(m => addMonths(m, 1))} className="p-1 hover:bg-gray-100 rounded transition-colors">
+              <ChevronRight size={14} />
+            </button>
+          </div>
+          <div className="grid grid-cols-7 mb-1">
+            {['S','M','T','W','T','F','S'].map((d, i) => (
+              <div key={i} className="text-center text-xs text-gray-400 font-medium py-1">{d}</div>
+            ))}
+          </div>
+          <div className="grid grid-cols-7 gap-0.5">
+            {Array.from({ length: getDay(startOfMonth(pickerMonth)) }).map((_, i) => (
+              <div key={`pad-${i}`} />
+            ))}
+            {eachDayOfInterval({ start: startOfMonth(pickerMonth), end: endOfMonth(pickerMonth) }).map(day => (
+              <button
+                key={day.toISOString()}
+                onClick={() => setSelectedDate(day)}
+                className={cn(
+                  'text-center text-xs py-1.5 rounded-md transition-colors',
+                  isSameDay(day, selectedDate)
+                    ? 'bg-blue-600 text-white font-semibold'
+                    : isToday(day)
+                    ? 'bg-blue-50 text-blue-600 font-semibold'
+                    : 'hover:bg-gray-100 text-gray-700'
+                )}
+              >
+                {format(day, 'd')}
+              </button>
+            ))}
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
-          {company && !profile.is_admin && hoursRemaining !== null && (
-            <div className="hidden sm:flex items-center gap-1.5 text-xs text-gray-500 bg-gray-50 border border-gray-200 rounded-lg px-3 py-1.5">
-              <Clock size={13} />
-              <span>
+        {/* Make a Reservation button */}
+        <button
+          onClick={() => openSidebarForm()}
+          className="w-full flex items-center justify-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-4 py-2.5 rounded-lg transition-colors"
+        >
+          <Plus size={16} />
+          Make a Reservation
+        </button>
+
+        {/* Inline booking form */}
+        {showSidebarForm && (
+          <div className="space-y-3 border border-gray-200 rounded-lg p-3 bg-gray-50">
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-semibold text-gray-900">New Reservation</p>
+              <button onClick={() => setShowSidebarForm(false)} className="text-gray-400 hover:text-gray-600">
+                <X size={14} />
+              </button>
+            </div>
+
+            <input
+              value={sidebarTitle}
+              onChange={e => setSidebarTitle(e.target.value)}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+              placeholder="Meeting title"
+              autoFocus
+            />
+
+            <select
+              value={sidebarRoomId}
+              onChange={e => setSidebarRoomId(e.target.value)}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+            >
+              {rooms.map(r => (
+                <option key={r.id} value={r.id}>{r.name} ({r.capacity})</option>
+              ))}
+            </select>
+
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">Start</label>
+                <select
+                  value={sidebarStartVal}
+                  onChange={e => {
+                    const newStart = e.target.value
+                    setSidebarStartVal(newStart)
+                    const [sh, sm] = newStart.split(':').map(Number)
+                    const em = sh * 60 + sm + 30
+                    const nh = Math.floor(em / 60)
+                    const nm = em % 60
+                    if (nh <= 22) setSidebarEndVal(`${nh}:${nm === 0 ? '00' : '30'}`)
+                  }}
+                  className="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                >
+                  {TIME_OPTIONS.slice(0, -1).map(opt => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">End</label>
+                <select
+                  value={sidebarEndVal}
+                  onChange={e => setSidebarEndVal(e.target.value)}
+                  className="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                >
+                  {sidebarEndOptions.map(opt => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <textarea
+              value={sidebarNotes}
+              onChange={e => setSidebarNotes(e.target.value)}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none bg-white"
+              rows={2}
+              placeholder="Notes (optional)"
+            />
+
+            {company && !profile.is_admin && hoursRemaining !== null && (
+              <p className="text-xs text-gray-500">
                 <span className={cn('font-semibold', hoursRemaining <= 0 ? 'text-red-600' : 'text-gray-800')}>
                   {hoursRemaining.toFixed(1)}h
                 </span>
-                {' '}remaining of {company.monthly_hours_allotment}h/mo
-              </span>
-            </div>
-          )}
-          <button
-            onClick={() => setModal({ mode: 'create', roomId: rooms[0]?.id ?? '', startSlot: 2 })}
-            className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors"
-          >
-            <Plus size={16} />
-            <span>Make a Reservation</span>
-          </button>
-        </div>
-      </div>
-
-      {/* Location tabs */}
-      <div className="flex border-b border-gray-200 flex-shrink-0 bg-white px-4">
-        {locations.map(loc => (
-          <button
-            key={loc.id}
-            onClick={() => setSelectedLocation(loc)}
-            className={cn(
-              'px-4 py-2.5 text-sm font-medium border-b-2 transition-colors -mb-px',
-              selectedLocation.id === loc.id
-                ? 'border-blue-600 text-blue-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700'
+                {' '}remaining this month
+              </p>
             )}
-          >
-            {loc.name}
-          </button>
-        ))}
+
+            <button
+              onClick={handleSidebarSave}
+              disabled={sidebarLoading}
+              className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors"
+            >
+              {sidebarLoading ? 'Saving…' : 'Book'}
+            </button>
+          </div>
+        )}
+
+        {/* Hours remaining (non-admin) */}
+        {company && !profile.is_admin && hoursRemaining !== null && !showSidebarForm && (
+          <div className="flex items-center gap-1.5 text-xs text-gray-500 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
+            <Clock size={13} />
+            <span>
+              <span className={cn('font-semibold', hoursRemaining <= 0 ? 'text-red-600' : 'text-gray-800')}>
+                {hoursRemaining.toFixed(1)}h
+              </span>
+              {' '}remaining of {company.monthly_hours_allotment}h/mo
+            </span>
+          </div>
+        )}
       </div>
 
-      {/* Calendar grid */}
+      {/* ── Main content ── */}
+      <div className="flex flex-col flex-1 min-w-0">
+        {/* Top bar */}
+        <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 flex-shrink-0">
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setSelectedDate(d => subDays(d, 1))}
+              className="p-1.5 rounded hover:bg-gray-100 transition-colors"
+            >
+              <ChevronLeft size={18} />
+            </button>
+            <button
+              onClick={() => setSelectedDate(new Date())}
+              className={cn(
+                'px-3 py-1 text-sm rounded font-medium transition-colors lg:hidden',
+                'bg-blue-600 hover:bg-blue-700 text-white'
+              )}
+            >
+              {isToday(selectedDate) ? 'Today' : '← Today'}
+            </button>
+            <button
+              onClick={() => setSelectedDate(d => addDays(d, 1))}
+              className="p-1.5 rounded hover:bg-gray-100 transition-colors"
+            >
+              <ChevronRight size={18} />
+            </button>
+
+            <span className="text-sm font-semibold text-gray-900 ml-1">
+              {format(selectedDate, 'EEEE, MMMM d, yyyy')}
+            </span>
+          </div>
+
+          <div className="flex items-center gap-3">
+            {/* Mobile-only Make a Reservation button */}
+            <button
+              onClick={() => setModal({ mode: 'create', roomId: rooms[0]?.id ?? '', startSlot: 2 })}
+              className="flex lg:hidden items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors"
+            >
+              <Plus size={16} />
+              <span>Make a Reservation</span>
+            </button>
+
+            {/* Location selector */}
+            <select
+              value={selectedLocation.id}
+              onChange={e => {
+                const loc = locations.find(l => l.id === e.target.value)
+                if (loc) setSelectedLocation(loc)
+              }}
+              className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+            >
+              {locations.map(loc => (
+                <option key={loc.id} value={loc.id}>{loc.name}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        {/* Calendar grid */}
       <div ref={scrollRef} className="flex-1 overflow-auto scrollbar-thin">
         {loading ? (
           <div className="flex items-center justify-center h-full text-gray-400 text-sm">Loading…</div>
@@ -357,7 +524,9 @@ export default function CalendarView({ locations, profile, company, hoursUsed, d
         )}
       </div>
 
-      {/* Modal */}
+      </div>
+
+      {/* Modal (for viewing/editing existing reservations) */}
       {modal.mode !== 'closed' && (
         <ReservationModal
           mode={modal.mode}
