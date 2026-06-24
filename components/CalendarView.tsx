@@ -102,7 +102,7 @@ export default function CalendarView({ locations, profile, company, hoursUsed, d
 
   function handleSlotClick(roomId: string, slot: number) {
     if (isBefore(startOfDay(selectedDate), startOfDay(new Date())) && !isSameDay(selectedDate, new Date())) return
-    openSidebarForm(roomId, slot)
+    setModal({ mode: 'create', roomId, startSlot: slot })
   }
 
   function handleBookingClick(res: Reservation) {
@@ -227,102 +227,12 @@ export default function CalendarView({ locations, profile, company, hoursUsed, d
 
         {/* Make a Reservation button */}
         <button
-          onClick={() => openSidebarForm()}
+          onClick={() => setModal({ mode: 'create', roomId: rooms[0]?.id ?? '', startSlot: 4 })}
           className="w-full flex items-center justify-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-4 py-2.5 rounded-lg transition-colors"
         >
           <Plus size={16} />
           Make a Reservation
         </button>
-
-        {/* Inline booking form */}
-        {showSidebarForm && (
-          <div className="space-y-3 border border-gray-200 rounded-lg p-3 bg-gray-50">
-            <div className="flex items-center justify-between">
-              <p className="text-sm font-semibold text-gray-900">New Reservation</p>
-              <button onClick={() => setShowSidebarForm(false)} className="text-gray-400 hover:text-gray-600">
-                <X size={14} />
-              </button>
-            </div>
-
-            <input
-              value={sidebarTitle}
-              onChange={e => setSidebarTitle(e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-              placeholder="Meeting title"
-              autoFocus
-            />
-
-            <select
-              value={sidebarRoomId}
-              onChange={e => setSidebarRoomId(e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-            >
-              {rooms.map(r => (
-                <option key={r.id} value={r.id}>{r.name} ({r.capacity})</option>
-              ))}
-            </select>
-
-            <div className="grid grid-cols-2 gap-2">
-              <div>
-                <label className="block text-xs text-gray-500 mb-1">Start</label>
-                <select
-                  value={sidebarStartVal}
-                  onChange={e => {
-                    const newStart = e.target.value
-                    setSidebarStartVal(newStart)
-                    const [sh, sm] = newStart.split(':').map(Number)
-                    const em = sh * 60 + sm + 30
-                    const nh = Math.floor(em / 60)
-                    const nm = em % 60
-                    if (nh <= 22) setSidebarEndVal(`${nh}:${nm === 0 ? '00' : '30'}`)
-                  }}
-                  className="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-                >
-                  {TIME_OPTIONS.slice(0, -1).map(opt => (
-                    <option key={opt.value} value={opt.value}>{opt.label}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-xs text-gray-500 mb-1">End</label>
-                <select
-                  value={sidebarEndVal}
-                  onChange={e => setSidebarEndVal(e.target.value)}
-                  className="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-                >
-                  {sidebarEndOptions.map(opt => (
-                    <option key={opt.value} value={opt.value}>{opt.label}</option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            <textarea
-              value={sidebarNotes}
-              onChange={e => setSidebarNotes(e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none bg-white"
-              rows={2}
-              placeholder="Notes (optional)"
-            />
-
-            {company && !profile.is_admin && hoursRemaining !== null && (
-              <p className="text-xs text-gray-500">
-                <span className={cn('font-semibold', hoursRemaining <= 0 ? 'text-red-600' : 'text-gray-800')}>
-                  {hoursRemaining.toFixed(1)}h
-                </span>
-                {' '}remaining this month
-              </p>
-            )}
-
-            <button
-              onClick={handleSidebarSave}
-              disabled={sidebarLoading}
-              className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors"
-            >
-              {sidebarLoading ? 'Saving…' : 'Book'}
-            </button>
-          </div>
-        )}
 
         {/* Hours remaining (non-admin) */}
         {company && !profile.is_admin && hoursRemaining !== null && !showSidebarForm && (
