@@ -5,6 +5,9 @@ import { NextResponse } from 'next/server'
 export async function GET() {
   const admin = createAdminClient()
   const { data, error } = await admin.from('locations').select('id, name').order('name')
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) {
+    console.error('[locations] GET error:', error.message)
+    return NextResponse.json({ error: 'Failed to load locations.' }, { status: 500 })
+  }
   return NextResponse.json(data)
 }

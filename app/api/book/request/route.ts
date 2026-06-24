@@ -54,9 +54,18 @@ export async function POST(request: Request) {
 
   if (!room) return NextResponse.json({ error: 'Room not found.' }, { status: 404 })
 
-  // Verify payment amount matches expected price
-  if (stripe_payment_intent_id && room.price_per_hour) {
+  // Require payment for paid rooms
+  if (room.price_per_hour && room.price_per_hour > 0) {
+    if (!stripe_payment_intent_id) {
+      return NextResponse.json({ error: 'Payment is required for this room.' }, { status: 400 })
+    }
+
     const pi = await stripe.paymentIntents.retrieve(stripe_payment_intent_id)
+
+    if (pi.status !== 'succeeded') {
+      return NextResponse.json({ error: 'Payment has not been completed.' }, { status: 400 })
+    }
+
     const [sh, sm] = start.split(':').map(Number)
     const [eh, em] = end.split(':').map(Number)
     const hours = ((eh * 60 + em) - (sh * 60 + sm)) / 60
@@ -98,6 +107,10 @@ export async function POST(request: Request) {
     .single()
 
   if (resError || !reservation) {
+    if (resError?.message?.includes('no_overlapping_reservations')) {
+      return NextResponse.json({ error: 'This time slot was just booked. Please go back and select another time.' }, { status: 409 })
+    }
+    console.error('[book/request] Reservation insert error:', resError?.message)
     return NextResponse.json({ error: 'Could not create reservation. Please try again.' }, { status: 500 })
   }
 

@@ -6,6 +6,7 @@ const QB_BASE = process.env.QB_ENVIRONMENT === 'production'
 
 const QB_MINOR_VERSION = '73'
 const TOKEN_URL = 'https://oauth.platform.intuit.com/oauth2/v1/tokens/bearer'
+const REVOKE_URL = 'https://developer.api.intuit.com/v2/oauth2/tokens/revoke'
 
 interface QBTokenRow {
   id: string
@@ -63,7 +64,16 @@ async function refreshIfNeeded(tokens: QBTokenRow): Promise<string> {
   })
 
   const data = await res.json()
-  if (!res.ok) throw new Error(`QB token refresh failed: ${JSON.stringify(data)}`)
+  if (!res.ok) {
+    if (data.error === 'invalid_grant') {
+      await admin
+        .from('qb_tokens')
+        .update({ needs_reconnect: true, updated_at: new Date().toISOString() })
+        .eq('id', tokens.id)
+      throw new Error('QB_NEEDS_RECONNECT')
+    }
+    throw new Error(`QB token refresh failed: ${JSON.stringify(data)}`)
+  }
 
   await admin
     .from('qb_tokens')
@@ -71,6 +81,7 @@ async function refreshIfNeeded(tokens: QBTokenRow): Promise<string> {
       access_token: data.access_token,
       refresh_token: data.refresh_token,
       expires_at: new Date(Date.now() + data.expires_in * 1000).toISOString(),
+      needs_reconnect: false,
       updated_at: new Date().toISOString(),
     })
     .eq('id', tokens.id)
@@ -191,4 +202,37 @@ export async function createSalesReceipt(
   })
 
   return receipt.SalesReceipt
+}
+
+export async function disconnectQuickBooks(locationId: string) {
+  const tokens = await getTokens(locationId)
+  if (!tokens) return
+
+  // Revoke the token at Intuit
+  try {
+    await fetch(REVOKE_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Basic ${Buffer.from(`${process.env.QB_CLIENT_ID}:${process.env.QB_CLIENT_SECRET}`).toString('base64')}`,
+      },
+      body: JSON.stringify({ token: tokens.refresh_token }),
+    })
+  } catch (err) {
+    console.error('[qb] Token revocation failed (continuing with local cleanup):', err)
+  }
+
+  // Remove local tokens
+  const admin = createAdminClient()
+  await admin.from('qb_tokens').delete().eq('id', tokens.id)
+}
+
+export async function getConnectionStatus(locationId: string) {
+  const tokens = await getTokens(locationId)
+  if (!tokens) return { connected: false, needsReconnect: false }
+  return {
+    connected: true,
+    needsReconnect: !!(tokens as any).needs_reconnect,
+    realmId: tokens.realm_id,
+  }
 }

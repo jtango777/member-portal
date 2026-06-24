@@ -25,6 +25,9 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     .select('*, membership_types(*)')
     .single()
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) {
+    console.error('[admin/companies] PATCH error:', error.message)
+    return NextResponse.json({ error: 'Failed to update company.' }, { status: 500 })
+  }
   return NextResponse.json(data)
 }

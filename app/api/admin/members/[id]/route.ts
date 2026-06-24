@@ -28,7 +28,10 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     .select('email')
     .single()
 
-  if (peErr) return NextResponse.json({ error: peErr.message }, { status: 500 })
+  if (peErr) {
+    console.error('[admin/members] PATCH error:', peErr.message)
+    return NextResponse.json({ error: 'Failed to update member.' }, { status: 500 })
+  }
 
   // Also update profile if user has accepted (find profile via auth user lookup)
   const { data: { users } } = await admin.auth.admin.listUsers({ perPage: 1000 })
@@ -68,7 +71,10 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
 
   // Delete from permitted_emails
   const { error } = await admin.from('permitted_emails').delete().eq('id', id)
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) {
+    console.error('[admin/members] DELETE error:', error.message)
+    return NextResponse.json({ error: 'Failed to remove member.' }, { status: 500 })
+  }
 
   return NextResponse.json({ ok: true })
 }

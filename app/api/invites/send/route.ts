@@ -22,7 +22,10 @@ export async function POST(request: Request) {
     { onConflict: 'email' }
   )
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) {
+    console.error('[invites/send] error:', error.message)
+    return NextResponse.json({ error: 'Failed to create invite.' }, { status: 500 })
+  }
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
   const inviteLink = `${appUrl}/setup-account?token=${token}`

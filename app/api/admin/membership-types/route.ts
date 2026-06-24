@@ -10,9 +10,12 @@ async function assertAdmin() {
 }
 
 export async function GET() {
+  const user = await assertAdmin()
+  if (!user) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+
   const admin = createAdminClient()
   const { data, error } = await admin.from('membership_types').select('*').order('sort_order')
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return NextResponse.json({ error: 'Failed to load membership types.' }, { status: 500 })
   return NextResponse.json(data)
 }
 
@@ -32,6 +35,9 @@ export async function POST(request: Request) {
     .insert({ name, hours_per_month: hours_per_month ?? null, sort_order: (top?.sort_order ?? 0) + 1 })
     .select().single()
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) {
+    console.error('[admin/membership-types] POST error:', error.message)
+    return NextResponse.json({ error: 'Failed to create membership type.' }, { status: 500 })
+  }
   return NextResponse.json(data, { status: 201 })
 }

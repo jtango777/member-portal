@@ -13,6 +13,9 @@ export async function GET() {
     .from('permitted_emails')
     .select('*, companies(id, name)')
     .order('invited_at', { ascending: false })
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) {
+    console.error('[admin/members] GET error:', error.message)
+    return NextResponse.json({ error: 'Failed to load members.' }, { status: 500 })
+  }
   return NextResponse.json(data)
 }

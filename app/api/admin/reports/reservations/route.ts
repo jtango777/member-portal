@@ -29,6 +29,9 @@ export async function GET(request: Request) {
     .lt('start_time', end)
     .order('start_time')
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) {
+    console.error('[admin/reports] Reservations error:', error.message)
+    return NextResponse.json({ error: 'Failed to load report.' }, { status: 500 })
+  }
   return NextResponse.json(data)
 }

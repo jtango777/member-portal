@@ -36,6 +36,9 @@ export async function POST(request: Request) {
     .select()
     .single()
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) {
+    console.error('[admin/rooms] POST error:', error.message)
+    return NextResponse.json({ error: 'Failed to create room.' }, { status: 500 })
+  }
   return NextResponse.json(data, { status: 201 })
 }

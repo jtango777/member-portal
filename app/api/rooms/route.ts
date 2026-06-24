@@ -13,6 +13,9 @@ export async function GET(request: Request) {
   if (locationId) query.eq('location_id', locationId)
 
   const { data, error } = await query
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) {
+    console.error('[rooms] GET error:', error.message)
+    return NextResponse.json({ error: 'Failed to load rooms.' }, { status: 500 })
+  }
   return NextResponse.json(data)
 }

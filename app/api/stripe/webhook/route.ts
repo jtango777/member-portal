@@ -74,8 +74,12 @@ export async function POST(request: Request) {
           })
           console.log('[qb] Sales receipt created successfully')
         }
-      } catch (err) {
-        console.error('[qb] Failed to create sales receipt:', err)
+      } catch (err: any) {
+        if (err?.message === 'QB_NEEDS_RECONNECT') {
+          console.warn('[qb] Location needs reconnection — skipping sales receipt')
+        } else {
+          console.error('[qb] Failed to create sales receipt:', err)
+        }
       }
     }
   }

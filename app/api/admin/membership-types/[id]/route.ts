@@ -22,7 +22,10 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     .eq('id', id)
     .select().single()
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) {
+    console.error('[admin/membership-types] PATCH error:', error.message)
+    return NextResponse.json({ error: 'Failed to update membership type.' }, { status: 500 })
+  }
   return NextResponse.json(data)
 }
 
@@ -33,6 +36,9 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
 
   const admin = createAdminClient()
   const { error } = await admin.from('membership_types').delete().eq('id', id)
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) {
+    console.error('[admin/membership-types] DELETE error:', error.message)
+    return NextResponse.json({ error: 'Failed to delete membership type.' }, { status: 500 })
+  }
   return NextResponse.json({ ok: true })
 }

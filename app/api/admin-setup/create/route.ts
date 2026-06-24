@@ -25,7 +25,10 @@ export async function POST(request: Request) {
     .select()
     .single()
 
-  if (companyErr) return NextResponse.json({ error: companyErr.message }, { status: 500 })
+  if (companyErr) {
+    console.error('[admin-setup] Company create error:', companyErr.message)
+    return NextResponse.json({ error: 'Setup failed. Please try again.' }, { status: 500 })
+  }
 
   // Create auth user
   const { data: authData, error: authErr } = await admin.auth.admin.createUser({
@@ -34,7 +37,10 @@ export async function POST(request: Request) {
     email_confirm: true,
   })
 
-  if (authErr) return NextResponse.json({ error: authErr.message }, { status: 500 })
+  if (authErr) {
+    console.error('[admin-setup] Auth create error:', authErr.message)
+    return NextResponse.json({ error: 'Setup failed. Please try again.' }, { status: 500 })
+  }
 
   // Create profile as admin
   await admin.from('profiles').insert({

@@ -1,6 +1,8 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 
+const ALLOWED_REDIRECTS = ['/dashboard', '/dashboard/admin', '/book']
+
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url)
   const code = searchParams.get('code')
@@ -11,5 +13,9 @@ export async function GET(request: Request) {
     await supabase.auth.exchangeCodeForSession(code)
   }
 
-  return NextResponse.redirect(`${origin}${next}`)
+  const safePath = next.startsWith('/') && !next.startsWith('//') && ALLOWED_REDIRECTS.some(p => next === p || next.startsWith(p + '/'))
+    ? next
+    : '/dashboard'
+
+  return NextResponse.redirect(`${origin}${safePath}`)
 }

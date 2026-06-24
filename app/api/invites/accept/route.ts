@@ -35,7 +35,8 @@ export async function POST(request: Request) {
     if (authError.message.includes('already registered')) {
       return NextResponse.json({ error: 'An account with this email already exists.' }, { status: 409 })
     }
-    return NextResponse.json({ error: authError.message }, { status: 500 })
+    console.error('[invites/accept] Auth create error:', authError.message)
+    return NextResponse.json({ error: 'Account setup failed. Please try again.' }, { status: 500 })
   }
 
   const userId = authData.user!.id

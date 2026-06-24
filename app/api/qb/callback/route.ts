@@ -8,6 +8,9 @@ export async function GET(request: Request) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
+  const { data: profile } = await supabase.from('profiles').select('is_admin').eq('id', user.id).single()
+  if (!profile?.is_admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+
   const { searchParams } = new URL(request.url)
   const code = searchParams.get('code')
   const realmId = searchParams.get('realmId')
@@ -34,7 +37,8 @@ export async function GET(request: Request) {
 
   const data = await res.json()
   if (!res.ok) {
-    return NextResponse.json({ error: 'Token exchange failed', details: data }, { status: 500 })
+    console.error('[qb] Token exchange failed:', data)
+    return NextResponse.json({ error: 'QuickBooks connection failed. Please try again.' }, { status: 500 })
   }
 
   const admin = createAdminClient()

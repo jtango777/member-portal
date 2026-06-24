@@ -99,7 +99,13 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     .select()
     .single()
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) {
+    if (error.message?.includes('no_overlapping_reservations')) {
+      return NextResponse.json({ error: 'This room is already booked for that time.' }, { status: 409 })
+    }
+    console.error('[reservations] Update error:', error.message)
+    return NextResponse.json({ error: 'Failed to update reservation.' }, { status: 500 })
+  }
   return NextResponse.json(data)
 }
 
@@ -142,12 +148,18 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
       .delete()
       .eq('recurrence_group_id', reservation.recurrence_group_id)
       .gte('start_time', reservation.start_time)
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    if (error) {
+      console.error('[reservations] Delete error:', error.message)
+      return NextResponse.json({ error: 'Failed to delete reservation.' }, { status: 500 })
+    }
     return NextResponse.json({ ok: true })
   }
 
   const { error } = await adminSupabase.from('reservations').delete().eq('id', id)
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) {
+    console.error('[reservations] Delete error:', error.message)
+    return NextResponse.json({ error: 'Failed to delete reservation.' }, { status: 500 })
+  }
 
   // Send cancellation email (non-blocking)
   try {

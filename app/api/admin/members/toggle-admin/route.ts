@@ -16,6 +16,9 @@ export async function POST(request: Request) {
 
   const admin = createAdminClient()
   const { error } = await admin.from('profiles').update({ is_admin }).eq('id', user_id)
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) {
+    console.error('[admin/toggle-admin] error:', error.message)
+    return NextResponse.json({ error: 'Failed to update admin status.' }, { status: 500 })
+  }
   return NextResponse.json({ ok: true })
 }

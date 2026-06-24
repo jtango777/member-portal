@@ -15,7 +15,7 @@ export async function GET(request: Request) {
 
   let query = supabase
     .from('reservations')
-    .select('*, profiles(id, full_name, is_admin), companies(id, name), rooms(id, name, location_id, capacity)')
+    .select('*, profiles(id, full_name), companies(id, name), rooms(id, name, location_id, capacity)')
     .order('start_time')
 
   if (date) {
@@ -34,7 +34,10 @@ export async function GET(request: Request) {
   }
 
   const { data, error } = await query
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) {
+    console.error('[reservations] GET error:', error.message)
+    return NextResponse.json({ error: 'Failed to load reservations.' }, { status: 500 })
+  }
   return NextResponse.json(data)
 }
 
@@ -77,7 +80,10 @@ export async function POST(request: Request) {
       recurrence_group_id:  groupId,
     }))
     const { error } = await adminSupabase.from('reservations').insert(records)
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    if (error) {
+      console.error('[reservations] Recurring insert error:', error.message)
+      return NextResponse.json({ error: 'Failed to create recurring reservation.' }, { status: 500 })
+    }
     return NextResponse.json({ ok: true, recurrence_group_id: groupId, count: records.length }, { status: 201 })
   }
   // ──────────────────────────────────────────────────────────────────────────
@@ -150,7 +156,13 @@ export async function POST(request: Request) {
     .select('*, rooms(name, locations(name))')
     .single()
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) {
+    if (error.message?.includes('no_overlapping_reservations')) {
+      return NextResponse.json({ error: 'This room is already booked for that time.' }, { status: 409 })
+    }
+    console.error('[reservations] Insert error:', error.message)
+    return NextResponse.json({ error: 'Failed to create reservation.' }, { status: 500 })
+  }
 
   // Send confirmation email (non-blocking)
   try {

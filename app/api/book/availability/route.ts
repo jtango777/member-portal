@@ -45,7 +45,10 @@ export async function GET(request: Request) {
       .gt('end_time', start.toISOString()),
   ])
 
-  if (err1 || err2) return NextResponse.json({ error: err1?.message ?? err2?.message }, { status: 500 })
+  if (err1 || err2) {
+    console.error('[book/availability] error:', err1?.message ?? err2?.message)
+    return NextResponse.json({ error: 'Failed to check availability.' }, { status: 500 })
+  }
 
   const allBookings = [...(internal ?? []), ...(external ?? [])]
 

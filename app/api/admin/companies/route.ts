@@ -10,12 +10,15 @@ async function assertAdmin() {
 }
 
 export async function GET() {
+  const user = await assertAdmin()
+  if (!user) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+
   const admin = createAdminClient()
   const { data, error } = await admin
     .from('companies')
     .select('*, membership_types(*)')
     .order('name')
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return NextResponse.json({ error: 'Failed to load companies.' }, { status: 500 })
   return NextResponse.json(data)
 }
 
@@ -33,6 +36,9 @@ export async function POST(request: Request) {
     .select()
     .single()
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) {
+    console.error('[admin/companies] POST error:', error.message)
+    return NextResponse.json({ error: 'Failed to create company.' }, { status: 500 })
+  }
   return NextResponse.json(data, { status: 201 })
 }

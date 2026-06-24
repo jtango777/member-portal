@@ -33,7 +33,10 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
 
   const admin = createAdminClient()
   const { error } = await admin.from('rooms').delete().eq('id', id)
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) {
+    console.error('[admin/rooms] DELETE error:', error.message)
+    return NextResponse.json({ error: 'Failed to delete room.' }, { status: 500 })
+  }
   return NextResponse.json({ ok: true })
 }
 
@@ -67,6 +70,9 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     .select()
     .single()
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) {
+    console.error('[admin/rooms] PATCH error:', error.message)
+    return NextResponse.json({ error: 'Failed to update room.' }, { status: 500 })
+  }
   return NextResponse.json(data)
 }

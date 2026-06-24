@@ -20,7 +20,10 @@ export async function POST() {
     .is('accepted_at', null)
     .is('invite_token', null)
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) {
+    console.error('[invites/send-all] error:', error.message)
+    return NextResponse.json({ error: 'Failed to load uninvited members.' }, { status: 500 })
+  }
   if (!uninvited?.length) return NextResponse.json({ sent: 0, failed: 0 })
 
   let sent = 0
