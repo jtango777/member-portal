@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { format, subMonths } from 'date-fns'
-import { FileText, Building2, LayoutGrid, ChevronLeft, Download } from 'lucide-react'
+import { FileText, Building2, LayoutGrid, ChevronLeft, Download, Globe } from 'lucide-react'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -26,7 +26,15 @@ type RoomUtilRow = {
   available_hours: number; utilization_pct: number
 }
 
-type ReportType = 'reservations' | 'company-usage' | 'room-utilization'
+type ExternalBookingRow = {
+  id: string; external_name: string; external_email: string
+  external_phone: string; company_name: string | null
+  start_time: string; end_time: string; status: string
+  stripe_payment_intent_id: string | null
+  rooms: { name: string; external_name: string | null; price_per_hour: number | null; locations: { name: string } | null } | null
+}
+
+type ReportType = 'reservations' | 'company-usage' | 'room-utilization' | 'external-bookings'
 
 // ── CSV helper ────────────────────────────────────────────────────────────────
 
@@ -88,6 +96,12 @@ const REPORTS = [
     title:       'Room Utilization',
     description: 'Booking counts and hours booked per room for the selected month, with utilization percentage against available hours.',
     icon:        LayoutGrid,
+  },
+  {
+    id:          'external-bookings' as ReportType,
+    title:       'External Bookings',
+    description: 'Revenue and booking details from external (non-member) room reservations, by month and location.',
+    icon:        Globe,
   },
 ]
 
@@ -312,6 +326,125 @@ function RoomUtilTable({ month }: { month: string }) {
   )
 }
 
+function ExternalBookingsTable({ month }: { month: string }) {
+  const [rows, setRows]       = useState<ExternalBookingRow[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    setLoading(true)
+    fetch(`/api/admin/reports/external-bookings?month=${month}`)
+      .then(r => r.json()).then(d => { setRows(d); setLoading(false) })
+  }, [month])
+
+  const confirmed = rows.filter(r => r.status === 'confirmed')
+
+  const totalRevenue = confirmed.reduce((sum, r) => {
+    const hours = (new Date(r.end_time).getTime() - new Date(r.start_time).getTime()) / 3600000
+    const rate = r.rooms?.price_per_hour ?? 0
+    return sum + (hours * rate)
+  }, 0)
+
+  const byLocation: Record<string, { count: number; revenue: number }> = {}
+  confirmed.forEach(r => {
+    const loc = r.rooms?.locations?.name ?? 'Unknown'
+    if (!byLocation[loc]) byLocation[loc] = { count: 0, revenue: 0 }
+    byLocation[loc].count++
+    const hours = (new Date(r.end_time).getTime() - new Date(r.start_time).getTime()) / 3600000
+    byLocation[loc].revenue += hours * (r.rooms?.price_per_hour ?? 0)
+  })
+
+  function exportCSV() {
+    downloadCSV(`external-bookings-${month}.csv`, rows.map(r => {
+      const hours = ((new Date(r.end_time).getTime() - new Date(r.start_time).getTime()) / 3600000)
+      const amount = hours * (r.rooms?.price_per_hour ?? 0)
+      return {
+        Date:      format(new Date(r.start_time), 'MMM d, yyyy'),
+        Start:     format(new Date(r.start_time), 'h:mm a'),
+        End:       format(new Date(r.end_time),   'h:mm a'),
+        Hours:     hours.toFixed(1),
+        Guest:     r.external_name,
+        Email:     r.external_email,
+        Phone:     r.external_phone,
+        Company:   r.company_name ?? '',
+        Room:      r.rooms?.external_name ?? r.rooms?.name ?? '',
+        Location:  r.rooms?.locations?.name ?? '',
+        Rate:      `$${r.rooms?.price_per_hour ?? 0}/hr`,
+        Amount:    `$${amount.toFixed(2)}`,
+        Status:    r.status,
+      }
+    }))
+  }
+
+  if (loading) return <div className="py-16 text-center text-gray-400 text-sm">Loading…</div>
+  if (!rows.length) return <div className="py-16 text-center text-gray-400 text-sm">No external bookings in this month.</div>
+
+  return (
+    <>
+      {/* Summary cards */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+        <div className="bg-gray-50 rounded-lg p-4">
+          <p className="text-xs text-gray-500">Total bookings</p>
+          <p className="text-xl font-medium text-gray-900 mt-1">{confirmed.length}</p>
+        </div>
+        <div className="bg-gray-50 rounded-lg p-4">
+          <p className="text-xs text-gray-500">Total revenue</p>
+          <p className="text-xl font-medium text-gray-900 mt-1">${totalRevenue.toFixed(2)}</p>
+        </div>
+        {Object.entries(byLocation).map(([loc, data]) => (
+          <div key={loc} className="bg-gray-50 rounded-lg p-4">
+            <p className="text-xs text-gray-500">{loc}</p>
+            <p className="text-xl font-medium text-gray-900 mt-1">${data.revenue.toFixed(2)}</p>
+            <p className="text-xs text-gray-400 mt-0.5">{data.count} booking{data.count !== 1 ? 's' : ''}</p>
+          </div>
+        ))}
+      </div>
+
+      <div className="flex items-center justify-between mb-3">
+        <p className="text-sm text-gray-500">{rows.length} booking{rows.length !== 1 ? 's' : ''}</p>
+        <button onClick={exportCSV}
+          className="flex items-center gap-1.5 text-sm text-blue-600 hover:text-blue-800 font-medium">
+          <Download size={14} /> Export CSV
+        </button>
+      </div>
+      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="bg-gray-50 border-b border-gray-200">
+              {['Date', 'Time', 'Guest', 'Room', 'Location', 'Amount', 'Status'].map(h => (
+                <th key={h} className="text-left px-4 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap">{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((r, i) => {
+              const start = new Date(r.start_time), end = new Date(r.end_time)
+              const hours = (end.getTime() - start.getTime()) / 3600000
+              const amount = hours * (r.rooms?.price_per_hour ?? 0)
+              return (
+                <tr key={r.id} className={`border-b border-gray-100 last:border-0 ${i % 2 === 0 ? '' : 'bg-gray-50/50'}`}>
+                  <td className="px-4 py-2.5 whitespace-nowrap text-gray-700">{format(start, 'MMM d')}</td>
+                  <td className="px-4 py-2.5 whitespace-nowrap text-gray-600 text-xs">{format(start, 'h:mm a')}–{format(end, 'h:mm a')}</td>
+                  <td className="px-4 py-2.5 font-medium text-gray-900">{r.external_name}</td>
+                  <td className="px-4 py-2.5 text-gray-600">{r.rooms?.external_name ?? r.rooms?.name}</td>
+                  <td className="px-4 py-2.5 text-gray-600">{r.rooms?.locations?.name}</td>
+                  <td className="px-4 py-2.5 text-gray-700 font-medium">${amount.toFixed(2)}</td>
+                  <td className="px-4 py-2.5">
+                    <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${
+                      r.status === 'confirmed' ? 'bg-green-50 text-green-700' :
+                      r.status === 'declined'  ? 'bg-red-50 text-red-700' :
+                                                  'bg-yellow-50 text-yellow-700'
+                    }`}>{r.status}</span>
+                  </td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+      </div>
+    </>
+  )
+}
+
 // ── Main hub ──────────────────────────────────────────────────────────────────
 
 export default function ReportsHub() {
@@ -367,9 +500,10 @@ export default function ReportsHub() {
             <label className="text-sm font-medium text-gray-700">Month</label>
             <MonthPicker value={month} onChange={setMonth} />
           </div>
-          {active === 'reservations'     && <ReservationsTable month={month} />}
-          {active === 'company-usage'    && <CompanyUsageTable month={month} />}
-          {active === 'room-utilization' && <RoomUtilTable month={month} />}
+          {active === 'reservations'      && <ReservationsTable month={month} />}
+          {active === 'company-usage'     && <CompanyUsageTable month={month} />}
+          {active === 'room-utilization'  && <RoomUtilTable month={month} />}
+          {active === 'external-bookings' && <ExternalBookingsTable month={month} />}
         </>
       )}
     </div>

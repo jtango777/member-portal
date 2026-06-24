@@ -12,6 +12,8 @@ export default function AllReservationsView({ reservations: initial }: Props) {
   const [reservations, setReservations] = useState(initial)
   const [deleting, setDeleting]         = useState<string | null>(null)
   const [confirm, setConfirm]           = useState<string | null>(null)
+  const [clearingPast, setClearingPast] = useState(false)
+  const [confirmClear, setConfirmClear] = useState(false)
 
   async function handleDelete(id: string) {
     setDeleting(id)
@@ -25,6 +27,21 @@ export default function AllReservationsView({ reservations: initial }: Props) {
     }
     setDeleting(null)
     setConfirm(null)
+  }
+
+  async function handleClearPast() {
+    setClearingPast(true)
+    const pastIds = reservations.filter(r => new Date(r.start_time) < new Date()).map(r => r.id)
+    let failed = 0
+    for (const id of pastIds) {
+      const res = await fetch(`/api/reservations/${id}`, { method: 'DELETE' })
+      if (!res.ok) failed++
+    }
+    setReservations(prev => prev.filter(r => new Date(r.start_time) >= new Date()))
+    setClearingPast(false)
+    setConfirmClear(false)
+    if (failed > 0) toast.error(`${failed} reservation(s) could not be deleted`)
+    else toast.success('Past reservations cleared')
   }
 
   const upcoming = reservations.filter(r => new Date(r.start_time) >= new Date())
@@ -41,7 +58,7 @@ export default function AllReservationsView({ reservations: initial }: Props) {
               <th className="text-left font-semibold text-gray-600 px-4 py-3">Date & Time</th>
               <th className="text-left font-semibold text-gray-600 px-4 py-3">Booked by</th>
               <th className="text-left font-semibold text-gray-600 px-4 py-3">Company</th>
-              {showDelete && <th className="px-4 py-3" />}
+              {showDelete && <th className="px-4 py-3 w-24" />}
             </tr>
           </thead>
           <tbody>
@@ -61,7 +78,7 @@ export default function AllReservationsView({ reservations: initial }: Props) {
                 <td className="px-4 py-3 text-gray-600">{r.profiles?.full_name}</td>
                 <td className="px-4 py-3 text-gray-600">{r.companies?.name}</td>
                 {showDelete && (
-                  <td className="px-4 py-3">
+                  <td className="px-4 py-3 w-24">
                     {confirm === r.id ? (
                       <div className="flex items-center gap-1.5">
                         <button onClick={() => handleDelete(r.id)} disabled={deleting === r.id}
@@ -100,7 +117,24 @@ export default function AllReservationsView({ reservations: initial }: Props) {
 
       {past.length > 0 && (
         <div>
-          <h2 className="text-sm font-semibold text-gray-500 mb-2">Past ({past.length})</h2>
+          <div className="flex items-center justify-between mb-2">
+            <h2 className="text-sm font-semibold text-gray-500">Past ({past.length})</h2>
+            {confirmClear ? (
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-gray-500">Delete all {past.length} past reservations?</span>
+                <button onClick={handleClearPast} disabled={clearingPast}
+                  className="text-xs bg-red-600 text-white px-3 py-1 rounded font-medium disabled:opacity-50">
+                  {clearingPast ? 'Clearing…' : 'Yes, clear all'}
+                </button>
+                <button onClick={() => setConfirmClear(false)} className="text-xs text-gray-400">Cancel</button>
+              </div>
+            ) : (
+              <button onClick={() => setConfirmClear(true)}
+                className="text-xs text-gray-400 hover:text-red-500 transition-colors">
+                Clear past bookings
+              </button>
+            )}
+          </div>
           <Table rows={past} showDelete={false} />
         </div>
       )}
