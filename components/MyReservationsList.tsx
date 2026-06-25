@@ -12,13 +12,14 @@ import CancelButton from '@/components/CancelButton'
 type Props = {
   upcoming: Reservation[]
   past:     Reservation[]
+  companyReservations: any[]
   rooms:    Room[]
   profile:  Profile
   company:  Company | null
   hoursUsed: number
 }
 
-export default function MyReservationsList({ upcoming, past, rooms, profile, company, hoursUsed }: Props) {
+export default function MyReservationsList({ upcoming, past, companyReservations, rooms, profile, company, hoursUsed }: Props) {
   const router = useRouter()
   const [editing, setEditing] = useState<Reservation | null>(null)
 
@@ -93,6 +94,86 @@ export default function MyReservationsList({ upcoming, past, rooms, profile, com
     )
   }
 
+  function TeamTable({ rows }: { rows: any[] }) {
+    if (rows.length === 0) return null
+    const now = new Date()
+    const upcomingTeam = rows.filter(r => new Date(r.start_time) >= now)
+    const pastTeam = rows.filter(r => new Date(r.start_time) < now)
+
+    function TeamRow({ r }: { r: any }) {
+      const start = new Date(r.start_time)
+      const end = new Date(r.end_time)
+      return (
+        <tr className="border-b border-gray-100 last:border-0 hover:bg-gray-50">
+          <td className="px-4 py-3 font-medium text-gray-900">{r.title}</td>
+          <td className="px-4 py-3 text-gray-600">{r.profiles?.full_name ?? 'Unknown'}</td>
+          {profile.is_admin && <td className="px-4 py-3 text-gray-500 text-xs">{r.companies?.name ?? ''}</td>}
+          <td className="px-4 py-3 text-gray-600">{r.rooms?.name}</td>
+          <td className="px-4 py-3 text-gray-500 text-xs">{r.rooms?.locations?.name}</td>
+          <td className="px-4 py-3 text-gray-700 whitespace-nowrap">
+            {format(start, 'MMM d, yyyy')}
+            <span className="block text-xs text-gray-400">
+              {format(start, 'h:mm a')} – {format(end, 'h:mm a')}
+            </span>
+          </td>
+          <td className="px-4 py-3 text-gray-500 text-xs">
+            {((end.getTime() - start.getTime()) / 3600000).toFixed(1)}h
+          </td>
+        </tr>
+      )
+    }
+
+    const headers = profile.is_admin
+      ? ['Title', 'Booked By', 'Company', 'Room', 'Location', 'Date & Time', 'Duration']
+      : ['Title', 'Booked By', 'Room', 'Location', 'Date & Time', 'Duration']
+
+    return (
+      <div className="space-y-4">
+        {upcomingTeam.length > 0 && (
+          <div>
+            <h3 className="text-xs font-medium text-gray-400 mb-1.5">Upcoming ({upcomingTeam.length})</h3>
+            <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-gray-50 border-b border-gray-200">
+                    {headers.map(h => (
+                      <th key={h} className="text-left px-4 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wide">{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {upcomingTeam.map(r => <TeamRow key={r.id} r={r} />)}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+        {pastTeam.length > 0 && (
+          <details className="group">
+            <summary className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-gray-600 cursor-pointer list-none [-webkit-appearance:none] select-none mb-2 transition-colors">
+              <ChevronRight size={14} className="transition-transform group-open:rotate-90" />
+              Past ({pastTeam.length})
+            </summary>
+            <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-gray-50 border-b border-gray-200">
+                    {headers.map(h => (
+                      <th key={h} className="text-left px-4 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wide">{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {pastTeam.map(r => <TeamRow key={r.id} r={r} />)}
+                </tbody>
+              </table>
+            </div>
+          </details>
+        )}
+      </div>
+    )
+  }
+
   return (
     <>
       <div className="space-y-6">
@@ -126,6 +207,20 @@ export default function MyReservationsList({ upcoming, past, rooms, profile, com
             </summary>
             <Table rows={past} />
           </details>
+        )}
+
+        {companyReservations.length > 0 && (
+          <div className="border-t border-gray-200 pt-6">
+            <h2 className="text-lg font-bold text-gray-900 mb-1">
+              {profile.is_admin ? 'All Reservations' : 'Team Reservations'}
+            </h2>
+            <p className="text-sm text-gray-500 mb-4">
+              {profile.is_admin
+                ? 'Reservations made by all members across all companies.'
+                : `Reservations made by other members of ${company?.name ?? 'your company'}.`}
+            </p>
+            <TeamTable rows={companyReservations} />
+          </div>
         )}
       </div>
 

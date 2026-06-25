@@ -12,18 +12,36 @@ export default async function MyReservationsPage() {
 
   const [
     { data: profileData },
-    { data: reservations },
+    { data: myReservations },
     { data: rooms },
   ] = await Promise.all([
     supabase.from('profiles').select('*, companies(*)').eq('id', user.id).single(),
     supabase.from('reservations')
-      .select('*, rooms(name, locations(name))')
+      .select('*, rooms(name, locations(name)), profiles(full_name)')
       .eq('user_id', user.id)
       .order('start_time', { ascending: false }),
     supabase.from('rooms').select('*, locations(*)').order('name'),
   ])
 
   if (!profileData) redirect('/login')
+
+  // Fetch company-wide or all reservations
+  let companyReservations: any[] = []
+  if (profileData.is_admin) {
+    const { data } = await supabase
+      .from('reservations')
+      .select('*, rooms(name, locations(name)), profiles(full_name), companies(name)')
+      .order('start_time', { ascending: false })
+    companyReservations = (data ?? []).filter((r: any) => r.user_id !== user.id)
+  } else if (profileData.company_id) {
+    const { data } = await supabase
+      .from('reservations')
+      .select('*, rooms(name, locations(name)), profiles(full_name)')
+      .eq('company_id', profileData.company_id)
+      .neq('user_id', user.id)
+      .order('start_time', { ascending: false })
+    companyReservations = data ?? []
+  }
 
   // Calculate hours used this month
   let hoursUsed = 0
@@ -39,8 +57,8 @@ export default async function MyReservationsPage() {
   }
 
   const now      = new Date()
-  const upcoming = (reservations ?? []).filter(r => new Date(r.start_time) >= now)
-  const past     = (reservations ?? []).filter(r => new Date(r.start_time) <  now)
+  const upcoming = (myReservations ?? []).filter(r => new Date(r.start_time) >= now)
+  const past     = (myReservations ?? []).filter(r => new Date(r.start_time) <  now)
 
   return (
     <div className="h-full overflow-auto p-6">
@@ -48,6 +66,7 @@ export default async function MyReservationsPage() {
         <MyReservationsList
           upcoming={upcoming}
           past={past}
+          companyReservations={companyReservations}
           rooms={rooms ?? []}
           profile={profileData}
           company={profileData.companies ?? null}
