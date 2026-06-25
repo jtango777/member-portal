@@ -220,6 +220,54 @@ export default function AllBookingsView({ reservations: initialRes, externalBook
     )
   }
 
+  // --- External table ---
+  function ExternalTable({ rows }: { rows: ExternalBooking[] }) {
+    if (rows.length === 0) return <div className="text-center py-8 text-gray-400 text-sm">None.</div>
+    return (
+      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="bg-gray-50 border-b border-gray-200">
+              {['Guest', 'Email', 'Phone', 'Room', 'Location', 'Date & Time', 'Amount', 'Status'].map(h => (
+                <th key={h} className="text-left px-4 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap">{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((b, i) => {
+              const start = new Date(b.start_time)
+              const end = new Date(b.end_time)
+              const hours = (end.getTime() - start.getTime()) / 3_600_000
+              const amount = hours * (b.rooms?.price_per_hour ?? 0)
+              return (
+                <tr key={b.id} className={`border-b border-gray-100 last:border-0 ${i % 2 === 0 ? '' : 'bg-gray-50/50'}`}>
+                  <td className="px-4 py-3 font-medium text-gray-900">
+                    {b.external_name}
+                    {b.company_name && <span className="text-gray-400 font-normal"> · {b.company_name}</span>}
+                  </td>
+                  <td className="px-4 py-3 text-gray-600 text-xs">{b.external_email}</td>
+                  <td className="px-4 py-3 text-gray-600 text-xs">{b.external_phone}</td>
+                  <td className="px-4 py-3 text-gray-600">{b.rooms?.external_name ?? b.rooms?.name}</td>
+                  <td className="px-4 py-3 text-gray-500 text-xs">{b.rooms?.locations?.name}</td>
+                  <td className="px-4 py-3 text-gray-700 whitespace-nowrap">
+                    {format(start, 'MMM d, yyyy')}
+                    <span className="block text-xs text-gray-400">{formatTime(start)} – {formatTime(end)}</span>
+                  </td>
+                  <td className="px-4 py-3 text-gray-700 font-medium">${amount.toFixed(0)}</td>
+                  <td className="px-4 py-3">
+                    <span className={cn('text-xs font-semibold px-2 py-0.5 rounded-full border', STATUS_STYLES[b.status] ?? '')}>
+                      {b.status}
+                    </span>
+                  </td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+      </div>
+    )
+  }
+
   // --- Combined "All" table ---
   function CombinedTable() {
     type CombinedRow = {
@@ -262,51 +310,70 @@ export default function AllBookingsView({ reservations: initialRes, externalBook
       (a, b) => a.dateTime.getTime() - b.dateTime.getTime()
     )
 
-    return (
-      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-gray-100 bg-gray-50">
-              <th className="text-left font-semibold text-gray-600 px-4 py-3">Type</th>
-              <th className="text-left font-semibold text-gray-600 px-4 py-3">Title / Name</th>
-              <th className="text-left font-semibold text-gray-600 px-4 py-3">Room</th>
-              <th className="text-left font-semibold text-gray-600 px-4 py-3">Location</th>
-              <th className="text-left font-semibold text-gray-600 px-4 py-3">Date & Time</th>
-              <th className="text-left font-semibold text-gray-600 px-4 py-3">Booked by</th>
-              <th className="text-left font-semibold text-gray-600 px-4 py-3">Company</th>
-            </tr>
-          </thead>
-          <tbody>
-            {combined.length === 0 && (
-              <tr><td colSpan={7} className="px-4 py-6 text-center text-gray-400">No bookings.</td></tr>
-            )}
-            {combined.map(row => (
-              <tr key={`${row.type}-${row.id}`} className="border-b border-gray-100 last:border-0 hover:bg-gray-50">
-                <td className="px-4 py-3">
-                  <span className={cn(
-                    'text-xs font-semibold px-2 py-0.5 rounded-full border',
-                    row.type === 'Internal'
-                      ? 'bg-blue-50 text-blue-700 border-blue-200'
-                      : 'bg-purple-50 text-purple-700 border-purple-200'
-                  )}>
-                    {row.type}
-                  </span>
-                </td>
-                <td className="px-4 py-3 font-medium text-gray-900">{row.title}</td>
-                <td className="px-4 py-3 text-gray-600">{row.room}</td>
-                <td className="px-4 py-3 text-gray-600">{row.location}</td>
-                <td className="px-4 py-3 text-gray-600 whitespace-nowrap">
-                  {format(row.dateTime, 'MMM d, yyyy')}<br />
-                  <span className="text-xs text-gray-400">
-                    {format(row.dateTime, 'h:mm a')} – {format(row.endTime, 'h:mm a')}
-                  </span>
-                </td>
-                <td className="px-4 py-3 text-gray-600">{row.bookedBy}</td>
-                <td className="px-4 py-3 text-gray-600">{row.company}</td>
+    const now = new Date()
+    const combinedUpcoming = combined.filter(r => r.dateTime >= now)
+    const combinedPast = combined.filter(r => r.dateTime < now)
+
+    function CombinedRows({ rows }: { rows: CombinedRow[] }) {
+      if (rows.length === 0) return <div className="text-center py-8 text-gray-400 text-sm">None.</div>
+      return (
+        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-gray-100 bg-gray-50">
+                <th className="text-left font-semibold text-gray-600 px-4 py-3">Type</th>
+                <th className="text-left font-semibold text-gray-600 px-4 py-3">Title / Name</th>
+                <th className="text-left font-semibold text-gray-600 px-4 py-3">Room</th>
+                <th className="text-left font-semibold text-gray-600 px-4 py-3">Location</th>
+                <th className="text-left font-semibold text-gray-600 px-4 py-3">Date & Time</th>
+                <th className="text-left font-semibold text-gray-600 px-4 py-3">Booked by</th>
+                <th className="text-left font-semibold text-gray-600 px-4 py-3">Company</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {rows.map(row => (
+                <tr key={`${row.type}-${row.id}`} className="border-b border-gray-100 last:border-0 hover:bg-gray-50">
+                  <td className="px-4 py-3">
+                    <span className={cn(
+                      'text-xs font-semibold px-2 py-0.5 rounded-full border',
+                      row.type === 'Internal'
+                        ? 'bg-blue-50 text-blue-700 border-blue-200'
+                        : 'bg-purple-50 text-purple-700 border-purple-200'
+                    )}>
+                      {row.type}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 font-medium text-gray-900">{row.title}</td>
+                  <td className="px-4 py-3 text-gray-600">{row.room}</td>
+                  <td className="px-4 py-3 text-gray-600">{row.location}</td>
+                  <td className="px-4 py-3 text-gray-600 whitespace-nowrap">
+                    {format(row.dateTime, 'MMM d, yyyy')}<br />
+                    <span className="text-xs text-gray-400">
+                      {format(row.dateTime, 'h:mm a')} – {format(row.endTime, 'h:mm a')}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 text-gray-600">{row.bookedBy}</td>
+                  <td className="px-4 py-3 text-gray-600">{row.company}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )
+    }
+
+    return (
+      <div className="space-y-6">
+        <div>
+          <h2 className="text-sm font-semibold text-blue-600 mb-2">Upcoming ({combinedUpcoming.length})</h2>
+          <CombinedRows rows={combinedUpcoming} />
+        </div>
+        {combinedPast.length > 0 && (
+          <div>
+            <h2 className="text-sm font-semibold text-blue-600 mb-2">Past ({combinedPast.length})</h2>
+            <CombinedRows rows={combinedPast} />
+          </div>
+        )}
       </div>
     )
   }
@@ -371,58 +438,29 @@ export default function AllBookingsView({ reservations: initialRes, externalBook
       )}
 
       {/* External tab */}
-      {activeTab === 'external' && (
-        <div className="space-y-4">
-          {externalBookings.length === 0 ? (
-            <div className="text-center py-16 text-gray-400 text-sm">No bookings yet.</div>
-          ) : (
-            <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="bg-gray-50 border-b border-gray-200">
-                    {['Guest', 'Email', 'Phone', 'Room', 'Location', 'Date & Time', 'Amount', 'Status'].map(h => (
-                      <th key={h} className="text-left px-4 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap">{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {externalBookings.map((b, i) => {
-                    const start = new Date(b.start_time)
-                    const end = new Date(b.end_time)
-                    const hours = (end.getTime() - start.getTime()) / 3_600_000
-                    const amount = hours * (b.rooms?.price_per_hour ?? 0)
-                    return (
-                      <tr key={b.id} className={`border-b border-gray-100 last:border-0 ${i % 2 === 0 ? '' : 'bg-gray-50/50'}`}>
-                        <td className="px-4 py-3 font-medium text-gray-900">
-                          {b.external_name}
-                          {b.company_name && <span className="text-gray-400 font-normal"> · {b.company_name}</span>}
-                        </td>
-                        <td className="px-4 py-3 text-gray-600 text-xs">{b.external_email}</td>
-                        <td className="px-4 py-3 text-gray-600 text-xs">{b.external_phone}</td>
-                        <td className="px-4 py-3 text-gray-600">{b.rooms?.external_name ?? b.rooms?.name}</td>
-                        <td className="px-4 py-3 text-gray-500 text-xs">{b.rooms?.locations?.name}</td>
-                        <td className="px-4 py-3 text-gray-700 whitespace-nowrap">
-                          {format(start, 'MMM d, yyyy')}
-                          <span className="block text-xs text-gray-400">{formatTime(start)} – {formatTime(end)}</span>
-                        </td>
-                        <td className="px-4 py-3 text-gray-700 font-medium">${amount.toFixed(0)}</td>
-                        <td className="px-4 py-3">
-                          <span className={cn('text-xs font-semibold px-2 py-0.5 rounded-full border', STATUS_STYLES[b.status] ?? '')}>
-                            {b.status}
-                          </span>
-                        </td>
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
+      {activeTab === 'external' && (() => {
+        const now = new Date()
+        const extUpcoming = externalBookings.filter(b => new Date(b.start_time) >= now)
+        const extPast = externalBookings.filter(b => new Date(b.start_time) < now)
+        return (
+          <div className="space-y-6">
+            <div>
+              <h2 className="text-sm font-semibold text-blue-600 mb-2">Upcoming ({extUpcoming.length})</h2>
+              <ExternalTable rows={extUpcoming} />
             </div>
-          )}
-        </div>
-      )}
+            {extPast.length > 0 && (
+              <div>
+                <h2 className="text-sm font-semibold text-blue-600 mb-2">Past ({extPast.length})</h2>
+                <ExternalTable rows={extPast} />
+              </div>
+            )}
+          </div>
+        )
+      })()}
 
       {/* All tab */}
       {activeTab === 'all' && <CombinedTable />}
+
     </div>
   )
 }
