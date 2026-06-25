@@ -74,10 +74,10 @@ export default function Nav({ profile }: Props) {
     return (
       <nav className="bg-slate-900 text-white px-4 h-14 flex items-center justify-between flex-shrink-0">
         <div className="flex items-center gap-6">
-          <Link href="/dashboard/admin" className="flex items-center gap-2 hover:opacity-90">
+          <div className="flex items-center gap-2">
             <span className="text-xl font-bold tracking-tight text-white">BizHaus</span>
             <span className="text-[10px] font-bold uppercase tracking-wider bg-blue-600 text-white px-2 py-0.5 rounded">Admin Hub</span>
-          </Link>
+          </div>
 
           <Link href="/dashboard"
             className={cn('text-sm font-medium transition-colors',
@@ -116,9 +116,9 @@ export default function Nav({ profile }: Props) {
   return (
     <nav className="bg-slate-900 text-white px-4 h-14 flex items-center justify-between flex-shrink-0">
       <div className="flex items-baseline gap-6">
-        <Link href="/dashboard" className="flex items-center gap-2 hover:opacity-90">
+        <div className="flex items-center gap-2">
           <span className="text-xl font-bold tracking-tight text-white">BizHaus</span>
-        </Link>
+        </div>
         <Link href="/dashboard"
           className={cn('text-sm font-medium transition-colors',
             pathname === '/dashboard' ? 'text-white' : 'text-slate-400 hover:text-white')}>
