@@ -299,9 +299,9 @@ export default function CalendarView({ locations, profile, company, hoursUsed, d
               <div className="flex items-center gap-1.5 text-sm bg-blue-100 border border-blue-300 rounded-lg px-3 py-1.5">
                 <Clock size={14} className="text-blue-700" />
                 <span className={cn('font-semibold', hoursRemaining <= 0 ? 'text-red-600' : 'text-blue-800')}>
-                  {hoursRemaining.toFixed(1)}h
+                  {hoursRemaining.toFixed(1)} hours
                 </span>
-                <span className="text-blue-700">for {format(selectedDate, 'MMMM yyyy')}</span>
+                <span className="text-blue-700">remaining for {format(selectedDate, 'MMMM yyyy')}</span>
               </div>
             )}
 
