@@ -373,25 +373,7 @@ export default function AllBookingsView({ reservations: initialRes, externalBook
       {/* External tab */}
       {activeTab === 'external' && (
         <div className="space-y-4">
-          {/* Sub-filter for external */}
-          <div className="flex gap-1 border-b border-gray-200">
-            {(['confirmed', 'all'] as ExternalFilter[]).map(f => (
-              <button
-                key={f}
-                onClick={() => setExtFilter(f)}
-                className={cn(
-                  'px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors capitalize',
-                  extFilter === f
-                    ? 'border-blue-600 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700'
-                )}
-              >
-                {f === 'all' ? `All (${externalBookings.length})` : `Confirmed (${confirmedCount})`}
-              </button>
-            ))}
-          </div>
-
-          {filteredExternal.length === 0 ? (
+          {externalBookings.length === 0 ? (
             <div className="text-center py-16 text-gray-400 text-sm">No bookings yet.</div>
           ) : (
             <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
@@ -404,7 +386,7 @@ export default function AllBookingsView({ reservations: initialRes, externalBook
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredExternal.map((b, i) => {
+                  {externalBookings.map((b, i) => {
                     const start = new Date(b.start_time)
                     const end = new Date(b.end_time)
                     const hours = (end.getTime() - start.getTime()) / 3_600_000
