@@ -807,7 +807,7 @@ export default function ReservationModal({
                       className="text-sm text-gray-500 hover:text-gray-700 px-3 py-1.5">
                       Cancel
                     </button>
-                    <button onClick={handleSave} disabled={loading || wouldExceed || adminConflicts.length > 0}
+                    <button onClick={handleSave} disabled={loading || wouldExceed || adminConflicts.length > 0 || !dateVal}
                       className="flex items-center gap-1.5 text-sm bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white px-4 py-1.5 rounded-lg font-semibold">
                       {loading ? 'Saving…' : <><Check size={14} /> {isRecurring ? 'Create Block' : 'Save'}</>}
                     </button>
