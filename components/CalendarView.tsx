@@ -132,7 +132,6 @@ export default function CalendarView({ locations, profile, company, hoursUsed, d
   }
 
   function handleSlotClick(roomId: string, slot: number) {
-    if (isBefore(startOfDay(selectedDate), startOfDay(new Date())) && !isSameDay(selectedDate, new Date())) return
     setModal({ mode: 'create', roomId, startSlot: slot })
   }
 
@@ -242,16 +241,15 @@ export default function CalendarView({ locations, profile, company, hoursUsed, d
               return (
                 <button
                   key={day.toISOString()}
-                  onClick={() => { if (!isPast) setSelectedDate(day) }}
-                  disabled={isPast}
+                  onClick={() => setSelectedDate(day)}
                   className={cn(
                     'text-center text-xs py-1.5 rounded-md transition-colors',
-                    isPast
-                      ? 'text-gray-300 cursor-default'
-                      : isSameDay(day, selectedDate)
+                    isSameDay(day, selectedDate)
                       ? 'bg-blue-600 text-white font-semibold'
                       : isToday(day)
                       ? 'bg-blue-50 text-blue-600 font-semibold'
+                      : isPast
+                      ? 'text-gray-400 hover:bg-gray-100'
                       : 'hover:bg-gray-100 text-gray-700'
                   )}
                 >
