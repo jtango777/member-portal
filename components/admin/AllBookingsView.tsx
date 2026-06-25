@@ -206,7 +206,7 @@ export default function AllBookingsView({ reservations: initialRes, externalBook
           <div className="flex items-center gap-2 text-gray-600">
             <Phone size={14} className="text-gray-400 flex-shrink-0" />
             <a href={`tel:${booking.external_phone.replace(/\D/g, '')}`} className="hover:text-blue-600">
-              {booking.external_phone}
+              {formatPhone(booking.external_phone)}
             </a>
           </div>
         </div>
@@ -218,6 +218,13 @@ export default function AllBookingsView({ reservations: initialRes, externalBook
         )}
       </div>
     )
+  }
+
+  function formatPhone(phone: string): string {
+    const digits = phone.replace(/\D/g, '')
+    if (digits.length === 10) return `(${digits.slice(0,3)}) ${digits.slice(3,6)}-${digits.slice(6)}`
+    if (digits.length === 11 && digits[0] === '1') return `(${digits.slice(1,4)}) ${digits.slice(4,7)}-${digits.slice(7)}`
+    return phone
   }
 
   // --- External table ---
@@ -246,7 +253,7 @@ export default function AllBookingsView({ reservations: initialRes, externalBook
                     {b.company_name && <span className="text-gray-400 font-normal"> · {b.company_name}</span>}
                   </td>
                   <td className="px-4 py-3 text-gray-600 text-xs">{b.external_email}</td>
-                  <td className="px-4 py-3 text-gray-600 text-xs">{b.external_phone}</td>
+                  <td className="px-4 py-3 text-gray-600 text-xs">{formatPhone(b.external_phone)}</td>
                   <td className="px-4 py-3 text-gray-600">{b.rooms?.external_name ?? b.rooms?.name}</td>
                   <td className="px-4 py-3 text-gray-500 text-xs">{b.rooms?.locations?.name}</td>
                   <td className="px-4 py-3 text-gray-700 whitespace-nowrap">
