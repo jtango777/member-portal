@@ -277,7 +277,7 @@ export default function CalendarView({ locations, profile, company, hoursUsed, d
         {/* Top bar */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 flex-shrink-0">
           <div className="flex items-center gap-2">
-            <div className="flex items-center gap-1.5 rounded-lg px-3 py-1.5">
+            <div className="flex items-center gap-1.5 bg-blue-100 border border-blue-300 rounded-lg px-3 py-1.5">
               <span className="text-sm font-medium text-gray-500">Location:</span>
               <select
                 value={selectedLocation.id}
