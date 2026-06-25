@@ -237,22 +237,28 @@ export default function CalendarView({ locations, profile, company, hoursUsed, d
             {Array.from({ length: getDay(startOfMonth(pickerMonth)) }).map((_, i) => (
               <div key={`pad-${i}`} />
             ))}
-            {eachDayOfInterval({ start: startOfMonth(pickerMonth), end: endOfMonth(pickerMonth) }).map(day => (
-              <button
-                key={day.toISOString()}
-                onClick={() => setSelectedDate(day)}
-                className={cn(
-                  'text-center text-xs py-1.5 rounded-md transition-colors',
-                  isSameDay(day, selectedDate)
-                    ? 'bg-blue-600 text-white font-semibold'
-                    : isToday(day)
-                    ? 'bg-blue-50 text-blue-600 font-semibold'
-                    : 'hover:bg-gray-100 text-gray-700'
-                )}
-              >
-                {format(day, 'd')}
-              </button>
-            ))}
+            {eachDayOfInterval({ start: startOfMonth(pickerMonth), end: endOfMonth(pickerMonth) }).map(day => {
+              const isPast = isBefore(day, startOfDay(new Date())) && !isToday(day)
+              return (
+                <button
+                  key={day.toISOString()}
+                  onClick={() => { if (!isPast) setSelectedDate(day) }}
+                  disabled={isPast}
+                  className={cn(
+                    'text-center text-xs py-1.5 rounded-md transition-colors',
+                    isPast
+                      ? 'text-gray-300 cursor-default'
+                      : isSameDay(day, selectedDate)
+                      ? 'bg-blue-600 text-white font-semibold'
+                      : isToday(day)
+                      ? 'bg-blue-50 text-blue-600 font-semibold'
+                      : 'hover:bg-gray-100 text-gray-700'
+                  )}
+                >
+                  {format(day, 'd')}
+                </button>
+              )
+            })}
           </div>
         </div>
 
