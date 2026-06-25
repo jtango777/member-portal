@@ -51,26 +51,29 @@ function slotToTimeValue(slot: number): string {
 function parseFuzzyDate(input: string): Date | null {
   const s = input.trim()
   if (!s) return null
+  const thisYear = new Date().getFullYear()
+  function resolveYear(raw: string | undefined): number {
+    if (!raw) return thisYear
+    const n = parseInt(raw)
+    return raw.length <= 2 ? 2000 + n : n
+  }
 
-  // Try "6/24/2026" or "06/24/2026"
-  const slashMatch = s.match(/^(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?$/)
-  if (slashMatch) {
-    const m = parseInt(slashMatch[1]) - 1
-    const d = parseInt(slashMatch[2])
-    const y = slashMatch[3] ? (slashMatch[3].length === 2 ? 2000 + parseInt(slashMatch[3]) : parseInt(slashMatch[3])) : new Date().getFullYear()
-    const date = new Date(y, m, d)
+  // Numeric with / or - or . separators: 6/24/2026, 06-24-26, 6.24, etc.
+  const numMatch = s.match(/^(\d{1,2})[\/\-.](\d{1,2})(?:[\/\-.](\d{2,4}))?$/)
+  if (numMatch) {
+    const date = new Date(resolveYear(numMatch[3]), parseInt(numMatch[1]) - 1, parseInt(numMatch[2]))
     if (!isNaN(date.getTime())) return date
   }
 
-  // Try "June 24, 2026" or "June 24 2026" or "June 24"
+  // Word month: "June 24, 2026", "Jun 24 26", "June 24", "Jun 24, 2026", etc.
   const months = ['january','february','march','april','may','june','july','august','september','october','november','december']
-  const wordMatch = s.match(/^([a-zA-Z]+)\s+(\d{1,2})(?:[,\s]+(\d{4}))?$/)
+  const abbrevs = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec']
+  const wordMatch = s.match(/^([a-zA-Z]+)\.?\s+(\d{1,2})(?:[,\s]+(\d{2,4}))?$/)
   if (wordMatch) {
-    const mi = months.indexOf(wordMatch[1].toLowerCase())
+    const name = wordMatch[1].toLowerCase()
+    const mi = months.indexOf(name) !== -1 ? months.indexOf(name) : abbrevs.indexOf(name)
     if (mi >= 0) {
-      const d = parseInt(wordMatch[2])
-      const y = wordMatch[3] ? parseInt(wordMatch[3]) : new Date().getFullYear()
-      const date = new Date(y, mi, d)
+      const date = new Date(resolveYear(wordMatch[3]), mi, parseInt(wordMatch[2]))
       if (!isNaN(date.getTime())) return date
     }
   }
