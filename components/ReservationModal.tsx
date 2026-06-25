@@ -48,6 +48,36 @@ function slotToTimeValue(slot: number): string {
   return `${h}:${m}`
 }
 
+function parseFuzzyDate(input: string): Date | null {
+  const s = input.trim()
+  if (!s) return null
+
+  // Try "6/24/2026" or "06/24/2026"
+  const slashMatch = s.match(/^(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?$/)
+  if (slashMatch) {
+    const m = parseInt(slashMatch[1]) - 1
+    const d = parseInt(slashMatch[2])
+    const y = slashMatch[3] ? (slashMatch[3].length === 2 ? 2000 + parseInt(slashMatch[3]) : parseInt(slashMatch[3])) : new Date().getFullYear()
+    const date = new Date(y, m, d)
+    if (!isNaN(date.getTime())) return date
+  }
+
+  // Try "June 24, 2026" or "June 24 2026" or "June 24"
+  const months = ['january','february','march','april','may','june','july','august','september','october','november','december']
+  const wordMatch = s.match(/^([a-zA-Z]+)\s+(\d{1,2})(?:[,\s]+(\d{4}))?$/)
+  if (wordMatch) {
+    const mi = months.indexOf(wordMatch[1].toLowerCase())
+    if (mi >= 0) {
+      const d = parseInt(wordMatch[2])
+      const y = wordMatch[3] ? parseInt(wordMatch[3]) : new Date().getFullYear()
+      const date = new Date(y, mi, d)
+      if (!isNaN(date.getTime())) return date
+    }
+  }
+
+  return null
+}
+
 function defaultRecurEndDate(from: Date): string {
   const d = addMonths(from, 3)
   return format(d, 'yyyy-MM-dd')
@@ -113,7 +143,9 @@ export default function ReservationModal({
   const [editing, setEditing]     = useState(mode === 'create')
   const [dateVal, setDateVal]     = useState(format(selectedDate, 'yyyy-MM-dd'))
   const [showDatePicker, setShowDatePicker] = useState(false)
-  const [datePickerMonth, setDatePickerMonth] = useState(selectedDate)
+  const [datePickerMonth, setDatePickerMonth] = useState(new Date(format(selectedDate, 'yyyy-MM-dd') + 'T12:00:00'))
+  const [dateInputMode, setDateInputMode] = useState(false)
+  const [dateInputText, setDateInputText] = useState('')
   const [roomId, setRoomId]       = useState(initialRoomId ?? reservation?.room_id ?? rooms[0]?.id ?? '')
   // Admin book on behalf
   const [selectedOwnerId, setSelectedOwnerId] = useState(profile.id)
@@ -391,15 +423,47 @@ export default function ReservationModal({
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
-                  <button
-                    type="button"
-                    onClick={() => setShowDatePicker(v => !v)}
-                    className="w-full text-left border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white hover:border-gray-400 cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    {format(new Date(dateVal + 'T12:00:00'), 'MMMM d, yyyy')}
-                  </button>
-                  {showDatePicker && (
-                    <div className="mt-2 border border-gray-200 rounded-xl p-3 bg-white">
+                  {dateInputMode ? (
+                    <input
+                      type="text"
+                      value={dateInputText}
+                      onChange={e => setDateInputText(e.target.value)}
+                      onBlur={() => {
+                        const parsed = parseFuzzyDate(dateInputText)
+                        if (parsed) {
+                          setDateVal(format(parsed, 'yyyy-MM-dd'))
+                          setDatePickerMonth(parsed)
+                        }
+                        setDateInputMode(false)
+                      }}
+                      onKeyDown={e => {
+                        if (e.key === 'Enter') {
+                          const parsed = parseFuzzyDate(dateInputText)
+                          if (parsed) {
+                            setDateVal(format(parsed, 'yyyy-MM-dd'))
+                            setDatePickerMonth(parsed)
+                          }
+                          setDateInputMode(false)
+                        }
+                      }}
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="e.g. June 24 or 6/24/2026"
+                      autoFocus
+                    />
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setDateInputText(dateVal ? format(new Date(dateVal + 'T12:00:00'), 'MMMM d, yyyy') : '')
+                        setDateInputMode(true)
+                      }}
+                      className="w-full text-left border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white hover:border-gray-400 cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      {dateVal ? format(new Date(dateVal + 'T12:00:00'), 'MMMM d, yyyy') : 'Select a date'}
+                    </button>
+                  )}
+                  {!dateInputMode && (
+                    <div className="mt-2">
                       <div className="flex items-center justify-between mb-2">
                         <button type="button" onClick={() => setDatePickerMonth(m => subMonths(m, 1))}
                           className="p-1 hover:bg-gray-100 rounded transition-colors">
@@ -421,7 +485,7 @@ export default function ReservationModal({
                           <div key={`pad-${i}`} />
                         ))}
                         {eachDayOfInterval({ start: startOfMonth(datePickerMonth), end: endOfMonth(datePickerMonth) }).map(day => {
-                          const selected = isSameDay(day, new Date(dateVal + 'T12:00:00'))
+                          const selected = dateVal && isSameDay(day, new Date(dateVal + 'T12:00:00'))
                           const today = isToday(day)
                           return (
                             <button
@@ -429,7 +493,7 @@ export default function ReservationModal({
                               type="button"
                               onClick={() => {
                                 setDateVal(format(day, 'yyyy-MM-dd'))
-                                setShowDatePicker(false)
+                                setDatePickerMonth(day)
                               }}
                               className={cn(
                                 'text-center text-xs py-1.5 rounded-md transition-colors',
