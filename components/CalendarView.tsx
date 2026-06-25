@@ -167,7 +167,7 @@ export default function CalendarView({ locations, profile, company, hoursUsed, d
 
     const durationHrs = (endDate.getTime() - startDate.getTime()) / 3600000
     if (!profile.is_admin && company) {
-      const remaining = Math.max(0, company.monthly_hours_allotment - usedHours)
+      const remaining = company.monthly_hours_allotment - usedHours
       if (durationHrs > remaining) { toast.error('Not enough hours remaining this month'); return }
     }
 
@@ -202,7 +202,7 @@ export default function CalendarView({ locations, profile, company, hoursUsed, d
     return h > sh || (h === sh && m > sm)
   })
 
-  const hoursRemaining = company ? Math.max(0, company.monthly_hours_allotment - usedHours) : null
+  const hoursRemaining = company ? company.monthly_hours_allotment - usedHours : null
 
   return (
     <div className="flex h-full bg-white">

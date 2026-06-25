@@ -198,7 +198,7 @@ export default function ReservationModal({
     ? (new Date(reservation.end_time).getTime() - new Date(reservation.start_time).getTime()) / 3600000
     : 0
   const hoursRemaining = company && !isAdmin
-    ? Math.max(0, company.monthly_hours_allotment - hoursUsed + currentReservationHours)
+    ? company.monthly_hours_allotment - hoursUsed + currentReservationHours
     : Infinity
   const wouldExceed = !isAdmin && durationHours > hoursRemaining
 
