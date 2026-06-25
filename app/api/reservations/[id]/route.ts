@@ -47,7 +47,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 
   // For non-admins: check hour allotment (excluding this reservation's current hours)
   if (!profile.is_admin && profile.company_id) {
-    const { start: monthStart, end: monthEnd } = getMonthBounds(new Date())
+    const { start: monthStart, end: monthEnd } = getMonthBounds(start)
     const { data: monthRes } = await adminSupabase
       .from('reservations')
       .select('start_time, end_time')

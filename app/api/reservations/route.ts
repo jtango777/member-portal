@@ -98,7 +98,7 @@ export async function POST(request: Request) {
 
   // Check hour allotment for non-admins
   if (!profile.is_admin && profile.company_id) {
-    const { start: monthStart, end: monthEnd } = getMonthBounds(new Date())
+    const { start: monthStart, end: monthEnd } = getMonthBounds(start)
     const { data: monthRes } = await adminSupabase
       .from('reservations')
       .select('start_time, end_time')
