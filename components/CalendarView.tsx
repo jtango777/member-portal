@@ -77,13 +77,11 @@ export default function CalendarView({ locations, profile, company, hoursUsed, d
     setRooms(roomsData)
     setReservations(resData)
     setLoading(false)
-    // Scroll to 8am after data loads
-    requestAnimationFrame(() => {
+    setTimeout(() => {
       if (scrollRef.current) {
-        const slot8am = (8 - START_HOUR) * 2
-        scrollRef.current.scrollTop = slot8am * SLOT_H
+        scrollRef.current.scrollTop = 16 * SLOT_H
       }
-    })
+    }, 50)
   }, [selectedLocation, selectedDate])
 
   useEffect(() => { fetchData() }, [fetchData])
