@@ -32,7 +32,7 @@ export default function LoginPage() {
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-white tracking-tight">BizHaus</h1>
-          <span className="inline-block mt-3 text-xs font-bold uppercase tracking-wider bg-slate-700 text-slate-300 px-3 py-1 rounded border border-slate-600">Member Portal</span>
+          <p className="mt-3 text-sm text-slate-400">Conference Room Booking Platform</p>
         </div>
         <div className="bg-white rounded-xl shadow-lg p-8">
           <h2 className="text-lg font-semibold text-gray-900 mb-6">Sign in to your account</h2>
