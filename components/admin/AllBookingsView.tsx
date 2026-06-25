@@ -394,10 +394,46 @@ export default function AllBookingsView({ reservations: initialRes, externalBook
           {filteredExternal.length === 0 ? (
             <div className="text-center py-16 text-gray-400 text-sm">No bookings yet.</div>
           ) : (
-            <div className="space-y-3">
-              {filteredExternal.map(booking => (
-                <ExternalCard key={booking.id} booking={booking} />
-              ))}
+            <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-gray-50 border-b border-gray-200">
+                    {['Guest', 'Email', 'Phone', 'Room', 'Location', 'Date & Time', 'Amount', 'Status'].map(h => (
+                      <th key={h} className="text-left px-4 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap">{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredExternal.map((b, i) => {
+                    const start = new Date(b.start_time)
+                    const end = new Date(b.end_time)
+                    const hours = (end.getTime() - start.getTime()) / 3_600_000
+                    const amount = hours * (b.rooms?.price_per_hour ?? 0)
+                    return (
+                      <tr key={b.id} className={`border-b border-gray-100 last:border-0 ${i % 2 === 0 ? '' : 'bg-gray-50/50'}`}>
+                        <td className="px-4 py-3 font-medium text-gray-900">
+                          {b.external_name}
+                          {b.company_name && <span className="text-gray-400 font-normal"> · {b.company_name}</span>}
+                        </td>
+                        <td className="px-4 py-3 text-gray-600 text-xs">{b.external_email}</td>
+                        <td className="px-4 py-3 text-gray-600 text-xs">{b.external_phone}</td>
+                        <td className="px-4 py-3 text-gray-600">{b.rooms?.external_name ?? b.rooms?.name}</td>
+                        <td className="px-4 py-3 text-gray-500 text-xs">{b.rooms?.locations?.name}</td>
+                        <td className="px-4 py-3 text-gray-700 whitespace-nowrap">
+                          {format(start, 'MMM d, yyyy')}
+                          <span className="block text-xs text-gray-400">{formatTime(start)} – {formatTime(end)}</span>
+                        </td>
+                        <td className="px-4 py-3 text-gray-700 font-medium">${amount.toFixed(0)}</td>
+                        <td className="px-4 py-3">
+                          <span className={cn('text-xs font-semibold px-2 py-0.5 rounded-full border', STATUS_STYLES[b.status] ?? '')}>
+                            {b.status}
+                          </span>
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
             </div>
           )}
         </div>
