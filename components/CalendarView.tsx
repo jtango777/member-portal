@@ -270,18 +270,6 @@ export default function CalendarView({ locations, profile, company, hoursUsed, d
           Make a Reservation
         </button>
 
-        {/* Hours remaining (non-admin) */}
-        {company && !profile.is_admin && hoursRemaining !== null && !showSidebarForm && (
-          <div className="flex items-center gap-1.5 text-xs text-gray-500 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
-            <Clock size={13} />
-            <span>
-              <span className={cn('font-semibold', hoursRemaining <= 0 ? 'text-red-600' : 'text-gray-800')}>
-                {hoursRemaining.toFixed(1)}h
-              </span>
-              {' '}remaining of {company.monthly_hours_allotment}h/mo
-            </span>
-          </div>
-        )}
       </div>
 
       {/* ── Main content ── */}
@@ -318,12 +306,12 @@ export default function CalendarView({ locations, profile, company, hoursUsed, d
 
           <div className="flex items-center gap-3">
             {company && !profile.is_admin && hoursRemaining !== null && (
-              <div className="flex items-center gap-1.5 text-sm text-gray-500 bg-blue-50 border border-blue-200 rounded-lg px-3 py-1.5">
-                <Clock size={14} className="text-blue-600" />
-                <span className={cn('font-semibold', hoursRemaining <= 0 ? 'text-red-600' : 'text-blue-700')}>
+              <div className="flex items-center gap-1.5 text-sm bg-blue-100 border border-blue-300 rounded-lg px-3 py-1.5">
+                <Clock size={14} className="text-blue-700" />
+                <span className={cn('font-semibold', hoursRemaining <= 0 ? 'text-red-600' : 'text-blue-800')}>
                   {hoursRemaining.toFixed(1)}h
                 </span>
-                <span>remaining</span>
+                <span className="text-blue-700">remaining of {company.monthly_hours_allotment}h/mo</span>
               </div>
             )}
 
