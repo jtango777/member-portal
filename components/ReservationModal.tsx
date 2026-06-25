@@ -233,7 +233,10 @@ export default function ReservationModal({
   const [pastWarningConfirmed, setPastWarningConfirmed] = useState(false)
 
   async function handleSave() {
-    if (!reservation && startDate.getTime() < Date.now() && !pastWarningConfirmed) {
+    const bookingDateStr = dateVal
+    const todayStr = format(new Date(), 'yyyy-MM-dd')
+    const isBookingPastDate = bookingDateStr < todayStr
+    if (!reservation && isBookingPastDate && !pastWarningConfirmed) {
       setPastWarningConfirmed(true)
       toast('This time is in the past. Click Save again to confirm.', { icon: '⚠️' })
       return
