@@ -159,14 +159,14 @@ export default function ReservationModal({
   const [startVal, setStartVal]   = useState(
     reservation
       ? `${new Date(reservation.start_time).getHours()}:${new Date(reservation.start_time).getMinutes().toString().padStart(2, '0')}`
-      : slotToTimeValue(initialSlot ?? 2)
+      : slotToTimeValue(initialSlot ?? 18)
   )
   const [endVal, setEndVal] = useState(() => {
     if (reservation) {
       const e = new Date(reservation.end_time)
       return `${e.getHours()}:${e.getMinutes().toString().padStart(2, '0')}`
     }
-    const startSlotNum = initialSlot ?? 2
+    const startSlotNum = initialSlot ?? 18
     return slotToTimeValue(Math.min(startSlotNum + 2, 29))
   })
   const [loading, setLoading]           = useState(false)

@@ -263,7 +263,7 @@ export default function CalendarView({ locations, profile, company, hoursUsed, d
 
         {/* Make a Reservation button */}
         <button
-          onClick={() => setModal({ mode: 'create', roomId: rooms[0]?.id ?? '', startSlot: 4 })}
+          onClick={() => setModal({ mode: 'create', roomId: rooms[0]?.id ?? '', startSlot: 18 })}
           className="w-full flex items-center justify-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-4 py-2.5 rounded-lg transition-colors"
         >
           <Plus size={16} />
@@ -317,7 +317,7 @@ export default function CalendarView({ locations, profile, company, hoursUsed, d
 
             {/* Mobile-only Make a Reservation button */}
             <button
-              onClick={() => setModal({ mode: 'create', roomId: rooms[0]?.id ?? '', startSlot: 2 })}
+              onClick={() => setModal({ mode: 'create', roomId: rooms[0]?.id ?? '', startSlot: 18 })}
               className="flex lg:hidden items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors"
             >
               <Plus size={16} />
