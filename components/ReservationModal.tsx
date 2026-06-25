@@ -424,7 +424,7 @@ export default function ReservationModal({
                   />
                 </div>
 
-                <div>
+                <div className="relative">
                   <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
                   <input
                     type="text"
@@ -462,7 +462,7 @@ export default function ReservationModal({
                     {showCalendar ? 'Hide calendar' : 'Show calendar'}
                   </button>
                   {showCalendar && (
-                    <div className="mt-2">
+                    <div className="absolute left-0 right-0 mt-1 z-50 bg-white border border-gray-200 rounded-xl p-3 shadow-lg">
                       <div className="flex items-center justify-between mb-2">
                         <button type="button" onClick={() => setDatePickerMonth(m => subMonths(m, 1))}
                           className="p-1 hover:bg-gray-100 rounded transition-colors">
