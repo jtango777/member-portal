@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
-import { ArrowUpRight } from 'lucide-react'
+import { ArrowUpRight, CalendarDays, DollarSign, Clock, Users } from 'lucide-react'
 import Link from 'next/link'
 import { calcHoursUsed, getMonthBounds, formatMonthYear } from '@/lib/utils'
 import { format, subMonths } from 'date-fns'
@@ -107,23 +107,43 @@ export default async function AdminHomePage({ searchParams }: { searchParams: Pr
       {/* Key metrics */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-px bg-gray-200 rounded-xl overflow-hidden border border-gray-200">
         <div className="bg-white p-5">
-          <p className="text-xs font-medium text-gray-400 uppercase tracking-wide">Bookings</p>
-          <p className="text-3xl font-semibold text-gray-900 mt-2 tabular-nums">{stats.monthlyReservations + stats.monthlyExternalBookings}</p>
+          <div className="flex items-center gap-2 mb-3">
+            <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center">
+              <CalendarDays size={18} className="text-blue-500" />
+            </div>
+            <p className="text-xs font-medium text-gray-400 uppercase tracking-wide">Bookings</p>
+          </div>
+          <p className="text-3xl font-semibold text-gray-900 tabular-nums">{stats.monthlyReservations + stats.monthlyExternalBookings}</p>
           <p className="text-xs text-gray-400 mt-1">{stats.monthlyReservations} internal · {stats.monthlyExternalBookings} external</p>
         </div>
         <div className="bg-white p-5">
-          <p className="text-xs font-medium text-gray-400 uppercase tracking-wide">Revenue</p>
-          <p className="text-3xl font-semibold text-emerald-600 mt-2 tabular-nums">${stats.externalRevenueThisMonth.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</p>
+          <div className="flex items-center gap-2 mb-3">
+            <div className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center">
+              <DollarSign size={18} className="text-emerald-500" />
+            </div>
+            <p className="text-xs font-medium text-gray-400 uppercase tracking-wide">Revenue</p>
+          </div>
+          <p className="text-3xl font-semibold text-emerald-600 tabular-nums">${stats.externalRevenueThisMonth.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</p>
           <p className="text-xs text-gray-400 mt-1">external bookings</p>
         </div>
         <div className="bg-white p-5">
-          <p className="text-xs font-medium text-gray-400 uppercase tracking-wide">Hours booked</p>
-          <p className="text-3xl font-semibold text-gray-900 mt-2 tabular-nums">{stats.hoursThisMonth === 0 ? '0' : stats.hoursThisMonth.toFixed(1)}<span className="text-lg text-gray-400">h</span></p>
+          <div className="flex items-center gap-2 mb-3">
+            <div className="w-8 h-8 rounded-lg bg-purple-50 flex items-center justify-center">
+              <Clock size={18} className="text-purple-500" />
+            </div>
+            <p className="text-xs font-medium text-gray-400 uppercase tracking-wide">Hours booked</p>
+          </div>
+          <p className="text-3xl font-semibold text-gray-900 tabular-nums">{stats.hoursThisMonth === 0 ? '0' : stats.hoursThisMonth.toFixed(1)}<span className="text-lg text-gray-400">h</span></p>
           <p className="text-xs text-gray-400 mt-1">member reservations</p>
         </div>
         <div className="bg-white p-5">
-          <p className="text-xs font-medium text-gray-400 uppercase tracking-wide">Members</p>
-          <p className="text-3xl font-semibold text-gray-900 mt-2 tabular-nums">{stats.activeMembers}<span className="text-lg text-gray-400">/{stats.totalMembers}</span></p>
+          <div className="flex items-center gap-2 mb-3">
+            <div className="w-8 h-8 rounded-lg bg-amber-50 flex items-center justify-center">
+              <Users size={18} className="text-amber-500" />
+            </div>
+            <p className="text-xs font-medium text-gray-400 uppercase tracking-wide">Members</p>
+          </div>
+          <p className="text-3xl font-semibold text-gray-900 tabular-nums">{stats.activeMembers}<span className="text-lg text-gray-400">/{stats.totalMembers}</span></p>
           <p className="text-xs text-gray-400 mt-1">{activePct.toFixed(0)}% active</p>
         </div>
       </div>
