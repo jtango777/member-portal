@@ -115,22 +115,6 @@ export default function CalendarView({ locations, profile, company, hoursUsed, d
       .catch(() => {})
   }, [selectedDate, company, profile.is_admin, reservations])
 
-  // Scroll to 8am whenever date changes, or current time on first load
-  const hasScrolled = useRef(false)
-  useEffect(() => {
-    if (scrollRef.current) {
-      if (!hasScrolled.current) {
-        const now = new Date()
-        const currentSlot = (now.getHours() - START_HOUR) * 2 + Math.floor(now.getMinutes() / 30)
-        const containerHeight = scrollRef.current.clientHeight
-        scrollRef.current.scrollTop = Math.max(0, currentSlot * SLOT_H - containerHeight / 2)
-        hasScrolled.current = true
-      } else {
-        const slot8am = (8 - START_HOUR) * 2
-        scrollRef.current.scrollTop = slot8am * SLOT_H
-      }
-    }
-  }, [selectedDate])
 
   function slotToTime(slot: number): Date {
     const h = START_HOUR + Math.floor(slot / 2)
