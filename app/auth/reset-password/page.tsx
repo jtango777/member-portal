@@ -13,10 +13,12 @@ export default function ResetPasswordPage() {
   const [ready, setReady]         = useState(false)
 
   useEffect(() => {
-    // Supabase puts the session in the URL hash — exchange it
     const supabase = createClient()
     supabase.auth.onAuthStateChange((event) => {
       if (event === 'PASSWORD_RECOVERY') setReady(true)
+    })
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) setReady(true)
     })
   }, [])
 
