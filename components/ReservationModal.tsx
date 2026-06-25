@@ -563,6 +563,7 @@ export default function ReservationModal({
                             const q = ownerSearch.toLowerCase()
                             return !q || m.full_name.toLowerCase().includes(q) || m.company_name.toLowerCase().includes(q)
                           })
+                          .sort((a, b) => a.full_name.localeCompare(b.full_name))
                           .map(m => (
                             <button
                               key={m.id}
