@@ -124,7 +124,6 @@ export default function Nav({ profile }: Props) {
       <div className="flex items-center gap-6">
         <Link href="/dashboard" className="flex items-center gap-2 hover:opacity-90">
           <span className="text-xl font-bold tracking-tight text-white">BizHaus</span>
-          <span className="text-[10px] font-bold uppercase tracking-wider bg-slate-700 text-slate-300 px-2 py-0.5 rounded border border-slate-600">Member</span>
         </Link>
         <Link href="/dashboard"
           className={cn('text-sm font-medium transition-colors',
