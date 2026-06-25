@@ -277,19 +277,21 @@ export default function CalendarView({ locations, profile, company, hoursUsed, d
         {/* Top bar */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 flex-shrink-0">
           <div className="flex items-center gap-2">
-            <span className="text-sm font-medium text-gray-500">Location:</span>
-            <select
-              value={selectedLocation.id}
-              onChange={e => {
-                const loc = locations.find(l => l.id === e.target.value)
-                if (loc) setSelectedLocation(loc)
-              }}
-              className="border border-gray-300 rounded-lg px-3 py-2 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-            >
-              {locations.map(loc => (
-                <option key={loc.id} value={loc.id}>{loc.name}</option>
-              ))}
-            </select>
+            <div className="flex items-center gap-1.5 bg-blue-100 border border-blue-300 rounded-lg px-3 py-1.5">
+              <span className="text-sm font-medium text-blue-700">Location:</span>
+              <select
+                value={selectedLocation.id}
+                onChange={e => {
+                  const loc = locations.find(l => l.id === e.target.value)
+                  if (loc) setSelectedLocation(loc)
+                }}
+                className="text-sm font-semibold text-blue-800 bg-transparent focus:outline-none cursor-pointer"
+              >
+                {locations.map(loc => (
+                  <option key={loc.id} value={loc.id}>{loc.name}</option>
+                ))}
+              </select>
+            </div>
           </div>
 
           <div className="flex items-center gap-3">
@@ -299,7 +301,7 @@ export default function CalendarView({ locations, profile, company, hoursUsed, d
                 <span className={cn('font-semibold', hoursRemaining <= 0 ? 'text-red-600' : 'text-blue-800')}>
                   {hoursRemaining.toFixed(1)}h
                 </span>
-                <span className="text-blue-700">remaining of {company.monthly_hours_allotment}h/mo</span>
+                <span className="text-blue-700">for {format(selectedDate, 'MMMM yyyy')}</span>
               </div>
             )}
 
