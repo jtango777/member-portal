@@ -230,10 +230,13 @@ export default function ReservationModal({
     if (remaining.length === 0) handleSave()
   }
 
+  const [pastWarningConfirmed, setPastWarningConfirmed] = useState(false)
+
   async function handleSave() {
-    // Prevent non-admin users from booking in the past (new reservations only)
-    if (!isAdmin && !reservation && startDate.getTime() < Date.now()) {
-      toast.error('Cannot book in the past'); return
+    if (!reservation && startDate.getTime() < Date.now() && !pastWarningConfirmed) {
+      setPastWarningConfirmed(true)
+      toast('This time is in the past. Click Save again to confirm.', { icon: '⚠️' })
+      return
     }
     if (!title.trim()) { toast.error('Please enter a title'); return }
     if (endDate <= startDate) { toast.error('End time must be after start time'); return }
