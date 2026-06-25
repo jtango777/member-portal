@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 
-const ALLOWED_REDIRECTS = ['/dashboard', '/dashboard/admin', '/book']
+const ALLOWED_REDIRECTS = ['/dashboard', '/dashboard/admin', '/book', '/auth/reset-password']
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url)
