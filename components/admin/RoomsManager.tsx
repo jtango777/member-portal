@@ -152,7 +152,7 @@ export default function RoomsManager({ locations, initialRooms }: Props) {
         {roomsByLocation.map(({ location, rooms: locRooms }) => (
           <div key={location.id} className="bg-white rounded-xl border border-gray-200 overflow-hidden">
             <div className="px-4 py-3 border-b border-gray-100 bg-gray-50 flex items-center justify-between">
-              <h2 className="text-sm font-semibold text-gray-700">{location.name}</h2>
+              <h2 className="text-sm font-semibold text-blue-600">{location.name}</h2>
               <span className="text-xs text-gray-400">{locRooms.length} room{locRooms.length !== 1 ? 's' : ''}</span>
             </div>
             {locRooms.length === 0 ? (

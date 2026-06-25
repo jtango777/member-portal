@@ -161,7 +161,7 @@ export default function MyReservationsList({ upcoming, past, companyReservations
       <div className="space-y-4">
         {upcomingTeam.length > 0 && (
           <div>
-            <h3 className="text-xs font-medium text-gray-400 mb-1.5">Upcoming ({upcomingTeam.length})</h3>
+            <h3 className="text-xs font-medium text-blue-600 mb-1.5">Upcoming ({upcomingTeam.length})</h3>
             <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
               <table className="w-full text-sm">
                 <thead>
@@ -183,7 +183,7 @@ export default function MyReservationsList({ upcoming, past, companyReservations
           return (
             <div>
               <div className="flex items-center justify-between mb-2">
-                <h3 className="text-sm font-medium text-gray-400">Past ({filteredPast.length})</h3>
+                <h3 className="text-sm font-medium text-blue-600">Past ({filteredPast.length})</h3>
               </div>
               {filteredPast.length > 0 ? (
                 <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
@@ -219,7 +219,7 @@ export default function MyReservationsList({ upcoming, past, companyReservations
         </div>
 
         <div>
-          <h2 className="text-sm font-semibold text-gray-700 mb-2">Upcoming ({upcoming.length})</h2>
+          <h2 className="text-sm font-semibold text-blue-600 mb-2">Upcoming ({upcoming.length})</h2>
           {upcoming.length === 0 ? (
             <div className="flex flex-col items-center gap-3 py-12 text-center">
               <CalendarDays size={36} className="text-gray-200" />
@@ -240,7 +240,7 @@ export default function MyReservationsList({ upcoming, past, companyReservations
           return (
             <div>
               <div className="flex items-center justify-between mb-2">
-                <h2 className="text-sm font-semibold text-gray-500">Past reservations ({filtered.length})</h2>
+                <h2 className="text-sm font-semibold text-blue-600">Past reservations ({filtered.length})</h2>
                 <PastRangePills />
               </div>
               {filtered.length > 0 ? <Table rows={filtered} /> : (
@@ -252,7 +252,7 @@ export default function MyReservationsList({ upcoming, past, companyReservations
 
         {companyReservations.length > 0 && (
           <div className="border-t border-gray-200 pt-6">
-            <h2 className="text-lg font-bold text-gray-900 mb-1">
+            <h2 className="text-lg font-bold text-blue-600 mb-1">
               {profile.is_admin ? 'All Reservations' : 'Team Reservations'}
             </h2>
             <p className="text-sm text-gray-500 mb-4">

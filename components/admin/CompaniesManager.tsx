@@ -265,7 +265,7 @@ export default function CompaniesManager({ companies: initial, membershipTypes: 
       {/* Manage Types panel */}
       {showManageTypes && (
         <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-3">
-          <h3 className="font-semibold text-gray-900 text-sm">Membership Types</h3>
+          <h3 className="font-semibold text-blue-600 text-sm">Membership Types</h3>
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-gray-100">

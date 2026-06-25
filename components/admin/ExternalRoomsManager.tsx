@@ -91,7 +91,7 @@ export default function ExternalRoomsManager({ locations, initialRooms }: Props)
         {roomsByLocation.map(({ location, rooms: locRooms }) => (
           <div key={location.id} className="bg-white rounded-xl border border-gray-200 overflow-hidden">
             <div className="px-4 py-3 border-b border-gray-100 bg-gray-50">
-              <h2 className="text-sm font-semibold text-gray-700">{location.name}</h2>
+              <h2 className="text-sm font-semibold text-blue-600">{location.name}</h2>
             </div>
 
             <div className="divide-y divide-gray-100">
