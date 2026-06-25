@@ -121,10 +121,10 @@ export default async function AdminHomePage({ searchParams }: { searchParams: Pr
             <div className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center">
               <DollarSign size={18} className="text-emerald-500" />
             </div>
-            <p className="text-xs font-medium text-gray-400 uppercase tracking-wide">Revenue</p>
+            <p className="text-xs font-medium text-gray-400 uppercase tracking-wide">External Revenue</p>
           </div>
           <p className="text-3xl font-semibold text-emerald-600 tabular-nums">${stats.externalRevenueThisMonth.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</p>
-          <p className="text-xs text-gray-400 mt-1">external bookings</p>
+          <p className="text-xs text-gray-400 mt-1">from {stats.monthlyExternalBookings} external booking{stats.monthlyExternalBookings !== 1 ? 's' : ''}</p>
         </div>
         <div className="bg-white p-5">
           <div className="flex items-center gap-2 mb-3">

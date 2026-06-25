@@ -54,22 +54,6 @@ export default function ExternalBookingsQueue({ bookings: initial }: { bookings:
         </p>
       </div>
 
-      {/* Summary cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
-        <div className="bg-white rounded-xl border border-gray-200 p-4">
-          <p className="text-sm text-gray-500">Confirmed Bookings</p>
-          <p className="text-2xl font-bold text-gray-900 mt-1">{confirmedCount}</p>
-        </div>
-        <div className="bg-white rounded-xl border border-gray-200 p-4">
-          <p className="text-sm text-gray-500">Total Revenue</p>
-          <p className="text-2xl font-bold text-gray-900 mt-1">${totalRevenue.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</p>
-        </div>
-        <div className="bg-white rounded-xl border border-gray-200 p-4">
-          <p className="text-sm text-gray-500">Total Bookings</p>
-          <p className="text-2xl font-bold text-gray-900 mt-1">{initial.length}</p>
-        </div>
-      </div>
-
       {/* Filter tabs */}
       <div className="flex gap-1 border-b border-gray-200">
         {(['confirmed', 'all'] as Filter[]).map(f => (
