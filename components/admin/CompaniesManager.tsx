@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { Company, MembershipType } from '@/types'
-import { Plus, Edit2, Check, X, Settings, Trash2 } from 'lucide-react'
+import { Plus, Edit2, Check, X, Settings, Trash2, Search } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 type Props = {
@@ -186,7 +186,16 @@ export default function CompaniesManager({ companies: initial, membershipTypes: 
 
   // ── Derived ────────────────────────────────────────────────────────────────
 
+  const [searchQuery, setSearchQuery] = useState('')
+  const [autoAssigning, setAutoAssigning] = useState(false)
+
   const reviewCount = companies.filter(c => !c.membership_type_id).length
+
+  const filteredCompanies = companies.filter(c => {
+    const q = searchQuery.toLowerCase()
+    if (!q) return true
+    return c.name.toLowerCase().includes(q)
+  })
 
   // ── Render ─────────────────────────────────────────────────────────────────
 
@@ -337,6 +346,14 @@ export default function CompaniesManager({ companies: initial, membershipTypes: 
         </form>
       )}
 
+      {/* Search */}
+      <div className="relative">
+        <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+        <input value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
+          className="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+          placeholder="Search companies..." />
+      </div>
+
       {/* Companies table */}
       <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
         <table className="w-full text-sm">
@@ -349,10 +366,10 @@ export default function CompaniesManager({ companies: initial, membershipTypes: 
             </tr>
           </thead>
           <tbody>
-            {companies.length === 0 && (
-              <tr><td colSpan={4} className="px-4 py-8 text-center text-gray-400">No companies yet.</td></tr>
+            {filteredCompanies.length === 0 && (
+              <tr><td colSpan={4} className="px-4 py-8 text-center text-gray-400">{searchQuery ? 'No companies match your search.' : 'No companies yet.'}</td></tr>
             )}
-            {companies.map(c => (
+            {filteredCompanies.map(c => (
               <tr key={c.id} className={`border-b border-gray-100 last:border-0 hover:bg-gray-50 ${!c.membership_type_id ? 'bg-amber-50/40' : ''}`}>
                 <td className="px-4 py-3">
                   {editing?.id === c.id ? (

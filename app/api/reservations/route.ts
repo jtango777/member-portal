@@ -57,7 +57,7 @@ export async function POST(request: Request) {
   if (!profile) return NextResponse.json({ error: 'Profile not found' }, { status: 403 })
 
   const body = await request.json()
-  const { room_id, title, notes, start_time, end_time, formatted_date, formatted_time } = body
+  const { room_id, title, notes, start_time, end_time, formatted_date, formatted_time, owner_id, owner_company_id } = body
 
   // ── Recurring admin block ──────────────────────────────────────────────────
   if (body.occurrences && Array.isArray(body.occurrences)) {
@@ -142,12 +142,16 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'This room is already booked for that time.' }, { status: 409 })
   }
 
+  // For admin booking on behalf of a member, use the provided owner_id/owner_company_id
+  const bookingUserId = profile.is_admin && owner_id ? owner_id : user.id
+  const bookingCompanyId = profile.is_admin && owner_company_id ? owner_company_id : profile.company_id
+
   const { data: reservation, error } = await adminSupabase
     .from('reservations')
     .insert({
       room_id,
-      user_id:    user.id,
-      company_id: profile.company_id,
+      user_id:    bookingUserId,
+      company_id: bookingCompanyId,
       title,
       notes:      notes || null,
       start_time,

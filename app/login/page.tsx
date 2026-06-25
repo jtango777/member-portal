@@ -22,7 +22,7 @@ export default function LoginPage() {
       setLoading(false)
     } else {
       const { data: profile } = await supabase.from('profiles').select('is_admin').eq('id', data.user.id).single()
-      router.push(profile?.is_admin ? '/dashboard/admin' : '/dashboard')
+      router.push('/dashboard')
       router.refresh()
     }
   }

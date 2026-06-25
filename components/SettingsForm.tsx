@@ -91,12 +91,19 @@ export default function SettingsForm({ profile, company, locations, email }: Pro
             <input value={fullName} onChange={e => setFullName(e.target.value)} required
               className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Company Name</label>
-            <input value={companyName} onChange={e => setCompanyName(e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-            <p className="text-xs text-gray-400 mt-1">Updates the name shown on your bookings.</p>
-          </div>
+          {profile.is_admin ? (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Company Name</label>
+              <input value={companyName} onChange={e => setCompanyName(e.target.value)}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              <p className="text-xs text-gray-400 mt-1">Updates the name shown on your bookings.</p>
+            </div>
+          ) : company ? (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Company</label>
+              <p className="text-sm text-gray-900 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">{company.name}</p>
+            </div>
+          ) : null}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Default Location</label>
             <select value={locationId} onChange={e => setLocationId(e.target.value)}

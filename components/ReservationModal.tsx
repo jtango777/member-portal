@@ -1,21 +1,23 @@
 'use client'
 
 import { useState } from 'react'
-import { format, addDays, addMonths } from 'date-fns'
+import { format, addDays, addMonths, startOfMonth, endOfMonth, eachDayOfInterval, getDay, subMonths, isToday } from 'date-fns'
 import * as Dialog from '@radix-ui/react-dialog'
-import { X, Lock, Trash2, Edit2, Check, AlertCircle, Repeat, Ban } from 'lucide-react'
+import { X, Lock, Trash2, Edit2, Check, AlertCircle, Repeat, Ban, ChevronLeft, ChevronRight, Search } from 'lucide-react'
 import MiniDatePicker from './MiniDatePicker'
 import { Reservation, Room, Profile, Company } from '@/types'
-import { cn, buildTimeOptions, parseTimeValue, formatTime } from '@/lib/utils'
+import { cn, buildTimeOptions, parseTimeValue, formatTime, isSameDay } from '@/lib/utils'
 import toast from 'react-hot-toast'
 
-const START_HOUR = 7
+const START_HOUR = 0
 const TIME_OPTIONS = buildTimeOptions()
 
 const DAYS = [
   { label: 'S', day: 0 }, { label: 'M', day: 1 }, { label: 'T', day: 2 },
   { label: 'W', day: 3 }, { label: 'T', day: 4 }, { label: 'F', day: 5 }, { label: 'S', day: 6 },
 ]
+
+type MemberOption = { id: string; full_name: string; company_name: string; company_id: string }
 
 type Props = {
   mode: 'create' | 'view'
@@ -27,6 +29,7 @@ type Props = {
   profile: Profile
   company: Company | null
   hoursUsed: number
+  members?: MemberOption[]
   onClose: (refresh?: boolean) => void
 }
 
@@ -105,11 +108,17 @@ function generateOccurrences(
 
 export default function ReservationModal({
   mode, reservation, initialRoomId, initialSlot, selectedDate,
-  rooms, profile, company, hoursUsed, onClose
+  rooms, profile, company, hoursUsed, members, onClose
 }: Props) {
   const [editing, setEditing]     = useState(mode === 'create')
   const [dateVal, setDateVal]     = useState(format(selectedDate, 'yyyy-MM-dd'))
+  const [showDatePicker, setShowDatePicker] = useState(false)
+  const [datePickerMonth, setDatePickerMonth] = useState(selectedDate)
   const [roomId, setRoomId]       = useState(initialRoomId ?? reservation?.room_id ?? rooms[0]?.id ?? '')
+  // Admin book on behalf
+  const [selectedOwnerId, setSelectedOwnerId] = useState(profile.id)
+  const [ownerSearch, setOwnerSearch] = useState('')
+  const [showOwnerDropdown, setShowOwnerDropdown] = useState(false)
   const [title, setTitle]         = useState(reservation?.title ?? '')
   const [notes, setNotes]         = useState(reservation?.notes ?? '')
   const [startVal, setStartVal]   = useState(
@@ -187,6 +196,10 @@ export default function ReservationModal({
   }
 
   async function handleSave() {
+    // Prevent non-admin users from booking in the past (new reservations only)
+    if (!isAdmin && !reservation && startDate.getTime() < Date.now()) {
+      toast.error('Cannot book in the past'); return
+    }
     if (!title.trim()) { toast.error('Please enter a title'); return }
     if (endDate <= startDate) { toast.error('End time must be after start time'); return }
     if (wouldExceed) { toast.error('Not enough hours remaining this month'); return }
@@ -231,7 +244,8 @@ export default function ReservationModal({
     // ──────────────────────────────────────────────────────────────────────
 
     setLoading(true)
-    const body = {
+    const selectedMember = isAdmin && members ? members.find(m => m.id === selectedOwnerId) : null
+    const body: Record<string, any> = {
       room_id: roomId,
       title: title.trim(),
       notes: notes.trim() || null,
@@ -239,6 +253,11 @@ export default function ReservationModal({
       end_time:   endDate.toISOString(),
       formatted_date: format(new Date(dateVal + 'T12:00:00'), 'EEEE, MMMM d, yyyy'),
       formatted_time: `${format(startDate, 'h:mm a')} – ${format(endDate, 'h:mm a')}`,
+    }
+    // Admin booking on behalf of a member
+    if (isAdmin && selectedOwnerId !== profile.id && selectedMember) {
+      body.owner_id = selectedOwnerId
+      body.owner_company_id = selectedMember.company_id
     }
 
     const res = reservation
@@ -372,12 +391,62 @@ export default function ReservationModal({
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
-                  <input
-                    type="date"
-                    value={dateVal}
-                    onChange={e => setDateVal(e.target.value)}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowDatePicker(v => !v)}
+                    className="w-full text-left border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white hover:border-gray-400 cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    {format(new Date(dateVal + 'T12:00:00'), 'MMMM d, yyyy')}
+                  </button>
+                  {showDatePicker && (
+                    <div className="mt-2 border border-gray-200 rounded-xl p-3 bg-white">
+                      <div className="flex items-center justify-between mb-2">
+                        <button type="button" onClick={() => setDatePickerMonth(m => subMonths(m, 1))}
+                          className="p-1 hover:bg-gray-100 rounded transition-colors">
+                          <ChevronLeft size={14} />
+                        </button>
+                        <span className="text-sm font-semibold text-gray-900">{format(datePickerMonth, 'MMMM yyyy')}</span>
+                        <button type="button" onClick={() => setDatePickerMonth(m => addMonths(m, 1))}
+                          className="p-1 hover:bg-gray-100 rounded transition-colors">
+                          <ChevronRight size={14} />
+                        </button>
+                      </div>
+                      <div className="grid grid-cols-7 mb-1">
+                        {['S','M','T','W','T','F','S'].map((d, i) => (
+                          <div key={i} className="text-center text-xs text-gray-400 font-medium py-1">{d}</div>
+                        ))}
+                      </div>
+                      <div className="grid grid-cols-7 gap-0.5">
+                        {Array.from({ length: getDay(startOfMonth(datePickerMonth)) }).map((_, i) => (
+                          <div key={`pad-${i}`} />
+                        ))}
+                        {eachDayOfInterval({ start: startOfMonth(datePickerMonth), end: endOfMonth(datePickerMonth) }).map(day => {
+                          const selected = isSameDay(day, new Date(dateVal + 'T12:00:00'))
+                          const today = isToday(day)
+                          return (
+                            <button
+                              key={day.toISOString()}
+                              type="button"
+                              onClick={() => {
+                                setDateVal(format(day, 'yyyy-MM-dd'))
+                                setShowDatePicker(false)
+                              }}
+                              className={cn(
+                                'text-center text-xs py-1.5 rounded-md transition-colors',
+                                selected
+                                  ? 'bg-blue-600 text-white font-semibold'
+                                  : today
+                                  ? 'bg-blue-50 text-blue-600 font-semibold'
+                                  : 'hover:bg-gray-100 text-gray-700'
+                              )}
+                            >
+                              {format(day, 'd')}
+                            </button>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 <div>
@@ -393,6 +462,58 @@ export default function ReservationModal({
                   </select>
                 </div>
 
+                {/* Owner field (admin only) */}
+                {isAdmin && members && members.length > 0 && mode === 'create' && (
+                  <div className="relative">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Owner</label>
+                    <button
+                      type="button"
+                      onClick={() => { setShowOwnerDropdown(v => !v); setOwnerSearch('') }}
+                      className="w-full text-left border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white hover:border-gray-400 cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      {selectedOwnerId === profile.id
+                        ? `${profile.full_name} (you)`
+                        : (() => { const m = members.find(m => m.id === selectedOwnerId); return m ? `${m.full_name} — ${m.company_name}` : 'Select member' })()
+                      }
+                    </button>
+                    {showOwnerDropdown && (
+                      <div className="mt-1 border border-gray-200 rounded-lg bg-white shadow-lg max-h-48 overflow-y-auto z-50">
+                        <div className="sticky top-0 bg-white p-2 border-b border-gray-100">
+                          <div className="relative">
+                            <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
+                            <input
+                              value={ownerSearch}
+                              onChange={e => setOwnerSearch(e.target.value)}
+                              placeholder="Search members..."
+                              className="w-full pl-8 pr-3 py-1.5 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              autoFocus
+                            />
+                          </div>
+                        </div>
+                        {members
+                          .filter(m => {
+                            const q = ownerSearch.toLowerCase()
+                            return !q || m.full_name.toLowerCase().includes(q) || m.company_name.toLowerCase().includes(q)
+                          })
+                          .map(m => (
+                            <button
+                              key={m.id}
+                              type="button"
+                              onClick={() => { setSelectedOwnerId(m.id); setShowOwnerDropdown(false) }}
+                              className={cn(
+                                'w-full text-left px-3 py-2 text-sm hover:bg-blue-50 transition-colors',
+                                m.id === selectedOwnerId ? 'bg-blue-50 font-medium text-blue-700' : 'text-gray-700'
+                              )}
+                            >
+                              {m.full_name} <span className="text-gray-400">— {m.company_name}</span>
+                            </button>
+                          ))
+                        }
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Start Time</label>
@@ -406,7 +527,7 @@ export default function ReservationModal({
                         const newEndMinutes = sh * 60 + sm + 30
                         const nh = Math.floor(newEndMinutes / 60)
                         const nm = newEndMinutes % 60
-                        if (nh <= 22) setEndVal(`${nh}:${nm === 0 ? '00' : '30'}`)
+                        if (nh <= 24) setEndVal(`${nh}:${nm === 0 ? '00' : '30'}`)
                       }}
                       className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                     >
@@ -686,7 +807,7 @@ export default function ReservationModal({
                       className="text-sm text-gray-500 hover:text-gray-700 px-3 py-1.5">
                       Cancel
                     </button>
-                    <button onClick={handleSave} disabled={loading || wouldExceed}
+                    <button onClick={handleSave} disabled={loading || wouldExceed || adminConflicts.length > 0}
                       className="flex items-center gap-1.5 text-sm bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white px-4 py-1.5 rounded-lg font-semibold">
                       {loading ? 'Saving…' : <><Check size={14} /> {isRecurring ? 'Create Block' : 'Save'}</>}
                     </button>

@@ -65,17 +65,17 @@ export function calcHoursUsed(reservations: { start_time: string; end_time: stri
   return Math.round((totalMs / 3600000) * 10) / 10
 }
 
-// Build time slot options for selects (30-min increments, 7am–10pm)
+// Build time slot options for selects (30-min increments, midnight to midnight)
 export function buildTimeOptions(): { label: string; value: string }[] {
   const options: { label: string; value: string }[] = []
-  for (let h = 7; h < 22; h++) {
+  for (let h = 0; h < 24; h++) {
     for (const m of [0, 30]) {
       const d = new Date(2000, 0, 1, h, m)
       options.push({ label: format(d, 'h:mm a'), value: `${h}:${m === 0 ? '00' : '30'}` })
     }
   }
-  // Include 10pm as end-time option only
-  options.push({ label: '10:00 PM', value: '22:00' })
+  // Include 12:00 AM (next day midnight) as end-time option only
+  options.push({ label: '12:00 AM', value: '24:00' })
   return options
 }
 

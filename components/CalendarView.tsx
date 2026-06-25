@@ -4,15 +4,15 @@ import { useState, useCallback, useRef, useEffect } from 'react'
 import { format, addDays, subDays, isToday, isBefore, startOfDay, startOfMonth, endOfMonth, eachDayOfInterval, getDay, addMonths, subMonths } from 'date-fns'
 import { ChevronLeft, ChevronRight, Lock, FileText, Plus, Users, Clock, Ban, X } from 'lucide-react'
 import { Location, Room, Reservation, Profile, Company } from '@/types'
-import { cn, formatTime, isSameDay, buildTimeOptions, parseTimeValue } from '@/lib/utils'
+import { cn, formatTime, isSameDay, buildTimeOptions, parseTimeValue, calcHoursUsed } from '@/lib/utils'
 import ReservationModal from './ReservationModal'
 import toast from 'react-hot-toast'
 
 const TIME_OPTIONS = buildTimeOptions()
 
 // Calendar constants
-const START_HOUR = 7      // 7 AM
-const END_HOUR   = 22     // 10 PM
+const START_HOUR = 0      // 12 AM (midnight)
+const END_HOUR   = 24     // 12 AM (next day)
 const SLOT_H     = 56     // px per 30-min slot
 const TIME_W     = 64     // px for time label column
 const TOTAL_SLOTS = (END_HOUR - START_HOUR) * 2  // 30 slots
@@ -30,14 +30,19 @@ type Props = {
   defaultLocationId: string | null
 }
 
+type MemberOption = { id: string; full_name: string; company_name: string; company_id: string }
+
 export default function CalendarView({ locations, profile, company, hoursUsed, defaultLocationId }: Props) {
   const defaultLocation = locations.find(l => l.id === defaultLocationId) ?? locations[0]
   const [selectedLocation, setSelectedLocation] = useState<Location>(defaultLocation)
   const [selectedDate, setSelectedDate]         = useState<Date>(new Date())
   const [rooms, setRooms]                       = useState<Room[]>([])
   const [reservations, setReservations]         = useState<Reservation[]>([])
+  const [allMonthReservations, setAllMonthReservations] = useState<Reservation[]>([])
+  const [usedHours, setUsedHours]               = useState(hoursUsed)
   const [loading, setLoading]                   = useState(false)
   const [modal, setModal]                       = useState<ModalState>({ mode: 'closed' })
+  const [membersList, setMembersList]           = useState<MemberOption[]>([])
   const [showPicker, setShowPicker]             = useState(false)
   const [pickerMonth, setPickerMonth]           = useState(new Date())
   const [showSidebarForm, setShowSidebarForm]   = useState(false)
@@ -76,10 +81,41 @@ export default function CalendarView({ locations, profile, company, hoursUsed, d
 
   useEffect(() => { fetchData() }, [fetchData])
 
-  // Scroll to 8am on mount
+  // Fetch members list for admin booking on behalf
+  useEffect(() => {
+    if (!profile.is_admin) return
+    fetch('/api/admin/members/details')
+      .then(r => r.json())
+      .then((data: any[]) => {
+        setMembersList(data
+          .filter((m: any) => m.user_id)
+          .map((m: any) => ({ id: m.user_id, full_name: m.full_name ?? m.email, company_name: m.company_name, company_id: m.company_id }))
+        )
+      })
+      .catch(() => {})
+  }, [profile.is_admin])
+
+  // Recalculate hours used from month reservations whenever selectedDate month changes
+  useEffect(() => {
+    if (!company || profile.is_admin) return
+    const month = selectedDate.getMonth()
+    const year = selectedDate.getFullYear()
+    fetch(`/api/reservations/month-hours?month=${year}-${String(month + 1).padStart(2, '0')}&companyId=${company.id}`)
+      .then(r => r.json())
+      .then((data: any) => {
+        if (typeof data.hours === 'number') setUsedHours(data.hours)
+      })
+      .catch(() => {})
+  }, [selectedDate, company, profile.is_admin, reservations])
+
+  // Scroll to current hour on mount, centered in viewport (#8)
   useEffect(() => {
     if (scrollRef.current) {
-      scrollRef.current.scrollTop = SLOT_H * 2
+      const now = new Date()
+      const currentSlot = (now.getHours() - START_HOUR) * 2 + Math.floor(now.getMinutes() / 30)
+      const containerHeight = scrollRef.current.clientHeight
+      const targetScroll = Math.max(0, currentSlot * SLOT_H - containerHeight / 2)
+      scrollRef.current.scrollTop = targetScroll
     }
   }, [])
 
@@ -136,7 +172,7 @@ export default function CalendarView({ locations, profile, company, hoursUsed, d
 
     const durationHrs = (endDate.getTime() - startDate.getTime()) / 3600000
     if (!profile.is_admin && company) {
-      const remaining = Math.max(0, company.monthly_hours_allotment - hoursUsed)
+      const remaining = Math.max(0, company.monthly_hours_allotment - usedHours)
       if (durationHrs > remaining) { toast.error('Not enough hours remaining this month'); return }
     }
 
@@ -171,7 +207,7 @@ export default function CalendarView({ locations, profile, company, hoursUsed, d
     return h > sh || (h === sh && m > sm)
   })
 
-  const hoursRemaining = company ? Math.max(0, company.monthly_hours_allotment - hoursUsed) : null
+  const hoursRemaining = company ? Math.max(0, company.monthly_hours_allotment - usedHours) : null
 
   return (
     <div className="flex h-full bg-white">
@@ -346,7 +382,7 @@ export default function CalendarView({ locations, profile, company, hoursUsed, d
                     >
                       {isHour && (
                         <span className="text-xs text-gray-400 font-medium">
-                          {hour === 12 ? '12pm' : hour > 12 ? `${hour - 12}pm` : `${hour}am`}
+                          {hour === 0 ? '12am' : hour === 12 ? '12pm' : hour > 12 ? `${hour - 12}pm` : `${hour}am`}
                         </span>
                       )}
                     </div>
@@ -447,7 +483,8 @@ export default function CalendarView({ locations, profile, company, hoursUsed, d
           rooms={rooms}
           profile={profile}
           company={company}
-          hoursUsed={hoursUsed}
+          hoursUsed={usedHours}
+          members={profile.is_admin ? membersList : undefined}
           onClose={handleModalClose}
         />
       )}
