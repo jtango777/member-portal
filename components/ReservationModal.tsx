@@ -167,7 +167,7 @@ export default function ReservationModal({
       return `${e.getHours()}:${e.getMinutes().toString().padStart(2, '0')}`
     }
     const startSlotNum = initialSlot ?? 18
-    return slotToTimeValue(Math.min(startSlotNum + 2, 29))
+    return slotToTimeValue(Math.min(startSlotNum + 2, 47))
   })
   const [loading, setLoading]           = useState(false)
   const [deleting, setDeleting]         = useState(false)
