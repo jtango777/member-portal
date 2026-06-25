@@ -70,9 +70,9 @@ export default async function AdminHomePage() {
   return (
     <div className="space-y-8">
       {/* Header */}
-      <div>
+      <div className="flex items-baseline gap-3">
         <h1 className="text-lg font-semibold text-gray-900">Dashboard</h1>
-        <p className="text-sm text-gray-400 mt-0.5">{formatMonthYear(stats.month)}</p>
+        <span className="text-lg font-semibold text-blue-600">{formatMonthYear(stats.month)}</span>
       </div>
 
       {/* Key metrics */}
