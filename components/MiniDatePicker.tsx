@@ -56,7 +56,7 @@ export default function MiniDatePicker({ value, onChange, disabled }: Props) {
   const today = new Date()
 
   return (
-    <>
+    <div className="relative">
       <button
         ref={buttonRef}
         type="button"
@@ -70,11 +70,10 @@ export default function MiniDatePicker({ value, onChange, disabled }: Props) {
         {selectedDate ? format(selectedDate, 'MMM d, yyyy') : 'Select date'}
       </button>
 
-      {open && typeof document !== 'undefined' && createPortal(
+      {open && (
         <div
           ref={dropdownRef}
-          style={{ position: 'fixed', top: pos.top, left: pos.left, zIndex: 9999 }}
-          className="bg-white rounded-xl shadow-xl border border-gray-200 p-3 w-64"
+          className="absolute left-0 mt-1 z-50 bg-white rounded-xl shadow-xl border border-gray-200 p-3 w-64"
         >
           {/* Month navigation */}
           <div className="flex items-center justify-between mb-2">
@@ -127,9 +126,8 @@ export default function MiniDatePicker({ value, onChange, disabled }: Props) {
               )
             })}
           </div>
-        </div>,
-        document.body
+        </div>
       )}
-    </>
+    </div>
   )
 }
