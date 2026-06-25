@@ -314,6 +314,16 @@ export default function CalendarView({ locations, profile, company, hoursUsed, d
             <span className="text-sm font-semibold text-gray-900 ml-1">
               {format(selectedDate, 'EEEE, MMMM d, yyyy')}
             </span>
+
+            {company && !profile.is_admin && hoursRemaining !== null && (
+              <div className="flex items-center gap-1.5 text-sm text-gray-500 bg-gray-50 border border-gray-200 rounded-lg px-3 py-1.5 ml-3">
+                <Clock size={14} />
+                <span className={cn('font-semibold', hoursRemaining <= 0 ? 'text-red-600' : 'text-gray-900')}>
+                  {hoursRemaining.toFixed(1)}h
+                </span>
+                <span>remaining of {company.monthly_hours_allotment}h/mo</span>
+              </div>
+            )}
           </div>
 
           <div className="flex items-center gap-3">
