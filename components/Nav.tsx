@@ -121,7 +121,7 @@ export default function Nav({ profile }: Props) {
 
   return (
     <nav className="bg-slate-900 text-white px-4 h-14 flex items-center justify-between flex-shrink-0">
-      <div className="flex items-center gap-6">
+      <div className="flex items-baseline gap-6">
         <Link href="/dashboard" className="flex items-center gap-2 hover:opacity-90">
           <span className="text-xl font-bold tracking-tight text-white">BizHaus</span>
         </Link>
