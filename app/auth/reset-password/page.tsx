@@ -14,12 +14,28 @@ export default function ResetPasswordPage() {
 
   useEffect(() => {
     const supabase = createClient()
-    supabase.auth.onAuthStateChange((event) => {
-      if (event === 'PASSWORD_RECOVERY') setReady(true)
+
+    // Listen for PASSWORD_RECOVERY event from hash fragment
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'PASSWORD_RECOVERY' || event === 'SIGNED_IN') setReady(true)
     })
+
+    // Also check if session already exists (e.g. came through /auth/callback)
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) setReady(true)
     })
+
+    // If hash contains access_token, Supabase client will pick it up automatically
+    // but give it a moment to process
+    if (window.location.hash.includes('access_token')) {
+      setTimeout(() => {
+        supabase.auth.getSession().then(({ data: { session } }) => {
+          if (session) setReady(true)
+        })
+      }, 1000)
+    }
+
+    return () => subscription.unsubscribe()
   }, [])
 
   async function handleSubmit(e: React.FormEvent) {
