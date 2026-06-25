@@ -147,8 +147,8 @@ export default function ReservationModal({
   const [dateVal, setDateVal]     = useState(format(selectedDate, 'yyyy-MM-dd'))
   const [showDatePicker, setShowDatePicker] = useState(false)
   const [datePickerMonth, setDatePickerMonth] = useState(new Date(format(selectedDate, 'yyyy-MM-dd') + 'T12:00:00'))
-  const [dateInputMode, setDateInputMode] = useState(false)
-  const [dateInputText, setDateInputText] = useState('')
+  const [dateInputText, setDateInputText] = useState(format(selectedDate, 'MMMM d, yyyy'))
+  const [showCalendar, setShowCalendar] = useState(false)
   const [roomId, setRoomId]       = useState(initialRoomId ?? reservation?.room_id ?? rooms[0]?.id ?? '')
   // Admin book on behalf
   const [selectedOwnerId, setSelectedOwnerId] = useState(profile.id)
@@ -426,46 +426,42 @@ export default function ReservationModal({
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
-                  {dateInputMode ? (
-                    <input
-                      type="text"
-                      value={dateInputText}
-                      onChange={e => setDateInputText(e.target.value)}
-                      onBlur={() => {
+                  <input
+                    type="text"
+                    value={dateInputText}
+                    onChange={e => setDateInputText(e.target.value)}
+                    onBlur={() => {
+                      const parsed = parseFuzzyDate(dateInputText)
+                      if (parsed) {
+                        setDateVal(format(parsed, 'yyyy-MM-dd'))
+                        setDatePickerMonth(parsed)
+                        setDateInputText(format(parsed, 'MMMM d, yyyy'))
+                      } else if (dateVal) {
+                        setDateInputText(format(new Date(dateVal + 'T12:00:00'), 'MMMM d, yyyy'))
+                      }
+                    }}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault()
                         const parsed = parseFuzzyDate(dateInputText)
                         if (parsed) {
                           setDateVal(format(parsed, 'yyyy-MM-dd'))
                           setDatePickerMonth(parsed)
+                          setDateInputText(format(parsed, 'MMMM d, yyyy'))
                         }
-                        setDateInputMode(false)
-                      }}
-                      onKeyDown={e => {
-                        if (e.key === 'Enter') {
-                          const parsed = parseFuzzyDate(dateInputText)
-                          if (parsed) {
-                            setDateVal(format(parsed, 'yyyy-MM-dd'))
-                            setDatePickerMonth(parsed)
-                          }
-                          setDateInputMode(false)
-                        }
-                      }}
-                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      placeholder="e.g. June 24 or 6/24/2026"
-                      autoFocus
-                    />
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setDateInputText(dateVal ? format(new Date(dateVal + 'T12:00:00'), 'MMMM d, yyyy') : '')
-                        setDateInputMode(true)
-                      }}
-                      className="w-full text-left border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white hover:border-gray-400 cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    >
-                      {dateVal ? format(new Date(dateVal + 'T12:00:00'), 'MMMM d, yyyy') : 'Select a date'}
-                    </button>
-                  )}
-                  {!dateInputMode && (
+                      }
+                    }}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="e.g. June 24 or 6/24/2026"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowCalendar(v => !v)}
+                    className="mt-1.5 text-xs text-blue-600 hover:text-blue-800 font-medium"
+                  >
+                    {showCalendar ? 'Hide calendar' : 'Show calendar'}
+                  </button>
+                  {showCalendar && (
                     <div className="mt-2">
                       <div className="flex items-center justify-between mb-2">
                         <button type="button" onClick={() => setDatePickerMonth(m => subMonths(m, 1))}
@@ -497,6 +493,8 @@ export default function ReservationModal({
                               onClick={() => {
                                 setDateVal(format(day, 'yyyy-MM-dd'))
                                 setDatePickerMonth(day)
+                                setDateInputText(format(day, 'MMMM d, yyyy'))
+                                setShowCalendar(false)
                               }}
                               className={cn(
                                 'text-center text-xs py-1.5 rounded-md transition-colors',
