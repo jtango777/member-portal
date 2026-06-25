@@ -168,16 +168,26 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Failed to create reservation.' }, { status: 500 })
   }
 
-  // Send confirmation email (non-blocking)
+  // Send confirmation email to the owner (non-blocking)
   try {
     const room = (reservation as any).rooms
-    await sendConfirmationEmail(user.email!, {
+    let recipientEmail = user.email!
+    let bookerName = profile.full_name
+
+    if (profile.is_admin && owner_id && owner_id !== user.id) {
+      const { data: { user: ownerUser } } = await adminSupabase.auth.admin.getUserById(owner_id)
+      if (ownerUser?.email) recipientEmail = ownerUser.email
+      const { data: ownerProfile } = await adminSupabase.from('profiles').select('full_name').eq('id', owner_id).single()
+      if (ownerProfile) bookerName = ownerProfile.full_name
+    }
+
+    await sendConfirmationEmail(recipientEmail, {
       title,
       room:    room?.name ?? '',
       location: room?.locations?.name ?? '',
       date:    formatted_date ?? format(start, 'EEEE, MMMM d, yyyy'),
       time:    formatted_time ?? `${format(start, 'h:mm a')} – ${format(end, 'h:mm a')}`,
-      booker:  profile.full_name,
+      booker:  bookerName,
     })
   } catch (_) { /* Email failure should not block the booking */ }
 
