@@ -1,9 +1,19 @@
 'use client'
 
-import { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Company, MembershipType } from '@/types'
-import { Plus, Edit2, Check, X, Settings, Trash2, Search } from 'lucide-react'
+import { Plus, Edit2, Check, X, Settings, Trash2, Search, ChevronDown, ChevronRight } from 'lucide-react'
 import toast from 'react-hot-toast'
+
+type MemberUsage = {
+  user_id: string | null
+  email: string
+  full_name: string | null
+  company_id: string
+  company_name: string
+  hours_used: number
+  reservation_count: number
+}
 
 type Props = {
   companies:       Company[]
@@ -32,6 +42,33 @@ export default function CompaniesManager({ companies: initial, membershipTypes: 
   const [editingType,     setEditingType]     = useState<TypeEditState>(null)
   const [savingType,      setSavingType]      = useState(false)
   const [deletingType,    setDeletingType]    = useState<string | null>(null)
+
+  const [expandedCompanies, setExpandedCompanies] = useState<Set<string>>(new Set())
+  const [memberUsage, setMemberUsage] = useState<MemberUsage[]>([])
+  const [loadingUsage, setLoadingUsage] = useState(true)
+
+  useEffect(() => {
+    const now = new Date()
+    const month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+    fetch(`/api/admin/reports/member-usage?month=${month}`)
+      .then(r => r.json())
+      .then(data => setMemberUsage(data))
+      .catch(() => toast.error('Failed to load member usage'))
+      .finally(() => setLoadingUsage(false))
+  }, [])
+
+  function toggleExpand(companyId: string) {
+    setExpandedCompanies(prev => {
+      const next = new Set(prev)
+      if (next.has(companyId)) next.delete(companyId)
+      else next.add(companyId)
+      return next
+    })
+  }
+
+  function getMembersForCompany(companyId: string) {
+    return memberUsage.filter(m => m.company_id === companyId)
+  }
 
   async function refreshCompanies() {
     const r = await fetch('/api/admin/companies')
@@ -359,6 +396,7 @@ export default function CompaniesManager({ companies: initial, membershipTypes: 
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-gray-100 bg-gray-50">
+              <th className="w-10 px-2 py-3" />
               <th className="text-left font-semibold text-gray-600 px-4 py-3">Company</th>
               <th className="text-left font-semibold text-gray-600 px-4 py-3">Monthly Hours</th>
               <th className="text-left font-semibold text-gray-600 px-4 py-3">Membership Type</th>
@@ -367,66 +405,109 @@ export default function CompaniesManager({ companies: initial, membershipTypes: 
           </thead>
           <tbody>
             {filteredCompanies.length === 0 && (
-              <tr><td colSpan={4} className="px-4 py-8 text-center text-gray-400">{searchQuery ? 'No companies match your search.' : 'No companies yet.'}</td></tr>
+              <tr><td colSpan={5} className="px-4 py-8 text-center text-gray-400">{searchQuery ? 'No companies match your search.' : 'No companies yet.'}</td></tr>
             )}
-            {filteredCompanies.map(c => (
-              <tr key={c.id} className={`border-b border-gray-100 last:border-0 hover:bg-gray-50 ${!c.membership_type_id ? 'bg-amber-50/40' : ''}`}>
-                <td className="px-4 py-3">
-                  {editing?.id === c.id ? (
-                    <input value={editing.name} onChange={e => setEditing(v => v ? { ...v, name: e.target.value } : v)}
-                      className="border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 w-full max-w-xs" />
-                  ) : (
-                    <span className="font-medium text-gray-900">{c.name}</span>
-                  )}
-                </td>
-                <td className="px-4 py-3">
-                  {editing?.id === c.id ? (
-                    <input type="number" min="0" step="0.5" value={editing.hours}
-                      onChange={e => setEditing(v => v ? { ...v, hours: e.target.value } : v)}
-                      className="border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 w-24" />
-                  ) : (
-                    <span className="text-gray-700">{c.monthly_hours_allotment}h</span>
-                  )}
-                </td>
-                <td className="px-4 py-3">
-                  <select
-                    value={c.membership_type_id ?? ''}
-                    onChange={e => handleTypeChange(c.id, e.target.value || null)}
-                    disabled={assigningType === c.id}
-                    className={`text-xs rounded-full px-2.5 py-1 border font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 ${
-                      c.membership_type_id
-                        ? 'bg-blue-50 border-blue-200 text-blue-800'
-                        : 'bg-amber-50 border-amber-200 text-amber-700'
-                    }`}
-                  >
-                    <option value="">⚠ Review</option>
-                    {membershipTypes.map(t => (
-                      <option key={t.id} value={t.id}>{t.name}</option>
-                    ))}
-                  </select>
-                </td>
-                <td className="px-4 py-3">
-                  {editing?.id === c.id ? (
-                    <div className="flex items-center gap-2">
-                      <button onClick={handleSaveEdit} disabled={saving}
-                        className="flex items-center gap-1 text-xs bg-blue-600 text-white px-2.5 py-1.5 rounded-md font-medium">
-                        <Check size={12} /> {saving ? 'Saving…' : 'Save'}
+            {filteredCompanies.map(c => {
+              const isExpanded = expandedCompanies.has(c.id)
+              const members = getMembersForCompany(c.id)
+              return (
+                <React.Fragment key={c.id}>
+                  <tr className={`border-b border-gray-100 last:border-0 hover:bg-gray-50 ${!c.membership_type_id ? 'bg-amber-50/40' : ''}`}>
+                    <td className="px-2 py-3 text-center">
+                      <button onClick={() => toggleExpand(c.id)} className="p-1 text-gray-400 hover:text-gray-600 transition-colors">
+                        {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
                       </button>
-                      <button onClick={() => setEditing(null)}
-                        className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-700">
-                        <X size={12} /> Cancel
-                      </button>
-                    </div>
-                  ) : (
-                    <button
-                      onClick={() => setEditing({ id: c.id, name: c.name, hours: String(c.monthly_hours_allotment) })}
-                      className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 font-medium">
-                      <Edit2 size={12} /> Edit
-                    </button>
+                    </td>
+                    <td className="px-4 py-3">
+                      {editing?.id === c.id ? (
+                        <input value={editing.name} onChange={e => setEditing(v => v ? { ...v, name: e.target.value } : v)}
+                          className="border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 w-full max-w-xs" />
+                      ) : (
+                        <span className="font-medium text-gray-900">{c.name}</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3">
+                      {editing?.id === c.id ? (
+                        <input type="number" min="0" step="0.5" value={editing.hours}
+                          onChange={e => setEditing(v => v ? { ...v, hours: e.target.value } : v)}
+                          className="border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 w-24" />
+                      ) : (
+                        <span className="text-gray-700">{c.monthly_hours_allotment}h</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3">
+                      <select
+                        value={c.membership_type_id ?? ''}
+                        onChange={e => handleTypeChange(c.id, e.target.value || null)}
+                        disabled={assigningType === c.id}
+                        className={`text-xs rounded-full px-2.5 py-1 border font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 ${
+                          c.membership_type_id
+                            ? 'bg-blue-50 border-blue-200 text-blue-800'
+                            : 'bg-amber-50 border-amber-200 text-amber-700'
+                        }`}
+                      >
+                        <option value="">⚠ Review</option>
+                        {membershipTypes.map(t => (
+                          <option key={t.id} value={t.id}>{t.name}</option>
+                        ))}
+                      </select>
+                    </td>
+                    <td className="px-4 py-3">
+                      {editing?.id === c.id ? (
+                        <div className="flex items-center gap-2">
+                          <button onClick={handleSaveEdit} disabled={saving}
+                            className="flex items-center gap-1 text-xs bg-blue-600 text-white px-2.5 py-1.5 rounded-md font-medium">
+                            <Check size={12} /> {saving ? 'Saving…' : 'Save'}
+                          </button>
+                          <button onClick={() => setEditing(null)}
+                            className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-700">
+                            <X size={12} /> Cancel
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => setEditing({ id: c.id, name: c.name, hours: String(c.monthly_hours_allotment) })}
+                          className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 font-medium">
+                          <Edit2 size={12} /> Edit
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                  {isExpanded && (
+                    <tr className="bg-gray-50/70">
+                      <td colSpan={5} className="px-4 py-3">
+                        {loadingUsage ? (
+                          <p className="text-xs text-gray-400 py-2">Loading members...</p>
+                        ) : members.length === 0 ? (
+                          <p className="text-xs text-gray-400 py-2">No members in this company.</p>
+                        ) : (
+                          <table className="w-full text-xs">
+                            <thead>
+                              <tr className="border-b border-gray-200">
+                                <th className="text-left font-semibold text-gray-500 pb-1.5 pl-6">Name</th>
+                                <th className="text-left font-semibold text-gray-500 pb-1.5">Email</th>
+                                <th className="text-left font-semibold text-gray-500 pb-1.5">Hours Used</th>
+                                <th className="text-left font-semibold text-gray-500 pb-1.5">Bookings</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {members.map((m, i) => (
+                                <tr key={m.email + i} className="border-b border-gray-100 last:border-0">
+                                  <td className="py-1.5 pl-6 text-gray-700">{m.full_name ?? <span className="text-gray-400 italic">Not registered</span>}</td>
+                                  <td className="py-1.5 text-gray-600">{m.email}</td>
+                                  <td className="py-1.5 text-gray-700 font-medium">{m.hours_used}h</td>
+                                  <td className="py-1.5 text-gray-700">{m.reservation_count}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        )}
+                      </td>
+                    </tr>
                   )}
-                </td>
-              </tr>
-            ))}
+                </React.Fragment>
+              )
+            })}
           </tbody>
         </table>
       </div>
