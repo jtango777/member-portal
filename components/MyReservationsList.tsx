@@ -2,9 +2,10 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { format } from 'date-fns'
+import { format, startOfMonth, subDays } from 'date-fns'
 import Link from 'next/link'
 import { CalendarDays, ChevronRight } from 'lucide-react'
+import { cn } from '@/lib/utils'
 import { Reservation, Room, Profile, Company } from '@/types'
 import ReservationModal from '@/components/ReservationModal'
 import CancelButton from '@/components/CancelButton'
@@ -22,10 +23,39 @@ type Props = {
 export default function MyReservationsList({ upcoming, past, companyReservations, rooms, profile, company, hoursUsed }: Props) {
   const router = useRouter()
   const [editing, setEditing] = useState<Reservation | null>(null)
+  const [pastRange, setPastRange] = useState<'month' | '30d' | 'all'>('month')
 
   function handleClose(refresh?: boolean) {
     setEditing(null)
     if (refresh) router.refresh()
+  }
+
+  function filterPast(rows: any[]) {
+    const now = new Date()
+    const pastOnly = rows.filter(r => new Date(r.start_time) < now)
+    if (pastRange === 'all') return pastOnly
+    const cutoff = pastRange === 'month' ? startOfMonth(now) : subDays(now, 30)
+    return pastOnly.filter(r => new Date(r.start_time) >= cutoff)
+  }
+
+  function PastRangePills() {
+    const options = [
+      { key: 'month' as const, label: 'This month' },
+      { key: '30d' as const, label: 'Last 30 days' },
+      { key: 'all' as const, label: 'All time' },
+    ]
+    return (
+      <div className="flex bg-gray-100 rounded-lg p-0.5">
+        {options.map(o => (
+          <button key={o.key} onClick={() => setPastRange(o.key)}
+            className={cn('px-3 py-1 text-xs font-medium rounded-md transition-colors',
+              pastRange === o.key ? 'bg-blue-100 text-blue-700 border border-blue-200' : 'text-gray-500 hover:text-gray-700'
+            )}>
+            {o.label}
+          </button>
+        ))}
+      </div>
+    )
   }
 
   function ReservationRow({ r }: { r: any }) {
@@ -148,28 +178,34 @@ export default function MyReservationsList({ upcoming, past, companyReservations
             </div>
           </div>
         )}
-        {pastTeam.length > 0 && (
-          <details className="group">
-            <summary className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-gray-600 cursor-pointer list-none [-webkit-appearance:none] select-none mb-2 transition-colors">
-              <ChevronRight size={14} className="transition-transform group-open:rotate-90" />
-              Past ({pastTeam.length})
-            </summary>
-            <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="bg-gray-50 border-b border-gray-200">
-                    {headers.map(h => (
-                      <th key={h} className="text-left px-4 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wide">{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {pastTeam.map(r => <TeamRow key={r.id} r={r} />)}
-                </tbody>
-              </table>
+        {pastTeam.length > 0 && (() => {
+          const filteredPast = filterPast(pastTeam)
+          return (
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-sm font-medium text-gray-400">Past ({filteredPast.length})</h3>
+              </div>
+              {filteredPast.length > 0 ? (
+                <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="bg-gray-50 border-b border-gray-200">
+                        {headers.map(h => (
+                          <th key={h} className="text-left px-4 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wide">{h}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredPast.map(r => <TeamRow key={r.id} r={r} />)}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <p className="text-sm text-gray-400 py-4">No reservations in this period.</p>
+              )}
             </div>
-          </details>
-        )}
+          )
+        })()}
       </div>
     )
   }
@@ -199,15 +235,20 @@ export default function MyReservationsList({ upcoming, past, companyReservations
           )}
         </div>
 
-        {past.length > 0 && (
-          <details className="group">
-            <summary className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-gray-600 cursor-pointer list-none [-webkit-appearance:none] select-none mb-2 transition-colors">
-              <ChevronRight size={14} className="transition-transform group-open:rotate-90" />
-              Past reservations ({past.length})
-            </summary>
-            <Table rows={past} />
-          </details>
-        )}
+        {past.length > 0 && (() => {
+          const filtered = filterPast(past)
+          return (
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <h2 className="text-sm font-semibold text-gray-500">Past reservations ({filtered.length})</h2>
+                <PastRangePills />
+              </div>
+              {filtered.length > 0 ? <Table rows={filtered} /> : (
+                <p className="text-sm text-gray-400 py-4">No reservations in this period.</p>
+              )}
+            </div>
+          )
+        })()}
 
         {companyReservations.length > 0 && (
           <div className="border-t border-gray-200 pt-6">
