@@ -66,6 +66,7 @@ export default function Nav({ profile }: Props) {
   ]
 
   const reportLinks = [
+    { href: '/dashboard/admin',            label: 'Dashboard',  icon: LayoutDashboard },
     { href: '/dashboard/admin/reports',    label: 'Reports',    icon: BarChart2 },
     { href: '/dashboard/admin/time-usage', label: 'Time Usage', icon: Clock },
   ]
@@ -77,12 +78,6 @@ export default function Nav({ profile }: Props) {
           <Link href="/dashboard/admin" className="flex items-center gap-2 hover:opacity-90">
             <span className="text-xl font-bold tracking-tight text-white">BizHaus</span>
             <span className="text-[10px] font-bold uppercase tracking-wider bg-blue-600 text-white px-2 py-0.5 rounded">Admin Hub</span>
-          </Link>
-
-          <Link href="/dashboard/admin"
-            className={cn('text-sm font-medium transition-colors',
-              pathname === '/dashboard/admin' ? 'text-white' : 'text-slate-400 hover:text-white')}>
-            Dashboard
           </Link>
 
           <Link href="/dashboard"
