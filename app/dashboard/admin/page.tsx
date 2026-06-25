@@ -2,14 +2,39 @@ import { createClient } from '@/lib/supabase/server'
 import { ArrowUpRight } from 'lucide-react'
 import Link from 'next/link'
 import { calcHoursUsed, getMonthBounds, formatMonthYear } from '@/lib/utils'
-import { format } from 'date-fns'
+import { format, subMonths } from 'date-fns'
+import DashboardRangePicker from '@/components/admin/DashboardRangePicker'
 
 export const dynamic = 'force-dynamic'
 
-async function getStats() {
+function getRangeLabel(range: string): string {
+  if (range === '3m') return 'Last 3 months'
+  if (range === '6m') return 'Last 6 months'
+  if (range === '12m') return 'Last 12 months'
+  return formatMonthYear(new Date())
+}
+
+function getRangeBounds(range: string): { start: string; end: string } {
+  const now = new Date()
+  if (range === '3m') {
+    const s = subMonths(now, 3)
+    return { start: new Date(s.getFullYear(), s.getMonth(), 1).toISOString(), end: now.toISOString() }
+  }
+  if (range === '6m') {
+    const s = subMonths(now, 6)
+    return { start: new Date(s.getFullYear(), s.getMonth(), 1).toISOString(), end: now.toISOString() }
+  }
+  if (range === '12m') {
+    const s = subMonths(now, 12)
+    return { start: new Date(s.getFullYear(), s.getMonth(), 1).toISOString(), end: now.toISOString() }
+  }
+  return getMonthBounds(now)
+}
+
+async function getStats(range: string) {
   const supabase = await createClient()
   const now = new Date()
-  const { start, end } = getMonthBounds(now)
+  const { start, end } = getRangeBounds(range)
 
   const [
     { count: totalMembers },
@@ -63,16 +88,20 @@ function formatPacificTime(iso: string) {
   return new Date(iso).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: 'America/Los_Angeles' })
 }
 
-export default async function AdminHomePage() {
-  const stats = await getStats()
+export default async function AdminHomePage({ searchParams }: { searchParams: Promise<{ range?: string }> }) {
+  const { range = '1m' } = await searchParams
+  const stats = await getStats(range)
   const activePct = stats.totalMembers > 0 ? (stats.activeMembers / stats.totalMembers) * 100 : 0
 
   return (
     <div className="space-y-8">
       {/* Header */}
-      <div className="flex items-baseline gap-3">
-        <h1 className="text-lg font-semibold text-gray-900">Dashboard</h1>
-        <span className="text-lg font-semibold text-blue-600">{formatMonthYear(stats.month)}</span>
+      <div className="flex items-center justify-between">
+        <div className="flex items-baseline gap-3">
+          <h1 className="text-lg font-semibold text-gray-900">Dashboard</h1>
+          <span className="text-lg font-semibold text-blue-600">{getRangeLabel(range)}</span>
+        </div>
+        <DashboardRangePicker />
       </div>
 
       {/* Key metrics */}
