@@ -277,31 +277,19 @@ export default function CalendarView({ locations, profile, company, hoursUsed, d
         {/* Top bar */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 flex-shrink-0">
           <div className="flex items-center gap-2">
-            <button
-              onClick={() => setSelectedDate(d => subDays(d, 1))}
-              className="p-1.5 rounded hover:bg-gray-100 transition-colors"
+            <span className="text-sm font-medium text-gray-500">Location:</span>
+            <select
+              value={selectedLocation.id}
+              onChange={e => {
+                const loc = locations.find(l => l.id === e.target.value)
+                if (loc) setSelectedLocation(loc)
+              }}
+              className="border border-gray-300 rounded-lg px-3 py-2 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
             >
-              <ChevronLeft size={18} />
-            </button>
-            <button
-              onClick={() => setSelectedDate(new Date())}
-              className={cn(
-                'px-3 py-1 text-sm rounded font-medium transition-colors lg:hidden',
-                'bg-blue-600 hover:bg-blue-700 text-white'
-              )}
-            >
-              {isToday(selectedDate) ? 'Today' : '← Today'}
-            </button>
-            <button
-              onClick={() => setSelectedDate(d => addDays(d, 1))}
-              className="p-1.5 rounded hover:bg-gray-100 transition-colors"
-            >
-              <ChevronRight size={18} />
-            </button>
-
-            <span className="text-sm font-semibold text-gray-900 ml-1">
-              {format(selectedDate, 'EEEE, MMMM d, yyyy')}
-            </span>
+              {locations.map(loc => (
+                <option key={loc.id} value={loc.id}>{loc.name}</option>
+              ))}
+            </select>
           </div>
 
           <div className="flex items-center gap-3">
@@ -323,20 +311,6 @@ export default function CalendarView({ locations, profile, company, hoursUsed, d
               <Plus size={16} />
               <span>Make a Reservation</span>
             </button>
-
-            {/* Location selector */}
-            <select
-              value={selectedLocation.id}
-              onChange={e => {
-                const loc = locations.find(l => l.id === e.target.value)
-                if (loc) setSelectedLocation(loc)
-              }}
-              className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-            >
-              {locations.map(loc => (
-                <option key={loc.id} value={loc.id}>{loc.name}</option>
-              ))}
-            </select>
           </div>
         </div>
 
