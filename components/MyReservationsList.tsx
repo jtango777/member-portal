@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { format, startOfMonth, subDays } from 'date-fns'
 import Link from 'next/link'
 import { CalendarDays, ChevronRight } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { cn, toPacificDate } from '@/lib/utils'
 import { Reservation, Room, Profile, Company } from '@/types'
 import ReservationModal from '@/components/ReservationModal'
 import CancelButton from '@/components/CancelButton'
@@ -59,9 +59,9 @@ export default function MyReservationsList({ upcoming, past, companyReservations
   }
 
   function ReservationRow({ r }: { r: any }) {
-    const start      = new Date(r.start_time)
-    const end        = new Date(r.end_time)
-    const hoursUntil = (start.getTime() - Date.now()) / 3600000
+    const start      = toPacificDate(new Date(r.start_time))
+    const end        = toPacificDate(new Date(r.end_time))
+    const hoursUntil = (new Date(r.start_time).getTime() - Date.now()) / 3600000
     const canEdit    = hoursUntil > 24
     const tooSoon    = hoursUntil > 0 && hoursUntil <= 24
 
@@ -131,8 +131,8 @@ export default function MyReservationsList({ upcoming, past, companyReservations
     const pastTeam = rows.filter(r => new Date(r.start_time) < now)
 
     function TeamRow({ r }: { r: any }) {
-      const start = new Date(r.start_time)
-      const end = new Date(r.end_time)
+      const start = toPacificDate(new Date(r.start_time))
+      const end = toPacificDate(new Date(r.end_time))
       return (
         <tr className="border-b border-gray-100 last:border-0 hover:bg-gray-50">
           <td className="px-4 py-3 font-medium text-gray-900">{r.title}</td>

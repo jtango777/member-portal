@@ -54,7 +54,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       .eq('company_id', profile.company_id)
       .neq('id', id) // exclude the reservation being edited
       .gte('start_time', monthStart)
-      .lte('end_time', monthEnd)
+      .lt('start_time', monthEnd)
     const used    = calcHoursUsed(monthRes ?? [])
     const limit   = profile.companies?.monthly_hours_allotment ?? 0
     const newHrs  = (end.getTime() - start.getTime()) / 3600000

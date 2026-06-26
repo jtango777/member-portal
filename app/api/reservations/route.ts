@@ -56,6 +56,10 @@ export async function POST(request: Request) {
 
   if (!profile) return NextResponse.json({ error: 'Profile not found' }, { status: 403 })
 
+  if (!profile.is_admin && !profile.company_id) {
+    return NextResponse.json({ error: 'Your account is not linked to a company. Contact your admin.' }, { status: 403 })
+  }
+
   const body = await request.json()
   const { room_id, title, notes, start_time, end_time, formatted_date, formatted_time, owner_id, owner_company_id } = body
 
@@ -79,6 +83,21 @@ export async function POST(request: Request) {
       is_admin_block:       true,
       recurrence_group_id:  groupId,
     }))
+    // Check each occurrence for conflicts before inserting
+    for (const occ of records) {
+      const { data: conflicts } = await adminSupabase
+        .from('reservations')
+        .select('id')
+        .eq('room_id', room_id)
+        .lt('start_time', occ.end_time)
+        .gt('end_time', occ.start_time)
+      if (conflicts && conflicts.length > 0) {
+        return NextResponse.json({
+          error: `Conflict found on ${format(new Date(occ.start_time), 'MMM d, yyyy')} — cannot create recurring block.`
+        }, { status: 409 })
+      }
+    }
+
     const { error } = await adminSupabase.from('reservations').insert(records)
     if (error) {
       console.error('[reservations] Recurring insert error:', error.message)
@@ -104,7 +123,7 @@ export async function POST(request: Request) {
       .select('start_time, end_time')
       .eq('company_id', profile.company_id)
       .gte('start_time', monthStart)
-      .lte('end_time', monthEnd)
+      .lt('start_time', monthEnd)
 
     const used   = calcHoursUsed(monthRes ?? [])
     const limit  = profile.companies?.monthly_hours_allotment ?? 0

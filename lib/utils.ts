@@ -30,6 +30,11 @@ export function getPacificMonthBounds(monthStr: string): { start: string; end: s
   return { start: start.toISOString(), end: new Date(nextStart.getTime() - 1).toISOString() }
 }
 
+export function toPacificDate(date: Date): Date {
+  const pacific = new Date(date.toLocaleString('en-US', { timeZone: 'America/Los_Angeles' }))
+  return pacific
+}
+
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }

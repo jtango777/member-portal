@@ -23,7 +23,7 @@ export async function GET(request: Request) {
     .select('start_time, end_time')
     .eq('company_id', companyId)
     .gte('start_time', start)
-    .lte('end_time', end)
+    .lt('start_time', end)
 
   const hours = calcHoursUsed(monthRes ?? [])
   return NextResponse.json({ hours })

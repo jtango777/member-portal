@@ -6,7 +6,7 @@ import * as Dialog from '@radix-ui/react-dialog'
 import { X, Lock, Trash2, Edit2, Check, AlertCircle, Repeat, Ban, ChevronLeft, ChevronRight, Search } from 'lucide-react'
 import MiniDatePicker from './MiniDatePicker'
 import { Reservation, Room, Profile, Company } from '@/types'
-import { cn, buildTimeOptions, parseTimeValue, formatTime, isSameDay } from '@/lib/utils'
+import { cn, buildTimeOptions, parseTimeValue, formatTime, isSameDay, toPacificDate } from '@/lib/utils'
 import toast from 'react-hot-toast'
 
 const START_HOUR = 0
@@ -99,13 +99,18 @@ function generateOccurrences(
   const durationMs = baseEnd.getTime() - baseStart.getTime()
   if (durationMs <= 0) return results
 
+  const baseHour = baseStart.getHours()
+  const baseMinute = baseStart.getMinutes()
+
   const maxDate   = endType === 'date' && endDateStr ? new Date(endDateStr + 'T23:59:59') : null
   const maxCount  = endType === 'count' ? Math.min(endCount, 365) : 500
 
-  function push(start: Date): boolean {
+  function push(candidateDate: Date): boolean {
+    const start = new Date(candidateDate.getFullYear(), candidateDate.getMonth(), candidateDate.getDate(), baseHour, baseMinute, 0, 0)
+    const end = new Date(start.getTime() + durationMs)
     if (results.length >= maxCount) return false
     if (maxDate && start > maxDate) return false
-    results.push({ start_time: start.toISOString(), end_time: new Date(start.getTime() + durationMs).toISOString() })
+    results.push({ start_time: start.toISOString(), end_time: end.toISOString() })
     return true
   }
 
@@ -123,8 +128,9 @@ function generateOccurrences(
       for (const dow of activeDays) {
         const candidate = new Date(weekSunday)
         candidate.setDate(weekSunday.getDate() + dow)
-        candidate.setHours(baseStart.getHours(), baseStart.getMinutes(), 0, 0)
-        if (candidate < baseStart) continue
+        // Compare candidate date with baseStart date (candidate has no time set yet, push() adds time)
+        const candidateWithTime = new Date(candidate.getFullYear(), candidate.getMonth(), candidate.getDate(), baseHour, baseMinute, 0, 0)
+        if (candidateWithTime < baseStart) continue
         if (!push(candidate)) break outer
       }
       weekSunday = addDays(weekSunday, 7)
@@ -158,16 +164,17 @@ export default function ReservationModal({
   const [notes, setNotes]         = useState(reservation?.notes ?? '')
   const [startVal, setStartVal]   = useState(
     reservation
-      ? `${new Date(reservation.start_time).getHours()}:${new Date(reservation.start_time).getMinutes().toString().padStart(2, '0')}`
+      ? (() => { const s = toPacificDate(new Date(reservation.start_time)); return `${s.getHours()}:${s.getMinutes().toString().padStart(2, '0')}` })()
       : slotToTimeValue(initialSlot ?? 18)
   )
   const [endVal, setEndVal] = useState(() => {
     if (reservation) {
-      const e = new Date(reservation.end_time)
+      const e = toPacificDate(new Date(reservation.end_time))
       return `${e.getHours()}:${e.getMinutes().toString().padStart(2, '0')}`
     }
     const startSlotNum = initialSlot ?? 18
-    return slotToTimeValue(Math.min(startSlotNum + 1, 47))
+    const endSlotNum = startSlotNum + 1
+    return endSlotNum >= 48 ? '24:00' : slotToTimeValue(endSlotNum)
   })
   const [loading, setLoading]           = useState(false)
   const [deleting, setDeleting]         = useState(false)
@@ -386,12 +393,12 @@ export default function ReservationModal({
                   </div>
                   <div>
                     <p className="text-xs text-gray-500 mb-0.5">Date</p>
-                    <p className="text-sm text-gray-800">{format(new Date(reservation.start_time), 'MMM d, yyyy')}</p>
+                    <p className="text-sm text-gray-800">{format(toPacificDate(new Date(reservation.start_time)), 'MMM d, yyyy')}</p>
                   </div>
                   <div>
                     <p className="text-xs text-gray-500 mb-0.5">Time</p>
                     <p className="text-sm text-gray-800">
-                      {formatTime(new Date(reservation.start_time))} – {formatTime(new Date(reservation.end_time))}
+                      {formatTime(toPacificDate(new Date(reservation.start_time)))} – {formatTime(toPacificDate(new Date(reservation.end_time)))}
                     </p>
                   </div>
                   <div>
@@ -443,6 +450,7 @@ export default function ReservationModal({
                       const parsed = parseFuzzyDate(dateInputText)
                       if (parsed) {
                         setDateVal(format(parsed, 'yyyy-MM-dd'))
+                        setPastWarningConfirmed(false)
                         setDatePickerMonth(parsed)
                         setDateInputText(format(parsed, 'MMMM d, yyyy'))
                       } else if (dateVal) {
@@ -455,6 +463,7 @@ export default function ReservationModal({
                         const parsed = parseFuzzyDate(dateInputText)
                         if (parsed) {
                           setDateVal(format(parsed, 'yyyy-MM-dd'))
+                          setPastWarningConfirmed(false)
                           setDatePickerMonth(parsed)
                           setDateInputText(format(parsed, 'MMMM d, yyyy'))
                         }
@@ -501,6 +510,7 @@ export default function ReservationModal({
                               type="button"
                               onClick={() => {
                                 setDateVal(format(day, 'yyyy-MM-dd'))
+                                setPastWarningConfirmed(false)
                                 setDatePickerMonth(day)
                                 setDateInputText(format(day, 'MMMM d, yyyy'))
                                 setShowCalendar(false)
@@ -758,7 +768,7 @@ export default function ReservationModal({
                         {c.company && <span className="text-amber-600"> · {c.company}</span>}
                         {c.booked_by && <span className="text-amber-600"> · {c.booked_by}</span>}
                         <span className="block text-amber-500 mt-0.5">
-                          {formatTime(new Date(c.start_time))} – {formatTime(new Date(c.end_time))}
+                          {formatTime(toPacificDate(new Date(c.start_time)))} – {formatTime(toPacificDate(new Date(c.end_time)))}
                         </span>
                       </div>
                       <button

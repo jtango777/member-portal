@@ -4,7 +4,7 @@ import { useState, useCallback, useRef, useEffect } from 'react'
 import { format, addDays, subDays, isToday, isBefore, startOfDay, startOfMonth, endOfMonth, eachDayOfInterval, getDay, addMonths, subMonths } from 'date-fns'
 import { ChevronLeft, ChevronRight, Lock, FileText, Plus, Users, Clock, Ban, X } from 'lucide-react'
 import { Location, Room, Reservation, Profile, Company } from '@/types'
-import { cn, formatTime, isSameDay, buildTimeOptions, parseTimeValue, calcHoursUsed } from '@/lib/utils'
+import { cn, formatTime, isSameDay, buildTimeOptions, parseTimeValue, calcHoursUsed, toPacificDate } from '@/lib/utils'
 import ReservationModal from './ReservationModal'
 import toast from 'react-hot-toast'
 
@@ -123,7 +123,7 @@ export default function CalendarView({ locations, profile, company, hoursUsed, d
   }
 
   function timeToSlot(dateStr: string): number {
-    const d = new Date(dateStr)
+    const d = toPacificDate(new Date(dateStr))
     return (d.getHours() - START_HOUR) * 2 + Math.floor(d.getMinutes() / 30)
   }
 
@@ -415,7 +415,7 @@ export default function CalendarView({ locations, profile, company, hoursUsed, d
                               : <Lock size={10} className="flex-shrink-0" />
                             }
                             <span className="truncate">
-                              {formatTime(new Date(res.start_time))} – {formatTime(new Date(res.end_time))}
+                              {formatTime(toPacificDate(new Date(res.start_time)))} – {formatTime(toPacificDate(new Date(res.end_time)))}
                             </span>
                             {!isBlock && res.notes && <FileText size={10} className="flex-shrink-0 ml-auto" />}
                           </div>
