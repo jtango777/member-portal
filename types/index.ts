@@ -40,6 +40,14 @@ export type Profile = {
   full_name: string
   is_admin: boolean
   created_at: string
+  avatar_url: string | null
+  default_location_id: string | null
+  is_active: boolean
+  license_plate: string | null
+  is_company_admin: boolean
+  room_access_prompted: boolean
+  room_access_requested_at: string | null
+  dismissed_announcement_id: string | null
   companies?: Company
 }
 

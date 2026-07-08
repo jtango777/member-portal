@@ -3,6 +3,7 @@ import { Resend } from 'resend'
 const resend = new Resend(process.env.RESEND_API_KEY)
 const FROM = process.env.RESEND_FROM_EMAIL ?? 'BizHaus <noreply@bizhaus.com>'
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
+const STAFF_EMAIL = process.env.STAFF_NOTIFICATION_EMAIL ?? 'bookings@bizhaus.com'
 
 const FONT = `-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif`
 
@@ -153,6 +154,23 @@ export async function sendCancellationEmail(
         <tr style="border-top:1px solid #e2e8f0;"><td style="padding:10px 14px;color:#64748b;font-size:13px;">Time</td><td style="padding:10px 14px;color:#1e293b;">${details.time}</td></tr>
       </table>
       <p style="color:#94a3b8;font-size:13px;margin:0;border-top:1px solid #f1f5f9;padding-top:20px;">Questions? Contact your BizHaus admin.</p>
+    `),
+  })
+}
+
+export async function sendRoomAccessRequestEmail(details: { name: string; email: string }) {
+  await resend.emails.send({
+    from: FROM,
+    to: STAFF_EMAIL,
+    subject: `Room access requested: ${details.name}`,
+    html: emailWrapper(`
+      <h2 style="color:#0f172a;margin:0 0 8px;font-size:22px;font-weight:700;">Room access requested</h2>
+      <p style="color:#475569;line-height:1.6;margin:0 0 24px;">A member portal user has requested access to book rooms. Activate them by assigning a company and hours allotment in Members.</p>
+      <table style="border-collapse:collapse;width:100%;margin-bottom:24px;background:#f8fafc;border-radius:7px;overflow:hidden;">
+        <tr><td style="padding:10px 14px;color:#64748b;font-size:13px;width:110px;">Name</td><td style="padding:10px 14px;font-weight:600;color:#0f172a;">${details.name}</td></tr>
+        <tr style="border-top:1px solid #e2e8f0;"><td style="padding:10px 14px;color:#64748b;font-size:13px;">Email</td><td style="padding:10px 14px;color:#1e293b;">${details.email}</td></tr>
+      </table>
+      <a href="${APP_URL}/dashboard/admin/members" style="display:inline-block;background:#2563eb;color:white;padding:13px 28px;border-radius:7px;text-decoration:none;font-weight:600;font-size:15px;">Open Members →</a>
     `),
   })
 }

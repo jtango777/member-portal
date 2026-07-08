@@ -1,42 +1,40 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
-import CalendarView from '@/components/CalendarView'
-import { calcHoursUsed, getMonthBounds } from '@/lib/utils'
+import Link from 'next/link'
+import { DoorOpen, Smile } from 'lucide-react'
 
 export const dynamic = 'force-dynamic'
 
-export default async function DashboardPage() {
+export default async function PortalHomePage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const [{ data: profile }, { data: locations }] = await Promise.all([
-    supabase.from('profiles').select('*, companies(*)').eq('id', user.id).single(),
-    supabase.from('locations').select('*').order('name'),
-  ])
-
+  const { data: profile } = await supabase.from('profiles').select('full_name').eq('id', user.id).single()
   if (!profile) redirect('/login')
 
-  // Calculate hours used for current month (non-admin users)
-  let hoursUsed = 0
-  if (!profile.is_admin && profile.company_id) {
-    const { start, end } = getMonthBounds(new Date())
-    const { data: monthRes } = await supabase
-      .from('reservations')
-      .select('start_time, end_time')
-      .eq('company_id', profile.company_id)
-      .gte('start_time', start)
-      .lte('end_time', end)
-    if (monthRes) hoursUsed = calcHoursUsed(monthRes)
-  }
-
   return (
-    <CalendarView
-      locations={locations ?? []}
-      profile={profile}
-      company={profile.companies ?? null}
-      hoursUsed={hoursUsed}
-      defaultLocationId={profile.default_location_id ?? null}
-    />
+    <div className="h-full overflow-auto p-6">
+      <div className="max-w-3xl mx-auto">
+        <p className="text-sm text-gray-400 mb-1">Welcome back</p>
+        <h1 className="text-xl font-semibold text-gray-900 mb-6">{profile.full_name}</h1>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <Link href="/dashboard/rooms"
+            className="bg-blue-50 hover:bg-blue-100 transition-colors rounded-xl p-5 flex flex-col gap-2">
+            <DoorOpen size={24} className="text-blue-700" />
+            <span className="text-base font-semibold text-blue-900">Rooms</span>
+            <span className="text-sm text-blue-700">Book a conference room</span>
+          </Link>
+
+          <Link href="/dashboard/haus-smiles"
+            className="bg-emerald-50 hover:bg-emerald-100 transition-colors rounded-xl p-5 flex flex-col gap-2">
+            <Smile size={24} className="text-emerald-700" />
+            <span className="text-base font-semibold text-emerald-900">Haus Smiles</span>
+            <span className="text-sm text-emerald-700">Meet your community</span>
+          </Link>
+        </div>
+      </div>
+    </div>
   )
 }

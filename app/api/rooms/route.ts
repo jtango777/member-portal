@@ -9,7 +9,7 @@ export async function GET(request: Request) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const query = supabase.from('rooms').select('*').order('sort_order')
+  const query = supabase.from('rooms').select('*').order('name')
   if (locationId) query.eq('location_id', locationId)
 
   const { data, error } = await query

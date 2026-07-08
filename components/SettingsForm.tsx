@@ -3,24 +3,10 @@
 import { useState } from 'react'
 import { Profile, Location, Company } from '@/types'
 import { createClient } from '@/lib/supabase/client'
-import { Eye, EyeOff } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { useRouter } from 'next/navigation'
-
-function PasswordInput({ value, onChange, placeholder }: { value: string; onChange: (v: string) => void; placeholder?: string }) {
-  const [show, setShow] = useState(false)
-  return (
-    <div className="relative">
-      <input type={show ? 'text' : 'password'} value={value} onChange={e => onChange(e.target.value)} required
-        placeholder={placeholder}
-        className="w-full border border-gray-300 rounded-lg px-3 py-2 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-      <button type="button" onClick={() => setShow(v => !v)}
-        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
-        {show ? <EyeOff size={16} /> : <Eye size={16} />}
-      </button>
-    </div>
-  )
-}
+import PhotoUploadDialog from '@/components/PhotoUploadDialog'
+import PasswordInput from '@/components/PasswordInput'
 
 type Props = {
   profile:   Profile
@@ -29,12 +15,19 @@ type Props = {
   email:     string
 }
 
+function initials(fullName: string): string {
+  const parts = fullName.trim().split(/\s+/)
+  return parts.slice(0, 2).map(p => p[0]?.toUpperCase() ?? '').join('')
+}
+
 export default function SettingsForm({ profile, company, locations, email }: Props) {
   const router = useRouter()
   const [fullName, setFullName]           = useState(profile.full_name)
   const [companyName, setCompanyName]     = useState(company?.name ?? '')
   const [locationId, setLocationId]       = useState((profile as any).default_location_id ?? '')
+  const [licensePlate, setLicensePlate]   = useState(profile.license_plate ?? '')
   const [savingProfile, setSavingProfile] = useState(false)
+  const [photoDialogOpen, setPhotoDialogOpen] = useState(false)
 
   const [currentPw, setCurrentPw] = useState('')
   const [newPw, setNewPw]         = useState('')
@@ -51,6 +44,7 @@ export default function SettingsForm({ profile, company, locations, email }: Pro
         full_name:           fullName,
         default_location_id: locationId || null,
         company_name:        companyName,
+        license_plate:       licensePlate,
       }),
     })
     if (res.ok) {
@@ -94,6 +88,33 @@ export default function SettingsForm({ profile, company, locations, email }: Pro
 
   return (
     <div className="space-y-6 max-w-lg">
+      {/* Photo */}
+      <div className="bg-white rounded-xl border border-gray-200 p-6">
+        <h2 className="text-sm font-semibold text-gray-900 mb-4">Photo</h2>
+        <div className="flex items-center gap-4">
+          <div className="w-16 h-16 rounded-full overflow-hidden flex items-center justify-center flex-shrink-0 bg-gray-100">
+            {profile.avatar_url ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={profile.avatar_url} alt={profile.full_name} className="w-full h-full object-cover" />
+            ) : (
+              <span className="text-gray-500 text-lg font-semibold">{initials(profile.full_name)}</span>
+            )}
+          </div>
+          <button onClick={() => setPhotoDialogOpen(true)}
+            className="text-sm font-semibold px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50">
+            Change Photo
+          </button>
+        </div>
+        <PhotoUploadDialog
+          open={photoDialogOpen}
+          onOpenChange={setPhotoDialogOpen}
+          onSuccess={() => router.refresh()}
+          title="Update your photo"
+          description="This appears on Haus Smiles."
+          currentImageUrl={profile.avatar_url}
+        />
+      </div>
+
       {/* Profile settings */}
       <div className="bg-white rounded-xl border border-gray-200 p-6">
         <h2 className="text-sm font-semibold text-gray-900 mb-4">Profile</h2>
@@ -126,7 +147,14 @@ export default function SettingsForm({ profile, company, locations, email }: Pro
               className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
               {locations.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
             </select>
-            <p className="text-xs text-gray-400 mt-1">The calendar opens here when you log in.</p>
+            <p className="text-xs text-gray-400 mt-1">This is your default location in Rooms.</p>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">License Plate</label>
+            <input value={licensePlate} onChange={e => setLicensePlate(e.target.value)}
+              placeholder="ABC1234"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            <p className="text-xs text-gray-400 mt-1">For parking at your location.</p>
           </div>
           <button type="submit" disabled={savingProfile}
             className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-semibold px-4 py-2 rounded-lg">
@@ -141,15 +169,15 @@ export default function SettingsForm({ profile, company, locations, email }: Pro
         <form onSubmit={handleChangePassword} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Current Password</label>
-            <PasswordInput value={currentPw} onChange={setCurrentPw} />
+            <PasswordInput value={currentPw} onChange={setCurrentPw} required autoComplete="current-password" />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">New Password</label>
-            <PasswordInput value={newPw} onChange={setNewPw} placeholder="At least 8 characters" />
+            <PasswordInput value={newPw} onChange={setNewPw} placeholder="At least 8 characters" required autoComplete="new-password" />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Confirm New Password</label>
-            <PasswordInput value={confirmPw} onChange={setConfirmPw} />
+            <PasswordInput value={confirmPw} onChange={setConfirmPw} required autoComplete="new-password" />
           </div>
           <button type="submit" disabled={savingPw}
             className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-semibold px-4 py-2 rounded-lg">

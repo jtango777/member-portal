@@ -1,6 +1,9 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import Nav from '@/components/Nav'
+import RoomsSubNav from '@/components/RoomsSubNav'
+import AvatarUploadPrompt from '@/components/AvatarUploadPrompt'
+import AnnouncementPopup from '@/components/AnnouncementPopup'
 import { Profile } from '@/types'
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -17,9 +20,23 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   if (!profile) redirect('/auth/signout')
 
+  const { data: latestAnnouncement } = await supabase
+    .from('announcements')
+    .select('id, message')
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  const shouldShowAnnouncement = !!latestAnnouncement && latestAnnouncement.id !== (profile as Profile).dismissed_announcement_id
+
   return (
     <div className="flex flex-col h-screen overflow-hidden">
       <Nav profile={profile as Profile} />
+      <RoomsSubNav isAdmin={(profile as Profile).is_admin} />
+      <AvatarUploadPrompt hasAvatar={!!(profile as Profile).avatar_url} />
+      {shouldShowAnnouncement && latestAnnouncement && (
+        <AnnouncementPopup announcementId={latestAnnouncement.id} message={latestAnnouncement.message} />
+      )}
       <main className="flex-1 overflow-hidden">
         {children}
       </main>

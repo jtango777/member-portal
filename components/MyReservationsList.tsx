@@ -226,7 +226,7 @@ export default function MyReservationsList({ upcoming, past, companyReservations
               <div>
                 <p className="text-sm font-medium text-gray-500">No upcoming reservations</p>
                 <p className="text-xs text-gray-400 mt-1">
-                  <Link href="/dashboard" className="text-blue-600 hover:underline">Make a reservation →</Link>
+                  <Link href="/dashboard/rooms" className="text-blue-600 hover:underline">Make a reservation →</Link>
                 </p>
               </div>
             </div>

@@ -4,37 +4,43 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Profile } from '@/types'
-import { LogOut, CalendarDays, Users, Building2, Clock, ChevronDown, LayoutDashboard, DoorOpen, BarChart2, Settings, BookOpen } from 'lucide-react'
+import { LogOut, ChevronDown } from 'lucide-react'
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu'
 import { cn } from '@/lib/utils'
 
 type Props = { profile: Profile }
 
-function NavDropdown({ label, links, pathname }: { label: string; links: { href: string; label: string; icon: React.ElementType }[]; pathname: string }) {
-  const isActive = links.some(l => pathname === l.href)
+const manageLinks = [
+  { href: '/dashboard/admin/members',       label: 'Members' },
+  { href: '/dashboard/admin/companies',     label: 'Companies' },
+  { href: '/dashboard/admin/announcements', label: 'Announcements' },
+  { href: '/dashboard/admin/page-visits',   label: 'Page Activity' },
+]
+
+function ManageDropdown({ pathname }: { pathname: string }) {
+  const isActive = manageLinks.some(l => pathname === l.href)
   return (
     <DropdownMenu.Root>
       <DropdownMenu.Trigger className={cn(
         'flex items-center gap-1 text-sm font-medium transition-colors outline-none',
         isActive ? 'text-white' : 'text-slate-400 hover:text-white'
       )}>
-        {label} <ChevronDown size={14} />
+        Manage <ChevronDown size={14} />
       </DropdownMenu.Trigger>
       <DropdownMenu.Portal>
         <DropdownMenu.Content
-          className="bg-white text-gray-900 rounded-lg shadow-xl border border-gray-200 py-1 min-w-[200px] z-50"
+          className="bg-white text-gray-900 rounded-lg shadow-xl border border-gray-200 py-1 min-w-[180px] z-50"
           sideOffset={8}
         >
-          {links.map(link => (
+          {manageLinks.map(link => (
             <DropdownMenu.Item key={link.href} asChild>
               <Link
                 href={link.href}
                 className={cn(
-                  'flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50 cursor-pointer outline-none',
+                  'block px-3 py-2 text-sm hover:bg-gray-50 cursor-pointer outline-none',
                   pathname === link.href ? 'font-semibold text-blue-600' : 'text-gray-700'
                 )}
               >
-                <link.icon size={15} className="text-gray-500" />
                 {link.label}
               </Link>
             </DropdownMenu.Item>
@@ -42,6 +48,28 @@ function NavDropdown({ label, links, pathname }: { label: string; links: { href:
         </DropdownMenu.Content>
       </DropdownMenu.Portal>
     </DropdownMenu.Root>
+  )
+}
+
+function initials(fullName: string): string {
+  const parts = fullName.trim().split(/\s+/)
+  return parts.slice(0, 2).map(p => p[0]?.toUpperCase() ?? '').join('')
+}
+
+function ProfileAvatar({ profile, active }: { profile: Profile; active: boolean }) {
+  return (
+    <Link href="/dashboard/settings" title="Profile & settings"
+      className={cn('w-8 h-8 rounded-full overflow-hidden flex items-center justify-center flex-shrink-0 border transition-colors',
+        active ? 'border-white' : 'border-slate-600 hover:border-slate-400')}>
+      {profile.avatar_url ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={profile.avatar_url} alt={profile.full_name} className="w-full h-full object-cover" />
+      ) : (
+        <span className="w-full h-full flex items-center justify-center bg-slate-700 text-white text-xs font-semibold">
+          {initials(profile.full_name)}
+        </span>
+      )}
+    </Link>
   )
 }
 
@@ -56,52 +84,33 @@ export default function Nav({ profile }: Props) {
     router.refresh()
   }
 
-  const manageLinks = [
-    { href: '/dashboard/admin/members',           label: 'Members',           icon: Users },
-    { href: '/dashboard/admin/companies',         label: 'Companies',         icon: Building2 },
-    { href: '/dashboard/admin/rooms',             label: 'Rooms',             icon: DoorOpen },
-    { href: '/dashboard/admin/reservations',      label: 'All Bookings',      icon: CalendarDays },
-    { href: '/dashboard/admin/quickbooks',        label: 'QuickBooks',        icon: BookOpen },
-  ]
-
-  const reportLinks = [
-    { href: '/dashboard/admin',            label: 'Dashboard',  icon: LayoutDashboard },
-    { href: '/dashboard/admin/reports',    label: 'Reports',    icon: BarChart2 },
-    { href: '/dashboard/admin/time-usage', label: 'Time Usage', icon: Clock },
-  ]
-
   if (profile.is_admin) {
     return (
-      <nav className="bg-slate-900 text-white px-4 h-14 flex items-center justify-between flex-shrink-0">
+      <nav className="bg-slate-900 text-white px-4 h-14 flex items-center justify-between gap-4 flex-shrink-0 pointer-events-auto relative z-[60]">
         <div className="flex items-center gap-6">
-          <div className="flex items-center gap-2">
+          <Link href="/dashboard" className="flex items-center gap-2">
             <span className="text-xl font-bold tracking-tight text-white">BizHaus</span>
-            <span className="text-[10px] font-bold uppercase tracking-wider bg-blue-600 text-white px-2 py-0.5 rounded">Admin Hub</span>
-          </div>
-
-          <Link href="/dashboard"
-            className={cn('text-sm font-medium transition-colors',
-              pathname === '/dashboard' ? 'text-white' : 'text-slate-400 hover:text-white')}>
-            Calendar
+            <span className="text-[10px] font-bold uppercase tracking-wider bg-blue-600 text-white px-2 py-0.5 rounded">Admin</span>
           </Link>
 
-          <NavDropdown label="Manage" links={manageLinks} pathname={pathname} />
-          <NavDropdown label="Reports" links={reportLinks} pathname={pathname} />
+          <Link href="/dashboard/rooms"
+            className={cn('text-sm font-medium transition-colors',
+              pathname === '/dashboard/rooms' ? 'text-white' : 'text-slate-400 hover:text-white')}>
+            Rooms
+          </Link>
+          <Link href="/dashboard/haus-smiles"
+            className={cn('text-sm font-medium transition-colors',
+              pathname === '/dashboard/haus-smiles' ? 'text-white' : 'text-slate-400 hover:text-white')}>
+            Haus Smiles
+          </Link>
+          <ManageDropdown pathname={pathname} />
         </div>
 
         <div className="flex items-center gap-3">
           <span className="text-sm text-slate-300 hidden sm:block">
             {profile.full_name}
           </span>
-          <div className="relative group">
-            <Link href="/dashboard/settings"
-              className={cn('text-slate-400 hover:text-white transition-colors flex', pathname === '/dashboard/settings' ? 'text-white' : '')}>
-              <Settings size={16} />
-            </Link>
-            <span className="absolute top-full left-1/2 -translate-x-1/2 mt-1.5 px-2 py-1 text-xs bg-gray-900 text-white rounded whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity">
-              Settings
-            </span>
-          </div>
+          <ProfileAvatar profile={profile} active={pathname === '/dashboard/settings'} />
           <button onClick={signOut}
             className="flex items-center gap-1.5 text-sm text-slate-400 hover:text-white transition-colors"
             title="Sign out">
@@ -114,36 +123,41 @@ export default function Nav({ profile }: Props) {
   }
 
   return (
-    <nav className="bg-slate-900 text-white px-4 h-14 flex items-center justify-between flex-shrink-0">
+    <nav className="bg-slate-900 text-white px-4 h-14 flex items-center justify-between flex-shrink-0 pointer-events-auto relative z-[60]">
       <div className="flex items-baseline gap-6">
-        <div className="flex items-center gap-2">
+        <Link href="/dashboard" className="flex items-center gap-2">
           <span className="text-xl font-bold tracking-tight text-white">BizHaus</span>
-        </div>
-        <Link href="/dashboard"
+          <span className="text-[10px] font-bold uppercase tracking-wider bg-blue-600 text-white px-2 py-0.5 rounded">Member Portal</span>
+        </Link>
+        <Link href="/dashboard/rooms"
           className={cn('text-sm font-medium transition-colors',
-            pathname === '/dashboard' ? 'text-white' : 'text-slate-400 hover:text-white')}>
-          Calendar
+            pathname === '/dashboard/rooms' ? 'text-white' : 'text-slate-400 hover:text-white')}>
+          Rooms
         </Link>
         <Link href="/dashboard/my-reservations"
           className={cn('text-sm font-medium transition-colors',
             pathname === '/dashboard/my-reservations' ? 'text-white' : 'text-slate-400 hover:text-white')}>
           My Reservations
         </Link>
+        <Link href="/dashboard/haus-smiles"
+          className={cn('text-sm font-medium transition-colors',
+            pathname === '/dashboard/haus-smiles' ? 'text-white' : 'text-slate-400 hover:text-white')}>
+          Haus Smiles
+        </Link>
+        {profile.is_company_admin && (
+          <Link href="/dashboard/company"
+            className={cn('text-sm font-medium transition-colors',
+              pathname === '/dashboard/company' ? 'text-white' : 'text-slate-400 hover:text-white')}>
+            My Company
+          </Link>
+        )}
       </div>
 
       <div className="flex items-center gap-3">
         <span className="text-sm text-slate-300 hidden sm:block">
           {profile.full_name}
         </span>
-        <div className="relative group">
-          <Link href="/dashboard/settings"
-            className={cn('text-slate-400 hover:text-white transition-colors flex', pathname === '/dashboard/settings' ? 'text-white' : '')}>
-            <Settings size={16} />
-          </Link>
-          <span className="absolute top-full left-1/2 -translate-x-1/2 mt-1.5 px-2 py-1 text-xs bg-gray-900 text-white rounded whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity">
-            Settings
-          </span>
-        </div>
+        <ProfileAvatar profile={profile} active={pathname === '/dashboard/settings'} />
         <button onClick={signOut}
           className="flex items-center gap-1.5 text-sm text-slate-400 hover:text-white transition-colors"
           title="Sign out">

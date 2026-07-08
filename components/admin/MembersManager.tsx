@@ -2,9 +2,29 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { Company } from '@/types'
-import { Plus, Send, Check, Shield, ShieldOff, Download, Copy, Link, Search, Edit2, Trash2, X } from 'lucide-react'
+import { Plus, Send, Check, Shield, ShieldOff, Download, Copy, Link, Search, Edit2, Trash2, X, Building2, ChevronLeft, ChevronRight } from 'lucide-react'
 import { formatShortDate } from '@/lib/utils'
 import toast from 'react-hot-toast'
+
+function IconAction({ icon: Icon, label, onClick, disabled, colorClass }: {
+  icon: React.ElementType
+  label: string
+  onClick: () => void
+  disabled?: boolean
+  colorClass: string
+}) {
+  return (
+    <div className="relative group">
+      <button onClick={onClick} disabled={disabled}
+        className={`p-1.5 rounded-md transition-colors disabled:opacity-50 ${colorClass}`}>
+        <Icon size={14} />
+      </button>
+      <span className="pointer-events-none absolute right-0 top-full z-10 mt-1.5 whitespace-nowrap rounded bg-gray-900 px-2 py-1 text-xs text-white opacity-0 transition-opacity group-hover:opacity-100">
+        {label}
+      </span>
+    </div>
+  )
+}
 
 type MemberRow = {
   id:           string
@@ -17,6 +37,7 @@ type MemberRow = {
   user_id:      string | null
   full_name:    string | null
   is_admin:     boolean
+  is_company_admin: boolean
 }
 
 type Props = { companies: Company[] }
@@ -32,6 +53,7 @@ export default function MembersManager({ companies }: Props) {
   const [copiedLink, setCopiedLink] = useState<string | null>(null)
   const [lastInviteLink, setLastInviteLink] = useState<string | null>(null)
   const [togglingAdmin, setTogglingAdmin]   = useState<string | null>(null)
+  const [togglingCompanyAdmin, setTogglingCompanyAdmin] = useState<string | null>(null)
   const [resending, setResending]   = useState<string | null>(null)
   const [editingCompany, setEditingCompany] = useState<{ id: string; companyId: string } | null>(null)
   const [savingCompany, setSavingCompany]   = useState(false)
@@ -39,6 +61,11 @@ export default function MembersManager({ companies }: Props) {
   const [removing, setRemoving]             = useState<string | null>(null)
   const [confirmInviteAll, setConfirmInviteAll] = useState(false)
   const [invitingAll, setInvitingAll]           = useState(false)
+  const [activePage, setActivePage]   = useState(1)
+  const [pendingPage, setPendingPage] = useState(1)
+  const [showAllActive, setShowAllActive]   = useState(false)
+  const [showAllPending, setShowAllPending] = useState(false)
+  const PAGE_SIZE = 10
 
   const refresh = useCallback(async () => {
     const r = await fetch('/api/admin/members/details')
@@ -47,6 +74,7 @@ export default function MembersManager({ companies }: Props) {
   }, [])
 
   useEffect(() => { refresh() }, [refresh])
+  useEffect(() => { setActivePage(1); setPendingPage(1) }, [search])
 
   // ── Add member ─────────────────────────────────────────────────────────────
 
@@ -121,6 +149,25 @@ export default function MembersManager({ companies }: Props) {
       toast.error(d.error ?? 'Failed')
     }
     setTogglingAdmin(null)
+  }
+
+  // ── Toggle company admin ────────────────────────────────────────────────────
+
+  async function toggleCompanyAdmin(userId: string, currentIsCompanyAdmin: boolean) {
+    setTogglingCompanyAdmin(userId)
+    const res = await fetch('/api/admin/members/toggle-company-admin', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user_id: userId, is_company_admin: !currentIsCompanyAdmin }),
+    })
+    if (res.ok) {
+      toast.success(currentIsCompanyAdmin ? 'Company admin access removed' : 'Company admin access granted')
+      await refresh()
+    } else {
+      const d = await res.json()
+      toast.error(d.error ?? 'Failed')
+    }
+    setTogglingCompanyAdmin(null)
   }
 
   // ── Edit company ──────────────────────────────────────────────────────────
@@ -219,6 +266,11 @@ export default function MembersManager({ companies }: Props) {
   const pending     = filtered.filter(m => !m.accepted_at)
   const notInvited  = members.filter(m => !m.accepted_at && !m.invite_token)
 
+  const activeTotalPages  = Math.max(1, Math.ceil(active.length / PAGE_SIZE))
+  const pendingTotalPages = Math.max(1, Math.ceil(pending.length / PAGE_SIZE))
+  const pagedActive  = showAllActive  ? active  : active.slice((activePage - 1) * PAGE_SIZE, activePage * PAGE_SIZE)
+  const pagedPending = showAllPending ? pending : pending.slice((pendingPage - 1) * PAGE_SIZE, pendingPage * PAGE_SIZE)
+
   // ── Render ─────────────────────────────────────────────────────────────────
 
   return (
@@ -316,19 +368,25 @@ export default function MembersManager({ companies }: Props) {
 
       {/* Active members */}
       {active.length > 0 && (
-        <Section title={`Active Members (${active.length})`}>
-          <table className="w-full text-sm">
+        <Section title={`Active Members (${active.length})`} footer={
+          <Pagination page={activePage} totalPages={activeTotalPages} onPageChange={setActivePage}
+            showAll={showAllActive} onToggleShowAll={() => setShowAllActive(v => !v)} />
+        }>
+          <table className="w-full text-sm table-fixed">
+            <colgroup>
+              <col className="w-[18%]" /><col className="w-[24%]" /><col className="w-[18%]" /><col className="w-[14%]" /><col className="w-[12%]" /><col className="w-[14%]" />
+            </colgroup>
             <thead>
               <tr className="border-b border-gray-100 bg-gray-50">
                 <Th>Name</Th><Th>Email</Th><Th>Company</Th><Th>Admin</Th><Th>Joined</Th><Th />
               </tr>
             </thead>
             <tbody>
-              {active.map(m => (
+              {pagedActive.map(m => (
                 <tr key={m.id} className="border-b border-gray-100 last:border-0 hover:bg-gray-50">
-                  <td className="px-4 py-3 font-medium text-gray-900">{m.full_name ?? '—'}</td>
-                  <td className="px-4 py-3 text-gray-600">{m.email}</td>
-                  <td className="px-4 py-3">
+                  <td className="px-4 py-3 font-medium text-gray-900 truncate" title={m.full_name ?? undefined}>{m.full_name ?? '—'}</td>
+                  <td className="px-4 py-3 text-gray-600 truncate" title={m.email}>{m.email}</td>
+                  <td className="px-4 py-3 truncate">
                     {editingCompany?.id === m.id ? (
                       <div className="flex items-center gap-1.5">
                         <select value={editingCompany.companyId}
@@ -342,35 +400,44 @@ export default function MembersManager({ companies }: Props) {
                           className="text-gray-400 hover:text-gray-600"><X size={12} /></button>
                       </div>
                     ) : (
-                      <span className="text-gray-600">{m.company_name}</span>
+                      <span className="text-gray-600" title={m.company_name}>{m.company_name}</span>
                     )}
                   </td>
                   <td className="px-4 py-3">
                     {m.is_admin
-                      ? <span className="inline-flex items-center gap-1 text-xs font-medium text-blue-700 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-full"><Shield size={10} /> Admin</span>
+                      ? <span className="inline-flex items-center gap-1 whitespace-nowrap text-xs font-medium text-blue-700 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-full"><Shield size={10} /> Admin</span>
+                      : m.is_company_admin
+                      ? <span className="inline-flex items-center gap-1 whitespace-nowrap text-xs font-medium text-purple-700 bg-purple-50 border border-purple-200 px-2 py-0.5 rounded-full"><Building2 size={10} /> Co. Admin</span>
                       : <span className="text-xs text-gray-400">Member</span>}
                   </td>
                   <td className="px-4 py-3 text-gray-500 text-xs">{formatShortDate(new Date(m.accepted_at!))}</td>
                   <td className="px-4 py-3">
-                    <div className="flex items-center justify-end gap-1">
+                    <div className="flex items-center justify-end gap-0.5">
                       {editingCompany?.id !== m.id && (
-                        <button onClick={() => setEditingCompany({ id: m.id, companyId: m.company_id })}
-                          className="p-1.5 text-gray-400 hover:text-gray-600 rounded" title="Change company">
-                          <Edit2 size={13} />
-                        </button>
+                        <IconAction
+                          icon={Edit2}
+                          label="Change company"
+                          onClick={() => setEditingCompany({ id: m.id, companyId: m.company_id })}
+                          colorClass="text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+                        />
                       )}
                       {m.user_id && (
-                        <button
+                        <IconAction
+                          icon={m.is_admin ? ShieldOff : Shield}
+                          label={m.is_admin ? 'Remove admin access' : 'Grant admin access'}
                           onClick={() => toggleAdmin(m.user_id!, m.is_admin)}
                           disabled={togglingAdmin === m.user_id}
-                          title={m.is_admin ? 'Remove admin access' : 'Grant admin access'}
-                          className={`flex items-center gap-1 text-xs font-medium px-2 py-1.5 rounded-md transition-colors ${
-                            m.is_admin ? 'text-red-600 hover:bg-red-50' : 'text-blue-600 hover:bg-blue-50'
-                          }`}>
-                          {togglingAdmin === m.user_id ? '…' : m.is_admin
-                            ? <><ShieldOff size={12} /> Remove Admin</>
-                            : <><Shield size={12} /> Make Admin</>}
-                        </button>
+                          colorClass={m.is_admin ? 'text-red-500 hover:bg-red-50' : 'text-blue-500 hover:bg-blue-50'}
+                        />
+                      )}
+                      {m.user_id && !m.is_admin && (
+                        <IconAction
+                          icon={Building2}
+                          label={m.is_company_admin ? 'Remove company admin access' : 'Grant company admin access — manage their own company roster'}
+                          onClick={() => toggleCompanyAdmin(m.user_id!, m.is_company_admin)}
+                          disabled={togglingCompanyAdmin === m.user_id}
+                          colorClass={m.is_company_admin ? 'text-red-500 hover:bg-red-50' : 'text-purple-500 hover:bg-purple-50'}
+                        />
                       )}
                       {confirmRemove === m.id ? (
                         <div className="flex items-center gap-1.5 ml-1">
@@ -382,10 +449,12 @@ export default function MembersManager({ companies }: Props) {
                           <button onClick={() => setConfirmRemove(null)} className="text-xs text-gray-400">No</button>
                         </div>
                       ) : (
-                        <button onClick={() => setConfirmRemove(m.id)}
-                          className="p-1.5 text-gray-400 hover:text-red-500 rounded" title="Remove member">
-                          <Trash2 size={13} />
-                        </button>
+                        <IconAction
+                          icon={Trash2}
+                          label="Remove member"
+                          onClick={() => setConfirmRemove(m.id)}
+                          colorClass="text-gray-400 hover:bg-red-50 hover:text-red-500"
+                        />
                       )}
                     </div>
                   </td>
@@ -398,18 +467,24 @@ export default function MembersManager({ companies }: Props) {
 
       {/* Pending invites */}
       {pending.length > 0 && (
-        <Section title={`Pending (${pending.length})`}>
-          <table className="w-full text-sm">
+        <Section title={`Pending (${pending.length})`} footer={
+          <Pagination page={pendingPage} totalPages={pendingTotalPages} onPageChange={setPendingPage}
+            showAll={showAllPending} onToggleShowAll={() => setShowAllPending(v => !v)} />
+        }>
+          <table className="w-full text-sm table-fixed">
+            <colgroup>
+              <col className="w-[32%]" /><col className="w-[24%]" /><col className="w-[14%]" /><col className="w-[12%]" /><col className="w-[18%]" />
+            </colgroup>
             <thead>
               <tr className="border-b border-gray-100 bg-gray-50">
                 <Th>Email</Th><Th>Company</Th><Th>Status</Th><Th>Added</Th><Th />
               </tr>
             </thead>
             <tbody>
-              {pending.map(m => (
+              {pagedPending.map(m => (
                 <tr key={m.id} className="border-b border-gray-100 last:border-0 hover:bg-gray-50">
-                  <td className="px-4 py-3 text-gray-700">{m.email}</td>
-                  <td className="px-4 py-3">
+                  <td className="px-4 py-3 text-gray-700 truncate" title={m.email}>{m.email}</td>
+                  <td className="px-4 py-3 truncate">
                     {editingCompany?.id === m.id ? (
                       <div className="flex items-center gap-1.5">
                         <select value={editingCompany.companyId}
@@ -423,30 +498,36 @@ export default function MembersManager({ companies }: Props) {
                           className="text-gray-400 hover:text-gray-600"><X size={12} /></button>
                       </div>
                     ) : (
-                      <span className="text-gray-600">{m.company_name}</span>
+                      <span className="text-gray-600" title={m.company_name}>{m.company_name}</span>
                     )}
                   </td>
                   <td className="px-4 py-3"><StatusBadge m={m} /></td>
                   <td className="px-4 py-3 text-gray-500 text-xs">{formatShortDate(new Date(m.invited_at))}</td>
                   <td className="px-4 py-3">
-                    <div className="flex items-center justify-end gap-2">
+                    <div className="flex items-center justify-end gap-0.5">
                       {editingCompany?.id !== m.id && (
-                        <button onClick={() => setEditingCompany({ id: m.id, companyId: m.company_id })}
-                          className="p-1.5 text-gray-400 hover:text-gray-600 rounded" title="Change company">
-                          <Edit2 size={13} />
-                        </button>
+                        <IconAction
+                          icon={Edit2}
+                          label="Change company"
+                          onClick={() => setEditingCompany({ id: m.id, companyId: m.company_id })}
+                          colorClass="text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+                        />
                       )}
                       {m.invite_token?.startsWith('http') && (
-                        <button onClick={() => copyLink(m.invite_token!, m.id)}
-                          className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-700">
-                          {copiedLink === m.id ? <Check size={12} /> : <Copy size={12} />}
-                          {copiedLink === m.id ? 'Copied' : 'Copy link'}
-                        </button>
+                        <IconAction
+                          icon={copiedLink === m.id ? Check : Copy}
+                          label={copiedLink === m.id ? 'Copied!' : 'Copy invite link'}
+                          onClick={() => copyLink(m.invite_token!, m.id)}
+                          colorClass="text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+                        />
                       )}
-                      <button onClick={() => handleResend(m.id)} disabled={resending === m.id}
-                        className="text-xs text-blue-600 hover:text-blue-800 font-medium disabled:opacity-50">
-                        {resending === m.id ? '…' : 'Get link / Resend'}
-                      </button>
+                      <IconAction
+                        icon={Send}
+                        label="Get link / Resend"
+                        onClick={() => handleResend(m.id)}
+                        disabled={resending === m.id}
+                        colorClass="text-blue-500 hover:bg-blue-50"
+                      />
                       {confirmRemove === m.id ? (
                         <div className="flex items-center gap-1.5">
                           <span className="text-xs text-red-600">Remove?</span>
@@ -457,10 +538,12 @@ export default function MembersManager({ companies }: Props) {
                           <button onClick={() => setConfirmRemove(null)} className="text-xs text-gray-400">No</button>
                         </div>
                       ) : (
-                        <button onClick={() => setConfirmRemove(m.id)}
-                          className="p-1.5 text-gray-400 hover:text-red-500 rounded" title="Remove">
-                          <Trash2 size={13} />
-                        </button>
+                        <IconAction
+                          icon={Trash2}
+                          label="Remove"
+                          onClick={() => setConfirmRemove(m.id)}
+                          colorClass="text-gray-400 hover:bg-red-50 hover:text-red-500"
+                        />
                       )}
                     </div>
                   </td>
@@ -481,18 +564,49 @@ export default function MembersManager({ companies }: Props) {
 }
 
 function StatusBadge({ m }: { m: MemberRow }) {
-  if (m.accepted_at)  return <span className="inline-flex items-center gap-1 text-xs font-medium text-green-700 bg-green-50 border border-green-200 px-2 py-0.5 rounded-full"><Check size={10} /> Active</span>
-  if (m.invite_token) return <span className="text-xs font-medium text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">Invited</span>
-  return <span className="text-xs font-medium text-gray-500 bg-gray-100 border border-gray-200 px-2 py-0.5 rounded-full">Not invited</span>
+  if (m.accepted_at)  return <span className="inline-flex items-center gap-1 whitespace-nowrap text-xs font-medium text-green-700 bg-green-50 border border-green-200 px-2 py-0.5 rounded-full"><Check size={10} /> Active</span>
+  if (m.invite_token) return <span className="whitespace-nowrap text-xs font-medium text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">Invited</span>
+  return <span className="whitespace-nowrap text-xs font-medium text-gray-500 bg-gray-100 border border-gray-200 px-2 py-0.5 rounded-full">Not invited</span>
 }
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+function Pagination({ page, totalPages, onPageChange, showAll, onToggleShowAll }: {
+  page: number
+  totalPages: number
+  onPageChange: (p: number) => void
+  showAll: boolean
+  onToggleShowAll: () => void
+}) {
+  if (totalPages <= 1 && !showAll) return null
+  return (
+    <div className="flex items-center justify-between px-4 py-2 border-t border-gray-100 bg-gray-50 text-xs">
+      <button onClick={onToggleShowAll} className="text-blue-600 hover:text-blue-800 font-medium">
+        {showAll ? 'Show 10 per page' : 'Show all'}
+      </button>
+      {!showAll && totalPages > 1 && (
+        <div className="flex items-center gap-1.5 text-gray-500">
+          <button onClick={() => onPageChange(Math.max(1, page - 1))} disabled={page === 1}
+            className="p-1 hover:text-gray-800 disabled:opacity-30 rounded">
+            <ChevronLeft size={14} />
+          </button>
+          <span>Page {page} of {totalPages}</span>
+          <button onClick={() => onPageChange(Math.min(totalPages, page + 1))} disabled={page === totalPages}
+            className="p-1 hover:text-gray-800 disabled:opacity-30 rounded">
+            <ChevronRight size={14} />
+          </button>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function Section({ title, children, footer }: { title: string; children: React.ReactNode; footer?: React.ReactNode }) {
   return (
     <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
       <div className="px-4 py-3 border-b border-gray-100 bg-gray-50">
         <h2 className="text-sm font-semibold text-blue-600">{title}</h2>
       </div>
       {children}
+      {footer}
     </div>
   )
 }

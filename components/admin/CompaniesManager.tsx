@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { Company, MembershipType } from '@/types'
-import { Plus, Edit2, Check, X, Settings, Trash2, Search, ChevronDown, ChevronRight } from 'lucide-react'
+import { Plus, Edit2, Check, X, Settings, Trash2, Search, ChevronDown, ChevronRight, Building2 } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 type MemberUsage = {
@@ -13,6 +13,7 @@ type MemberUsage = {
   company_name: string
   hours_used: number
   reservation_count: number
+  is_company_admin: boolean
 }
 
 type Props = {
@@ -493,7 +494,16 @@ export default function CompaniesManager({ companies: initial, membershipTypes: 
                             <tbody>
                               {members.map((m, i) => (
                                 <tr key={m.email + i} className="border-b border-gray-100 last:border-0">
-                                  <td className="py-1.5 pl-6 text-gray-700">{m.full_name ?? <span className="text-gray-400 italic">Not registered</span>}</td>
+                                  <td className="py-1.5 pl-6 text-gray-700">
+                                    <span className="inline-flex items-center gap-1.5">
+                                      {m.full_name ?? <span className="text-gray-400 italic">Not registered</span>}
+                                      {m.is_company_admin && (
+                                        <span title="Company admin" className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-purple-100 text-purple-600 flex-shrink-0">
+                                          <Building2 size={10} />
+                                        </span>
+                                      )}
+                                    </span>
+                                  </td>
                                   <td className="py-1.5 text-gray-600">{m.email}</td>
                                   <td className="py-1.5 text-gray-700 font-medium">{m.hours_used}h</td>
                                   <td className="py-1.5 text-gray-700">{m.reservation_count}</td>
