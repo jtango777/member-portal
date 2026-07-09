@@ -29,7 +29,7 @@ function ManageDropdown({ pathname }: { pathname: string }) {
       </DropdownMenu.Trigger>
       <DropdownMenu.Portal>
         <DropdownMenu.Content
-          className="bg-white text-gray-900 rounded-lg shadow-xl border border-gray-200 py-1 min-w-[180px] z-50"
+          className="bg-white text-gray-900 rounded-lg shadow-xl border border-gray-200 py-1 min-w-[180px] z-[70]"
           sideOffset={8}
         >
           {manageLinks.map(link => (

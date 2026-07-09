@@ -40,7 +40,7 @@ function SubDropdown({ label, links, pathname }: { label: string; links: { href:
       </DropdownMenu.Trigger>
       <DropdownMenu.Portal>
         <DropdownMenu.Content
-          className="bg-white text-gray-900 rounded-lg shadow-xl border border-gray-200 py-1 min-w-[200px] z-50"
+          className="bg-white text-gray-900 rounded-lg shadow-xl border border-gray-200 py-1 min-w-[200px] z-[70]"
           sideOffset={8}
         >
           {links.map(link => (
