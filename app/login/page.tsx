@@ -29,8 +29,14 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
-      <div className="w-full max-w-sm">
+    <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4 relative overflow-hidden">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src="/images/login-background.gif"
+        alt=""
+        className="absolute inset-0 w-full h-full object-cover opacity-40"
+      />
+      <div className="w-full max-w-sm relative">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-white tracking-tight">BizHaus</h1>
           <p className="mt-3 text-sm text-slate-400">Member Portal</p>
