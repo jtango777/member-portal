@@ -144,13 +144,6 @@ export default function Nav({ profile }: Props) {
             pathname === '/dashboard/haus-smiles' ? 'text-white' : 'text-slate-400 hover:text-white')}>
           Haus Smiles
         </Link>
-        {profile.is_company_admin && (
-          <Link href="/dashboard/company"
-            className={cn('text-sm font-medium transition-colors',
-              pathname === '/dashboard/company' ? 'text-white' : 'text-slate-400 hover:text-white')}>
-            My Company
-          </Link>
-        )}
       </div>
 
       <div className="flex items-center gap-3">

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { Company } from '@/types'
-import { Plus, Send, Check, Shield, ShieldOff, Download, Copy, Link, Search, Edit2, Trash2, X, Building2, ChevronLeft, ChevronRight, Camera } from 'lucide-react'
+import { Plus, Send, Check, Shield, ShieldOff, Download, Copy, Link, Search, Edit2, Trash2, X, ChevronLeft, ChevronRight, Camera } from 'lucide-react'
 import { formatShortDate } from '@/lib/utils'
 import toast from 'react-hot-toast'
 import AssignPhotoDialog from '@/components/admin/AssignPhotoDialog'
@@ -38,7 +38,6 @@ type MemberRow = {
   user_id:      string | null
   full_name:    string | null
   is_admin:     boolean
-  is_company_admin: boolean
 }
 
 type Props = { companies: Company[] }
@@ -54,7 +53,6 @@ export default function MembersManager({ companies }: Props) {
   const [copiedLink, setCopiedLink] = useState<string | null>(null)
   const [lastInviteLink, setLastInviteLink] = useState<string | null>(null)
   const [togglingAdmin, setTogglingAdmin]   = useState<string | null>(null)
-  const [togglingCompanyAdmin, setTogglingCompanyAdmin] = useState<string | null>(null)
   const [resending, setResending]   = useState<string | null>(null)
   const [editingCompany, setEditingCompany] = useState<{ id: string; companyId: string } | null>(null)
   const [savingCompany, setSavingCompany]   = useState(false)
@@ -151,25 +149,6 @@ export default function MembersManager({ companies }: Props) {
       toast.error(d.error ?? 'Failed')
     }
     setTogglingAdmin(null)
-  }
-
-  // ── Toggle company admin ────────────────────────────────────────────────────
-
-  async function toggleCompanyAdmin(userId: string, currentIsCompanyAdmin: boolean) {
-    setTogglingCompanyAdmin(userId)
-    const res = await fetch('/api/admin/members/toggle-company-admin', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ user_id: userId, is_company_admin: !currentIsCompanyAdmin }),
-    })
-    if (res.ok) {
-      toast.success(currentIsCompanyAdmin ? 'Company admin access removed' : 'Company admin access granted')
-      await refresh()
-    } else {
-      const d = await res.json()
-      toast.error(d.error ?? 'Failed')
-    }
-    setTogglingCompanyAdmin(null)
   }
 
   // ── Edit company ──────────────────────────────────────────────────────────
@@ -408,8 +387,6 @@ export default function MembersManager({ companies }: Props) {
                   <td className="px-4 py-3">
                     {m.is_admin
                       ? <span className="inline-flex items-center gap-1 whitespace-nowrap text-xs font-medium text-blue-700 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-full"><Shield size={10} /> Admin</span>
-                      : m.is_company_admin
-                      ? <span className="inline-flex items-center gap-1 whitespace-nowrap text-xs font-medium text-purple-700 bg-purple-50 border border-purple-200 px-2 py-0.5 rounded-full"><Building2 size={10} /> Co. Admin</span>
                       : <span className="text-xs text-gray-400">Member</span>}
                   </td>
                   <td className="px-4 py-3 text-gray-500 text-xs">{formatShortDate(new Date(m.accepted_at!))}</td>
@@ -438,15 +415,6 @@ export default function MembersManager({ companies }: Props) {
                           onClick={() => toggleAdmin(m.user_id!, m.is_admin)}
                           disabled={togglingAdmin === m.user_id}
                           colorClass={m.is_admin ? 'text-red-500 hover:bg-red-50' : 'text-blue-500 hover:bg-blue-50'}
-                        />
-                      )}
-                      {m.user_id && !m.is_admin && (
-                        <IconAction
-                          icon={Building2}
-                          label={m.is_company_admin ? 'Remove company admin access' : 'Grant company admin access — manage their own company roster'}
-                          onClick={() => toggleCompanyAdmin(m.user_id!, m.is_company_admin)}
-                          disabled={togglingCompanyAdmin === m.user_id}
-                          colorClass={m.is_company_admin ? 'text-red-500 hover:bg-red-50' : 'text-purple-500 hover:bg-purple-50'}
                         />
                       )}
                       {confirmRemove === m.id ? (
