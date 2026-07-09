@@ -110,7 +110,7 @@ export default function SettingsForm({ profile, company, locations, email }: Pro
           onOpenChange={setPhotoDialogOpen}
           onSuccess={() => router.refresh()}
           title="Update your photo"
-          description="This appears on the Member Directory."
+          description="This appears on Haus Smiles."
           currentImageUrl={profile.avatar_url}
         />
       </div>

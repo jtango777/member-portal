@@ -19,7 +19,7 @@ type Props = {
 
 export default function PhotoUploadDialog({
   open, onOpenChange, onSuccess,
-  title = 'Add your photo to the Member Directory',
+  title = 'Add your photo to Haus Smiles',
   description = 'Help your community recognize you — add a profile picture.',
   currentImageUrl,
 }: Props) {
