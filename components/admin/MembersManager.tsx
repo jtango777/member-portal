@@ -2,9 +2,10 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { Company } from '@/types'
-import { Plus, Send, Check, Shield, ShieldOff, Download, Copy, Link, Search, Edit2, Trash2, X, Building2, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Plus, Send, Check, Shield, ShieldOff, Download, Copy, Link, Search, Edit2, Trash2, X, Building2, ChevronLeft, ChevronRight, Camera } from 'lucide-react'
 import { formatShortDate } from '@/lib/utils'
 import toast from 'react-hot-toast'
+import AssignPhotoDialog from '@/components/admin/AssignPhotoDialog'
 
 function IconAction({ icon: Icon, label, onClick, disabled, colorClass }: {
   icon: React.ElementType
@@ -61,6 +62,7 @@ export default function MembersManager({ companies }: Props) {
   const [removing, setRemoving]             = useState<string | null>(null)
   const [confirmInviteAll, setConfirmInviteAll] = useState(false)
   const [invitingAll, setInvitingAll]           = useState(false)
+  const [photoTarget, setPhotoTarget] = useState<{ id: string; name: string } | null>(null)
   const [activePage, setActivePage]   = useState(1)
   const [pendingPage, setPendingPage] = useState(1)
   const [showAllActive, setShowAllActive]   = useState(false)
@@ -423,6 +425,14 @@ export default function MembersManager({ companies }: Props) {
                       )}
                       {m.user_id && (
                         <IconAction
+                          icon={Camera}
+                          label="Add picture"
+                          onClick={() => setPhotoTarget({ id: m.user_id!, name: m.full_name ?? m.email })}
+                          colorClass="text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+                        />
+                      )}
+                      {m.user_id && (
+                        <IconAction
                           icon={m.is_admin ? ShieldOff : Shield}
                           label={m.is_admin ? 'Remove admin access' : 'Grant admin access'}
                           onClick={() => toggleAdmin(m.user_id!, m.is_admin)}
@@ -558,6 +568,16 @@ export default function MembersManager({ companies }: Props) {
         <div className="bg-white rounded-xl border border-gray-200 px-4 py-12 text-center text-gray-400 text-sm">
           {search ? 'No members match your search.' : 'No members yet.'}
         </div>
+      )}
+
+      {photoTarget && (
+        <AssignPhotoDialog
+          open={!!photoTarget}
+          onOpenChange={v => { if (!v) setPhotoTarget(null) }}
+          onSuccess={refresh}
+          memberId={photoTarget.id}
+          memberName={photoTarget.name}
+        />
       )}
     </div>
   )
