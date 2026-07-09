@@ -40,9 +40,9 @@ export async function GET() {
       invited_at:   pe.invited_at,
       accepted_at:  pe.accepted_at,
       invite_token: pe.invite_token,
-      // from profile
+      // from profile, falling back to an admin-set expected name while pending
       user_id:      userId,
-      full_name:    prof?.full_name ?? null,
+      full_name:    prof?.full_name ?? pe.full_name ?? null,
       is_admin:     prof?.is_admin ?? false,
     }
   })

@@ -56,6 +56,8 @@ export default function MembersManager({ companies }: Props) {
   const [resending, setResending]   = useState<string | null>(null)
   const [editingCompany, setEditingCompany] = useState<{ id: string; companyId: string } | null>(null)
   const [savingCompany, setSavingCompany]   = useState(false)
+  const [editingName, setEditingName] = useState<{ id: string; name: string } | null>(null)
+  const [savingName, setSavingName]   = useState(false)
   const [confirmRemove, setConfirmRemove]   = useState<string | null>(null)
   const [removing, setRemoving]             = useState<string | null>(null)
   const [confirmInviteAll, setConfirmInviteAll] = useState(false)
@@ -172,6 +174,27 @@ export default function MembersManager({ companies }: Props) {
     setSavingCompany(false)
   }
 
+  // ── Edit expected name (pending only) ───────────────────────────────────────
+
+  async function saveName(memberId: string) {
+    if (!editingName) return
+    setSavingName(true)
+    const res = await fetch(`/api/admin/members/${memberId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ full_name: editingName.name.trim() || null }),
+    })
+    if (res.ok) {
+      toast.success('Name updated')
+      setEditingName(null)
+      await refresh()
+    } else {
+      const d = await res.json()
+      toast.error(d.error ?? 'Failed')
+    }
+    setSavingName(false)
+  }
+
   // ── Remove member ──────────────────────────────────────────────────────────
 
   async function handleRemove(memberId: string) {
@@ -245,6 +268,7 @@ export default function MembersManager({ companies }: Props) {
 
   const active      = filtered.filter(m => !!m.accepted_at)
   const pending     = filtered.filter(m => !m.accepted_at)
+    .sort((a, b) => (a.full_name ?? a.email).localeCompare(b.full_name ?? b.email))
   const notInvited  = members.filter(m => !m.accepted_at && !m.invite_token)
 
   const activeTotalPages  = Math.max(1, Math.ceil(active.length / PAGE_SIZE))
@@ -451,16 +475,37 @@ export default function MembersManager({ companies }: Props) {
         }>
           <table className="w-full text-sm table-fixed">
             <colgroup>
-              <col className="w-[32%]" /><col className="w-[24%]" /><col className="w-[14%]" /><col className="w-[12%]" /><col className="w-[18%]" />
+              <col className="w-[20%]" /><col className="w-[24%]" /><col className="w-[18%]" /><col className="w-[12%]" /><col className="w-[10%]" /><col className="w-[16%]" />
             </colgroup>
             <thead>
               <tr className="border-b border-gray-100 bg-gray-50">
-                <Th>Email</Th><Th>Company</Th><Th>Status</Th><Th>Added</Th><Th />
+                <Th>Name</Th><Th>Email</Th><Th>Company</Th><Th>Status</Th><Th>Added</Th><Th />
               </tr>
             </thead>
             <tbody>
               {pagedPending.map(m => (
                 <tr key={m.id} className="border-b border-gray-100 last:border-0 hover:bg-gray-50">
+                  <td className="px-4 py-3">
+                    {editingName?.id === m.id ? (
+                      <div className="flex items-center gap-1">
+                        <input value={editingName.name} onChange={e => setEditingName({ id: m.id, name: e.target.value })}
+                          autoFocus placeholder="Full name"
+                          className="border border-gray-300 rounded px-1.5 py-1 text-xs w-16 min-w-0 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                        <button onClick={() => saveName(m.id)} disabled={savingName}
+                          className="text-xs text-blue-600 font-medium hover:text-blue-800">{savingName ? '…' : 'Save'}</button>
+                        <button onClick={() => setEditingName(null)}
+                          className="text-gray-400 hover:text-gray-600"><X size={12} /></button>
+                      </div>
+                    ) : (
+                      <button onClick={() => setEditingName({ id: m.id, name: m.full_name ?? '' })}
+                        className="flex items-center gap-1.5 group text-left w-full min-w-0">
+                        {m.full_name
+                          ? <span className="text-gray-900 font-medium truncate" title={m.full_name}>{m.full_name}</span>
+                          : <span className="text-gray-400 italic">Add name</span>}
+                        <Edit2 size={10} className="text-gray-300 group-hover:text-gray-500 flex-shrink-0" />
+                      </button>
+                    )}
+                  </td>
                   <td className="px-4 py-3 text-gray-700 truncate" title={m.email}>{m.email}</td>
                   <td className="px-4 py-3 truncate">
                     {editingCompany?.id === m.id ? (
@@ -507,7 +552,7 @@ export default function MembersManager({ companies }: Props) {
                       )}
                       <IconAction
                         icon={Send}
-                        label="Get link / Resend"
+                        label="Invite"
                         onClick={() => handleResend(m.id)}
                         disabled={resending === m.id}
                         colorClass="text-blue-500 hover:bg-blue-50"

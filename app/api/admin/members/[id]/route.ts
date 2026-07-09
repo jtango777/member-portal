@@ -9,21 +9,27 @@ async function assertAdmin() {
   return profile?.is_admin ? user : null
 }
 
-// Update company assignment
+// Update company assignment and/or expected name
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const caller = await assertAdmin()
   if (!caller) return NextResponse.json({ error: 'Admins only' }, { status: 403 })
 
-  const { company_id } = await request.json()
-  if (!company_id) return NextResponse.json({ error: 'company_id required' }, { status: 400 })
+  const { company_id, full_name } = await request.json()
+  if (!company_id && full_name === undefined) {
+    return NextResponse.json({ error: 'company_id or full_name required' }, { status: 400 })
+  }
 
   const admin = createAdminClient()
+
+  const update: { company_id?: string; full_name?: string } = {}
+  if (company_id) update.company_id = company_id
+  if (full_name !== undefined) update.full_name = full_name
 
   // Update permitted_emails
   const { data: pe, error: peErr } = await admin
     .from('permitted_emails')
-    .update({ company_id })
+    .update(update)
     .eq('id', id)
     .select('email')
     .single()
@@ -34,10 +40,12 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   }
 
   // Also update profile if user has accepted (find profile via auth user lookup)
-  const { data: { users } } = await admin.auth.admin.listUsers({ perPage: 1000 })
-  const authUser = users.find(u => u.email?.toLowerCase() === pe.email?.toLowerCase())
-  if (authUser) {
-    await admin.from('profiles').update({ company_id }).eq('id', authUser.id)
+  if (company_id) {
+    const { data: { users } } = await admin.auth.admin.listUsers({ perPage: 1000 })
+    const authUser = users.find(u => u.email?.toLowerCase() === pe.email?.toLowerCase())
+    if (authUser) {
+      await admin.from('profiles').update({ company_id }).eq('id', authUser.id)
+    }
   }
 
   return NextResponse.json({ ok: true })
