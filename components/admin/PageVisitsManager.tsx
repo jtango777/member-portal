@@ -25,7 +25,7 @@ type Summary = {
 
 const PATH_LABELS: Record<string, string> = {
   '/dashboard/rooms': 'Rooms',
-  '/dashboard/haus-smiles': 'Haus Smiles',
+  '/dashboard/haus-smiles': 'Member Directory',
 }
 
 function formatDuration(seconds: number): string {
@@ -78,7 +78,7 @@ export default function PageVisitsManager() {
     <div className="space-y-5">
       <div>
         <h1 className="text-xl font-bold text-gray-900">Page Activity</h1>
-        <p className="text-sm text-gray-500 mt-0.5">Visit counts for Rooms and Haus Smiles. Click a row to see who and when.</p>
+        <p className="text-sm text-gray-500 mt-0.5">Visit counts for Rooms and Member Directory. Click a row to see who and when.</p>
       </div>
 
       <div className="relative">

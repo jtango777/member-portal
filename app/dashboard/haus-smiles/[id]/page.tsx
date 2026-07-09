@@ -39,7 +39,7 @@ export default async function HausSmilesMemberPage({ params }: { params: Promise
     <div className="h-full overflow-auto p-6">
       <div className="max-w-sm mx-auto">
         <Link href="/dashboard/haus-smiles" className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-900 mb-6">
-          <ArrowLeft size={16} /> Back to Haus Smiles
+          <ArrowLeft size={16} /> Back to Member Directory
         </Link>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img

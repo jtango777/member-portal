@@ -30,7 +30,7 @@ export default async function PortalHomePage() {
           <Link href="/dashboard/haus-smiles"
             className="bg-emerald-50 hover:bg-emerald-100 transition-colors rounded-xl p-5 flex flex-col gap-2">
             <Smile size={24} className="text-emerald-700" />
-            <span className="text-base font-semibold text-emerald-900">Haus Smiles</span>
+            <span className="text-base font-semibold text-emerald-900">Member Directory</span>
             <span className="text-sm text-emerald-700">Meet your community</span>
           </Link>
         </div>
