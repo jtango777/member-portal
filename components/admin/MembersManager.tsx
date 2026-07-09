@@ -60,7 +60,7 @@ export default function MembersManager({ companies }: Props) {
   const [removing, setRemoving]             = useState<string | null>(null)
   const [confirmInviteAll, setConfirmInviteAll] = useState(false)
   const [invitingAll, setInvitingAll]           = useState(false)
-  const [photoTarget, setPhotoTarget] = useState<{ id: string; name: string } | null>(null)
+  const [photoTarget, setPhotoTarget] = useState<{ type: 'member' | 'pending'; id: string; name: string } | null>(null)
   const [activePage, setActivePage]   = useState(1)
   const [pendingPage, setPendingPage] = useState(1)
   const [showAllActive, setShowAllActive]   = useState(false)
@@ -404,7 +404,7 @@ export default function MembersManager({ companies }: Props) {
                         <IconAction
                           icon={Camera}
                           label="Add picture"
-                          onClick={() => setPhotoTarget({ id: m.user_id!, name: m.full_name ?? m.email })}
+                          onClick={() => setPhotoTarget({ type: 'member', id: m.user_id!, name: m.full_name ?? m.email })}
                           colorClass="text-gray-400 hover:bg-gray-100 hover:text-gray-600"
                         />
                       )}
@@ -491,6 +491,12 @@ export default function MembersManager({ companies }: Props) {
                           colorClass="text-gray-400 hover:bg-gray-100 hover:text-gray-600"
                         />
                       )}
+                      <IconAction
+                        icon={Camera}
+                        label="Add picture"
+                        onClick={() => setPhotoTarget({ type: 'pending', id: m.id, name: m.email })}
+                        colorClass="text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+                      />
                       {m.invite_token?.startsWith('http') && (
                         <IconAction
                           icon={copiedLink === m.id ? Check : Copy}
@@ -543,7 +549,8 @@ export default function MembersManager({ companies }: Props) {
           open={!!photoTarget}
           onOpenChange={v => { if (!v) setPhotoTarget(null) }}
           onSuccess={refresh}
-          memberId={photoTarget.id}
+          targetType={photoTarget.type}
+          targetId={photoTarget.id}
           memberName={photoTarget.name}
         />
       )}

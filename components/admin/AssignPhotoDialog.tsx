@@ -14,13 +14,17 @@ type Props = {
   open: boolean
   onOpenChange: (open: boolean) => void
   onSuccess: () => void
-  memberId: string
+  targetType: 'member' | 'pending'
+  targetId: string
   memberName: string
 }
 
 type Mode = 'choose' | 'upload' | 'directory'
 
-export default function AssignPhotoDialog({ open, onOpenChange, onSuccess, memberId, memberName }: Props) {
+export default function AssignPhotoDialog({ open, onOpenChange, onSuccess, targetType, targetId, memberName }: Props) {
+  const endpoint = targetType === 'member'
+    ? `/api/admin/members/${targetId}/photo`
+    : `/api/admin/pending-members/${targetId}/photo`
   const [mode, setMode] = useState<Mode>('choose')
   const [uploading, setUploading] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
@@ -69,7 +73,7 @@ export default function AssignPhotoDialog({ open, onOpenChange, onSuccess, membe
       const blob = await getCroppedImageBlob(imageSrc, croppedAreaPixels)
       const formData = new FormData()
       formData.append('file', blob, 'avatar.jpg')
-      const res = await fetch(`/api/admin/members/${memberId}/photo`, { method: 'POST', body: formData })
+      const res = await fetch(endpoint, { method: 'POST', body: formData })
       if (res.ok) {
         toast.success('Photo saved!')
         onOpenChange(false)
@@ -87,7 +91,7 @@ export default function AssignPhotoDialog({ open, onOpenChange, onSuccess, membe
 
   async function handleLinkPhoto(photo: DirectoryPhoto) {
     setLinking(photo.id)
-    const res = await fetch(`/api/admin/members/${memberId}/photo`, {
+    const res = await fetch(endpoint, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ directory_photo_id: photo.id }),

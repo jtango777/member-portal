@@ -45,6 +45,7 @@ export async function POST(request: Request) {
     full_name:           name.trim(),
     is_admin:            false,
     default_location_id: default_location_id ?? null,
+    avatar_url:          invite.avatar_url ?? null,
   })
 
   await admin
