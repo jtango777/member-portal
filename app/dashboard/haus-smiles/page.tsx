@@ -19,18 +19,23 @@ export default async function HausSmilesPage() {
     .eq('is_active', true)
     .order('full_name')
 
-  const groups = [
-    ...(locations ?? []).map(location => ({
+  const { data: directoryPhotos } = await supabase
+    .from('directory_photos')
+    .select('id, full_name, avatar_url, location_id')
+    .order('full_name')
+
+  const allMembers = [
+    ...(profiles ?? []).map(p => ({ id: p.id, full_name: p.full_name, avatar_url: p.avatar_url, location_id: p.default_location_id })),
+    ...(directoryPhotos ?? []).map(d => ({ id: d.id, full_name: d.full_name, avatar_url: d.avatar_url, location_id: d.location_id })),
+  ]
+
+  const groups = (locations ?? [])
+    .map(location => ({
       key: location.id,
       name: location.name,
-      members: (profiles ?? []).filter(p => p.default_location_id === location.id),
-    })),
-    {
-      key: 'other',
-      name: 'Other',
-      members: (profiles ?? []).filter(p => !p.default_location_id),
-    },
-  ].filter(g => g.members.length > 0)
+      members: allMembers.filter(p => p.location_id === location.id).sort((a, b) => a.full_name.localeCompare(b.full_name)),
+    }))
+    .filter(g => g.members.length > 0)
 
   return (
     <div className="h-full overflow-auto p-6">

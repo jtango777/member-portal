@@ -17,13 +17,21 @@ export default async function HausSmilesMemberPage({ params }: { params: Promise
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const { data: member } = await supabase
+  const { data: profileMember } = await supabase
     .from('profiles')
     .select('id, full_name, avatar_url')
     .eq('id', id)
     .eq('is_active', true)
     .not('avatar_url', 'is', null)
     .single()
+
+  const member = profileMember ?? (
+    await supabase
+      .from('directory_photos')
+      .select('id, full_name, avatar_url')
+      .eq('id', id)
+      .single()
+  ).data
 
   if (!member) notFound()
 
