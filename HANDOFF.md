@@ -14,7 +14,7 @@ Members get invited by email, set up an account, and can book rooms from a day-v
 
 ## The Live App
 
-**URL:** https://betarooms.bizhaus.com  
+**URL:** https://members.bizhaus.com  
 **Login:** Your admin email + password
 
 ---
@@ -47,7 +47,7 @@ Ask Caroline for login details for each.
 
 ## Day-to-Day Admin Tasks
 
-Everything is done through the web app at betarooms.bizhaus.com. No coding required.
+Everything is done through the web app at members.bizhaus.com. No coding required.
 
 **Managing members:**
 - Add a new member: Admin → Members → Add Member → enter email → Send Invite
@@ -106,7 +106,7 @@ All stored in Vercel under Settings → Environment Variables. Never put these i
 | `SUPABASE_SERVICE_ROLE_KEY` | Supabase admin key (keep secret) |
 | `RESEND_API_KEY` | Resend email API key |
 | `RESEND_FROM_EMAIL` | `BizHaus Bookings <bookings@bizhaus.com>` |
-| `NEXT_PUBLIC_APP_URL` | `https://betarooms.bizhaus.com` |
+| `NEXT_PUBLIC_APP_URL` | `https://members.bizhaus.com` |
 
 ---
 

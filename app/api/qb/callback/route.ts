@@ -53,6 +53,6 @@ export async function GET(request: Request) {
       updated_at: new Date().toISOString(),
     }, { onConflict: 'location_id' })
 
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://betarooms.bizhaus.com'
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://members.bizhaus.com'
   return NextResponse.redirect(`${baseUrl}/dashboard/admin?qb=connected`)
 }

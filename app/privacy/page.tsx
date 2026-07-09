@@ -7,7 +7,7 @@ export default function PrivacyPage() {
       <p className="text-sm text-gray-500 mb-10">Last updated: June 24, 2026</p>
 
       <p className="mb-6">
-        BizHaus (&quot;we,&quot; &quot;our,&quot; or &quot;us&quot;) operates the room reservation platform at betarooms.bizhaus.com. This policy describes how we collect, use, and protect your information when you use our services.
+        BizHaus (&quot;we,&quot; &quot;our,&quot; or &quot;us&quot;) operates the room reservation platform at members.bizhaus.com. This policy describes how we collect, use, and protect your information when you use our services.
       </p>
 
       <h2 className="text-xl font-semibold text-gray-900 mt-10 mb-4">Information we collect</h2>

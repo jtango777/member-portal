@@ -7,7 +7,7 @@ export default function TermsPage() {
       <p className="text-sm text-gray-500 mb-10">Last updated: June 24, 2026</p>
 
       <p className="mb-6">
-        These terms govern your use of the BizHaus room reservation platform at betarooms.bizhaus.com. By using our platform, you agree to these terms.
+        These terms govern your use of the BizHaus room reservation platform at members.bizhaus.com. By using our platform, you agree to these terms.
       </p>
 
       <h2 className="text-xl font-semibold text-gray-900 mt-10 mb-4">Services</h2>
