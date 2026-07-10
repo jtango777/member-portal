@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import toast from 'react-hot-toast'
 import PasswordInput from '@/components/PasswordInput'
+import { ArrowLeft } from 'lucide-react'
 
 type Location = { id: string; name: string }
 
@@ -33,6 +34,9 @@ function EmailStep({ onFound }: { onFound: (email: string) => void }) {
 
   return (
     <div className="bg-white rounded-xl shadow-lg p-8">
+      <Link href="/login" className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-900 mb-4">
+        <ArrowLeft size={14} /> Back to sign in
+      </Link>
       <h2 className="text-lg font-semibold text-gray-900 mb-1">Register your account</h2>
       <p className="text-sm text-gray-500 mb-6">Enter the email your BizHaus membership is under.</p>
       <form onSubmit={handleSubmit} className="space-y-4">
@@ -103,6 +107,9 @@ function DetailsStep({ email }: { email: string }) {
 
   return (
     <div className="bg-white rounded-xl shadow-lg p-8">
+      <Link href="/login" className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-900 mb-4">
+        <ArrowLeft size={14} /> Back to sign in
+      </Link>
       <h2 className="text-lg font-semibold text-gray-900 mb-1">Set up your account</h2>
       <p className="text-sm text-gray-500 mb-6">Creating account for <strong>{email}</strong></p>
       <form onSubmit={handleSubmit} className="space-y-4">
