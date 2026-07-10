@@ -14,7 +14,7 @@ function emailWrapper(content: string) {
         <!-- Header -->
         <div style="background:#0f172a;border-radius:10px 10px 0 0;padding:24px 32px;">
           <span style="color:white;font-size:20px;font-weight:700;letter-spacing:-0.3px;">BizHaus</span>
-          <span style="color:#94a3b8;font-size:13px;margin-left:10px;">Room Bookings</span>
+          <span style="color:#94a3b8;font-size:13px;margin-left:10px;">Member Portal</span>
         </div>
         <!-- Body -->
         <div style="background:#ffffff;padding:32px;border-radius:0 0 10px 10px;border:1px solid #e2e8f0;border-top:none;">
@@ -22,7 +22,7 @@ function emailWrapper(content: string) {
         </div>
         <!-- Footer -->
         <p style="text-align:center;color:#94a3b8;font-size:12px;margin-top:20px;">
-          BizHaus · Room Reservation System
+          BizHaus · Member Portal
         </p>
       </div>
     </div>
@@ -34,10 +34,10 @@ export async function sendInviteEmail(to: string, token: string) {
   await resend.emails.send({
     from: FROM,
     to,
-    subject: "You're invited to book rooms at BizHaus",
+    subject: "You're invited to the BizHaus Member Portal",
     html: emailWrapper(`
       <h2 style="color:#0f172a;margin:0 0 8px;font-size:22px;font-weight:700;">You're invited!</h2>
-      <p style="color:#475569;line-height:1.6;margin:0 0 24px;">You've been given access to the BizHaus room reservation system. Click below to set up your account and start booking.</p>
+      <p style="color:#475569;line-height:1.6;margin:0 0 24px;">You've been given access to the BizHaus Member Portal — book rooms, connect with the community, and more. Click below to set up your account.</p>
       <a href="${link}" style="display:inline-block;background:#2563eb;color:white;padding:13px 28px;border-radius:7px;text-decoration:none;font-weight:600;font-size:15px;margin-bottom:24px;">Set Up My Account →</a>
       <p style="color:#94a3b8;font-size:13px;margin:0;border-top:1px solid #f1f5f9;padding-top:20px;">This link expires in 7 days. If you weren't expecting this, you can safely ignore it.</p>
     `),
