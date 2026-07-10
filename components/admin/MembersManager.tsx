@@ -559,7 +559,7 @@ export default function MembersManager({ companies }: Props) {
                       />
                       {confirmRemove === m.id ? (
                         <div className="flex items-center gap-1.5">
-                          <span className="text-xs text-red-600">Remove?</span>
+                          <span className="text-xs text-red-600">Uninvite?</span>
                           <button onClick={() => handleRemove(m.id)} disabled={removing === m.id}
                             className="text-xs bg-red-600 text-white px-2 py-1 rounded font-medium">
                             {removing === m.id ? '…' : 'Yes'}
@@ -569,7 +569,7 @@ export default function MembersManager({ companies }: Props) {
                       ) : (
                         <IconAction
                           icon={Trash2}
-                          label="Remove"
+                          label="Uninvite"
                           onClick={() => setConfirmRemove(m.id)}
                           colorClass="text-gray-400 hover:bg-red-50 hover:text-red-500"
                         />
@@ -616,9 +616,8 @@ function Pagination({ page, totalPages, onPageChange, showAll, onToggleShowAll }
   showAll: boolean
   onToggleShowAll: () => void
 }) {
-  if (totalPages <= 1 && !showAll) return null
   return (
-    <div className="flex items-center justify-between px-4 py-2 border-t border-gray-100 bg-gray-50 text-xs">
+    <div className="flex items-center justify-between px-4 py-2 border-t border-gray-100 bg-gray-50 text-xs rounded-b-xl">
       <button onClick={onToggleShowAll} className="text-blue-600 hover:text-blue-800 font-medium">
         {showAll ? 'Show 10 per page' : 'Show all'}
       </button>
@@ -641,8 +640,8 @@ function Pagination({ page, totalPages, onPageChange, showAll, onToggleShowAll }
 
 function Section({ title, children, footer }: { title: string; children: React.ReactNode; footer?: React.ReactNode }) {
   return (
-    <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-      <div className="px-4 py-3 border-b border-gray-100 bg-gray-50">
+    <div className="bg-white rounded-xl border border-gray-200">
+      <div className="px-4 py-3 border-b border-gray-100 bg-gray-50 rounded-t-xl">
         <h2 className="text-sm font-semibold text-blue-600">{title}</h2>
       </div>
       {children}
