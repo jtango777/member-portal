@@ -3,7 +3,7 @@ import { Resend } from 'resend'
 const resend = new Resend(process.env.RESEND_API_KEY)
 const FROM = process.env.RESEND_FROM_EMAIL ?? 'BizHaus <noreply@bizhaus.com>'
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
-const STAFF_EMAIL = process.env.STAFF_NOTIFICATION_EMAIL ?? 'bookings@bizhaus.com'
+const STAFF_EMAIL = process.env.STAFF_NOTIFICATION_EMAIL ?? 'hello@bizhaus.com'
 
 const FONT = `-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif`
 
@@ -130,7 +130,7 @@ export async function sendExternalBookingReceipt(
 
       <p style="color:#94a3b8;font-size:13px;margin:0;border-top:1px solid #f1f5f9;padding-top:20px;">
         <strong style="color:#64748b;">Cancellation policy:</strong> Bookings are non-refundable. To inquire about credit toward a future booking, contact us at
-        <a href="mailto:bookings@bizhaus.com" style="color:#2563eb;text-decoration:none;">bookings@bizhaus.com</a>.
+        <a href="mailto:hello@bizhaus.com" style="color:#2563eb;text-decoration:none;">hello@bizhaus.com</a>.
       </p>
     `),
   })
