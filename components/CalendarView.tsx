@@ -331,7 +331,7 @@ export default function CalendarView({ locations, profile, company, hoursUsed, d
                   key={room.id}
                   className="border-l border-gray-200 px-3 py-2 min-w-[160px] flex-1"
                 >
-                  <div className="font-semibold text-sm text-gray-900 truncate">{room.name}</div>
+                  <div className="font-semibold text-sm text-gray-900 leading-tight" title={room.name}>{room.name}</div>
                   <div className="flex items-center gap-1 text-xs text-gray-400 mt-0.5">
                     <Users size={10} />
                     {room.capacity}
