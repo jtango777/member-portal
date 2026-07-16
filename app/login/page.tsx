@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
 import toast from 'react-hot-toast'
 import PasswordInput from '@/components/PasswordInput'
+import { cinzel } from '@/lib/fonts'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -32,7 +33,7 @@ export default function LoginPage() {
     <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-white tracking-tight">BizHaus</h1>
+          <h1 className={`${cinzel.className} text-3xl text-white uppercase tracking-widest`}>BizHaus</h1>
           <p className="mt-3 text-sm text-slate-400">Member Portal</p>
         </div>
         <div className="bg-white rounded-xl shadow-lg p-8">
