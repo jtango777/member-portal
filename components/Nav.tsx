@@ -6,7 +6,6 @@ import { createClient } from '@/lib/supabase/client'
 import { Profile } from '@/types'
 import { LogOut } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { cinzel } from '@/lib/fonts'
 import HoverDropdown from './HoverDropdown'
 
 type Props = { profile: Profile }
@@ -71,7 +70,8 @@ export default function Nav({ profile }: Props) {
       <nav className="bg-slate-900 text-white px-4 h-14 flex items-center justify-between gap-4 flex-shrink-0 pointer-events-auto relative z-[60]">
         <div className="flex items-center gap-6">
           <Link href="/dashboard" className="flex items-center gap-2">
-            <span className={cn(cinzel.className, 'text-xl uppercase tracking-widest text-white')}>BizHaus</span>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/brand/bizhaus-logo-white.png" alt="BizHaus" className="h-4 w-auto" />
             <span className="text-[10px] font-bold uppercase tracking-wider bg-blue-600 text-white px-2 py-0.5 rounded">Admin</span>
           </Link>
 
@@ -108,7 +108,8 @@ export default function Nav({ profile }: Props) {
     <nav className="bg-slate-900 text-white px-4 h-14 flex items-center justify-between flex-shrink-0 pointer-events-auto relative z-[60]">
       <div className="flex items-baseline gap-6">
         <Link href="/dashboard" className="flex items-center gap-2">
-          <span className={cn(cinzel.className, 'text-xl uppercase tracking-widest text-white')}>BizHaus</span>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/brand/bizhaus-logo-white.png" alt="BizHaus" className="h-4 w-auto" />
           <span className="text-[10px] font-bold uppercase tracking-wider bg-blue-600 text-white px-2 py-0.5 rounded">Member Portal</span>
         </Link>
         <Link href="/dashboard/rooms"

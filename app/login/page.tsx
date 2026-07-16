@@ -6,7 +6,6 @@ import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
 import toast from 'react-hot-toast'
 import PasswordInput from '@/components/PasswordInput'
-import { cinzel } from '@/lib/fonts'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -33,7 +32,8 @@ export default function LoginPage() {
     <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
-          <h1 className={`${cinzel.className} text-3xl text-white uppercase tracking-widest`}>BizHaus</h1>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/brand/bizhaus-logo-white.png" alt="BizHaus" className="h-8 w-auto mx-auto" />
           <p className="mt-3 text-sm text-slate-400">Member Portal</p>
         </div>
         <div className="bg-white rounded-xl shadow-lg p-8">
