@@ -4,9 +4,9 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Profile } from '@/types'
-import { LogOut, ChevronDown } from 'lucide-react'
-import * as DropdownMenu from '@radix-ui/react-dropdown-menu'
+import { LogOut } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import HoverDropdown from './HoverDropdown'
 
 type Props = { profile: Profile }
 
@@ -20,34 +20,15 @@ const manageLinks = [
 function ManageDropdown({ pathname }: { pathname: string }) {
   const isActive = manageLinks.some(l => pathname === l.href)
   return (
-    <DropdownMenu.Root>
-      <DropdownMenu.Trigger className={cn(
+    <HoverDropdown
+      label="Manage"
+      links={manageLinks}
+      pathname={pathname}
+      triggerClassName={cn(
         'flex items-center gap-1 text-sm font-medium transition-colors outline-none',
         isActive ? 'text-white' : 'text-slate-400 hover:text-white'
-      )}>
-        Manage <ChevronDown size={14} />
-      </DropdownMenu.Trigger>
-      <DropdownMenu.Portal>
-        <DropdownMenu.Content
-          className="bg-white text-gray-900 rounded-lg shadow-xl border border-gray-200 py-1 min-w-[180px] z-[70]"
-          sideOffset={8}
-        >
-          {manageLinks.map(link => (
-            <DropdownMenu.Item key={link.href} asChild>
-              <Link
-                href={link.href}
-                className={cn(
-                  'block px-3 py-2 text-sm hover:bg-gray-50 cursor-pointer outline-none',
-                  pathname === link.href ? 'font-semibold text-blue-600' : 'text-gray-700'
-                )}
-              >
-                {link.label}
-              </Link>
-            </DropdownMenu.Item>
-          ))}
-        </DropdownMenu.Content>
-      </DropdownMenu.Portal>
-    </DropdownMenu.Root>
+      )}
+    />
   )
 }
 
