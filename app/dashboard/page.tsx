@@ -15,23 +15,23 @@ export default async function PortalHomePage() {
 
   return (
     <div className="h-full overflow-auto p-6">
-      <div className="max-w-5xl mx-auto">
+      <div className="max-w-md mx-auto">
         <p className="text-sm text-gray-400 mb-1">Welcome back</p>
-        <h1 className="text-xl font-semibold text-gray-900 mb-8">{profile.full_name}</h1>
+        <h1 className="text-xl font-semibold text-gray-900 mb-6">{profile.full_name}</h1>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+        <div className="grid grid-cols-2 gap-3">
           <Link href="/dashboard/rooms"
-            className="bg-blue-50 hover:bg-blue-100 transition-colors rounded-2xl p-8 flex flex-col gap-3 min-h-[180px] justify-center">
-            <DoorOpen size={32} className="text-blue-700" />
-            <span className="text-xl font-semibold text-blue-900">Rooms</span>
-            <span className="text-sm text-blue-700">Book a conference room</span>
+            className="bg-blue-50 hover:bg-blue-100 transition-colors rounded-xl p-4 flex flex-col gap-1.5">
+            <DoorOpen size={20} className="text-blue-700" />
+            <span className="text-base font-semibold text-blue-900">Rooms</span>
+            <span className="text-xs text-blue-700">Book a conference room</span>
           </Link>
 
           <Link href="/dashboard/haus-smiles"
-            className="bg-emerald-50 hover:bg-emerald-100 transition-colors rounded-2xl p-8 flex flex-col gap-3 min-h-[180px] justify-center">
-            <Smile size={32} className="text-emerald-700" />
-            <span className="text-xl font-semibold text-emerald-900">Haus Smiles</span>
-            <span className="text-sm text-emerald-700">Meet your community</span>
+            className="bg-emerald-50 hover:bg-emerald-100 transition-colors rounded-xl p-4 flex flex-col gap-1.5">
+            <Smile size={20} className="text-emerald-700" />
+            <span className="text-base font-semibold text-emerald-900">Haus Smiles</span>
+            <span className="text-xs text-emerald-700">Meet your community</span>
           </Link>
         </div>
       </div>
