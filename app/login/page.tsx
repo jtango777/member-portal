@@ -1,17 +1,24 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
 import toast from 'react-hot-toast'
 import PasswordInput from '@/components/PasswordInput'
+import { cn } from '@/lib/utils'
 
 export default function LoginPage() {
   const router = useRouter()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
+  const [isDev, setIsDev] = useState(false)
+
+  useEffect(() => {
+    const host = window.location.hostname
+    setIsDev(host.includes('devrooms') || host === 'localhost')
+  }, [])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -29,8 +36,16 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
-      <div className="w-full max-w-sm">
+    <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4 relative overflow-hidden">
+      {isDev && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src="/images/login-background.gif"
+          alt=""
+          className="absolute inset-0 w-full h-full object-cover opacity-40"
+        />
+      )}
+      <div className={cn('w-full max-w-sm', isDev && 'relative')}>
         <div className="text-center mb-8">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/brand/bizhaus-logo-white.png" alt="BizHaus" className="h-8 w-auto mx-auto" />
