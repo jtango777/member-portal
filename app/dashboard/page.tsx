@@ -15,11 +15,16 @@ export default async function PortalHomePage() {
 
   return (
     <div className="h-full overflow-auto p-6">
-      <div className="max-w-xl mx-auto">
-        <p className="text-sm text-gray-400 mb-1">Welcome back</p>
-        <h1 className="text-xl font-semibold text-gray-900 mb-6">{profile.full_name}</h1>
+      <div className="max-w-5xl mx-auto">
+        <div className="flex items-center gap-3 mb-2">
+          <div className="h-9 w-1.5 bg-gradient-to-b from-blue-600 to-emerald-500 rounded-full" />
+          <h1 className="text-4xl font-extrabold tracking-tight bg-gradient-to-r from-blue-700 to-emerald-600 bg-clip-text text-transparent">
+            Member Portal
+          </h1>
+        </div>
 
-        <h2 className="text-sm font-semibold uppercase tracking-wider text-gray-400 mb-3">Member Portal</h2>
+        <p className="text-sm text-gray-400 mb-1 mt-6">Welcome back</p>
+        <h2 className="text-xl font-semibold text-gray-900 mb-8">{profile.full_name}</h2>
 
         <div className="grid grid-cols-1 gap-5">
           <Link href="/dashboard/rooms"
