@@ -18,11 +18,12 @@ type Props = {
   targetId: string
   memberName: string
   hasPhoto?: boolean
+  avatarUrl?: string | null
 }
 
 type Mode = 'choose' | 'upload' | 'directory'
 
-export default function AssignPhotoDialog({ open, onOpenChange, onSuccess, targetType, targetId, memberName, hasPhoto }: Props) {
+export default function AssignPhotoDialog({ open, onOpenChange, onSuccess, targetType, targetId, memberName, hasPhoto, avatarUrl }: Props) {
   const endpoint = targetType === 'member'
     ? `/api/admin/members/${targetId}/photo`
     : `/api/admin/pending-members/${targetId}/photo`
@@ -39,6 +40,7 @@ export default function AssignPhotoDialog({ open, onOpenChange, onSuccess, targe
   const [loadingPhotos, setLoadingPhotos] = useState(false)
   const [search, setSearch] = useState('')
   const [linking, setLinking] = useState<string | null>(null)
+  const [showPhotoPreview, setShowPhotoPreview] = useState(false)
 
   function reset() {
     setMode('choose')
@@ -134,6 +136,27 @@ export default function AssignPhotoDialog({ open, onOpenChange, onSuccess, targe
                 {hasPhoto && (
                   <div className="bg-green-50 border border-green-200 rounded-lg px-3 py-2.5 text-sm text-green-800">
                     Photo already added for this user.
+                    {avatarUrl && (
+                      <button onClick={() => setShowPhotoPreview(true)}
+                        className="block mt-1 text-green-700 underline hover:text-green-900 text-xs">
+                        View current photo
+                      </button>
+                    )}
+                  </div>
+                )}
+
+                {showPhotoPreview && avatarUrl && (
+                  <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50"
+                    onClick={() => setShowPhotoPreview(false)}>
+                    <div className="relative bg-white rounded-xl p-4 shadow-xl" onClick={e => e.stopPropagation()}>
+                      <button onClick={() => setShowPhotoPreview(false)}
+                        className="absolute top-2 right-2 text-gray-400 hover:text-gray-600">
+                        <X size={16} />
+                      </button>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={avatarUrl} alt={memberName}
+                        className="w-40 h-40 rounded-full object-cover border border-gray-200" />
+                    </div>
                   </div>
                 )}
                 <p className="text-sm text-gray-500">
