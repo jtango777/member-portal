@@ -9,42 +9,67 @@ async function assertAdmin() {
   return profile?.is_admin ? user : null
 }
 
-// Update company assignment and/or expected name
+// Update member fields: company, name, email, default location
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const caller = await assertAdmin()
   if (!caller) return NextResponse.json({ error: 'Admins only' }, { status: 403 })
 
-  const { company_id, full_name } = await request.json()
-  if (!company_id && full_name === undefined) {
-    return NextResponse.json({ error: 'company_id or full_name required' }, { status: 400 })
-  }
+  const { company_id, full_name, email, default_location_id } = await request.json()
 
   const admin = createAdminClient()
 
-  const update: { company_id?: string; full_name?: string } = {}
-  if (company_id) update.company_id = company_id
-  if (full_name !== undefined) update.full_name = full_name
-
-  // Update permitted_emails
-  const { data: pe, error: peErr } = await admin
+  // Get current permitted_email to find old email (needed to look up auth user)
+  const { data: current, error: fetchErr } = await admin
     .from('permitted_emails')
-    .update(update)
-    .eq('id', id)
     .select('email')
+    .eq('id', id)
     .single()
 
-  if (peErr) {
-    console.error('[admin/members] PATCH error:', peErr.message)
-    return NextResponse.json({ error: 'Failed to update member.' }, { status: 500 })
+  if (fetchErr || !current) {
+    return NextResponse.json({ error: 'Member not found' }, { status: 404 })
   }
 
-  // Also update profile if user has accepted (find profile via auth user lookup)
-  if (company_id) {
-    const { data: { users } } = await admin.auth.admin.listUsers({ perPage: 1000 })
-    const authUser = users.find(u => u.email?.toLowerCase() === pe.email?.toLowerCase())
-    if (authUser) {
-      await admin.from('profiles').update({ company_id }).eq('id', authUser.id)
+  // Build permitted_emails update
+  const peUpdate: Record<string, string | null> = {}
+  if (company_id !== undefined) peUpdate.company_id = company_id
+  if (full_name  !== undefined) peUpdate.full_name  = full_name
+  if (email      !== undefined) peUpdate.email      = email
+
+  if (Object.keys(peUpdate).length > 0) {
+    const { error: peErr } = await admin
+      .from('permitted_emails')
+      .update(peUpdate)
+      .eq('id', id)
+
+    if (peErr) {
+      console.error('[admin/members] PATCH permitted_emails error:', peErr.message)
+      return NextResponse.json({ error: 'Failed to update member.' }, { status: 500 })
+    }
+  }
+
+  // Also update profile if the user has an account
+  const { data: { users } } = await admin.auth.admin.listUsers({ perPage: 1000 })
+  const authUser = users.find(u => u.email?.toLowerCase() === current.email?.toLowerCase())
+
+  if (authUser) {
+    // Update profile fields
+    const profileUpdate: Record<string, string | null> = {}
+    if (company_id           !== undefined) profileUpdate.company_id           = company_id
+    if (full_name            !== undefined) profileUpdate.full_name            = full_name
+    if (default_location_id  !== undefined) profileUpdate.default_location_id  = default_location_id ?? null
+
+    if (Object.keys(profileUpdate).length > 0) {
+      await admin.from('profiles').update(profileUpdate).eq('id', authUser.id)
+    }
+
+    // Update auth email if changed
+    if (email && email !== current.email) {
+      const { error: authErr } = await admin.auth.admin.updateUserById(authUser.id, { email })
+      if (authErr) {
+        console.error('[admin/members] PATCH auth email error:', authErr.message)
+        return NextResponse.json({ error: 'Failed to update email.' }, { status: 500 })
+      }
     }
   }
 

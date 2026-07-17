@@ -28,18 +28,27 @@ function IconAction({ icon: Icon, label, onClick, disabled, colorClass }: {
 }
 
 type MemberRow = {
-  id:           string
-  email:        string
-  company_id:   string
-  company_name: string
-  invited_at:   string
-  accepted_at:  string | null
-  invite_token: string | null
-  user_id:      string | null
-  full_name:    string | null
-  is_admin:     boolean
+  id:                  string
+  email:               string
+  company_id:          string
+  company_name:        string
+  invited_at:          string
+  accepted_at:         string | null
+  invite_token:        string | null
+  user_id:             string | null
+  full_name:           string | null
+  is_admin:            boolean
   avatar_url:          string | null
   default_location_id: string | null
+}
+
+type EditRow = {
+  id:                  string
+  full_name:           string
+  email:               string
+  company_id:          string
+  default_location_id: string
+  isActive:            boolean
 }
 
 type Props = { companies: Company[] }
@@ -56,10 +65,8 @@ export default function MembersManager({ companies }: Props) {
   const [lastInviteLink, setLastInviteLink] = useState<string | null>(null)
   const [togglingAdmin, setTogglingAdmin]   = useState<string | null>(null)
   const [resending, setResending]   = useState<string | null>(null)
-  const [editingCompany, setEditingCompany] = useState<{ id: string; companyId: string } | null>(null)
-  const [savingCompany, setSavingCompany]   = useState(false)
-  const [editingName, setEditingName] = useState<{ id: string; name: string } | null>(null)
-  const [savingName, setSavingName]   = useState(false)
+  const [editingRow, setEditingRow] = useState<EditRow | null>(null)
+  const [savingRow, setSavingRow]   = useState(false)
   const [confirmRemove, setConfirmRemove]   = useState<string | null>(null)
   const [removing, setRemoving]             = useState<string | null>(null)
   const [confirmInviteAll, setConfirmInviteAll] = useState(false)
@@ -122,7 +129,6 @@ export default function MembersManager({ companies }: Props) {
     if (res.ok) {
       if (data.emailSent) toast.success('Invite resent!')
       else toast.success('Link generated — click the copy icon to get it.')
-      // Store link against this member id so the row can show it
       setMembers(prev => prev.map(m =>
         m.id === memberId ? { ...m, invite_token: data.inviteLink } : m
       ))
@@ -160,46 +166,30 @@ export default function MembersManager({ companies }: Props) {
     setTogglingAdmin(null)
   }
 
-  // ── Edit company ──────────────────────────────────────────────────────────
+  // ── Edit row ───────────────────────────────────────────────────────────────
 
-  async function saveCompany(memberId: string) {
-    if (!editingCompany) return
-    setSavingCompany(true)
+  async function saveRow(memberId: string) {
+    if (!editingRow) return
+    setSavingRow(true)
     const res = await fetch(`/api/admin/members/${memberId}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ company_id: editingCompany.companyId }),
+      body: JSON.stringify({
+        full_name:           editingRow.full_name.trim() || null,
+        email:               editingRow.email.trim(),
+        company_id:          editingRow.company_id,
+        default_location_id: editingRow.isActive ? (editingRow.default_location_id || null) : undefined,
+      }),
     })
     if (res.ok) {
-      toast.success('Company updated')
-      setEditingCompany(null)
+      toast.success('Member updated')
+      setEditingRow(null)
       await refresh()
     } else {
       const d = await res.json()
       toast.error(d.error ?? 'Failed')
     }
-    setSavingCompany(false)
-  }
-
-  // ── Edit expected name (pending only) ───────────────────────────────────────
-
-  async function saveName(memberId: string) {
-    if (!editingName) return
-    setSavingName(true)
-    const res = await fetch(`/api/admin/members/${memberId}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ full_name: editingName.name.trim() || null }),
-    })
-    if (res.ok) {
-      toast.success('Name updated')
-      setEditingName(null)
-      await refresh()
-    } else {
-      const d = await res.json()
-      toast.error(d.error ?? 'Failed')
-    }
-    setSavingName(false)
+    setSavingRow(false)
   }
 
   // ── Remove member ──────────────────────────────────────────────────────────
@@ -282,6 +272,57 @@ export default function MembersManager({ companies }: Props) {
   const pagedActive  = showAllActive  ? active  : active.slice((activePage - 1) * PAGE_SIZE, activePage * PAGE_SIZE)
   const pagedPending = showAllPending ? pending : pending.slice((pendingPage - 1) * PAGE_SIZE, pendingPage * PAGE_SIZE)
 
+  // ── Shared edit form ───────────────────────────────────────────────────────
+
+  function EditForm({ m, colSpan }: { m: MemberRow; colSpan: number }) {
+    if (!editingRow || editingRow.id !== m.id) return null
+    return (
+      <tr className="border-b border-gray-100 bg-blue-50/30">
+        <td colSpan={colSpan} className="px-4 py-3">
+          <div className="flex items-center gap-2 flex-wrap">
+            <input
+              type="text"
+              placeholder="Name"
+              value={editingRow.full_name}
+              onChange={e => setEditingRow(r => r ? { ...r, full_name: e.target.value } : r)}
+              className="border border-gray-300 rounded px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 w-36"
+            />
+            <input
+              type="email"
+              placeholder="Email"
+              value={editingRow.email}
+              onChange={e => setEditingRow(r => r ? { ...r, email: e.target.value } : r)}
+              className="border border-gray-300 rounded px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 w-48"
+            />
+            <select
+              value={editingRow.company_id}
+              onChange={e => setEditingRow(r => r ? { ...r, company_id: e.target.value } : r)}
+              className="border border-gray-300 rounded px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              {companies.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+            </select>
+            {editingRow.isActive && locations.length > 0 && (
+              <select
+                value={editingRow.default_location_id}
+                onChange={e => setEditingRow(r => r ? { ...r, default_location_id: e.target.value } : r)}
+                className="border border-gray-300 rounded px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">No default location</option>
+                {locations.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
+              </select>
+            )}
+            <button onClick={() => saveRow(m.id)} disabled={savingRow}
+              className="text-xs bg-blue-600 text-white px-2.5 py-1 rounded font-medium hover:bg-blue-700 disabled:opacity-50">
+              {savingRow ? '…' : 'Save'}
+            </button>
+            <button onClick={() => setEditingRow(null)}
+              className="text-xs text-gray-500 hover:text-gray-700">Cancel</button>
+          </div>
+        </td>
+      </tr>
+    )
+  }
+
   // ── Render ─────────────────────────────────────────────────────────────────
 
   return (
@@ -354,7 +395,6 @@ export default function MembersManager({ companies }: Props) {
             </div>
           </form>
 
-          {/* Invite link display */}
           {lastInviteLink && (
             <div className="mt-2 bg-blue-50 border border-blue-200 rounded-lg px-3 py-2.5 flex items-center gap-2">
               <Link size={14} className="text-blue-500 flex-shrink-0" />
@@ -403,79 +443,65 @@ export default function MembersManager({ companies }: Props) {
             </thead>
             <tbody>
               {pagedActive.map(m => (
-                <tr key={m.id} className="border-b border-gray-100 last:border-0 hover:bg-gray-50">
-                  <td className="px-4 py-3 font-medium text-gray-900 truncate" title={m.full_name ?? undefined}>{m.full_name ?? '—'}</td>
-                  <td className="px-4 py-3 text-gray-600 truncate" title={m.email}>{m.email}</td>
-                  <td className="px-4 py-3 truncate">
-                    {editingCompany?.id === m.id ? (
-                      <div className="flex items-center gap-1.5">
-                        <select value={editingCompany.companyId}
-                          onChange={e => setEditingCompany({ id: m.id, companyId: e.target.value })}
-                          className="border border-gray-300 rounded px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500">
-                          {companies.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                        </select>
-                        <button onClick={() => saveCompany(m.id)} disabled={savingCompany}
-                          className="text-xs text-blue-600 font-medium hover:text-blue-800">{savingCompany ? '…' : 'Save'}</button>
-                        <button onClick={() => setEditingCompany(null)}
-                          className="text-gray-400 hover:text-gray-600"><X size={12} /></button>
-                      </div>
-                    ) : (
-                      <span className="text-gray-600" title={m.company_name}>{m.company_name}</span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3">
-                    {m.is_admin
-                      ? <span className="inline-flex items-center gap-1 whitespace-nowrap text-xs font-medium text-blue-700 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-full"><Shield size={10} /> Admin</span>
-                      : <span className="text-xs text-gray-400">Member</span>}
-                  </td>
-                  <td className="px-4 py-3 text-gray-500 text-xs">{formatShortDate(new Date(m.accepted_at!))}</td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center justify-end gap-0.5">
-                      {editingCompany?.id !== m.id && (
-                        <IconAction
-                          icon={Edit2}
-                          label="Change company"
-                          onClick={() => setEditingCompany({ id: m.id, companyId: m.company_id })}
-                          colorClass="text-gray-400 hover:bg-gray-100 hover:text-gray-600"
-                        />
-                      )}
-                      {m.user_id && (
-                        <IconAction
-                          icon={Camera}
-                          label={m.avatar_url ? 'Photo linked' : 'Add picture'}
-                          onClick={() => setPhotoTarget({ type: 'member', id: m.user_id!, name: m.full_name ?? m.email, hasPhoto: !!m.avatar_url, avatarUrl: m.avatar_url })}
-                          colorClass={m.avatar_url ? 'text-green-500 hover:bg-green-50' : 'text-gray-400 hover:bg-gray-100 hover:text-gray-600'}
-                        />
-                      )}
-                      {m.user_id && (
-                        <IconAction
-                          icon={m.is_admin ? ShieldOff : Shield}
-                          label={m.is_admin ? 'Remove admin access' : 'Grant admin access'}
-                          onClick={() => toggleAdmin(m.user_id!, m.is_admin)}
-                          disabled={togglingAdmin === m.user_id}
-                          colorClass={m.is_admin ? 'text-red-500 hover:bg-red-50' : 'text-blue-500 hover:bg-blue-50'}
-                        />
-                      )}
-                      {confirmRemove === m.id ? (
-                        <div className="flex items-center gap-1.5 ml-1">
-                          <span className="text-xs text-red-600">Remove?</span>
-                          <button onClick={() => handleRemove(m.id)} disabled={removing === m.id}
-                            className="text-xs bg-red-600 text-white px-2 py-1 rounded font-medium">
-                            {removing === m.id ? '…' : 'Yes'}
-                          </button>
-                          <button onClick={() => setConfirmRemove(null)} className="text-xs text-gray-400">No</button>
+                editingRow?.id === m.id
+                  ? <EditForm key={m.id} m={m} colSpan={6} />
+                  : (
+                    <tr key={m.id} className="border-b border-gray-100 last:border-0 hover:bg-gray-50">
+                      <td className="px-4 py-3 font-medium text-gray-900 truncate" title={m.full_name ?? undefined}>{m.full_name ?? '—'}</td>
+                      <td className="px-4 py-3 text-gray-600 truncate" title={m.email}>{m.email}</td>
+                      <td className="px-4 py-3 text-gray-600 truncate" title={m.company_name}>{m.company_name}</td>
+                      <td className="px-4 py-3">
+                        {m.is_admin
+                          ? <span className="inline-flex items-center gap-1 whitespace-nowrap text-xs font-medium text-blue-700 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-full"><Shield size={10} /> Admin</span>
+                          : <span className="text-xs text-gray-400">Member</span>}
+                      </td>
+                      <td className="px-4 py-3 text-gray-500 text-xs">{formatShortDate(new Date(m.accepted_at!))}</td>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center justify-end gap-0.5">
+                          <IconAction
+                            icon={Edit2}
+                            label="Edit member"
+                            onClick={() => setEditingRow({ id: m.id, full_name: m.full_name ?? '', email: m.email, company_id: m.company_id, default_location_id: m.default_location_id ?? '', isActive: true })}
+                            colorClass="text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+                          />
+                          {m.user_id && (
+                            <IconAction
+                              icon={Camera}
+                              label={m.avatar_url ? 'Photo linked' : 'Add picture'}
+                              onClick={() => setPhotoTarget({ type: 'member', id: m.user_id!, name: m.full_name ?? m.email, hasPhoto: !!m.avatar_url, avatarUrl: m.avatar_url })}
+                              colorClass={m.avatar_url ? 'text-green-500 hover:bg-green-50' : 'text-gray-400 hover:bg-gray-100 hover:text-gray-600'}
+                            />
+                          )}
+                          {m.user_id && (
+                            <IconAction
+                              icon={m.is_admin ? ShieldOff : Shield}
+                              label={m.is_admin ? 'Remove admin access' : 'Grant admin access'}
+                              onClick={() => toggleAdmin(m.user_id!, m.is_admin)}
+                              disabled={togglingAdmin === m.user_id}
+                              colorClass={m.is_admin ? 'text-red-500 hover:bg-red-50' : 'text-blue-500 hover:bg-blue-50'}
+                            />
+                          )}
+                          {confirmRemove === m.id ? (
+                            <div className="flex items-center gap-1.5 ml-1">
+                              <span className="text-xs text-red-600">Remove?</span>
+                              <button onClick={() => handleRemove(m.id)} disabled={removing === m.id}
+                                className="text-xs bg-red-600 text-white px-2 py-1 rounded font-medium">
+                                {removing === m.id ? '…' : 'Yes'}
+                              </button>
+                              <button onClick={() => setConfirmRemove(null)} className="text-xs text-gray-400">No</button>
+                            </div>
+                          ) : (
+                            <IconAction
+                              icon={Trash2}
+                              label="Remove member"
+                              onClick={() => setConfirmRemove(m.id)}
+                              colorClass="text-gray-400 hover:bg-red-50 hover:text-red-500"
+                            />
+                          )}
                         </div>
-                      ) : (
-                        <IconAction
-                          icon={Trash2}
-                          label="Remove member"
-                          onClick={() => setConfirmRemove(m.id)}
-                          colorClass="text-gray-400 hover:bg-red-50 hover:text-red-500"
-                        />
-                      )}
-                    </div>
-                  </td>
-                </tr>
+                      </td>
+                    </tr>
+                  )
               ))}
             </tbody>
           </table>
@@ -499,99 +525,67 @@ export default function MembersManager({ companies }: Props) {
             </thead>
             <tbody>
               {pagedPending.map(m => (
-                <tr key={m.id} className="border-b border-gray-100 last:border-0 hover:bg-gray-50">
-                  <td className="px-4 py-3">
-                    {editingName?.id === m.id ? (
-                      <div className="flex items-center gap-1">
-                        <input value={editingName.name} onChange={e => setEditingName({ id: m.id, name: e.target.value })}
-                          autoFocus placeholder="Full name"
-                          className="border border-gray-300 rounded px-1.5 py-1 text-xs w-16 min-w-0 focus:outline-none focus:ring-2 focus:ring-blue-500" />
-                        <button onClick={() => saveName(m.id)} disabled={savingName}
-                          className="text-xs text-blue-600 font-medium hover:text-blue-800">{savingName ? '…' : 'Save'}</button>
-                        <button onClick={() => setEditingName(null)}
-                          className="text-gray-400 hover:text-gray-600"><X size={12} /></button>
-                      </div>
-                    ) : (
-                      <button onClick={() => setEditingName({ id: m.id, name: m.full_name ?? '' })}
-                        className="flex items-center gap-1.5 group text-left w-full min-w-0">
-                        {m.full_name
-                          ? <span className="text-gray-900 font-medium truncate" title={m.full_name}>{m.full_name}</span>
-                          : <span className="text-gray-400 italic">Add name</span>}
-                        <Edit2 size={10} className="text-gray-300 group-hover:text-gray-500 flex-shrink-0" />
-                      </button>
-                    )}
-                  </td>
-                  <td className="px-4 py-3 text-gray-700 truncate" title={m.email}>{m.email}</td>
-                  <td className="px-4 py-3 truncate">
-                    {editingCompany?.id === m.id ? (
-                      <div className="flex items-center gap-1.5">
-                        <select value={editingCompany.companyId}
-                          onChange={e => setEditingCompany({ id: m.id, companyId: e.target.value })}
-                          className="border border-gray-300 rounded px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500">
-                          {companies.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                        </select>
-                        <button onClick={() => saveCompany(m.id)} disabled={savingCompany}
-                          className="text-xs text-blue-600 font-medium hover:text-blue-800">{savingCompany ? '…' : 'Save'}</button>
-                        <button onClick={() => setEditingCompany(null)}
-                          className="text-gray-400 hover:text-gray-600"><X size={12} /></button>
-                      </div>
-                    ) : (
-                      <span className="text-gray-600" title={m.company_name}>{m.company_name}</span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3"><StatusBadge m={m} /></td>
-                  <td className="px-4 py-3 text-gray-500 text-xs">{formatShortDate(new Date(m.invited_at))}</td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center justify-end gap-0.5">
-                      {editingCompany?.id !== m.id && (
-                        <IconAction
-                          icon={Edit2}
-                          label="Change company"
-                          onClick={() => setEditingCompany({ id: m.id, companyId: m.company_id })}
-                          colorClass="text-gray-400 hover:bg-gray-100 hover:text-gray-600"
-                        />
-                      )}
-                      <IconAction
-                        icon={Camera}
-                        label={m.avatar_url ? 'Photo linked' : 'Add picture'}
-                        onClick={() => setPhotoTarget({ type: 'pending', id: m.id, name: m.email, hasPhoto: !!m.avatar_url, avatarUrl: m.avatar_url })}
-                        colorClass={m.avatar_url ? 'text-green-500 hover:bg-green-50' : 'text-gray-400 hover:bg-gray-100 hover:text-gray-600'}
-                      />
-                      {m.invite_token?.startsWith('http') && (
-                        <IconAction
-                          icon={copiedLink === m.id ? Check : Copy}
-                          label={copiedLink === m.id ? 'Copied!' : 'Copy invite link'}
-                          onClick={() => copyLink(m.invite_token!, m.id)}
-                          colorClass="text-gray-400 hover:bg-gray-100 hover:text-gray-600"
-                        />
-                      )}
-                      <IconAction
-                        icon={Send}
-                        label="Invite"
-                        onClick={() => handleResend(m.id)}
-                        disabled={resending === m.id}
-                        colorClass="text-blue-500 hover:bg-blue-50"
-                      />
-                      {confirmRemove === m.id ? (
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-xs text-red-600">Uninvite?</span>
-                          <button onClick={() => handleRemove(m.id)} disabled={removing === m.id}
-                            className="text-xs bg-red-600 text-white px-2 py-1 rounded font-medium">
-                            {removing === m.id ? '…' : 'Yes'}
-                          </button>
-                          <button onClick={() => setConfirmRemove(null)} className="text-xs text-gray-400">No</button>
+                editingRow?.id === m.id
+                  ? <EditForm key={m.id} m={m} colSpan={6} />
+                  : (
+                    <tr key={m.id} className="border-b border-gray-100 last:border-0 hover:bg-gray-50">
+                      <td className="px-4 py-3 font-medium text-gray-900 truncate" title={m.full_name ?? undefined}>
+                        {m.full_name ?? <span className="text-gray-400 italic">No name</span>}
+                      </td>
+                      <td className="px-4 py-3 text-gray-700 truncate" title={m.email}>{m.email}</td>
+                      <td className="px-4 py-3 text-gray-600 truncate" title={m.company_name}>{m.company_name}</td>
+                      <td className="px-4 py-3"><StatusBadge m={m} /></td>
+                      <td className="px-4 py-3 text-gray-500 text-xs">{formatShortDate(new Date(m.invited_at))}</td>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center justify-end gap-0.5">
+                          <IconAction
+                            icon={Edit2}
+                            label="Edit member"
+                            onClick={() => setEditingRow({ id: m.id, full_name: m.full_name ?? '', email: m.email, company_id: m.company_id, default_location_id: '', isActive: false })}
+                            colorClass="text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+                          />
+                          <IconAction
+                            icon={Camera}
+                            label={m.avatar_url ? 'Photo linked' : 'Add picture'}
+                            onClick={() => setPhotoTarget({ type: 'pending', id: m.id, name: m.email, hasPhoto: !!m.avatar_url, avatarUrl: m.avatar_url })}
+                            colorClass={m.avatar_url ? 'text-green-500 hover:bg-green-50' : 'text-gray-400 hover:bg-gray-100 hover:text-gray-600'}
+                          />
+                          {m.invite_token?.startsWith('http') && (
+                            <IconAction
+                              icon={copiedLink === m.id ? Check : Copy}
+                              label={copiedLink === m.id ? 'Copied!' : 'Copy invite link'}
+                              onClick={() => copyLink(m.invite_token!, m.id)}
+                              colorClass="text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+                            />
+                          )}
+                          <IconAction
+                            icon={Send}
+                            label="Invite"
+                            onClick={() => handleResend(m.id)}
+                            disabled={resending === m.id}
+                            colorClass="text-blue-500 hover:bg-blue-50"
+                          />
+                          {confirmRemove === m.id ? (
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-xs text-red-600">Uninvite?</span>
+                              <button onClick={() => handleRemove(m.id)} disabled={removing === m.id}
+                                className="text-xs bg-red-600 text-white px-2 py-1 rounded font-medium">
+                                {removing === m.id ? '…' : 'Yes'}
+                              </button>
+                              <button onClick={() => setConfirmRemove(null)} className="text-xs text-gray-400">No</button>
+                            </div>
+                          ) : (
+                            <IconAction
+                              icon={Trash2}
+                              label="Uninvite"
+                              onClick={() => setConfirmRemove(m.id)}
+                              colorClass="text-gray-400 hover:bg-red-50 hover:text-red-500"
+                            />
+                          )}
                         </div>
-                      ) : (
-                        <IconAction
-                          icon={Trash2}
-                          label="Uninvite"
-                          onClick={() => setConfirmRemove(m.id)}
-                          colorClass="text-gray-400 hover:bg-red-50 hover:text-red-500"
-                        />
-                      )}
-                    </div>
-                  </td>
-                </tr>
+                      </td>
+                    </tr>
+                  )
               ))}
             </tbody>
           </table>
