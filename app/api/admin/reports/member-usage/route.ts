@@ -24,7 +24,7 @@ export async function GET(request: Request) {
     { data: reservations },
   ] = await Promise.all([
     admin.from('permitted_emails').select('email, company_id, companies(id, name)'),
-    admin.from('profiles').select('id, full_name, company_id'),
+    admin.from('profiles').select('id, full_name, company_id, default_location_id'),
     admin.auth.admin.listUsers({ perPage: 1000 }),
     admin.from('reservations')
       .select('user_id, start_time, end_time')
@@ -60,8 +60,9 @@ export async function GET(request: Request) {
       full_name:         prof?.full_name ?? null,
       company_id:        pe.company_id,
       company_name:      (pe.companies as Record<string, unknown>)?.name ?? '',
-      hours_used:        Math.round((usage?.hours ?? 0) * 10) / 10,
-      reservation_count: usage?.count ?? 0,
+      hours_used:          Math.round((usage?.hours ?? 0) * 10) / 10,
+      reservation_count:   usage?.count ?? 0,
+      default_location_id: prof?.default_location_id ?? null,
     }
   })
 

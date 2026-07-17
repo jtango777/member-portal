@@ -13,6 +13,7 @@ type MemberUsage = {
   company_name: string
   hours_used: number
   reservation_count: number
+  default_location_id: string | null
 }
 
 type Props = {
@@ -225,13 +226,24 @@ export default function CompaniesManager({ companies: initial, membershipTypes: 
 
   const [searchQuery, setSearchQuery] = useState('')
   const [autoAssigning, setAutoAssigning] = useState(false)
+  const [locations, setLocations] = useState<{ id: string; name: string }[]>([])
+  const [locationFilter, setLocationFilter] = useState('')
+
+  useEffect(() => {
+    fetch('/api/locations').then(r => r.json()).then(setLocations)
+  }, [])
 
   const reviewCount = companies.filter(c => !c.membership_type_id).length
 
+  const companiesWithLocation = locationFilter
+    ? new Set(memberUsage.filter(m => m.default_location_id === locationFilter).map(m => m.company_id))
+    : null
+
   const filteredCompanies = companies.filter(c => {
     const q = searchQuery.toLowerCase()
-    if (!q) return true
-    return c.name.toLowerCase().includes(q)
+    if (q && !c.name.toLowerCase().includes(q)) return false
+    if (companiesWithLocation && !companiesWithLocation.has(c.id)) return false
+    return true
   })
 
   // ── Render ─────────────────────────────────────────────────────────────────
@@ -383,12 +395,21 @@ export default function CompaniesManager({ companies: initial, membershipTypes: 
         </form>
       )}
 
-      {/* Search */}
-      <div className="relative">
-        <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-        <input value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
-          className="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-          placeholder="Search companies..." />
+      {/* Search + Location filter */}
+      <div className="flex gap-2">
+        <div className="relative flex-1">
+          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+          <input value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
+            className="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+            placeholder="Search companies..." />
+        </div>
+        {locations.length > 0 && (
+          <select value={locationFilter} onChange={e => setLocationFilter(e.target.value)}
+            className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-700">
+            <option value="">All Locations</option>
+            {locations.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
+          </select>
+        )}
       </div>
 
       {/* Companies table */}

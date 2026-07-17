@@ -38,7 +38,8 @@ type MemberRow = {
   user_id:      string | null
   full_name:    string | null
   is_admin:     boolean
-  avatar_url:   string | null
+  avatar_url:          string | null
+  default_location_id: string | null
 }
 
 type Props = { companies: Company[] }
@@ -64,6 +65,8 @@ export default function MembersManager({ companies }: Props) {
   const [confirmInviteAll, setConfirmInviteAll] = useState(false)
   const [invitingAll, setInvitingAll]           = useState(false)
   const [photoTarget, setPhotoTarget] = useState<{ type: 'member' | 'pending'; id: string; name: string; hasPhoto: boolean; avatarUrl: string | null } | null>(null)
+  const [locations, setLocations]     = useState<{ id: string; name: string }[]>([])
+  const [locationFilter, setLocationFilter] = useState('')
   const [activePage, setActivePage]   = useState(1)
   const [pendingPage, setPendingPage] = useState(1)
   const [showAllActive, setShowAllActive]   = useState(false)
@@ -77,7 +80,10 @@ export default function MembersManager({ companies }: Props) {
   }, [])
 
   useEffect(() => { refresh() }, [refresh])
-  useEffect(() => { setActivePage(1); setPendingPage(1) }, [search])
+  useEffect(() => {
+    fetch('/api/locations').then(r => r.json()).then(setLocations)
+  }, [])
+  useEffect(() => { setActivePage(1); setPendingPage(1) }, [search, locationFilter])
 
   // ── Add member ─────────────────────────────────────────────────────────────
 
@@ -260,12 +266,11 @@ export default function MembersManager({ companies }: Props) {
   // ── Filter ─────────────────────────────────────────────────────────────────
 
   const q        = search.toLowerCase()
-  const filtered = members.filter(m =>
-    !q ||
-    m.email.toLowerCase().includes(q) ||
-    (m.full_name ?? '').toLowerCase().includes(q) ||
-    m.company_name.toLowerCase().includes(q)
-  )
+  const filtered = members.filter(m => {
+    if (q && !m.email.toLowerCase().includes(q) && !(m.full_name ?? '').toLowerCase().includes(q) && !m.company_name.toLowerCase().includes(q)) return false
+    if (locationFilter && m.default_location_id !== locationFilter) return false
+    return true
+  })
 
   const active      = filtered.filter(m => !!m.accepted_at)
   const pending     = filtered.filter(m => !m.accepted_at)
@@ -364,12 +369,21 @@ export default function MembersManager({ companies }: Props) {
         </div>
       )}
 
-      {/* Search */}
-      <div className="relative">
-        <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-        <input value={search} onChange={e => setSearch(e.target.value)}
-          className="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-          placeholder="Search by name, email, or company…" />
+      {/* Search + Location filter */}
+      <div className="flex gap-2">
+        <div className="relative flex-1">
+          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+          <input value={search} onChange={e => setSearch(e.target.value)}
+            className="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+            placeholder="Search by name, email, or company…" />
+        </div>
+        {locations.length > 0 && (
+          <select value={locationFilter} onChange={e => setLocationFilter(e.target.value)}
+            className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-700">
+            <option value="">All Locations</option>
+            {locations.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
+          </select>
+        )}
       </div>
 
       {/* Active members */}
