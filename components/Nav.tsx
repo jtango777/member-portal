@@ -72,7 +72,7 @@ export default function Nav({ profile }: Props) {
           <Link href="/dashboard" className="flex items-center gap-2">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/brand/bizhaus-logo-white.png" alt="BizHaus" className="h-5 w-auto" />
-            <span className="text-[10px] font-bold uppercase tracking-wider bg-red-600 text-white px-2 py-0.5 rounded">Admin</span>
+            <span className="text-[10px] font-bold uppercase tracking-wider bg-blue-600 text-white px-2 py-0.5 rounded">Admin</span>
           </Link>
 
           <Link href="/dashboard/rooms"
