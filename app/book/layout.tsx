@@ -8,10 +8,10 @@ export const metadata: Metadata = {
 export default function BookLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-white flex flex-col">
-      <header className="bg-slate-900 h-16 flex items-end pb-4 flex-shrink-0 px-6">
+      <header className="bg-slate-900 h-16 flex items-center flex-shrink-0 px-6">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/brand/bizhaus-logo-white-tight.png" alt="BizHaus" className="h-3.5 w-auto" />
-        <span className="ml-2.5 text-sm font-medium text-slate-400 leading-none">bookings</span>
+        <img src="/brand/bizhaus-logo-white.png" alt="BizHaus" className="h-5 w-auto" />
+        <span className="ml-2.5 text-sm font-medium text-slate-400">Bookings</span>
       </header>
       <main className="flex-1">
         {children}
