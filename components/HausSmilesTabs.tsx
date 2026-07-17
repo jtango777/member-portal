@@ -12,8 +12,12 @@ function firstNameLastInitial(fullName: string): string {
   return `${parts[0]} ${parts[parts.length - 1][0]}.`
 }
 
-export default function HausSmilesTabs({ groups }: { groups: Group[] }) {
-  const [activeKey, setActiveKey] = useState(groups[0]?.key)
+type Props = { groups: Group[]; defaultLocationId?: string | null }
+
+export default function HausSmilesTabs({ groups, defaultLocationId }: Props) {
+  const [activeKey, setActiveKey] = useState(
+    groups.find(g => g.key === defaultLocationId)?.key ?? groups[0]?.key
+  )
   const active = groups.find(g => g.key === activeKey) ?? groups[0]
 
   if (!active) {

@@ -10,6 +10,12 @@ export default async function HausSmilesPage() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
+  const { data: currentProfile } = await supabase
+    .from('profiles')
+    .select('default_location_id')
+    .eq('id', user.id)
+    .single()
+
   const { data: locations } = await supabase.from('locations').select('*').order('name')
 
   const { data: profiles } = await supabase
@@ -41,7 +47,7 @@ export default async function HausSmilesPage() {
     <div className="h-full overflow-auto p-6">
       <PageVisitTracker path="/dashboard/haus-smiles" />
       <div className="max-w-5xl mx-auto">
-        <HausSmilesTabs groups={groups} />
+        <HausSmilesTabs groups={groups} defaultLocationId={currentProfile?.default_location_id ?? null} />
       </div>
     </div>
   )
