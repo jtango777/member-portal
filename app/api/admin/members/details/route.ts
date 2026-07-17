@@ -16,7 +16,7 @@ export async function GET() {
     { data: { users: authUsers } },
   ] = await Promise.all([
     admin.from('permitted_emails').select('*, companies(id, name)').order('invited_at', { ascending: false }),
-    admin.from('profiles').select('id, full_name, is_admin, company_id'),
+    admin.from('profiles').select('id, full_name, is_admin, company_id, avatar_url'),
     admin.auth.admin.listUsers({ perPage: 1000 }),
   ])
 
@@ -44,6 +44,7 @@ export async function GET() {
       user_id:      userId,
       full_name:    prof?.full_name ?? pe.full_name ?? null,
       is_admin:     prof?.is_admin ?? false,
+      avatar_url:   prof?.avatar_url ?? (pe as any).avatar_url ?? null,
     }
   })
 

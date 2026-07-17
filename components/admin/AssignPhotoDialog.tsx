@@ -17,11 +17,12 @@ type Props = {
   targetType: 'member' | 'pending'
   targetId: string
   memberName: string
+  hasPhoto?: boolean
 }
 
 type Mode = 'choose' | 'upload' | 'directory'
 
-export default function AssignPhotoDialog({ open, onOpenChange, onSuccess, targetType, targetId, memberName }: Props) {
+export default function AssignPhotoDialog({ open, onOpenChange, onSuccess, targetType, targetId, memberName, hasPhoto }: Props) {
   const endpoint = targetType === 'member'
     ? `/api/admin/members/${targetId}/photo`
     : `/api/admin/pending-members/${targetId}/photo`
@@ -123,13 +124,21 @@ export default function AssignPhotoDialog({ open, onOpenChange, onSuccess, targe
                     <ArrowLeft size={16} />
                   </button>
                 )}
-                <Dialog.Title className="text-sm font-semibold text-gray-900">Add photo for {memberName}</Dialog.Title>
+                <Dialog.Title className="text-sm font-semibold text-gray-900">Photo for {memberName}</Dialog.Title>
               </div>
               <Dialog.Close className="text-gray-400 hover:text-gray-600"><X size={16} /></Dialog.Close>
             </div>
 
             {mode === 'choose' && (
-              <div className="space-y-2">
+              <div className="space-y-3">
+                {hasPhoto && (
+                  <div className="bg-green-50 border border-green-200 rounded-lg px-3 py-2.5 text-sm text-green-800">
+                    Photo already added for this user.
+                  </div>
+                )}
+                <p className="text-sm text-gray-500">
+                  {hasPhoto ? 'Add or link new photo?' : `Add a photo for ${memberName}`}
+                </p>
                 <button onClick={() => setMode('upload')}
                   className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-4 py-3 rounded-lg">
                   <Upload size={16} /> Upload from Computer

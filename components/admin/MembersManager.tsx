@@ -38,6 +38,7 @@ type MemberRow = {
   user_id:      string | null
   full_name:    string | null
   is_admin:     boolean
+  avatar_url:   string | null
 }
 
 type Props = { companies: Company[] }
@@ -62,7 +63,7 @@ export default function MembersManager({ companies }: Props) {
   const [removing, setRemoving]             = useState<string | null>(null)
   const [confirmInviteAll, setConfirmInviteAll] = useState(false)
   const [invitingAll, setInvitingAll]           = useState(false)
-  const [photoTarget, setPhotoTarget] = useState<{ type: 'member' | 'pending'; id: string; name: string } | null>(null)
+  const [photoTarget, setPhotoTarget] = useState<{ type: 'member' | 'pending'; id: string; name: string; hasPhoto: boolean } | null>(null)
   const [activePage, setActivePage]   = useState(1)
   const [pendingPage, setPendingPage] = useState(1)
   const [showAllActive, setShowAllActive]   = useState(false)
@@ -427,9 +428,9 @@ export default function MembersManager({ companies }: Props) {
                       {m.user_id && (
                         <IconAction
                           icon={Camera}
-                          label="Add picture"
-                          onClick={() => setPhotoTarget({ type: 'member', id: m.user_id!, name: m.full_name ?? m.email })}
-                          colorClass="text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+                          label={m.avatar_url ? 'Photo linked' : 'Add picture'}
+                          onClick={() => setPhotoTarget({ type: 'member', id: m.user_id!, name: m.full_name ?? m.email, hasPhoto: !!m.avatar_url })}
+                          colorClass={m.avatar_url ? 'text-green-500 hover:bg-green-50' : 'text-gray-400 hover:bg-gray-100 hover:text-gray-600'}
                         />
                       )}
                       {m.user_id && (
@@ -538,9 +539,9 @@ export default function MembersManager({ companies }: Props) {
                       )}
                       <IconAction
                         icon={Camera}
-                        label="Add picture"
-                        onClick={() => setPhotoTarget({ type: 'pending', id: m.id, name: m.email })}
-                        colorClass="text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+                        label={m.avatar_url ? 'Photo linked' : 'Add picture'}
+                        onClick={() => setPhotoTarget({ type: 'pending', id: m.id, name: m.email, hasPhoto: !!m.avatar_url })}
+                        colorClass={m.avatar_url ? 'text-green-500 hover:bg-green-50' : 'text-gray-400 hover:bg-gray-100 hover:text-gray-600'}
                       />
                       {m.invite_token?.startsWith('http') && (
                         <IconAction
@@ -597,6 +598,7 @@ export default function MembersManager({ companies }: Props) {
           targetType={photoTarget.type}
           targetId={photoTarget.id}
           memberName={photoTarget.name}
+          hasPhoto={photoTarget.hasPhoto}
         />
       )}
     </div>
