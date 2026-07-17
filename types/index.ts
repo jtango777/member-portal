@@ -44,6 +44,7 @@ export type Profile = {
   default_location_id: string | null
   is_active: boolean
   license_plate: string | null
+  seating: string | null
   room_access_prompted: boolean
   room_access_requested_at: string | null
   dismissed_announcement_id: string | null

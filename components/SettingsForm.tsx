@@ -7,6 +7,7 @@ import toast from 'react-hot-toast'
 import { useRouter } from 'next/navigation'
 import PhotoUploadDialog from '@/components/PhotoUploadDialog'
 import PasswordInput from '@/components/PasswordInput'
+import { SEATING_OPTIONS } from '@/lib/seating'
 
 type Props = {
   profile:   Profile
@@ -26,6 +27,7 @@ export default function SettingsForm({ profile, company, locations, email }: Pro
   const [companyName, setCompanyName]     = useState(company?.name ?? '')
   const [locationId, setLocationId]       = useState((profile as any).default_location_id ?? '')
   const [licensePlate, setLicensePlate]   = useState(profile.license_plate ?? '')
+  const [seating, setSeating]             = useState(profile.seating ?? '')
   const [savingProfile, setSavingProfile] = useState(false)
   const [photoDialogOpen, setPhotoDialogOpen] = useState(false)
 
@@ -45,6 +47,7 @@ export default function SettingsForm({ profile, company, locations, email }: Pro
         default_location_id: locationId || null,
         company_name:        companyName,
         license_plate:       licensePlate,
+        seating:             seating || null,
       }),
     })
     if (res.ok) {
@@ -148,6 +151,15 @@ export default function SettingsForm({ profile, company, locations, email }: Pro
               {locations.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
             </select>
             <p className="text-xs text-gray-400 mt-1">This is your default location in Rooms.</p>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Where do you sit?</label>
+            <select value={seating} onChange={e => setSeating(e.target.value)}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+              <option value="">Prefer not to say</option>
+              {SEATING_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
+            </select>
+            <p className="text-xs text-gray-400 mt-1">Shown below your name on Haus Smiles.</p>
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">License Plate</label>

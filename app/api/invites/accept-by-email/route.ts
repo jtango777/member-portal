@@ -2,7 +2,7 @@ import { createAdminClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 
 export async function POST(request: Request) {
-  const { email, name, password, default_location_id } = await request.json()
+  const { email, name, password, default_location_id, seating } = await request.json()
 
   if (!email || !name || !password) {
     return NextResponse.json({ error: 'Missing fields' }, { status: 400 })
@@ -46,6 +46,7 @@ export async function POST(request: Request) {
     is_admin:            false,
     default_location_id: default_location_id ?? null,
     avatar_url:          invite.avatar_url ?? null,
+    seating:             seating ?? null,
   })
 
   await admin

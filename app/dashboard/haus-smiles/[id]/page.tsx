@@ -19,7 +19,7 @@ export default async function HausSmilesMemberPage({ params }: { params: Promise
 
   const { data: profileMember } = await supabase
     .from('profiles')
-    .select('id, full_name, avatar_url')
+    .select('id, full_name, avatar_url, seating')
     .eq('id', id)
     .eq('is_active', true)
     .not('avatar_url', 'is', null)
@@ -48,6 +48,9 @@ export default async function HausSmilesMemberPage({ params }: { params: Promise
           className="w-full aspect-square object-cover rounded-xl border border-gray-200 mb-4"
         />
         <p className="text-lg font-semibold text-gray-900 text-center">{firstNameLastInitial(member.full_name)}</p>
+        {(member as { seating?: string | null }).seating && (
+          <p className="text-sm text-gray-400 text-center">{(member as { seating?: string | null }).seating}</p>
+        )}
       </div>
     </div>
   )

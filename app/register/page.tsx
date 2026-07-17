@@ -6,6 +6,7 @@ import Link from 'next/link'
 import toast from 'react-hot-toast'
 import PasswordInput from '@/components/PasswordInput'
 import { ArrowLeft } from 'lucide-react'
+import { SEATING_OPTIONS } from '@/lib/seating'
 
 type Location = { id: string; name: string }
 
@@ -73,6 +74,7 @@ function DetailsStep({ email }: { email: string }) {
   const [password2, setPassword2] = useState('')
   const [locationId, setLocationId] = useState('')
   const [locations, setLocations] = useState<Location[]>([])
+  const [seating, setSeating] = useState('')
   const [loading, setLoading]     = useState(false)
 
   useEffect(() => {
@@ -93,7 +95,7 @@ function DetailsStep({ email }: { email: string }) {
     const res = await fetch('/api/invites/accept-by-email', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, name, password, default_location_id: locationId }),
+      body: JSON.stringify({ email, name, password, default_location_id: locationId, seating: seating || null }),
     })
     const data = await res.json()
     if (!res.ok) {
@@ -133,6 +135,15 @@ function DetailsStep({ email }: { email: string }) {
           <select required value={locationId} onChange={e => setLocationId(e.target.value)}
             className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
             {locations.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
+          </select>
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Where do you sit?</label>
+          <p className="text-xs text-gray-400 mb-1.5">Shown below your name on Haus Smiles. Optional.</p>
+          <select value={seating} onChange={e => setSeating(e.target.value)}
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <option value="">Prefer not to say</option>
+            {SEATING_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
           </select>
         </div>
         <button type="submit" disabled={loading}
