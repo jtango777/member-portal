@@ -32,9 +32,10 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 
   // Build permitted_emails update
   const peUpdate: Record<string, string | null> = {}
-  if (company_id !== undefined) peUpdate.company_id = company_id
-  if (full_name  !== undefined) peUpdate.full_name  = full_name
-  if (email      !== undefined) peUpdate.email      = email
+  if (company_id           !== undefined) peUpdate.company_id           = company_id
+  if (full_name            !== undefined) peUpdate.full_name            = full_name
+  if (email                !== undefined) peUpdate.email                = email
+  if (default_location_id  !== undefined) peUpdate.default_location_id  = default_location_id ?? null
 
   if (Object.keys(peUpdate).length > 0) {
     const { error: peErr } = await admin

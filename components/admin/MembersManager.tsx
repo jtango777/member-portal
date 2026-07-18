@@ -301,7 +301,7 @@ export default function MembersManager({ companies }: Props) {
             >
               {companies.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
-            {editingRow.isActive && locations.length > 0 && (
+            {locations.length > 0 && (
               <select
                 value={editingRow.default_location_id}
                 onChange={e => setEditingRow(r => r ? { ...r, default_location_id: e.target.value } : r)}
@@ -519,17 +519,17 @@ export default function MembersManager({ companies }: Props) {
         }>
           <table className="w-full text-sm table-fixed">
             <colgroup>
-              <col className="w-[20%]" /><col className="w-[24%]" /><col className="w-[18%]" /><col className="w-[12%]" /><col className="w-[10%]" /><col className="w-[16%]" />
+              <col className="w-[15%]" /><col className="w-[20%]" /><col className="w-[16%]" /><col className="w-[13%]" /><col className="w-[10%]" /><col className="w-[10%]" /><col className="w-[16%]" />
             </colgroup>
             <thead>
               <tr className="border-b border-gray-100 bg-gray-50">
-                <Th>Name</Th><Th>Email</Th><Th>Company</Th><Th>Status</Th><Th>Added</Th><Th />
+                <Th>Name</Th><Th>Email</Th><Th>Company</Th><Th>Location</Th><Th>Status</Th><Th>Added</Th><Th />
               </tr>
             </thead>
             <tbody>
               {pagedPending.map(m => (
                 editingRow?.id === m.id
-                  ? <EditForm key={m.id} m={m} colSpan={6} />
+                  ? <EditForm key={m.id} m={m} colSpan={7} />
                   : (
                     <tr key={m.id} className="border-b border-gray-100 last:border-0 hover:bg-gray-50">
                       <td className="px-4 py-3 font-medium text-gray-900 truncate" title={m.full_name ?? undefined}>
@@ -537,6 +537,9 @@ export default function MembersManager({ companies }: Props) {
                       </td>
                       <td className="px-4 py-3 text-gray-700 truncate" title={m.email}>{m.email}</td>
                       <td className="px-4 py-3 text-gray-600 truncate" title={m.company_name}>{m.company_name}</td>
+                      <td className="px-4 py-3 text-gray-600 truncate text-xs">
+                        {m.default_location_id ? (locations.find(l => l.id === m.default_location_id)?.name ?? '—') : <span className="text-gray-400">—</span>}
+                      </td>
                       <td className="px-4 py-3"><StatusBadge m={m} /></td>
                       <td className="px-4 py-3 text-gray-500 text-xs">{formatShortDate(new Date(m.invited_at))}</td>
                       <td className="px-4 py-3">
@@ -544,7 +547,7 @@ export default function MembersManager({ companies }: Props) {
                           <IconAction
                             icon={Edit2}
                             label="Edit member"
-                            onClick={() => setEditingRow({ id: m.id, full_name: m.full_name ?? '', email: m.email, company_id: m.company_id, default_location_id: '', isActive: false })}
+                            onClick={() => setEditingRow({ id: m.id, full_name: m.full_name ?? '', email: m.email, company_id: m.company_id, default_location_id: m.default_location_id ?? '', isActive: false })}
                             colorClass="text-gray-400 hover:bg-gray-100 hover:text-gray-600"
                           />
                           <IconAction

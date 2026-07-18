@@ -45,7 +45,7 @@ export async function GET() {
       full_name:    prof?.full_name ?? pe.full_name ?? null,
       is_admin:     prof?.is_admin ?? false,
       avatar_url:          prof?.avatar_url ?? (pe as any).avatar_url ?? null,
-      default_location_id: prof?.default_location_id ?? null,
+      default_location_id: prof?.default_location_id ?? (pe as any).default_location_id ?? null,
     }
   })
 
