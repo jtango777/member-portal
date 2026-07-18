@@ -434,22 +434,25 @@ export default function MembersManager({ companies }: Props) {
         }>
           <table className="w-full text-sm table-fixed">
             <colgroup>
-              <col className="w-[18%]" /><col className="w-[24%]" /><col className="w-[18%]" /><col className="w-[14%]" /><col className="w-[12%]" /><col className="w-[14%]" />
+              <col className="w-[15%]" /><col className="w-[20%]" /><col className="w-[16%]" /><col className="w-[13%]" /><col className="w-[10%]" /><col className="w-[10%]" /><col className="w-[16%]" />
             </colgroup>
             <thead>
               <tr className="border-b border-gray-100 bg-gray-50">
-                <Th>Name</Th><Th>Email</Th><Th>Company</Th><Th>Admin</Th><Th>Joined</Th><Th />
+                <Th>Name</Th><Th>Email</Th><Th>Company</Th><Th>Location</Th><Th>Admin</Th><Th>Joined</Th><Th />
               </tr>
             </thead>
             <tbody>
               {pagedActive.map(m => (
                 editingRow?.id === m.id
-                  ? <EditForm key={m.id} m={m} colSpan={6} />
+                  ? <EditForm key={m.id} m={m} colSpan={7} />
                   : (
                     <tr key={m.id} className="border-b border-gray-100 last:border-0 hover:bg-gray-50">
                       <td className="px-4 py-3 font-medium text-gray-900 truncate" title={m.full_name ?? undefined}>{m.full_name ?? '—'}</td>
                       <td className="px-4 py-3 text-gray-600 truncate" title={m.email}>{m.email}</td>
                       <td className="px-4 py-3 text-gray-600 truncate" title={m.company_name}>{m.company_name}</td>
+                      <td className="px-4 py-3 text-gray-600 truncate text-xs">
+                        {m.default_location_id ? (locations.find(l => l.id === m.default_location_id)?.name ?? '—') : <span className="text-gray-400">—</span>}
+                      </td>
                       <td className="px-4 py-3">
                         {m.is_admin
                           ? <span className="inline-flex items-center gap-1 whitespace-nowrap text-xs font-medium text-blue-700 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-full"><Shield size={10} /> Admin</span>
