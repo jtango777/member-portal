@@ -19,7 +19,7 @@ type Summary = {
   email: string | null
   path: string
   visit_count: number
-  total_duration: number
+  last_visited_at: string
   visits: Visit[]
 }
 
@@ -56,11 +56,13 @@ export default function PageVisitsManager() {
       if (!acc[key]) {
         acc[key] = {
           key, full_name: v.full_name, email: v.email, path: v.path,
-          visit_count: 0, total_duration: 0, visits: [],
+          visit_count: 0, last_visited_at: v.started_at, visits: [],
         }
       }
       acc[key].visit_count += 1
-      acc[key].total_duration += v.duration_seconds
+      if (new Date(v.started_at) > new Date(acc[key].last_visited_at)) {
+        acc[key].last_visited_at = v.started_at
+      }
       acc[key].visits.push(v)
       return acc
     }, {} as Record<string, Summary>)
@@ -100,7 +102,7 @@ export default function PageVisitsManager() {
               <th className="text-left font-semibold text-gray-500 px-4 py-2.5 text-xs uppercase tracking-wide">Email</th>
               <th className="text-left font-semibold text-gray-500 px-4 py-2.5 text-xs uppercase tracking-wide">Page</th>
               <th className="text-left font-semibold text-gray-500 px-4 py-2.5 text-xs uppercase tracking-wide">Visits</th>
-              <th className="text-left font-semibold text-gray-500 px-4 py-2.5 text-xs uppercase tracking-wide">Total Time</th>
+              <th className="text-left font-semibold text-gray-500 px-4 py-2.5 text-xs uppercase tracking-wide">Last Visited</th>
             </tr>
           </thead>
           <tbody>
@@ -115,7 +117,7 @@ export default function PageVisitsManager() {
                   <td className="px-4 py-2.5 text-gray-600 truncate" title={s.email ?? undefined}>{s.email ?? '—'}</td>
                   <td className="px-4 py-2.5 text-gray-700 truncate">{PATH_LABELS[s.path] ?? s.path}</td>
                   <td className="px-4 py-2.5 text-gray-700">{s.visit_count}</td>
-                  <td className="px-4 py-2.5 text-gray-700">{formatDuration(s.total_duration)}</td>
+                  <td className="px-4 py-2.5 text-gray-700">{formatShortDate(new Date(s.last_visited_at))}</td>
                 </tr>
                 {expanded === s.key && (
                   <tr>
