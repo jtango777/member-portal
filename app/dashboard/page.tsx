@@ -65,7 +65,7 @@ export default async function PortalHomePage() {
           <Link href="/dashboard/haus-smiles"
             className="bg-emerald-50 hover:bg-emerald-100 transition-colors rounded-xl p-8 flex flex-col gap-3">
             <Smile size={32} className="text-emerald-700" />
-            <span className="text-xl font-bold text-emerald-900">Haus Smiles</span>
+            <span className="text-xl font-bold text-emerald-900">Faces</span>
             {spotlight && (
               <div className="flex items-center gap-2 mt-1 pt-4 border-t border-emerald-100">
                 {/* eslint-disable-next-line @next/next/no-img-element */}

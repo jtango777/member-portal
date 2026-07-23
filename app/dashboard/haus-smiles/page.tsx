@@ -12,7 +12,7 @@ export default async function HausSmilesPage() {
 
   const { data: currentProfile } = await supabase
     .from('profiles')
-    .select('default_location_id')
+    .select('default_location_id, is_admin')
     .eq('id', user.id)
     .single()
 
@@ -31,8 +31,8 @@ export default async function HausSmilesPage() {
     .order('full_name')
 
   const allMembers = [
-    ...(profiles ?? []).map(p => ({ id: p.id, full_name: p.full_name, avatar_url: p.avatar_url, location_id: p.default_location_id, seating: p.seating })),
-    ...(directoryPhotos ?? []).map(d => ({ id: d.id, full_name: d.full_name, avatar_url: d.avatar_url, location_id: d.location_id, seating: null })),
+    ...(profiles ?? []).map(p => ({ id: p.id, full_name: p.full_name, avatar_url: p.avatar_url, location_id: p.default_location_id, seating: p.seating, source: 'profile' as const })),
+    ...(directoryPhotos ?? []).map(d => ({ id: d.id, full_name: d.full_name, avatar_url: d.avatar_url, location_id: d.location_id, seating: null, source: 'directory' as const })),
   ]
 
   const groups = (locations ?? [])
@@ -47,7 +47,7 @@ export default async function HausSmilesPage() {
     <div className="h-full overflow-auto p-6">
       <PageVisitTracker path="/dashboard/haus-smiles" />
       <div className="max-w-5xl mx-auto">
-        <HausSmilesTabs groups={groups} defaultLocationId={currentProfile?.default_location_id ?? null} />
+        <HausSmilesTabs groups={groups} defaultLocationId={currentProfile?.default_location_id ?? null} isAdmin={currentProfile?.is_admin ?? false} />
       </div>
     </div>
   )

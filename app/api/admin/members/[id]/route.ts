@@ -95,7 +95,7 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
   if (!pe) return NextResponse.json({ error: 'Member not found' }, { status: 404 })
 
   // If they have an account, flag it inactive rather than revoking login —
-  // this hides them from the roster and Haus Smiles without touching auth.
+  // this hides them from the roster and Faces without touching auth.
   if (pe.accepted_at) {
     const { data: { users } } = await admin.auth.admin.listUsers({ perPage: 1000 })
     const authUser = users.find(u => u.email?.toLowerCase() === pe.email?.toLowerCase())

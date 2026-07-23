@@ -83,7 +83,7 @@ export default function Nav({ profile }: Props) {
           <Link href="/dashboard/haus-smiles"
             className={cn('text-sm font-medium transition-colors',
               pathname === '/dashboard/haus-smiles' ? 'text-white' : 'text-slate-400 hover:text-white')}>
-            Haus Smiles
+            Faces
           </Link>
           <ManageDropdown pathname={pathname} />
         </div>
@@ -125,7 +125,7 @@ export default function Nav({ profile }: Props) {
         <Link href="/dashboard/haus-smiles"
           className={cn('text-sm font-medium transition-colors',
             pathname === '/dashboard/haus-smiles' ? 'text-white' : 'text-slate-400 hover:text-white')}>
-          Haus Smiles
+          Faces
         </Link>
       </div>
 

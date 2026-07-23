@@ -113,7 +113,7 @@ export default function SettingsForm({ profile, company, locations, email }: Pro
           onOpenChange={setPhotoDialogOpen}
           onSuccess={() => router.refresh()}
           title="Update your photo"
-          description="This appears on Haus Smiles."
+          description="This appears on Faces."
           currentImageUrl={profile.avatar_url}
         />
       </div>
@@ -159,7 +159,7 @@ export default function SettingsForm({ profile, company, locations, email }: Pro
               <option value="">Prefer not to say</option>
               {SEATING_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
             </select>
-            <p className="text-xs text-gray-400 mt-1">Shown below your name on Haus Smiles.</p>
+            <p className="text-xs text-gray-400 mt-1">Shown below your name on Faces.</p>
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">License Plate</label>

@@ -2,8 +2,11 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { Trash2 } from 'lucide-react'
+import toast from 'react-hot-toast'
 
-type Member = { id: string; full_name: string; avatar_url: string | null; seating?: string | null }
+type Member = { id: string; full_name: string; avatar_url: string | null; seating?: string | null; source: 'profile' | 'directory' }
 type Group = { key: string; name: string; members: Member[] }
 
 function firstNameLastInitial(fullName: string): string {
@@ -12,13 +15,30 @@ function firstNameLastInitial(fullName: string): string {
   return `${parts[0]} ${parts[parts.length - 1][0]}.`
 }
 
-type Props = { groups: Group[]; defaultLocationId?: string | null }
+type Props = { groups: Group[]; defaultLocationId?: string | null; isAdmin?: boolean }
 
-export default function HausSmilesTabs({ groups, defaultLocationId }: Props) {
+export default function HausSmilesTabs({ groups, defaultLocationId, isAdmin }: Props) {
+  const router = useRouter()
   const [activeKey, setActiveKey] = useState(
     groups.find(g => g.key === defaultLocationId)?.key ?? groups[0]?.key
   )
+  const [confirmRemove, setConfirmRemove] = useState<string | null>(null)
+  const [removing, setRemoving] = useState<string | null>(null)
   const active = groups.find(g => g.key === activeKey) ?? groups[0]
+
+  async function handleRemove(member: Member) {
+    setRemoving(member.id)
+    const res = await fetch(`/api/admin/haus-smiles/${member.id}?source=${member.source}`, { method: 'DELETE' })
+    if (res.ok) {
+      toast.success('Removed from Faces')
+      router.refresh()
+    } else {
+      const d = await res.json()
+      toast.error(d.error ?? 'Failed to remove')
+    }
+    setConfirmRemove(null)
+    setRemoving(null)
+  }
 
   if (!active) {
     return <p className="text-sm text-gray-500">No photos yet — members will show up here as they add theirs.</p>
@@ -44,16 +64,38 @@ export default function HausSmilesTabs({ groups, defaultLocationId }: Props) {
 
       <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-4">
         {active.members.map(member => (
-          <Link key={member.id} href={`/dashboard/haus-smiles/${member.id}`} className="text-center group">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={member.avatar_url ?? ''}
-              alt={member.full_name}
-              className="w-full aspect-square object-cover rounded-lg border border-gray-200 mb-2 group-hover:opacity-80 transition-opacity"
-            />
-            <p className="text-sm text-gray-700">{firstNameLastInitial(member.full_name)}</p>
-            {member.seating && <p className="text-xs text-gray-400">{member.seating}</p>}
-          </Link>
+          <div key={member.id} className="relative group">
+            {isAdmin && (
+              confirmRemove === member.id ? (
+                <div className="absolute inset-0 z-10 bg-white/95 rounded-lg border border-red-200 flex flex-col items-center justify-center gap-2 p-2 text-center">
+                  <p className="text-xs text-red-600 font-medium">Remove from Faces?</p>
+                  <div className="flex items-center gap-2">
+                    <button onClick={() => handleRemove(member)} disabled={removing === member.id}
+                      className="text-xs bg-red-600 text-white px-2 py-1 rounded font-medium">
+                      {removing === member.id ? '…' : 'Yes'}
+                    </button>
+                    <button onClick={() => setConfirmRemove(null)} className="text-xs text-gray-500">No</button>
+                  </div>
+                </div>
+              ) : (
+                <button onClick={() => setConfirmRemove(member.id)}
+                  title="Remove from Faces"
+                  className="absolute top-1.5 right-1.5 z-10 p-1 rounded-md bg-white/90 border border-gray-200 text-gray-400 opacity-0 group-hover:opacity-100 hover:text-red-600 hover:bg-white transition-opacity">
+                  <Trash2 size={13} />
+                </button>
+              )
+            )}
+            <Link href={`/dashboard/haus-smiles/${member.id}`} className="text-center block">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={member.avatar_url ?? ''}
+                alt={member.full_name}
+                className="w-full aspect-square object-cover rounded-lg border border-gray-200 mb-2 group-hover:opacity-80 transition-opacity"
+              />
+              <p className="text-sm text-gray-700">{firstNameLastInitial(member.full_name)}</p>
+              {member.seating && <p className="text-xs text-gray-400">{member.seating}</p>}
+            </Link>
+          </div>
         ))}
       </div>
     </div>

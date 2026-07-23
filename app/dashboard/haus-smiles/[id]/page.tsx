@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect, notFound } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
+import HausSmilesMemberActions from '@/components/HausSmilesMemberActions'
 
 export const dynamic = 'force-dynamic'
 
@@ -16,6 +17,8 @@ export default async function HausSmilesMemberPage({ params }: { params: Promise
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
+
+  const { data: currentProfile } = await supabase.from('profiles').select('is_admin').eq('id', user.id).single()
 
   const { data: profileMember } = await supabase
     .from('profiles')
@@ -35,11 +38,13 @@ export default async function HausSmilesMemberPage({ params }: { params: Promise
 
   if (!member) notFound()
 
+  const source: 'profile' | 'directory' = profileMember ? 'profile' : 'directory'
+
   return (
     <div className="h-full overflow-auto p-6">
       <div className="max-w-sm mx-auto">
         <Link href="/dashboard/haus-smiles" className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-900 mb-6">
-          <ArrowLeft size={16} /> Back to Haus Smiles
+          <ArrowLeft size={16} /> Back to Faces
         </Link>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
@@ -51,6 +56,7 @@ export default async function HausSmilesMemberPage({ params }: { params: Promise
         {(member as { seating?: string | null }).seating && (
           <p className="text-sm text-gray-400 text-center">{(member as { seating?: string | null }).seating}</p>
         )}
+        {currentProfile?.is_admin && <HausSmilesMemberActions id={member.id} source={source} />}
       </div>
     </div>
   )
