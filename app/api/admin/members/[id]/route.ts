@@ -15,7 +15,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   const caller = await assertAdmin()
   if (!caller) return NextResponse.json({ error: 'Admins only' }, { status: 403 })
 
-  const { company_id, full_name, email, default_location_id } = await request.json()
+  const { company_id, full_name, email, default_location_id, is_active } = await request.json()
 
   const admin = createAdminClient()
 
@@ -31,11 +31,12 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   }
 
   // Build permitted_emails update
-  const peUpdate: Record<string, string | null> = {}
+  const peUpdate: Record<string, string | null | boolean> = {}
   if (company_id           !== undefined) peUpdate.company_id           = company_id
   if (full_name            !== undefined) peUpdate.full_name            = full_name
   if (email                !== undefined) peUpdate.email                = email
   if (default_location_id  !== undefined) peUpdate.default_location_id  = default_location_id ?? null
+  if (is_active             !== undefined) peUpdate.is_active            = is_active
 
   if (Object.keys(peUpdate).length > 0) {
     const { error: peErr } = await admin
@@ -55,10 +56,11 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 
   if (authUser) {
     // Update profile fields
-    const profileUpdate: Record<string, string | null> = {}
+    const profileUpdate: Record<string, string | null | boolean> = {}
     if (company_id           !== undefined) profileUpdate.company_id           = company_id
     if (full_name            !== undefined) profileUpdate.full_name            = full_name
     if (default_location_id  !== undefined) profileUpdate.default_location_id  = default_location_id ?? null
+    if (is_active             !== undefined) profileUpdate.is_active            = is_active
 
     if (Object.keys(profileUpdate).length > 0) {
       await admin.from('profiles').update(profileUpdate).eq('id', authUser.id)
@@ -77,7 +79,8 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   return NextResponse.json({ ok: true })
 }
 
-// Remove member
+// Remove member — flags them inactive rather than deleting the record, so
+// they move to the inactive list and can be restored later.
 export async function DELETE(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const caller = await assertAdmin()
@@ -94,8 +97,8 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
 
   if (!pe) return NextResponse.json({ error: 'Member not found' }, { status: 404 })
 
-  // If they have an account, flag it inactive rather than revoking login —
-  // this hides them from the roster and Faces without touching auth.
+  // If they have an account, flag the profile inactive too — this hides
+  // them from Faces without touching auth.
   if (pe.accepted_at) {
     const { data: { users } } = await admin.auth.admin.listUsers({ perPage: 1000 })
     const authUser = users.find(u => u.email?.toLowerCase() === pe.email?.toLowerCase())
@@ -104,8 +107,8 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
     }
   }
 
-  // Delete from permitted_emails
-  const { error } = await admin.from('permitted_emails').delete().eq('id', id)
+  // Flag inactive instead of deleting, so the member moves to the inactive list.
+  const { error } = await admin.from('permitted_emails').update({ is_active: false }).eq('id', id)
   if (error) {
     console.error('[admin/members] DELETE error:', error.message)
     return NextResponse.json({ error: 'Failed to remove member.' }, { status: 500 })

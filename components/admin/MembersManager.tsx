@@ -1,8 +1,9 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import NextLink from 'next/link'
 import { Company } from '@/types'
-import { Plus, Send, Check, Shield, ShieldOff, Download, Copy, Link, Search, Edit2, Trash2, X, ChevronLeft, ChevronRight, Camera } from 'lucide-react'
+import { Plus, Send, Check, Shield, ShieldOff, Download, Copy, Link, Search, Edit2, Trash2, X, ChevronLeft, ChevronRight, Camera, Users, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react'
 import { formatShortDate } from '@/lib/utils'
 import toast from 'react-hot-toast'
 import AssignPhotoDialog from '@/components/admin/AssignPhotoDialog'
@@ -40,6 +41,7 @@ type MemberRow = {
   is_admin:            boolean
   avatar_url:          string | null
   default_location_id: string | null
+  is_active:           boolean
 }
 
 type EditRow = {
@@ -78,7 +80,29 @@ export default function MembersManager({ companies }: Props) {
   const [pendingPage, setPendingPage] = useState(1)
   const [showAllActive, setShowAllActive]   = useState(false)
   const [showAllPending, setShowAllPending] = useState(false)
+  const [locationSort, setLocationSort]     = useState<'asc' | 'desc' | null>(null)
   const PAGE_SIZE = 10
+
+  function toggleLocationSort() {
+    setLocationSort(s => s === 'asc' ? 'desc' : s === 'desc' ? null : 'asc')
+  }
+
+  function locationName(id: string | null) {
+    return id ? (locations.find(l => l.id === id)?.name ?? '') : ''
+  }
+
+  function sortByLocation<T extends { default_location_id: string | null }>(rows: T[]): T[] {
+    if (!locationSort) return rows
+    const dir = locationSort === 'asc' ? 1 : -1
+    return [...rows].sort((a, b) => {
+      const an = locationName(a.default_location_id)
+      const bn = locationName(b.default_location_id)
+      if (!an && !bn) return 0
+      if (!an) return 1
+      if (!bn) return -1
+      return an.localeCompare(bn) * dir
+    })
+  }
 
   const refresh = useCallback(async () => {
     const r = await fetch('/api/admin/members/details')
@@ -257,15 +281,18 @@ export default function MembersManager({ companies }: Props) {
 
   const q        = search.toLowerCase()
   const filtered = members.filter(m => {
+    if (m.is_active === false) return false
     if (q && !m.email.toLowerCase().includes(q) && !(m.full_name ?? '').toLowerCase().includes(q) && !m.company_name.toLowerCase().includes(q)) return false
     if (locationFilter && m.default_location_id !== locationFilter) return false
     return true
   })
 
-  const active      = filtered.filter(m => !!m.accepted_at)
-  const pending     = filtered.filter(m => !m.accepted_at)
-    .sort((a, b) => (a.full_name ?? a.email).localeCompare(b.full_name ?? b.email))
-  const notInvited  = members.filter(m => !m.accepted_at && !m.invite_token)
+  const active      = sortByLocation(filtered.filter(m => !!m.accepted_at))
+  const pending     = sortByLocation(
+    filtered.filter(m => !m.accepted_at)
+      .sort((a, b) => (a.full_name ?? a.email).localeCompare(b.full_name ?? b.email))
+  )
+  const notInvited  = members.filter(m => m.is_active !== false && !m.accepted_at && !m.invite_token)
 
   const activeTotalPages  = Math.max(1, Math.ceil(active.length / PAGE_SIZE))
   const pendingTotalPages = Math.max(1, Math.ceil(pending.length / PAGE_SIZE))
@@ -341,6 +368,10 @@ export default function MembersManager({ companies }: Props) {
             className="flex items-center gap-1.5 text-sm border border-gray-300 hover:bg-gray-50 text-gray-700 font-medium px-3 py-2 rounded-lg transition-colors">
             <Download size={14} /> Export CSV
           </button>
+          <NextLink href="/dashboard/admin/members/inactive"
+            className="flex items-center gap-1.5 text-sm border border-gray-300 hover:bg-gray-50 text-gray-700 font-medium px-3 py-2 rounded-lg transition-colors">
+            <Users size={14} /> Show Inactive Members
+          </NextLink>
           {notInvited.length > 0 && !confirmInviteAll && (
             <button onClick={() => setConfirmInviteAll(true)} disabled={invitingAll}
               className="flex items-center gap-1.5 text-sm border border-blue-300 hover:bg-blue-50 text-blue-700 font-medium px-3 py-2 rounded-lg transition-colors disabled:opacity-50">
@@ -438,7 +469,7 @@ export default function MembersManager({ companies }: Props) {
             </colgroup>
             <thead>
               <tr className="border-b border-gray-100 bg-gray-50">
-                <Th>Name</Th><Th>Email</Th><Th>Company</Th><Th>Location</Th><Th>Admin</Th><Th>Joined</Th><Th />
+                <Th>Name</Th><Th>Email</Th><Th>Company</Th><Th sortDir={locationSort} onClick={toggleLocationSort}>Location</Th><Th>Admin</Th><Th>Joined</Th><Th />
               </tr>
             </thead>
             <tbody>
@@ -667,6 +698,16 @@ function Section({ title, children, footer }: { title: string; children: React.R
   )
 }
 
-function Th({ children }: { children?: React.ReactNode }) {
-  return <th className="text-left font-semibold text-gray-500 px-4 py-2.5 text-xs uppercase tracking-wide">{children}</th>
+function Th({ children, sortDir, onClick }: { children?: React.ReactNode; sortDir?: 'asc' | 'desc' | null; onClick?: () => void }) {
+  if (!onClick) {
+    return <th className="text-left font-semibold text-gray-500 px-4 py-2.5 text-xs uppercase tracking-wide">{children}</th>
+  }
+  const Icon = sortDir === 'asc' ? ArrowUp : sortDir === 'desc' ? ArrowDown : ArrowUpDown
+  return (
+    <th className="text-left font-semibold text-gray-500 px-4 py-2.5 text-xs uppercase tracking-wide">
+      <button onClick={onClick} className="flex items-center gap-1 hover:text-gray-700">
+        {children} <Icon size={11} />
+      </button>
+    </th>
+  )
 }
