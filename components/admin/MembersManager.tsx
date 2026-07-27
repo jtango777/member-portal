@@ -363,18 +363,15 @@ export default function MembersManager({ companies }: Props) {
             {loading ? '…' : `${members.length} total · ${active.length} active · ${pending.length} pending`}
           </p>
         </div>
-        <div className="flex items-center gap-3">
-          <div className="flex items-center rounded-lg border border-gray-300 overflow-hidden">
-            <button onClick={downloadCSV}
-              className="flex items-center gap-1.5 text-sm text-gray-600 hover:bg-gray-50 hover:text-gray-800 font-medium px-3 py-2 transition-colors">
-              <Download size={14} /> Export CSV
-            </button>
-            <div className="w-px self-stretch bg-gray-300" />
-            <NextLink href="/dashboard/admin/members/inactive"
-              className="flex items-center gap-1.5 text-sm text-gray-600 hover:bg-gray-50 hover:text-gray-800 font-medium px-3 py-2 transition-colors">
-              <Users size={14} /> Show Inactive Members
-            </NextLink>
-          </div>
+        <div className="flex items-center gap-2">
+          <NextLink href="/dashboard/admin/members/inactive"
+            className="flex items-center gap-1.5 text-sm border border-gray-300 hover:bg-gray-50 text-gray-700 font-medium px-3 py-2 rounded-lg transition-colors">
+            <Users size={14} /> Show Inactive Members
+          </NextLink>
+          <button onClick={downloadCSV}
+            className="flex items-center gap-1.5 text-sm border border-gray-300 hover:bg-gray-50 text-gray-700 font-medium px-3 py-2 rounded-lg transition-colors">
+            <Download size={14} /> Export CSV
+          </button>
           <button onClick={() => { setShowForm(v => !v); setLastInviteLink(null) }}
             className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors">
             <Plus size={15} /> Add Member
