@@ -39,11 +39,16 @@ export default function PageVisitsManager() {
   const [visits, setVisits] = useState<Visit[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
-  const [expanded, setExpanded] = useState<string | null>(null)
+  const [expanded, setExpanded] = useState<Set<string>>(new Set())
 
   const refresh = useCallback(async () => {
     const r = await fetch('/api/admin/reports/page-visits')
-    if (r.ok) setVisits(await r.json())
+    if (r.ok) {
+      const data: Visit[] = await r.json()
+      setVisits(data)
+      // Default-expand every row so individual page visits are visible right away.
+      setExpanded(new Set(data.map(v => `${v.email ?? 'unknown'}::${v.path}`)))
+    }
     setLoading(false)
   }, [])
 
@@ -80,7 +85,7 @@ export default function PageVisitsManager() {
     <div className="space-y-5">
       <div>
         <h1 className="text-xl font-bold text-gray-900">Page Activity</h1>
-        <p className="text-sm text-gray-500 mt-0.5">Visit counts for Rooms and Faces. Click a row to see who and when.</p>
+        <p className="text-sm text-gray-500 mt-0.5">Which pages each member visited, and when. Click a row to collapse it.</p>
       </div>
 
       <div className="relative">
@@ -108,10 +113,14 @@ export default function PageVisitsManager() {
           <tbody>
             {filtered.map(s => (
               <Fragment key={s.key}>
-                <tr onClick={() => setExpanded(expanded === s.key ? null : s.key)}
+                <tr onClick={() => setExpanded(prev => {
+                  const next = new Set(prev)
+                  next.has(s.key) ? next.delete(s.key) : next.add(s.key)
+                  return next
+                })}
                   className="border-b border-gray-100 last:border-0 hover:bg-gray-50 cursor-pointer">
                   <td className="px-2 py-2.5 text-gray-400">
-                    {expanded === s.key ? <ChevronDown size={14} /> : <ChevronRightIcon size={14} />}
+                    {expanded.has(s.key) ? <ChevronDown size={14} /> : <ChevronRightIcon size={14} />}
                   </td>
                   <td className="px-4 py-2.5 text-gray-900 truncate" title={s.full_name ?? undefined}>{s.full_name ?? '—'}</td>
                   <td className="px-4 py-2.5 text-gray-600 truncate" title={s.email ?? undefined}>{s.email ?? '—'}</td>
@@ -119,7 +128,7 @@ export default function PageVisitsManager() {
                   <td className="px-4 py-2.5 text-gray-700">{s.visit_count}</td>
                   <td className="px-4 py-2.5 text-gray-700">{formatShortDate(new Date(s.last_visited_at))}</td>
                 </tr>
-                {expanded === s.key && (
+                {expanded.has(s.key) && (
                   <tr>
                     <td colSpan={6} className="bg-gray-50 px-4 py-3">
                       <table className="w-full text-xs">

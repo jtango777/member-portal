@@ -372,29 +372,37 @@ export default function MembersManager({ companies }: Props) {
             className="flex items-center gap-1.5 text-sm border border-gray-300 hover:bg-gray-50 text-gray-700 font-medium px-3 py-2 rounded-lg transition-colors">
             <Users size={14} /> Show Inactive Members
           </NextLink>
-          {notInvited.length > 0 && !confirmInviteAll && (
-            <button onClick={() => setConfirmInviteAll(true)} disabled={invitingAll}
-              className="flex items-center gap-1.5 text-sm border border-blue-300 hover:bg-blue-50 text-blue-700 font-medium px-3 py-2 rounded-lg transition-colors disabled:opacity-50">
-              <Send size={14} /> {invitingAll ? 'Sending…' : `Invite Uninvited (${notInvited.length})`}
-            </button>
-          )}
-          {confirmInviteAll && (
-            <div className="flex items-center gap-2 bg-blue-50 border border-blue-200 rounded-lg px-3 py-1.5">
-              <span className="text-xs text-blue-800 font-medium">Send {notInvited.length} invites?</span>
-              <button onClick={handleInviteAll}
-                className="text-xs bg-blue-600 hover:bg-blue-700 text-white font-semibold px-2.5 py-1 rounded">
-                Yes, send
-              </button>
-              <button onClick={() => setConfirmInviteAll(false)}
-                className="text-xs text-gray-500 hover:text-gray-700">Cancel</button>
-            </div>
-          )}
           <button onClick={() => { setShowForm(v => !v); setLastInviteLink(null) }}
             className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors">
             <Plus size={15} /> Add Member
           </button>
         </div>
       </div>
+
+      {/* TEMPORARY — remove this banner once the uninvited backlog is cleared */}
+      {notInvited.length > 0 && (
+        <div className="flex items-center justify-between gap-2 bg-amber-50 border border-dashed border-amber-300 rounded-lg px-3 py-2">
+          <span className="text-xs text-amber-800">
+            <span className="font-semibold">Temporary:</span> {notInvited.length} members have never been invited.
+          </span>
+          {confirmInviteAll ? (
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <span className="text-xs text-amber-800 font-medium">Send {notInvited.length} invites?</span>
+              <button onClick={handleInviteAll}
+                className="text-xs bg-amber-600 hover:bg-amber-700 text-white font-semibold px-2.5 py-1 rounded">
+                Yes, send
+              </button>
+              <button onClick={() => setConfirmInviteAll(false)}
+                className="text-xs text-gray-500 hover:text-gray-700">Cancel</button>
+            </div>
+          ) : (
+            <button onClick={() => setConfirmInviteAll(true)} disabled={invitingAll}
+              className="flex items-center gap-1.5 text-xs text-amber-800 hover:text-amber-900 font-semibold flex-shrink-0 disabled:opacity-50">
+              <Send size={12} /> {invitingAll ? 'Sending…' : 'Invite Uninvited'}
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Add member form */}
       {showForm && (
