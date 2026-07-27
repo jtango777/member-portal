@@ -622,9 +622,9 @@ export default function MembersManager({ companies }: Props) {
                           />
                           {confirmRemove === m.id ? (
                             <div className="flex items-center gap-1.5">
-                              <span className="text-xs text-red-600">Uninvite?</span>
+                              <span className="text-xs text-amber-700">Archive?</span>
                               <button onClick={() => handleRemove(m.id)} disabled={removing === m.id}
-                                className="text-xs bg-red-600 text-white px-2 py-1 rounded font-medium">
+                                className="text-xs bg-amber-600 text-white px-2 py-1 rounded font-medium">
                                 {removing === m.id ? '…' : 'Yes'}
                               </button>
                               <button onClick={() => setConfirmRemove(null)} className="text-xs text-gray-400">No</button>
@@ -632,9 +632,9 @@ export default function MembersManager({ companies }: Props) {
                           ) : (
                             <IconAction
                               icon={Trash2}
-                              label="Uninvite"
+                              label="Archive member"
                               onClick={() => setConfirmRemove(m.id)}
-                              colorClass="text-gray-400 hover:bg-red-50 hover:text-red-500"
+                              colorClass="text-gray-400 hover:bg-amber-50 hover:text-amber-600"
                             />
                           )}
                         </div>
