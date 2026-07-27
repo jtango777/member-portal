@@ -52,6 +52,64 @@ type EditRow = {
   default_location_id: string
 }
 
+function EditForm({ m, colSpan, editingRow, setEditingRow, companies, locations, savingRow, saveRow }: {
+  m: MemberRow
+  colSpan: number
+  editingRow: EditRow | null
+  setEditingRow: React.Dispatch<React.SetStateAction<EditRow | null>>
+  companies: Company[]
+  locations: { id: string; name: string }[]
+  savingRow: boolean
+  saveRow: (memberId: string) => void
+}) {
+  if (!editingRow || editingRow.id !== m.id) return null
+  return (
+    <tr className="border-b border-gray-100 bg-blue-50/30">
+      <td colSpan={colSpan} className="px-4 py-3">
+        <div className="flex items-center gap-2 flex-wrap">
+          <input
+            type="text"
+            placeholder="Name"
+            value={editingRow.full_name}
+            onChange={e => setEditingRow(r => r ? { ...r, full_name: e.target.value } : r)}
+            className="border border-gray-300 rounded px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 w-36"
+          />
+          <input
+            type="email"
+            placeholder="Email"
+            value={editingRow.email}
+            onChange={e => setEditingRow(r => r ? { ...r, email: e.target.value } : r)}
+            className="border border-gray-300 rounded px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 w-48"
+          />
+          <select
+            value={editingRow.company_id}
+            onChange={e => setEditingRow(r => r ? { ...r, company_id: e.target.value } : r)}
+            className="border border-gray-300 rounded px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            {companies.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+          </select>
+          {locations.length > 0 && (
+            <select
+              value={editingRow.default_location_id}
+              onChange={e => setEditingRow(r => r ? { ...r, default_location_id: e.target.value } : r)}
+              className="border border-gray-300 rounded px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">No default location</option>
+              {locations.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
+            </select>
+          )}
+          <button onClick={() => saveRow(m.id)} disabled={savingRow}
+            className="text-xs bg-blue-600 text-white px-2.5 py-1 rounded font-medium hover:bg-blue-700 disabled:opacity-50">
+            {savingRow ? '…' : 'Save'}
+          </button>
+          <button onClick={() => setEditingRow(null)}
+            className="text-xs text-gray-500 hover:text-gray-700">Cancel</button>
+        </div>
+      </td>
+    </tr>
+  )
+}
+
 type Props = { companies: Company[] }
 
 export default function MembersManager({ companies }: Props) {
@@ -298,57 +356,6 @@ export default function MembersManager({ companies }: Props) {
   const pagedActive  = showAllActive  ? active  : active.slice((activePage - 1) * PAGE_SIZE, activePage * PAGE_SIZE)
   const pagedPending = showAllPending ? pending : pending.slice((pendingPage - 1) * PAGE_SIZE, pendingPage * PAGE_SIZE)
 
-  // ── Shared edit form ───────────────────────────────────────────────────────
-
-  function EditForm({ m, colSpan }: { m: MemberRow; colSpan: number }) {
-    if (!editingRow || editingRow.id !== m.id) return null
-    return (
-      <tr className="border-b border-gray-100 bg-blue-50/30">
-        <td colSpan={colSpan} className="px-4 py-3">
-          <div className="flex items-center gap-2 flex-wrap">
-            <input
-              type="text"
-              placeholder="Name"
-              value={editingRow.full_name}
-              onChange={e => setEditingRow(r => r ? { ...r, full_name: e.target.value } : r)}
-              className="border border-gray-300 rounded px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 w-36"
-            />
-            <input
-              type="email"
-              placeholder="Email"
-              value={editingRow.email}
-              onChange={e => setEditingRow(r => r ? { ...r, email: e.target.value } : r)}
-              className="border border-gray-300 rounded px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 w-48"
-            />
-            <select
-              value={editingRow.company_id}
-              onChange={e => setEditingRow(r => r ? { ...r, company_id: e.target.value } : r)}
-              className="border border-gray-300 rounded px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              {companies.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-            </select>
-            {locations.length > 0 && (
-              <select
-                value={editingRow.default_location_id}
-                onChange={e => setEditingRow(r => r ? { ...r, default_location_id: e.target.value } : r)}
-                className="border border-gray-300 rounded px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="">No default location</option>
-                {locations.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
-              </select>
-            )}
-            <button onClick={() => saveRow(m.id)} disabled={savingRow}
-              className="text-xs bg-blue-600 text-white px-2.5 py-1 rounded font-medium hover:bg-blue-700 disabled:opacity-50">
-              {savingRow ? '…' : 'Save'}
-            </button>
-            <button onClick={() => setEditingRow(null)}
-              className="text-xs text-gray-500 hover:text-gray-700">Cancel</button>
-          </div>
-        </td>
-      </tr>
-    )
-  }
-
   // ── Render ─────────────────────────────────────────────────────────────────
 
   return (
@@ -486,7 +493,7 @@ export default function MembersManager({ companies }: Props) {
             <tbody>
               {pagedActive.map(m => (
                 editingRow?.id === m.id
-                  ? <EditForm key={m.id} m={m} colSpan={7} />
+                  ? <EditForm key={m.id} m={m} colSpan={7} editingRow={editingRow} setEditingRow={setEditingRow} companies={companies} locations={locations} savingRow={savingRow} saveRow={saveRow} />
                   : (
                     <tr key={m.id} className="border-b border-gray-100 last:border-0 hover:bg-gray-50">
                       <td className="px-4 py-3 font-medium text-gray-900 truncate" title={m.full_name ?? undefined}>{m.full_name ?? '—'}</td>
@@ -571,7 +578,7 @@ export default function MembersManager({ companies }: Props) {
             <tbody>
               {pagedPending.map(m => (
                 editingRow?.id === m.id
-                  ? <EditForm key={m.id} m={m} colSpan={7} />
+                  ? <EditForm key={m.id} m={m} colSpan={7} editingRow={editingRow} setEditingRow={setEditingRow} companies={companies} locations={locations} savingRow={savingRow} saveRow={saveRow} />
                   : (
                     <tr key={m.id} className="border-b border-gray-100 last:border-0 hover:bg-gray-50">
                       <td className="px-4 py-3 font-medium text-gray-900 truncate" title={m.full_name ?? undefined}>
