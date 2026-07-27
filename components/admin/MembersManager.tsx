@@ -50,7 +50,6 @@ type EditRow = {
   email:               string
   company_id:          string
   default_location_id: string
-  isActive:            boolean
 }
 
 type Props = { companies: Company[] }
@@ -202,7 +201,7 @@ export default function MembersManager({ companies }: Props) {
         full_name:           editingRow.full_name.trim() || null,
         email:               editingRow.email.trim(),
         company_id:          editingRow.company_id,
-        default_location_id: editingRow.isActive ? (editingRow.default_location_id || null) : undefined,
+        default_location_id: editingRow.default_location_id || null,
       }),
     })
     if (res.ok) {
@@ -222,7 +221,7 @@ export default function MembersManager({ companies }: Props) {
     setRemoving(memberId)
     const res = await fetch(`/api/admin/members/${memberId}`, { method: 'DELETE' })
     if (res.ok) {
-      toast.success('Member removed')
+      toast.success('Archived')
       setConfirmRemove(null)
       await refresh()
     } else {
@@ -366,7 +365,7 @@ export default function MembersManager({ companies }: Props) {
         <div className="flex items-center gap-2">
           <NextLink href="/dashboard/admin/members/inactive"
             className="flex items-center gap-1.5 text-sm border border-gray-300 hover:bg-gray-50 text-gray-700 font-medium px-3 py-2 rounded-lg transition-colors">
-            <Users size={14} /> Show Inactive Members
+            <Users size={14} /> Show Archived Members
           </NextLink>
           <button onClick={downloadCSV}
             className="flex items-center gap-1.5 text-sm border border-gray-300 hover:bg-gray-50 text-gray-700 font-medium px-3 py-2 rounded-lg transition-colors">
@@ -507,7 +506,7 @@ export default function MembersManager({ companies }: Props) {
                           <IconAction
                             icon={Edit2}
                             label="Edit member"
-                            onClick={() => setEditingRow({ id: m.id, full_name: m.full_name ?? '', email: m.email, company_id: m.company_id, default_location_id: m.default_location_id ?? '', isActive: true })}
+                            onClick={() => setEditingRow({ id: m.id, full_name: m.full_name ?? '', email: m.email, company_id: m.company_id, default_location_id: m.default_location_id ?? '' })}
                             colorClass="text-gray-400 hover:bg-gray-100 hover:text-gray-600"
                           />
                           {m.user_id && (
@@ -529,9 +528,9 @@ export default function MembersManager({ companies }: Props) {
                           )}
                           {confirmRemove === m.id ? (
                             <div className="flex items-center gap-1.5 ml-1">
-                              <span className="text-xs text-red-600">Remove?</span>
+                              <span className="text-xs text-amber-700">Archive?</span>
                               <button onClick={() => handleRemove(m.id)} disabled={removing === m.id}
-                                className="text-xs bg-red-600 text-white px-2 py-1 rounded font-medium">
+                                className="text-xs bg-amber-600 text-white px-2 py-1 rounded font-medium">
                                 {removing === m.id ? '…' : 'Yes'}
                               </button>
                               <button onClick={() => setConfirmRemove(null)} className="text-xs text-gray-400">No</button>
@@ -539,9 +538,9 @@ export default function MembersManager({ companies }: Props) {
                           ) : (
                             <IconAction
                               icon={Trash2}
-                              label="Remove member"
+                              label="Archive member"
                               onClick={() => setConfirmRemove(m.id)}
-                              colorClass="text-gray-400 hover:bg-red-50 hover:text-red-500"
+                              colorClass="text-gray-400 hover:bg-amber-50 hover:text-amber-600"
                             />
                           )}
                         </div>
@@ -590,7 +589,7 @@ export default function MembersManager({ companies }: Props) {
                           <IconAction
                             icon={Edit2}
                             label="Edit member"
-                            onClick={() => setEditingRow({ id: m.id, full_name: m.full_name ?? '', email: m.email, company_id: m.company_id, default_location_id: m.default_location_id ?? '', isActive: false })}
+                            onClick={() => setEditingRow({ id: m.id, full_name: m.full_name ?? '', email: m.email, company_id: m.company_id, default_location_id: m.default_location_id ?? '' })}
                             colorClass="text-gray-400 hover:bg-gray-100 hover:text-gray-600"
                           />
                           <IconAction

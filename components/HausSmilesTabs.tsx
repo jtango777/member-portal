@@ -30,7 +30,7 @@ export default function HausSmilesTabs({ groups, defaultLocationId, isAdmin }: P
     setRemoving(member.id)
     const res = await fetch(`/api/admin/haus-smiles/${member.id}?source=${member.source}`, { method: 'DELETE' })
     if (res.ok) {
-      toast.success('Removed from Faces')
+      toast.success('Archived')
       router.refresh()
     } else {
       const d = await res.json()
@@ -67,11 +67,11 @@ export default function HausSmilesTabs({ groups, defaultLocationId, isAdmin }: P
           <div key={member.id} className="relative group">
             {isAdmin && (
               confirmRemove === member.id ? (
-                <div className="absolute inset-0 z-10 bg-white/95 rounded-lg border border-red-200 flex flex-col items-center justify-center gap-2 p-2 text-center">
-                  <p className="text-xs text-red-600 font-medium">Remove from Faces?</p>
+                <div className="absolute inset-0 z-10 bg-white/95 rounded-lg border border-amber-200 flex flex-col items-center justify-center gap-2 p-2 text-center">
+                  <p className="text-xs text-amber-700 font-medium">Archive from Faces?</p>
                   <div className="flex items-center gap-2">
                     <button onClick={() => handleRemove(member)} disabled={removing === member.id}
-                      className="text-xs bg-red-600 text-white px-2 py-1 rounded font-medium">
+                      className="text-xs bg-amber-600 text-white px-2 py-1 rounded font-medium">
                       {removing === member.id ? '…' : 'Yes'}
                     </button>
                     <button onClick={() => setConfirmRemove(null)} className="text-xs text-gray-500">No</button>
@@ -79,8 +79,8 @@ export default function HausSmilesTabs({ groups, defaultLocationId, isAdmin }: P
                 </div>
               ) : (
                 <button onClick={() => setConfirmRemove(member.id)}
-                  title="Remove from Faces"
-                  className="absolute top-1.5 right-1.5 z-10 p-1 rounded-md bg-white/90 border border-gray-200 text-gray-400 opacity-0 group-hover:opacity-100 hover:text-red-600 hover:bg-white transition-opacity">
+                  title="Archive from Faces"
+                  className="absolute top-1.5 right-1.5 z-10 p-1 rounded-md bg-white/90 border border-gray-200 text-gray-400 opacity-0 group-hover:opacity-100 hover:text-amber-700 hover:bg-white transition-opacity">
                   <Trash2 size={13} />
                 </button>
               )

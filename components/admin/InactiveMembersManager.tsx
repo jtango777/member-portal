@@ -85,8 +85,8 @@ export default function InactiveMembersManager() {
         <Link href="/dashboard/admin/members" className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700 mb-2">
           <ArrowLeft size={14} /> Back to Members
         </Link>
-        <h1 className="text-xl font-bold text-gray-900">Inactive Members</h1>
-        <p className="text-sm text-gray-500 mt-0.5">{loading ? '…' : `${inactive.length} inactive`}</p>
+        <h1 className="text-xl font-bold text-gray-900">Archived Members</h1>
+        <p className="text-sm text-gray-500 mt-0.5">{loading ? '…' : `${inactive.length} archived`}</p>
       </div>
 
       <div className="relative">
@@ -139,7 +139,7 @@ export default function InactiveMembersManager() {
         </table>
         {!loading && inactive.length === 0 && (
           <div className="px-4 py-12 text-center text-gray-400 text-sm">
-            {search ? 'No inactive members match your search.' : 'No inactive members.'}
+            {search ? 'No archived members match your search.' : 'No archived members.'}
           </div>
         )}
       </div>

@@ -44,7 +44,7 @@ export async function POST(request: Request) {
     company_id:          invite.company_id,
     full_name:           name.trim(),
     is_admin:            false,
-    default_location_id: default_location_id ?? null,
+    default_location_id: default_location_id ?? invite.default_location_id ?? null,
     avatar_url:          invite.avatar_url ?? null,
     seating:             seating ?? null,
   })

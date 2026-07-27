@@ -24,9 +24,16 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
   }
 
   if (source === 'profile') {
-    const { error } = await admin.from('profiles').update({ is_active: false }).eq('id', id)
-    if (error) return NextResponse.json({ error: 'Failed to remove member.' }, { status: 500 })
-    return NextResponse.json({ ok: true })
+    const { data: profile, error } = await admin.from('profiles').update({ is_active: false }).eq('id', id).select('id').single()
+    if (error) return NextResponse.json({ error: 'Failed to archive member.' }, { status: 500 })
+
+    // Also flag permitted_emails so they land on the same archived-members list.
+    const { data: { user: authUser } } = await admin.auth.admin.getUserById(id)
+    if (authUser?.email) {
+      await admin.from('permitted_emails').update({ is_active: false }).eq('email', authUser.email)
+    }
+
+    return NextResponse.json({ ok: true, id: profile.id })
   }
 
   return NextResponse.json({ error: 'source must be "profile" or "directory"' }, { status: 400 })

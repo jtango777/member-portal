@@ -183,6 +183,7 @@ async function main() {
   for (const row of activeUsers) {
     const email       = cleanEmail(row['Email'])
     const companyName = row['Company Name']?.trim() ?? ''
+    const fullName    = [row['First Name']?.trim(), row['Last Name']?.trim()].filter(Boolean).join(' ') || null
 
     if (!email || !email.includes('@') || !email.includes('.')) {
       console.warn(`  ⚠ Skipping invalid email: "${row['Email']}"`)
@@ -221,6 +222,7 @@ async function main() {
 
     const { error } = await db.from('permitted_emails').insert({
       email,
+      full_name:   fullName,
       company_id:  companyId,
       invite_token: null,        // token generated when invite email is sent
       invited_at:  new Date().toISOString(),

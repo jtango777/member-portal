@@ -16,7 +16,7 @@ export default function HausSmilesMemberActions({ id, source }: Props) {
     setRemoving(true)
     const res = await fetch(`/api/admin/haus-smiles/${id}?source=${source}`, { method: 'DELETE' })
     if (res.ok) {
-      toast.success('Removed from Faces')
+      toast.success('Archived')
       router.push('/dashboard/haus-smiles')
       router.refresh()
     } else {
@@ -30,10 +30,10 @@ export default function HausSmilesMemberActions({ id, source }: Props) {
   if (confirming) {
     return (
       <div className="flex items-center justify-center gap-2 mt-4">
-        <span className="text-sm text-red-600">Remove from Faces?</span>
+        <span className="text-sm text-amber-700">Archive from Faces?</span>
         <button onClick={handleRemove} disabled={removing}
-          className="text-sm bg-red-600 text-white px-3 py-1.5 rounded-lg font-medium">
-          {removing ? '…' : 'Yes, remove'}
+          className="text-sm bg-amber-600 text-white px-3 py-1.5 rounded-lg font-medium">
+          {removing ? '…' : 'Yes, archive'}
         </button>
         <button onClick={() => setConfirming(false)} className="text-sm text-gray-500">Cancel</button>
       </div>
@@ -42,8 +42,8 @@ export default function HausSmilesMemberActions({ id, source }: Props) {
 
   return (
     <button onClick={() => setConfirming(true)}
-      className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-red-600 mx-auto mt-4">
-      <Trash2 size={14} /> Remove from Faces
+      className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-amber-700 mx-auto mt-4">
+      <Trash2 size={14} /> Archive from Faces
     </button>
   )
 }
