@@ -52,15 +52,18 @@ export default function Nav({ profile }: Props) {
         </Link>
 
         <div className="flex items-center gap-3">
-          <span className="text-sm text-slate-300 hidden sm:block">
-            {profile.full_name}
-          </span>
+          <div className="hidden sm:flex flex-col items-end">
+            <span className="text-sm text-slate-200 leading-tight">{profile.full_name}</span>
+            <button onClick={signOut}
+              className="flex items-center gap-1 text-xs text-slate-500 hover:text-slate-300 transition-colors leading-tight"
+              title="Sign out">
+              <LogOut size={11} />
+              Sign out
+            </button>
+          </div>
           <ProfileAvatar profile={profile} active={pathname === '/dashboard/settings'} />
-          <button onClick={signOut}
-            className="flex items-center gap-1.5 text-sm text-slate-400 hover:text-white transition-colors"
-            title="Sign out">
-            <LogOut size={16} />
-            <span className="hidden sm:inline">Sign out</span>
+          <button onClick={signOut} className="sm:hidden text-slate-400 hover:text-white transition-colors" title="Sign out">
+            <LogOut size={18} />
           </button>
         </div>
       </nav>
@@ -76,15 +79,18 @@ export default function Nav({ profile }: Props) {
       </Link>
 
       <div className="flex items-center gap-3">
-        <span className="text-sm text-slate-300 hidden sm:block">
-          {profile.full_name}
-        </span>
+        <div className="hidden sm:flex flex-col items-end">
+          <span className="text-sm text-slate-200 leading-tight">{profile.full_name}</span>
+          <button onClick={signOut}
+            className="flex items-center gap-1 text-xs text-slate-500 hover:text-slate-300 transition-colors leading-tight"
+            title="Sign out">
+            <LogOut size={11} />
+            Sign out
+          </button>
+        </div>
         <ProfileAvatar profile={profile} active={pathname === '/dashboard/settings'} />
-        <button onClick={signOut}
-          className="flex items-center gap-1.5 text-sm text-slate-400 hover:text-white transition-colors"
-          title="Sign out">
-          <LogOut size={16} />
-          <span className="hidden sm:inline">Sign out</span>
+        <button onClick={signOut} className="sm:hidden text-slate-400 hover:text-white transition-colors" title="Sign out">
+          <LogOut size={18} />
         </button>
       </div>
     </nav>
