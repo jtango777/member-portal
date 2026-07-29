@@ -137,8 +137,9 @@ export default function MembersManager({ companies }: Props) {
   const [pendingPage, setPendingPage] = useState(1)
   const [showAllActive, setShowAllActive]   = useState(false)
   const [showAllPending, setShowAllPending] = useState(false)
+  const [activePageSize, setActivePageSize]   = useState(10)
+  const [pendingPageSize, setPendingPageSize] = useState(10)
   const [locationSort, setLocationSort]     = useState<'asc' | 'desc' | null>(null)
-  const PAGE_SIZE = 10
 
   function toggleLocationSort() {
     setLocationSort(s => s === 'asc' ? 'desc' : s === 'desc' ? null : 'asc')
@@ -351,10 +352,10 @@ export default function MembersManager({ companies }: Props) {
   )
   const notInvited  = members.filter(m => m.is_active !== false && !m.accepted_at && !m.invite_token)
 
-  const activeTotalPages  = Math.max(1, Math.ceil(active.length / PAGE_SIZE))
-  const pendingTotalPages = Math.max(1, Math.ceil(pending.length / PAGE_SIZE))
-  const pagedActive  = showAllActive  ? active  : active.slice((activePage - 1) * PAGE_SIZE, activePage * PAGE_SIZE)
-  const pagedPending = showAllPending ? pending : pending.slice((pendingPage - 1) * PAGE_SIZE, pendingPage * PAGE_SIZE)
+  const activeTotalPages  = Math.max(1, Math.ceil(active.length / activePageSize))
+  const pendingTotalPages = Math.max(1, Math.ceil(pending.length / pendingPageSize))
+  const pagedActive  = showAllActive  ? active  : active.slice((activePage - 1) * activePageSize, activePage * activePageSize)
+  const pagedPending = showAllPending ? pending : pending.slice((pendingPage - 1) * pendingPageSize, pendingPage * pendingPageSize)
 
   // ── Render ─────────────────────────────────────────────────────────────────
 
@@ -479,7 +480,8 @@ export default function MembersManager({ companies }: Props) {
       {active.length > 0 && (
         <Section title={`Active Members (${active.length})`} footer={
           <Pagination page={activePage} totalPages={activeTotalPages} onPageChange={setActivePage}
-            showAll={showAllActive} onToggleShowAll={() => setShowAllActive(v => !v)} />
+            showAll={showAllActive} onToggleShowAll={() => setShowAllActive(v => !v)}
+            pageSize={activePageSize} onPageSizeChange={size => { setActivePageSize(size); setActivePage(1) }} />
         }>
           <table className="w-full text-sm table-fixed">
             <colgroup>
@@ -564,7 +566,8 @@ export default function MembersManager({ companies }: Props) {
       {pending.length > 0 && (
         <Section title={`Pending (${pending.length})`} footer={
           <Pagination page={pendingPage} totalPages={pendingTotalPages} onPageChange={setPendingPage}
-            showAll={showAllPending} onToggleShowAll={() => setShowAllPending(v => !v)} />
+            showAll={showAllPending} onToggleShowAll={() => setShowAllPending(v => !v)}
+            pageSize={pendingPageSize} onPageSizeChange={size => { setPendingPageSize(size); setPendingPage(1) }} />
         }>
           <table className="w-full text-sm table-fixed">
             <colgroup>
@@ -675,18 +678,34 @@ function StatusBadge({ m }: { m: MemberRow }) {
   return <span className="whitespace-nowrap text-xs font-medium text-gray-500 bg-gray-100 border border-gray-200 px-2 py-0.5 rounded-full">Not invited</span>
 }
 
-function Pagination({ page, totalPages, onPageChange, showAll, onToggleShowAll }: {
+function Pagination({ page, totalPages, onPageChange, showAll, onToggleShowAll, pageSize, onPageSizeChange }: {
   page: number
   totalPages: number
   onPageChange: (p: number) => void
   showAll: boolean
   onToggleShowAll: () => void
+  pageSize: number
+  onPageSizeChange: (size: number) => void
 }) {
   return (
     <div className="flex items-center justify-between px-4 py-2 border-t border-gray-100 bg-gray-50 text-xs rounded-b-xl">
-      <button onClick={onToggleShowAll} className="text-blue-600 hover:text-blue-800 font-medium">
-        {showAll ? 'Show 10 per page' : 'Show all'}
-      </button>
+      <div className="flex items-center gap-3">
+        <button onClick={onToggleShowAll} className="text-blue-600 hover:text-blue-800 font-medium">
+          {showAll ? `Show ${pageSize} per page` : 'Show all'}
+        </button>
+        {!showAll && (
+          <label className="flex items-center gap-1 text-gray-500">
+            Per page:
+            <select
+              value={pageSize}
+              onChange={e => onPageSizeChange(Number(e.target.value))}
+              className="border border-gray-300 rounded px-1.5 py-0.5 text-xs bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              {[10, 25, 50, 100].map(n => <option key={n} value={n}>{n}</option>)}
+            </select>
+          </label>
+        )}
+      </div>
       {!showAll && totalPages > 1 && (
         <div className="flex items-center gap-1.5 text-gray-500">
           <button onClick={() => onPageChange(Math.max(1, page - 1))} disabled={page === 1}
