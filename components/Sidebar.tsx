@@ -43,12 +43,7 @@ export default function Sidebar({ isAdmin }: { isAdmin: boolean }) {
 
   function SectionLabel({ children }: { children: React.ReactNode }) {
     if (collapsed) return null
-    return <p className="px-3 pt-4 pb-1 text-[11px] font-bold tracking-wide text-gray-500 uppercase">{children}</p>
-  }
-
-  function GroupLabel({ children }: { children: React.ReactNode }) {
-    if (collapsed) return null
-    return <p className="pl-5 pr-3 pt-2.5 pb-0.5 text-[10px] font-medium tracking-wide text-gray-400 uppercase">{children}</p>
+    return <p className="px-3 pt-4 pb-1.5 text-xs font-bold tracking-wide text-blue-600 uppercase">{children}</p>
   }
 
   return (
@@ -64,8 +59,7 @@ export default function Sidebar({ isAdmin }: { isAdmin: boolean }) {
             <div className="h-px bg-gray-200 mt-2 mx-1" />
             <SectionLabel>Admin</SectionLabel>
             {adminManageGroups.map((group, i) => (
-              <div key={i}>
-                {group.label && <GroupLabel>{group.label}</GroupLabel>}
+              <div key={i} className={i > 0 ? 'mt-2' : undefined}>
                 {group.items.map(item => <NavLink key={item.href} {...item} />)}
               </div>
             ))}
