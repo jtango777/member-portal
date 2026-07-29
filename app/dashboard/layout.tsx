@@ -31,7 +31,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const shouldShowAnnouncement = !!latestAnnouncement && latestAnnouncement.id !== (profile as Profile).dismissed_announcement_id
 
   return (
-    <div className="flex flex-col h-screen overflow-hidden">
+    <div className="flex flex-col h-dvh overflow-hidden">
       <Nav profile={profile as Profile} />
       <AvatarUploadPrompt hasAvatar={!!(profile as Profile).avatar_url} />
       {shouldShowAnnouncement && latestAnnouncement && (
