@@ -44,26 +44,31 @@ export default function MobileTabBar({ isAdmin }: { isAdmin: boolean }) {
             </button>
           </div>
           <div className="p-3 flex flex-col gap-1">
+            <p className="px-3 pt-1 pb-1.5 text-xs font-bold tracking-wide text-blue-600 uppercase">Account</p>
             <Link href="/dashboard/settings" onClick={() => setMoreOpen(false)}
               className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm text-gray-700 hover:bg-gray-100">
               <UserCog size={17} /> Profile & settings
             </Link>
-
-            {isAdmin && adminManageGroups.map((group, i) => (
-              <div key={i} className={i === 0 ? 'mt-2 pt-2 border-t border-gray-100' : undefined}>
-                {group.items.map(item => (
-                  <Link key={item.href} href={item.href} onClick={() => setMoreOpen(false)}
-                    className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm text-gray-700 hover:bg-gray-100">
-                    <item.icon size={17} /> {item.label}
-                  </Link>
-                ))}
-              </div>
-            ))}
-
             <button onClick={signOut}
-              className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm text-gray-400 hover:bg-gray-100 hover:text-gray-600 mt-2 pt-2 border-t border-gray-100">
+              className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm text-gray-400 hover:bg-gray-100 hover:text-gray-600">
               <LogOut size={17} /> Sign out
             </button>
+
+            {isAdmin && (
+              <>
+                <p className="px-3 pt-4 pb-1.5 text-xs font-bold tracking-wide text-blue-600 uppercase">Admin</p>
+                {adminManageGroups.map((group, i) => (
+                  <div key={i} className={i > 0 ? 'mt-2' : undefined}>
+                    {group.items.map(item => (
+                      <Link key={item.href} href={item.href} onClick={() => setMoreOpen(false)}
+                        className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm text-gray-700 hover:bg-gray-100">
+                        <item.icon size={17} /> {item.label}
+                      </Link>
+                    ))}
+                  </div>
+                ))}
+              </>
+            )}
           </div>
         </div>
       )}
