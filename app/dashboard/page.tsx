@@ -5,16 +5,6 @@ import { DoorOpen, Smile } from 'lucide-react'
 
 export const dynamic = 'force-dynamic'
 
-function firstName(fullName: string): string {
-  return fullName.trim().split(/\s+/)[0]
-}
-
-function joinNames(names: string[]): string {
-  if (names.length === 1) return names[0]
-  if (names.length === 2) return `${names[0]} and ${names[1]}`
-  return `${names.slice(0, -1).join(', ')}, and ${names[names.length - 1]}`
-}
-
 export default async function PortalHomePage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -63,36 +53,26 @@ export default async function PortalHomePage() {
 
         <div className="grid grid-cols-1 gap-4">
           <Link href="/dashboard/rooms"
-            className="bg-blue-50 hover:bg-blue-100 transition-colors rounded-xl p-8 flex flex-col gap-3">
-            <div className="flex items-center gap-3">
-              <DoorOpen size={32} className="text-blue-700" />
-              <span className="text-xl font-bold text-blue-900">Rooms</span>
-              <div className="h-5 w-px bg-blue-200" />
-              <span className="text-sm text-blue-700">Book a conference room</span>
-            </div>
+            className="bg-blue-50 hover:bg-blue-100 transition-colors rounded-xl p-8 flex items-center gap-3">
+            <DoorOpen size={32} className="text-blue-700" />
+            <span className="text-xl font-bold text-blue-900">Rooms</span>
+            <div className="h-5 w-px bg-blue-200" />
+            <span className="text-sm text-blue-700">Book a conference room</span>
           </Link>
 
           <Link href="/dashboard/haus-smiles"
-            className="bg-emerald-50 hover:bg-emerald-100 transition-colors rounded-xl p-8 flex flex-col gap-3">
-            <div className="flex items-center gap-3">
-              <Smile size={32} className="text-emerald-700" />
-              <span className="text-xl font-bold text-emerald-900">Faces</span>
-              <div className="h-5 w-px bg-emerald-200" />
-              <span className="text-sm text-emerald-700">Meet your community</span>
-            </div>
+            className="bg-emerald-50 hover:bg-emerald-100 transition-colors rounded-xl p-8 flex items-center gap-3">
+            <Smile size={32} className="text-emerald-700" />
+            <span className="text-xl font-bold text-emerald-900">Faces</span>
+            <div className="h-5 w-px bg-emerald-200" />
+            <span className="text-sm text-emerald-700">Meet your community</span>
             {neighbors.length > 0 && (
-              <div className="flex items-center gap-3 mt-1 pt-4 border-t border-emerald-100">
-                <div className="flex -space-x-3 flex-shrink-0">
-                  {neighbors.map((n, i) => (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img key={i} src={n.avatar_url} alt=""
-                      className="w-10 h-10 rounded-full object-cover border-2 border-emerald-50" />
-                  ))}
-                </div>
-                <div>
-                  <p className="text-[10px] text-emerald-700">Say hi to</p>
-                  <p className="text-sm font-semibold text-emerald-900">{joinNames(neighbors.map(n => firstName(n.full_name)))}</p>
-                </div>
+              <div className="flex -space-x-3 flex-shrink-0 ml-2">
+                {neighbors.map((n, i) => (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img key={i} src={n.avatar_url} alt=""
+                    className="w-8 h-8 rounded-full object-cover border-2 border-emerald-50" />
+                ))}
               </div>
             )}
           </Link>

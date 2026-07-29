@@ -19,6 +19,11 @@ export default function Sidebar({ isAdmin }: { isAdmin: boolean }) {
     setMounted(true)
   }, [])
 
+  useEffect(() => {
+    if (!mounted) return
+    document.documentElement.style.setProperty('--sidebar-width', collapsed ? '64px' : '208px')
+  }, [collapsed, mounted])
+
   function toggle() {
     const next = !collapsed
     setCollapsed(next)
@@ -52,7 +57,6 @@ export default function Sidebar({ isAdmin }: { isAdmin: boolean }) {
       mounted ? (collapsed ? 'w-16' : 'w-52') : 'w-52'
     )}>
       <div className="flex-1 flex flex-col gap-1 p-3 overflow-y-auto">
-        {isAdmin && <SectionLabel>Member view</SectionLabel>}
         {(isAdmin ? adminNavItems : memberNavItems).map(item => <NavLink key={item.href} {...item} />)}
         {isAdmin && (
           <>
