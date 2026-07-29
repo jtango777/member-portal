@@ -80,7 +80,7 @@ export default function HausSmilesTabs({ groups, defaultLocationId, isAdmin }: P
                   </div>
                 </div>
               ) : (
-                <div className="absolute top-1.5 right-1.5 z-10 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                <div className="absolute top-1.5 right-1.5 z-10 flex gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                   <button onClick={() => setEditingPhoto(member)}
                     title="Change photo"
                     className="p-1 rounded-md bg-white/90 border border-gray-200 text-gray-400 hover:text-blue-700 hover:bg-white">

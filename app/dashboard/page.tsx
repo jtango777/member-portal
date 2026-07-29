@@ -57,21 +57,21 @@ export default async function PortalHomePage() {
 
         <div className="grid grid-cols-1 gap-4">
           <Link href="/dashboard/rooms"
-            className="bg-blue-50 hover:bg-blue-100 transition-colors rounded-xl p-8 flex items-center gap-3">
+            className="bg-blue-50 hover:bg-blue-100 transition-colors rounded-xl p-8 flex flex-wrap items-center gap-3">
             <DoorOpen size={32} className="text-blue-700" />
             <span className="text-xl font-bold text-blue-900">Rooms</span>
-            <div className="h-5 w-px bg-blue-200" />
+            <div className="h-5 w-px bg-blue-200 hidden sm:block" />
             <span className="text-sm text-blue-700">Book a conference room</span>
           </Link>
 
           <Link href="/dashboard/haus-smiles"
-            className="bg-emerald-50 hover:bg-emerald-100 transition-colors rounded-xl p-8 flex items-center gap-3">
+            className="bg-emerald-50 hover:bg-emerald-100 transition-colors rounded-xl p-8 flex flex-wrap items-center gap-3">
             <Smile size={32} className="text-emerald-700" />
             <span className="text-xl font-bold text-emerald-900">Faces</span>
-            <div className="h-5 w-px bg-emerald-200" />
+            <div className="h-5 w-px bg-emerald-200 hidden sm:block" />
             <span className="text-sm text-emerald-700">Meet your community</span>
             {neighbors.length > 0 && (
-              <div className="flex items-center gap-2 ml-2">
+              <div className="flex items-center gap-2 ml-0 sm:ml-2 min-w-0">
                 <div className="flex -space-x-3 flex-shrink-0">
                   {neighbors.map((n, i) => (
                     // eslint-disable-next-line @next/next/no-img-element
@@ -79,7 +79,7 @@ export default async function PortalHomePage() {
                       className="w-8 h-8 rounded-full object-cover border-2 border-emerald-50" />
                   ))}
                 </div>
-                <span className="text-xs text-emerald-600 whitespace-nowrap">
+                <span className="text-xs text-emerald-600 whitespace-nowrap hidden sm:inline">
                   ({neighbors.map(n => firstName(n.full_name)).join(', ')}...)
                 </span>
               </div>

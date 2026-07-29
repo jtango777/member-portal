@@ -483,7 +483,7 @@ export default function MembersManager({ companies }: Props) {
             showAll={showAllActive} onToggleShowAll={() => setShowAllActive(v => !v)}
             pageSize={activePageSize} onPageSizeChange={size => { setActivePageSize(size); setActivePage(1) }} />
         }>
-          <table className="w-full text-sm table-fixed">
+          <table className="w-full min-w-[640px] text-sm table-fixed">
             <colgroup>
               <col className="w-[15%]" /><col className="w-[20%]" /><col className="w-[16%]" /><col className="w-[13%]" /><col className="w-[10%]" /><col className="w-[10%]" /><col className="w-[16%]" />
             </colgroup>
@@ -569,7 +569,7 @@ export default function MembersManager({ companies }: Props) {
             showAll={showAllPending} onToggleShowAll={() => setShowAllPending(v => !v)}
             pageSize={pendingPageSize} onPageSizeChange={size => { setPendingPageSize(size); setPendingPage(1) }} />
         }>
-          <table className="w-full text-sm table-fixed">
+          <table className="w-full min-w-[640px] text-sm table-fixed">
             <colgroup>
               <col className="w-[15%]" /><col className="w-[20%]" /><col className="w-[16%]" /><col className="w-[13%]" /><col className="w-[10%]" /><col className="w-[10%]" /><col className="w-[16%]" />
             </colgroup>
@@ -729,7 +729,7 @@ function Section({ title, children, footer }: { title: string; children: React.R
       <div className="px-4 py-3 border-b border-gray-100 bg-gray-50 rounded-t-xl">
         <h2 className="text-sm font-semibold text-blue-600">{title}</h2>
       </div>
-      {children}
+      <div className="overflow-x-auto">{children}</div>
       {footer}
     </div>
   )
