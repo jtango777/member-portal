@@ -15,14 +15,43 @@ export const adminNavItems: NavItem[] = [
   { href: '/dashboard/haus-smiles', label: 'Faces', icon: Smile },
 ]
 
-export const adminManageNavItems: NavItem[] = [
-  { href: '/dashboard/admin/members', label: 'Members', icon: Users },
-  { href: '/dashboard/admin/companies', label: 'Companies', icon: Building2 },
-  { href: '/dashboard/admin/rooms', label: 'Rooms Admin', icon: DoorOpen },
-  { href: '/dashboard/admin/reservations', label: 'All Bookings', icon: CalendarDays },
-  { href: '/dashboard/admin/quickbooks', label: 'QuickBooks', icon: BookOpen },
-  { href: '/dashboard/admin/announcements', label: 'Announcements', icon: Megaphone },
-  { href: '/dashboard/admin/reports', label: 'Reports', icon: BarChart2 },
-  { href: '/dashboard/admin/time-usage', label: 'Time Usage', icon: Clock },
-  { href: '/dashboard/admin/page-visits', label: 'Page Activity', icon: BarChart2 },
+export type NavGroup = { label: string | null; items: NavItem[] }
+
+export const adminManageGroups: NavGroup[] = [
+  {
+    label: 'People',
+    items: [
+      { href: '/dashboard/admin/members', label: 'Members', icon: Users },
+      { href: '/dashboard/admin/companies', label: 'Companies', icon: Building2 },
+    ],
+  },
+  {
+    label: null,
+    items: [
+      { href: '/dashboard/admin/announcements', label: 'Announcements', icon: Megaphone },
+    ],
+  },
+  {
+    label: 'Rooms & Bookings',
+    items: [
+      { href: '/dashboard/admin/rooms', label: 'Room Settings', icon: DoorOpen },
+      { href: '/dashboard/admin/reservations', label: 'All Bookings', icon: CalendarDays },
+    ],
+  },
+  {
+    label: 'Insights',
+    items: [
+      { href: '/dashboard/admin/reports', label: 'Reports', icon: BarChart2 },
+      { href: '/dashboard/admin/time-usage', label: 'Time Usage', icon: Clock },
+      { href: '/dashboard/admin/page-visits', label: 'Page Activity', icon: BarChart2 },
+    ],
+  },
+  {
+    label: 'Integrations',
+    items: [
+      { href: '/dashboard/admin/quickbooks', label: 'QuickBooks', icon: BookOpen },
+    ],
+  },
 ]
+
+export const adminManageNavItems: NavItem[] = adminManageGroups.flatMap(g => g.items)

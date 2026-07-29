@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { memberNavItems, adminNavItems, adminManageNavItems, type NavItem } from '@/lib/navItems'
+import { memberNavItems, adminNavItems, adminManageGroups, type NavItem } from '@/lib/navItems'
 
 const STORAGE_KEY = 'sidebar-collapsed'
 
@@ -41,26 +41,36 @@ export default function Sidebar({ isAdmin }: { isAdmin: boolean }) {
     )
   }
 
+  function SectionLabel({ children }: { children: React.ReactNode }) {
+    if (collapsed) return null
+    return <p className="px-3 pt-3 pb-1 text-[11px] font-semibold tracking-wide text-gray-400 uppercase">{children}</p>
+  }
+
   return (
     <div className={cn(
-      'hidden sm:flex relative flex-shrink-0 bg-white border-r border-gray-200 flex-col gap-1 p-3 overflow-y-auto transition-all duration-200',
+      'hidden sm:flex relative flex-shrink-0 bg-white border-r border-gray-200 flex-col transition-all duration-200',
       mounted ? (collapsed ? 'w-16' : 'w-52') : 'w-52'
     )}>
-      {(isAdmin ? adminNavItems : memberNavItems).map(item => <NavLink key={item.href} {...item} />)}
-      {isAdmin && (
-        <>
-          <div className="h-px bg-gray-200 my-2 mx-1" />
-          {!collapsed && (
-            <p className="px-3 pb-1 text-[11px] font-semibold tracking-wide text-gray-400 uppercase">Admin</p>
-          )}
-          {adminManageNavItems.map(item => <NavLink key={item.href} {...item} />)}
-        </>
-      )}
-      <div className="flex-1" />
+      <div className="flex-1 flex flex-col gap-1 p-3 overflow-y-auto">
+        {isAdmin && <SectionLabel>Member view</SectionLabel>}
+        {(isAdmin ? adminNavItems : memberNavItems).map(item => <NavLink key={item.href} {...item} />)}
+        {isAdmin && (
+          <>
+            <div className="h-px bg-gray-200 mt-2 mx-1" />
+            <SectionLabel>Admin</SectionLabel>
+            {adminManageGroups.map((group, i) => (
+              <div key={i}>
+                {group.label && <SectionLabel>{group.label}</SectionLabel>}
+                {group.items.map(item => <NavLink key={item.href} {...item} />)}
+              </div>
+            ))}
+          </>
+        )}
+      </div>
 
       <button onClick={toggle} title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-        className="absolute -right-3 top-6 flex items-center justify-center w-6 h-6 rounded-full bg-white border border-gray-200 shadow-sm text-gray-400 hover:text-gray-700 hover:border-gray-300 transition-colors">
-        {collapsed ? <ChevronRight size={13} /> : <ChevronLeft size={13} />}
+        className="absolute -right-6 top-6 z-10 flex items-center justify-center w-6 h-6 rounded-full bg-white border border-gray-200 shadow-sm text-gray-400 hover:text-gray-700 hover:border-gray-300 transition-colors">
+        {collapsed ? <ChevronRight size={13} strokeWidth={2.5} /> : <ChevronLeft size={13} strokeWidth={2.5} />}
       </button>
     </div>
   )
