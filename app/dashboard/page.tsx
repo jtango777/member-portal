@@ -65,15 +65,21 @@ export default async function PortalHomePage() {
           <Link href="/dashboard/rooms"
             className="bg-blue-50 hover:bg-blue-100 transition-colors rounded-xl p-8 flex flex-col gap-3">
             <DoorOpen size={32} className="text-blue-700" />
-            <span className="text-xl font-bold text-blue-900">Rooms</span>
-            <span className="text-sm text-blue-700">Book a conference room</span>
+            <div className="flex items-center gap-3">
+              <span className="text-xl font-bold text-blue-900">Rooms</span>
+              <div className="h-5 w-px bg-blue-200" />
+              <span className="text-sm text-blue-700">Book a conference room</span>
+            </div>
           </Link>
 
           <Link href="/dashboard/haus-smiles"
             className="bg-emerald-50 hover:bg-emerald-100 transition-colors rounded-xl p-8 flex flex-col gap-3">
             <Smile size={32} className="text-emerald-700" />
-            <span className="text-xl font-bold text-emerald-900">Faces</span>
-            <span className="text-sm text-emerald-700">Meet your community</span>
+            <div className="flex items-center gap-3">
+              <span className="text-xl font-bold text-emerald-900">Faces</span>
+              <div className="h-5 w-px bg-emerald-200" />
+              <span className="text-sm text-emerald-700">Meet your community</span>
+            </div>
             {neighbors.length > 0 && (
               <div className="flex items-center gap-3 mt-1 pt-4 border-t border-emerald-100">
                 <div className="flex -space-x-3 flex-shrink-0">
