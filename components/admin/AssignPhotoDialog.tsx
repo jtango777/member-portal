@@ -14,7 +14,7 @@ type Props = {
   open: boolean
   onOpenChange: (open: boolean) => void
   onSuccess: () => void
-  targetType: 'member' | 'pending'
+  targetType: 'member' | 'pending' | 'directory'
   targetId: string
   memberName: string
   hasPhoto?: boolean
@@ -26,6 +26,8 @@ type Mode = 'choose' | 'upload' | 'directory'
 export default function AssignPhotoDialog({ open, onOpenChange, onSuccess, targetType, targetId, memberName, hasPhoto, avatarUrl }: Props) {
   const endpoint = targetType === 'member'
     ? `/api/admin/members/${targetId}/photo`
+    : targetType === 'directory'
+    ? `/api/admin/directory-photos/${targetId}/photo`
     : `/api/admin/pending-members/${targetId}/photo`
   const [mode, setMode] = useState<Mode>('choose')
   const [uploading, setUploading] = useState(false)
@@ -166,10 +168,12 @@ export default function AssignPhotoDialog({ open, onOpenChange, onSuccess, targe
                   className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-4 py-3 rounded-lg">
                   <Upload size={16} /> Upload from Computer
                 </button>
-                <button onClick={() => setMode('directory')}
-                  className="w-full flex items-center justify-center gap-2 border border-gray-300 text-gray-700 hover:bg-gray-50 text-sm font-semibold px-4 py-3 rounded-lg">
-                  <Images size={16} /> Choose from Directory
-                </button>
+                {targetType !== 'directory' && (
+                  <button onClick={() => setMode('directory')}
+                    className="w-full flex items-center justify-center gap-2 border border-gray-300 text-gray-700 hover:bg-gray-50 text-sm font-semibold px-4 py-3 rounded-lg">
+                    <Images size={16} /> Choose from Directory
+                  </button>
+                )}
               </div>
             )}
 

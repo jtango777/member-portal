@@ -56,7 +56,9 @@ export default async function HausSmilesMemberPage({ params }: { params: Promise
         {(member as { seating?: string | null }).seating && (
           <p className="text-sm text-gray-400 text-center">{(member as { seating?: string | null }).seating}</p>
         )}
-        {currentProfile?.is_admin && <HausSmilesMemberActions id={member.id} source={source} />}
+        {currentProfile?.is_admin && (
+          <HausSmilesMemberActions id={member.id} source={source} fullName={member.full_name} avatarUrl={member.avatar_url} />
+        )}
       </div>
     </div>
   )

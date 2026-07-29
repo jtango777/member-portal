@@ -3,8 +3,9 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { Trash2 } from 'lucide-react'
+import { Trash2, Pencil } from 'lucide-react'
 import toast from 'react-hot-toast'
+import AssignPhotoDialog from './admin/AssignPhotoDialog'
 
 type Member = { id: string; full_name: string; avatar_url: string | null; seating?: string | null; source: 'profile' | 'directory' }
 type Group = { key: string; name: string; members: Member[] }
@@ -24,6 +25,7 @@ export default function HausSmilesTabs({ groups, defaultLocationId, isAdmin }: P
   )
   const [confirmRemove, setConfirmRemove] = useState<string | null>(null)
   const [removing, setRemoving] = useState<string | null>(null)
+  const [editingPhoto, setEditingPhoto] = useState<Member | null>(null)
   const active = groups.find(g => g.key === activeKey) ?? groups[0]
 
   async function handleRemove(member: Member) {
@@ -78,11 +80,18 @@ export default function HausSmilesTabs({ groups, defaultLocationId, isAdmin }: P
                   </div>
                 </div>
               ) : (
-                <button onClick={() => setConfirmRemove(member.id)}
-                  title="Archive from Faces"
-                  className="absolute top-1.5 right-1.5 z-10 p-1 rounded-md bg-white/90 border border-gray-200 text-gray-400 opacity-0 group-hover:opacity-100 hover:text-amber-700 hover:bg-white transition-opacity">
-                  <Trash2 size={13} />
-                </button>
+                <div className="absolute top-1.5 right-1.5 z-10 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <button onClick={() => setEditingPhoto(member)}
+                    title="Change photo"
+                    className="p-1 rounded-md bg-white/90 border border-gray-200 text-gray-400 hover:text-blue-700 hover:bg-white">
+                    <Pencil size={13} />
+                  </button>
+                  <button onClick={() => setConfirmRemove(member.id)}
+                    title="Archive from Faces"
+                    className="p-1 rounded-md bg-white/90 border border-gray-200 text-gray-400 hover:text-amber-700 hover:bg-white">
+                    <Trash2 size={13} />
+                  </button>
+                </div>
               )
             )}
             <Link href={`/dashboard/haus-smiles/${member.id}`} className="text-center block">
@@ -98,6 +107,19 @@ export default function HausSmilesTabs({ groups, defaultLocationId, isAdmin }: P
           </div>
         ))}
       </div>
+
+      {editingPhoto && (
+        <AssignPhotoDialog
+          open
+          onOpenChange={v => { if (!v) setEditingPhoto(null) }}
+          onSuccess={() => { setEditingPhoto(null); router.refresh() }}
+          targetType={editingPhoto.source === 'profile' ? 'member' : 'directory'}
+          targetId={editingPhoto.id}
+          memberName={editingPhoto.full_name}
+          hasPhoto
+          avatarUrl={editingPhoto.avatar_url}
+        />
+      )}
     </div>
   )
 }
