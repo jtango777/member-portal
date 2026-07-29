@@ -5,6 +5,10 @@ import { DoorOpen, Smile } from 'lucide-react'
 
 export const dynamic = 'force-dynamic'
 
+function firstName(fullName: string): string {
+  return fullName.trim().split(/\s+/)[0]
+}
+
 export default async function PortalHomePage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -67,12 +71,17 @@ export default async function PortalHomePage() {
             <div className="h-5 w-px bg-emerald-200" />
             <span className="text-sm text-emerald-700">Meet your community</span>
             {neighbors.length > 0 && (
-              <div className="flex -space-x-3 flex-shrink-0 ml-2">
-                {neighbors.map((n, i) => (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img key={i} src={n.avatar_url} alt=""
-                    className="w-8 h-8 rounded-full object-cover border-2 border-emerald-50" />
-                ))}
+              <div className="flex items-center gap-2 ml-2">
+                <div className="flex -space-x-3 flex-shrink-0">
+                  {neighbors.map((n, i) => (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img key={i} src={n.avatar_url} alt=""
+                      className="w-8 h-8 rounded-full object-cover border-2 border-emerald-50" />
+                  ))}
+                </div>
+                <span className="text-xs text-emerald-600 whitespace-nowrap">
+                  ({neighbors.map(n => firstName(n.full_name)).join(', ')}...)
+                </span>
               </div>
             )}
           </Link>
