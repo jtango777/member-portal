@@ -9,6 +9,12 @@ function firstName(fullName: string): string {
   return fullName.trim().split(/\s+/)[0]
 }
 
+function joinNames(names: string[]): string {
+  if (names.length === 1) return names[0]
+  if (names.length === 2) return `${names[0]} and ${names[1]}`
+  return `${names.slice(0, -1).join(', ')}, and ${names[names.length - 1]}`
+}
+
 export default async function PortalHomePage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -21,7 +27,7 @@ export default async function PortalHomePage() {
     .single()
   if (!profile) redirect('/login')
 
-  let spotlight: { full_name: string; avatar_url: string } | null = null
+  let neighbors: { full_name: string; avatar_url: string }[] = []
   if (profile.default_location_id) {
     const [{ data: locationProfiles }, { data: locationDirectory }] = await Promise.all([
       supabase
@@ -37,10 +43,10 @@ export default async function PortalHomePage() {
         .eq('location_id', profile.default_location_id),
     ])
     const candidates = [...(locationProfiles ?? []), ...(locationDirectory ?? [])]
-    if (candidates.length > 0) {
-      const pick = candidates[Math.floor(Math.random() * candidates.length)]
-      spotlight = { full_name: pick.full_name, avatar_url: pick.avatar_url }
-    }
+    neighbors = candidates
+      .sort(() => Math.random() - 0.5)
+      .slice(0, 3)
+      .map(c => ({ full_name: c.full_name, avatar_url: c.avatar_url }))
   }
 
   return (
@@ -60,19 +66,26 @@ export default async function PortalHomePage() {
             className="bg-blue-50 hover:bg-blue-100 transition-colors rounded-xl p-8 flex flex-col gap-3">
             <DoorOpen size={32} className="text-blue-700" />
             <span className="text-xl font-bold text-blue-900">Rooms</span>
+            <span className="text-sm text-blue-700">Book a conference room</span>
           </Link>
 
           <Link href="/dashboard/haus-smiles"
             className="bg-emerald-50 hover:bg-emerald-100 transition-colors rounded-xl p-8 flex flex-col gap-3">
             <Smile size={32} className="text-emerald-700" />
             <span className="text-xl font-bold text-emerald-900">Faces</span>
-            {spotlight && (
-              <div className="flex items-center gap-2 mt-1 pt-4 border-t border-emerald-100">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={spotlight.avatar_url} alt="" className="w-10 h-10 rounded-full object-cover flex-shrink-0" />
+            <span className="text-sm text-emerald-700">Meet your community</span>
+            {neighbors.length > 0 && (
+              <div className="flex items-center gap-3 mt-1 pt-4 border-t border-emerald-100">
+                <div className="flex -space-x-3 flex-shrink-0">
+                  {neighbors.map((n, i) => (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img key={i} src={n.avatar_url} alt=""
+                      className="w-10 h-10 rounded-full object-cover border-2 border-emerald-50" />
+                  ))}
+                </div>
                 <div>
-                  <p className="text-[10px] text-emerald-700">Meet a neighbor</p>
-                  <p className="text-sm font-semibold text-emerald-900">{firstName(spotlight.full_name)}</p>
+                  <p className="text-[10px] text-emerald-700">Say hi to</p>
+                  <p className="text-sm font-semibold text-emerald-900">{joinNames(neighbors.map(n => firstName(n.full_name)))}</p>
                 </div>
               </div>
             )}
