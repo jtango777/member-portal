@@ -3,7 +3,6 @@ import { createClient } from '@/lib/supabase/server'
 import Nav from '@/components/Nav'
 import Sidebar from '@/components/Sidebar'
 import MobileNav from '@/components/MobileNav'
-import RoomsSubNav from '@/components/RoomsSubNav'
 import AvatarUploadPrompt from '@/components/AvatarUploadPrompt'
 import AnnouncementPopup from '@/components/AnnouncementPopup'
 import { Profile } from '@/types'
@@ -34,7 +33,6 @@ export default async function DashboardLayout({ children }: { children: React.Re
   return (
     <div className="flex flex-col h-screen overflow-hidden">
       <Nav profile={profile as Profile} />
-      <RoomsSubNav isAdmin={(profile as Profile).is_admin} />
       <AvatarUploadPrompt hasAvatar={!!(profile as Profile).avatar_url} />
       {shouldShowAnnouncement && latestAnnouncement && (
         <AnnouncementPopup announcementId={latestAnnouncement.id} message={latestAnnouncement.message} />
