@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { ChevronsLeft, ChevronsRight } from 'lucide-react'
+import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { memberNavItems, adminNavItems, adminManageNavItems, type NavItem } from '@/lib/navItems'
 
@@ -60,7 +60,7 @@ export default function Sidebar({ isAdmin }: { isAdmin: boolean }) {
 
       <button onClick={toggle} title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
         className="absolute -right-3 top-6 flex items-center justify-center w-6 h-6 rounded-full bg-white border border-gray-200 shadow-sm text-gray-400 hover:text-gray-700 hover:border-gray-300 transition-colors">
-        {collapsed ? <ChevronsRight size={13} className="relative left-[0.5px]" /> : <ChevronsLeft size={13} className="relative -left-[0.5px]" />}
+        {collapsed ? <ChevronRight size={13} /> : <ChevronLeft size={13} />}
       </button>
     </div>
   )
