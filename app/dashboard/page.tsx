@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { DoorOpen, Smile } from 'lucide-react'
+import { DoorOpen, Smile, ChevronRight } from 'lucide-react'
 
 export const dynamic = 'force-dynamic'
 
@@ -55,23 +55,35 @@ export default async function PortalHomePage() {
 
         <p className="text-xl font-semibold text-gray-900 mb-6">Welcome back, {profile.full_name}</p>
 
-        <div className="grid grid-cols-1 gap-4">
+        <div className="grid grid-cols-1 gap-3 sm:gap-4">
           <Link href="/dashboard/rooms"
-            className="bg-blue-50 hover:bg-blue-100 transition-colors rounded-xl p-8 flex flex-wrap items-center gap-3">
-            <DoorOpen size={32} className="text-blue-700" />
-            <span className="text-xl font-bold text-blue-900">Rooms</span>
-            <div className="h-5 w-px bg-blue-200 hidden sm:block" />
-            <span className="text-sm text-blue-700">Book a conference room</span>
+            className="bg-blue-50 hover:bg-blue-100 active:bg-blue-100 transition-colors rounded-xl p-4 sm:p-8 flex sm:flex-wrap items-center gap-3">
+            <DoorOpen size={28} className="text-blue-700 flex-shrink-0 sm:hidden" />
+            <DoorOpen size={32} className="text-blue-700 hidden sm:block" />
+            <div className="flex-1 min-w-0 sm:flex-none sm:contents">
+              <span className="block sm:inline text-lg sm:text-xl font-bold text-blue-900">Rooms</span>
+              <div className="h-5 w-px bg-blue-200 hidden sm:block" />
+              <span className="block sm:inline text-xs sm:text-sm text-blue-700">Book a conference room</span>
+            </div>
+            <ChevronRight size={20} className="text-blue-300 flex-shrink-0 sm:hidden" />
           </Link>
 
           <Link href="/dashboard/haus-smiles"
-            className="bg-emerald-50 hover:bg-emerald-100 transition-colors rounded-xl p-8 flex flex-wrap items-center gap-3">
-            <Smile size={32} className="text-emerald-700" />
-            <span className="text-xl font-bold text-emerald-900">Faces</span>
-            <div className="h-5 w-px bg-emerald-200 hidden sm:block" />
-            <span className="text-sm text-emerald-700">Meet your community</span>
+            className="bg-emerald-50 hover:bg-emerald-100 active:bg-emerald-100 transition-colors rounded-xl p-4 sm:p-8 flex sm:flex-wrap items-center gap-3">
+            <Smile size={28} className="text-emerald-700 flex-shrink-0 sm:hidden" />
+            <Smile size={32} className="text-emerald-700 hidden sm:block" />
+            <div className="flex-1 min-w-0 sm:flex-none sm:contents">
+              <span className="block sm:inline text-lg sm:text-xl font-bold text-emerald-900">Faces</span>
+              <div className="h-5 w-px bg-emerald-200 hidden sm:block" />
+              <span className="block sm:inline text-xs sm:text-sm text-emerald-700">Meet your community</span>
+              {neighbors.length > 0 && (
+                <span className="block sm:hidden text-xs text-emerald-600 mt-0.5">
+                  ({neighbors.map(n => firstName(n.full_name)).join(', ')}...)
+                </span>
+              )}
+            </div>
             {neighbors.length > 0 && (
-              <div className="flex items-center gap-2 ml-0 sm:ml-2 min-w-0">
+              <div className="hidden sm:flex items-center gap-2 ml-2 min-w-0">
                 <div className="flex -space-x-3 flex-shrink-0">
                   {neighbors.map((n, i) => (
                     // eslint-disable-next-line @next/next/no-img-element
@@ -79,11 +91,12 @@ export default async function PortalHomePage() {
                       className="w-8 h-8 rounded-full object-cover border-2 border-emerald-50" />
                   ))}
                 </div>
-                <span className="text-xs text-emerald-600 whitespace-nowrap hidden sm:inline">
+                <span className="text-xs text-emerald-600 whitespace-nowrap">
                   ({neighbors.map(n => firstName(n.full_name)).join(', ')}...)
                 </span>
               </div>
             )}
+            <ChevronRight size={20} className="text-emerald-300 flex-shrink-0 sm:hidden" />
           </Link>
         </div>
       </div>

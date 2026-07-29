@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import Nav from '@/components/Nav'
 import Sidebar from '@/components/Sidebar'
-import MobileNav from '@/components/MobileNav'
+import MobileTabBar from '@/components/MobileTabBar'
 import AvatarUploadPrompt from '@/components/AvatarUploadPrompt'
 import AnnouncementPopup from '@/components/AnnouncementPopup'
 import { Profile } from '@/types'
@@ -37,13 +37,13 @@ export default async function DashboardLayout({ children }: { children: React.Re
       {shouldShowAnnouncement && latestAnnouncement && (
         <AnnouncementPopup announcementId={latestAnnouncement.id} message={latestAnnouncement.message} />
       )}
-      <MobileNav isAdmin={(profile as Profile).is_admin} />
       <div className="flex flex-1 overflow-hidden">
         <Sidebar isAdmin={(profile as Profile).is_admin} />
         <main className="flex-1 overflow-hidden">
           {children}
         </main>
       </div>
+      <MobileTabBar isAdmin={(profile as Profile).is_admin} />
     </div>
   )
 }
