@@ -26,7 +26,7 @@ export const adminManageGroups: NavGroup[] = [
     ],
   },
   {
-    label: null,
+    label: 'Comms',
     items: [
       { href: '/dashboard/admin/announcements', label: 'Announcements', icon: Megaphone },
     ],

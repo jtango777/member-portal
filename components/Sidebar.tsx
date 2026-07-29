@@ -43,7 +43,12 @@ export default function Sidebar({ isAdmin }: { isAdmin: boolean }) {
 
   function SectionLabel({ children }: { children: React.ReactNode }) {
     if (collapsed) return null
-    return <p className="px-3 pt-3 pb-1 text-[11px] font-semibold tracking-wide text-gray-400 uppercase">{children}</p>
+    return <p className="px-3 pt-4 pb-1 text-[11px] font-bold tracking-wide text-gray-500 uppercase">{children}</p>
+  }
+
+  function GroupLabel({ children }: { children: React.ReactNode }) {
+    if (collapsed) return null
+    return <p className="pl-5 pr-3 pt-2.5 pb-0.5 text-[10px] font-medium tracking-wide text-gray-400 uppercase">{children}</p>
   }
 
   return (
@@ -60,7 +65,7 @@ export default function Sidebar({ isAdmin }: { isAdmin: boolean }) {
             <SectionLabel>Admin</SectionLabel>
             {adminManageGroups.map((group, i) => (
               <div key={i}>
-                {group.label && <SectionLabel>{group.label}</SectionLabel>}
+                {group.label && <GroupLabel>{group.label}</GroupLabel>}
                 {group.items.map(item => <NavLink key={item.href} {...item} />)}
               </div>
             ))}
@@ -69,7 +74,7 @@ export default function Sidebar({ isAdmin }: { isAdmin: boolean }) {
       </div>
 
       <button onClick={toggle} title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-        className="absolute -right-6 top-6 z-10 flex items-center justify-center w-6 h-6 rounded-full bg-white border border-gray-200 shadow-sm text-gray-400 hover:text-gray-700 hover:border-gray-300 transition-colors">
+        className="absolute -right-3 top-6 z-10 flex items-center justify-center w-6 h-6 rounded-full bg-white border border-gray-200 shadow-sm text-gray-400 hover:text-gray-700 hover:border-gray-300 transition-colors">
         {collapsed ? <ChevronRight size={13} strokeWidth={2.5} /> : <ChevronLeft size={13} strokeWidth={2.5} />}
       </button>
     </div>
