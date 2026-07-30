@@ -272,7 +272,8 @@ export default function CalendarView({ locations, profile, company, hoursUsed, d
       </div>
 
       {/* ── Main content ── */}
-      <div className="flex flex-col flex-1 min-w-0">
+      <div className="flex flex-col flex-1 min-w-0" data-modal-anchor>
+
         {/* Top bar */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 flex-shrink-0">
           <div className="flex items-center gap-2">

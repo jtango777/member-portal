@@ -19,11 +19,6 @@ export default function Sidebar({ isAdmin }: { isAdmin: boolean }) {
     setMounted(true)
   }, [])
 
-  useEffect(() => {
-    if (!mounted) return
-    document.documentElement.style.setProperty('--sidebar-width', collapsed ? '64px' : '208px')
-  }, [collapsed, mounted])
-
   function toggle() {
     const next = !collapsed
     setCollapsed(next)

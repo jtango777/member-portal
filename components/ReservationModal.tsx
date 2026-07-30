@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { format, addDays, addMonths, startOfMonth, endOfMonth, eachDayOfInterval, getDay, subMonths, isToday } from 'date-fns'
 import * as Dialog from '@radix-ui/react-dialog'
 import { X, Lock, Trash2, Edit2, Check, AlertCircle, Repeat, Ban, ChevronLeft, ChevronRight, Search } from 'lucide-react'
@@ -79,6 +79,49 @@ function parseFuzzyDate(input: string): Date | null {
   }
 
   return null
+}
+
+// Centers the modal within the visible content area (to the right of the nav
+// sidebar and any page-specific left-hand panels, e.g. the mini calendar on
+// the Rooms page), rather than the full browser viewport. We measure the
+// actual rendered content region via the DOM instead of relying on a global
+// CSS variable + calc(), since that approach can't account for page-specific
+// chrome and is prone to drifting out of sync when panels resize.
+function useModalCenterX(): number | null {
+  const [centerX, setCenterX] = useState<number | null>(null)
+
+  useEffect(() => {
+    function findAnchor(): HTMLElement | null {
+      return (
+        document.querySelector<HTMLElement>('[data-modal-anchor]') ??
+        document.querySelector<HTMLElement>('[data-dashboard-main]')
+      )
+    }
+
+    function measure() {
+      const anchor = findAnchor()
+      if (!anchor) { setCenterX(null); return }
+      const rect = anchor.getBoundingClientRect()
+      setCenterX(rect.left + rect.width / 2)
+    }
+
+    measure()
+    window.addEventListener('resize', measure)
+
+    let ro: ResizeObserver | undefined
+    const anchor = findAnchor()
+    if (anchor && typeof ResizeObserver !== 'undefined') {
+      ro = new ResizeObserver(measure)
+      ro.observe(anchor)
+    }
+
+    return () => {
+      window.removeEventListener('resize', measure)
+      ro?.disconnect()
+    }
+  }, [])
+
+  return centerX
 }
 
 function defaultRecurEndDate(from: Date): string {
@@ -190,6 +233,8 @@ export default function ReservationModal({
   const [endType, setEndType]           = useState<'date' | 'count'>('date')
   const [recurEndDate, setRecurEndDate] = useState(() => defaultRecurEndDate(selectedDate))
   const [endCount, setEndCount]         = useState(10)
+
+  const modalCenterX = useModalCenterX()
 
   const isAdmin = profile.is_admin
   const isOwn   = reservation?.user_id === profile.id
@@ -358,7 +403,10 @@ export default function ReservationModal({
     <Dialog.Root open onOpenChange={open => { if (!open) onClose() }}>
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 bg-black/40 z-40" />
-        <Dialog.Content className="fixed left-1/2 sm:left-[calc(50%+var(--sidebar-width)/2)] top-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-xl shadow-2xl w-[92vw] sm:w-full max-w-lg md:max-w-2xl z-50 max-h-[90vh] overflow-y-auto">
+        <Dialog.Content
+          className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-xl shadow-2xl w-[92vw] sm:w-full max-w-lg md:max-w-2xl z-50 max-h-[90vh] overflow-y-auto"
+          style={modalCenterX !== null ? { left: modalCenterX } : undefined}
+        >
           {/* Header */}
           <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
             <Dialog.Title className="font-semibold text-gray-900 flex items-center gap-2">
@@ -560,42 +608,47 @@ export default function ReservationModal({
                         : (() => { const m = members.find(m => m.id === selectedOwnerId); return m ? `${m.full_name} — ${m.company_name}` : 'Select member' })()
                       }
                     </button>
-                    {showOwnerDropdown && (
-                      <div className="mt-1 border border-gray-200 rounded-lg bg-white shadow-lg max-h-48 overflow-y-auto z-50">
-                        <div className="sticky top-0 bg-white p-2 border-b border-gray-100">
-                          <div className="relative">
-                            <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
-                            <input
-                              value={ownerSearch}
-                              onChange={e => setOwnerSearch(e.target.value)}
-                              placeholder="Search members..."
-                              className="w-full pl-8 pr-3 py-1.5 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                              autoFocus
-                            />
+                    <div className={cn(
+                      'grid transition-[grid-template-rows,opacity] duration-200 ease-out',
+                      showOwnerDropdown ? 'grid-rows-[1fr] opacity-100 mt-1' : 'grid-rows-[0fr] opacity-0'
+                    )}>
+                      <div className="overflow-hidden">
+                        <div className="border border-gray-200 rounded-lg bg-white shadow-lg max-h-48 overflow-y-auto">
+                          <div className="sticky top-0 bg-white p-2 border-b border-gray-100">
+                            <div className="relative">
+                              <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
+                              <input
+                                value={ownerSearch}
+                                onChange={e => setOwnerSearch(e.target.value)}
+                                placeholder="Search members..."
+                                className="w-full pl-8 pr-3 py-1.5 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                autoFocus={showOwnerDropdown}
+                              />
+                            </div>
                           </div>
+                          {members
+                            .filter(m => {
+                              const q = ownerSearch.toLowerCase()
+                              return !q || m.full_name.toLowerCase().includes(q) || m.company_name.toLowerCase().includes(q)
+                            })
+                            .sort((a, b) => a.full_name.localeCompare(b.full_name))
+                            .map(m => (
+                              <button
+                                key={m.id}
+                                type="button"
+                                onClick={() => { setSelectedOwnerId(m.id); setShowOwnerDropdown(false) }}
+                                className={cn(
+                                  'w-full text-left px-3 py-2 text-sm hover:bg-blue-50 transition-colors',
+                                  m.id === selectedOwnerId ? 'bg-blue-50 font-medium text-blue-700' : 'text-gray-700'
+                                )}
+                              >
+                                {m.full_name} <span className="text-gray-400">— {m.company_name}</span>
+                              </button>
+                            ))
+                          }
                         </div>
-                        {members
-                          .filter(m => {
-                            const q = ownerSearch.toLowerCase()
-                            return !q || m.full_name.toLowerCase().includes(q) || m.company_name.toLowerCase().includes(q)
-                          })
-                          .sort((a, b) => a.full_name.localeCompare(b.full_name))
-                          .map(m => (
-                            <button
-                              key={m.id}
-                              type="button"
-                              onClick={() => { setSelectedOwnerId(m.id); setShowOwnerDropdown(false) }}
-                              className={cn(
-                                'w-full text-left px-3 py-2 text-sm hover:bg-blue-50 transition-colors',
-                                m.id === selectedOwnerId ? 'bg-blue-50 font-medium text-blue-700' : 'text-gray-700'
-                              )}
-                            >
-                              {m.full_name} <span className="text-gray-400">— {m.company_name}</span>
-                            </button>
-                          ))
-                        }
                       </div>
-                    )}
+                    </div>
                   </div>
                 )}
 
@@ -680,73 +733,78 @@ export default function ReservationModal({
                       Repeat
                     </label>
 
-                    {isRecurring && (
-                      <div className="mt-3 space-y-3 pl-1">
-                        {/* Frequency buttons */}
-                        <div className="flex gap-1.5">
-                          {(['daily', 'weekly', 'monthly'] as const).map(f => (
-                            <button key={f} type="button" onClick={() => setFrequency(f)}
-                              className={cn(
-                                'px-3 py-1.5 text-sm font-medium rounded-lg transition-colors capitalize',
-                                frequency === f ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                              )}>
-                              {f}
-                            </button>
-                          ))}
-                        </div>
-
-                        {/* Days of week (weekly only) */}
-                        {frequency === 'weekly' && (
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-sm text-gray-500 mr-1">On:</span>
-                            {DAYS.map(({ label, day }) => (
-                              <button key={day} type="button" onClick={() => toggleDayOfWeek(day)}
+                    <div className={cn(
+                      'grid transition-[grid-template-rows,opacity] duration-200 ease-out',
+                      isRecurring ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'
+                    )}>
+                      <div className="overflow-hidden">
+                        <div className="mt-3 space-y-3 pl-1">
+                          {/* Frequency buttons */}
+                          <div className="flex gap-1.5">
+                            {(['daily', 'weekly', 'monthly'] as const).map(f => (
+                              <button key={f} type="button" onClick={() => setFrequency(f)}
                                 className={cn(
-                                  'w-8 h-8 text-sm font-medium rounded-full transition-colors',
-                                  daysOfWeek.includes(day) ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                  'px-3 py-1.5 text-sm font-medium rounded-lg transition-colors capitalize',
+                                  frequency === f ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                                 )}>
-                                {label}
+                                {f}
                               </button>
                             ))}
                           </div>
-                        )}
 
-                        {/* End condition */}
-                        <div className="space-y-2">
-                          <span className="text-sm font-medium text-gray-700">Ends:</span>
-                          <div className="flex items-center gap-2">
-                            <input type="radio" name="recurEnd" value="date"
-                              checked={endType === 'date'} onChange={() => setEndType('date')} />
-                            <span className="text-sm text-gray-700">On</span>
-                            <div className="flex-1">
-                              <MiniDatePicker
-                                value={recurEndDate}
-                                onChange={setRecurEndDate}
-                                disabled={endType !== 'date'}
+                          {/* Days of week (weekly only) */}
+                          {frequency === 'weekly' && (
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-sm text-gray-500 mr-1">On:</span>
+                              {DAYS.map(({ label, day }) => (
+                                <button key={day} type="button" onClick={() => toggleDayOfWeek(day)}
+                                  className={cn(
+                                    'w-8 h-8 text-sm font-medium rounded-full transition-colors',
+                                    daysOfWeek.includes(day) ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                  )}>
+                                  {label}
+                                </button>
+                              ))}
+                            </div>
+                          )}
+
+                          {/* End condition */}
+                          <div className="space-y-2">
+                            <span className="text-sm font-medium text-gray-700">Ends:</span>
+                            <div className="flex items-center gap-2">
+                              <input type="radio" name="recurEnd" value="date"
+                                checked={endType === 'date'} onChange={() => setEndType('date')} />
+                              <span className="text-sm text-gray-700">On</span>
+                              <div className="flex-1">
+                                <MiniDatePicker
+                                  value={recurEndDate}
+                                  onChange={setRecurEndDate}
+                                  disabled={endType !== 'date'}
+                                />
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <input type="radio" name="recurEnd" value="count"
+                                checked={endType === 'count'} onChange={() => setEndType('count')} />
+                              <span className="text-sm text-gray-700">After</span>
+                              <input type="number" min={1} max={365} value={endCount}
+                                onChange={e => setEndCount(Math.max(1, parseInt(e.target.value) || 1))}
+                                disabled={endType !== 'count'}
+                                className="w-20 text-sm border border-gray-300 rounded-lg px-3 py-2 disabled:opacity-40 focus:outline-none focus:ring-2 focus:ring-blue-500"
                               />
+                              <span className="text-sm text-gray-700">occurrences</span>
                             </div>
                           </div>
-                          <div className="flex items-center gap-2">
-                            <input type="radio" name="recurEnd" value="count"
-                              checked={endType === 'count'} onChange={() => setEndType('count')} />
-                            <span className="text-sm text-gray-700">After</span>
-                            <input type="number" min={1} max={365} value={endCount}
-                              onChange={e => setEndCount(Math.max(1, parseInt(e.target.value) || 1))}
-                              disabled={endType !== 'count'}
-                              className="w-20 text-sm border border-gray-300 rounded-lg px-3 py-2 disabled:opacity-40 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            />
-                            <span className="text-sm text-gray-700">occurrences</span>
-                          </div>
-                        </div>
 
-                        {/* Preview count */}
-                        <p className={cn('text-sm', recurOccurrences.length > 0 ? 'text-gray-500' : 'text-red-500')}>
-                          {recurOccurrences.length > 0
-                            ? `Will create ${recurOccurrences.length} occurrence${recurOccurrences.length !== 1 ? 's' : ''}`
-                            : 'No occurrences — check settings'}
-                        </p>
+                          {/* Preview count */}
+                          <p className={cn('text-sm', recurOccurrences.length > 0 ? 'text-gray-500' : 'text-red-500')}>
+                            {recurOccurrences.length > 0
+                              ? `Will create ${recurOccurrences.length} occurrence${recurOccurrences.length !== 1 ? 's' : ''}`
+                              : 'No occurrences — check settings'}
+                          </p>
+                        </div>
                       </div>
-                    )}
+                    </div>
                   </div>
                 )}
                 {/* ──────────────────────────────────────────────────────── */}
@@ -799,19 +857,24 @@ export default function ReservationModal({
 
                 {/* Admin delete — admin block */}
                 {isAdmin && mode === 'view' && !editing && reservation?.is_admin_block && (
-                  deleteScope ? (
-                    <div className="flex items-center gap-2">
+                  <div className="grid">
+                    <div className={cn(
+                      'col-start-1 row-start-1 flex items-center gap-2 transition-all duration-200',
+                      deleteScope ? 'opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none'
+                    )}>
                       <span className="text-xs text-red-600">
                         {deleteScope === 'future' ? 'Remove this + all future?' : 'Remove this occurrence?'}
                       </span>
-                      <button onClick={() => handleDelete(deleteScope)} disabled={deleting}
+                      <button onClick={() => handleDelete(deleteScope ?? 'this')} disabled={deleting}
                         className="text-xs bg-red-600 text-white px-2 py-1 rounded font-medium">
                         {deleting ? '…' : 'Yes'}
                       </button>
                       <button onClick={() => setDeleteScope(null)} className="text-xs text-gray-500">No</button>
                     </div>
-                  ) : (
-                    <div className="flex items-center gap-3">
+                    <div className={cn(
+                      'col-start-1 row-start-1 flex items-center gap-3 transition-all duration-200',
+                      !deleteScope ? 'opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none'
+                    )}>
                       <button onClick={() => setDeleteScope('this')}
                         className="text-xs text-red-500 hover:text-red-700 underline">
                         Remove this
@@ -823,13 +886,16 @@ export default function ReservationModal({
                         </button>
                       )}
                     </div>
-                  )
+                  </div>
                 )}
 
                 {/* Admin delete — regular reservation */}
                 {isAdmin && mode === 'view' && !editing && !reservation?.is_admin_block && (
-                  confirmDelete ? (
-                    <div className="flex items-center gap-2">
+                  <div className="grid">
+                    <div className={cn(
+                      'col-start-1 row-start-1 flex items-center gap-2 transition-all duration-200',
+                      confirmDelete ? 'opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none'
+                    )}>
                       <span className="text-xs text-red-600">Delete?</span>
                       <button onClick={() => handleDelete('this')} disabled={deleting}
                         className="text-xs bg-red-600 text-white px-2 py-1 rounded font-medium">
@@ -837,12 +903,14 @@ export default function ReservationModal({
                       </button>
                       <button onClick={() => setConfirmDelete(false)} className="text-xs text-gray-500">No</button>
                     </div>
-                  ) : (
                     <button onClick={() => setConfirmDelete(true)}
-                      className="flex items-center gap-1 text-sm text-red-500 hover:text-red-700">
+                      className={cn(
+                        'col-start-1 row-start-1 flex items-center gap-1 text-sm text-red-500 hover:text-red-700 transition-all duration-200',
+                        !confirmDelete ? 'opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none'
+                      )}>
                       <Trash2 size={14} /> Delete
                     </button>
-                  )
+                  </div>
                 )}
 
                 {/* Within 24h policy warning */}
@@ -855,8 +923,11 @@ export default function ReservationModal({
 
                 {/* Regular user cancel */}
                 {canCancel && !editing && (
-                  confirmDelete ? (
-                    <div className="flex items-center gap-2">
+                  <div className="grid">
+                    <div className={cn(
+                      'col-start-1 row-start-1 flex items-center gap-2 transition-all duration-200',
+                      confirmDelete ? 'opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none'
+                    )}>
                       <span className="text-xs text-red-600">Cancel reservation?</span>
                       <button onClick={() => handleDelete('this')} disabled={deleting}
                         className="text-xs bg-red-600 text-white px-2 py-1 rounded font-medium">
@@ -864,12 +935,14 @@ export default function ReservationModal({
                       </button>
                       <button onClick={() => setConfirmDelete(false)} className="text-xs text-gray-500">No</button>
                     </div>
-                  ) : (
                     <button onClick={() => setConfirmDelete(true)}
-                      className="text-sm text-red-500 hover:text-red-700">
+                      className={cn(
+                        'col-start-1 row-start-1 text-sm text-red-500 hover:text-red-700 transition-all duration-200',
+                        !confirmDelete ? 'opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none'
+                      )}>
                       Cancel reservation
                     </button>
-                  )
+                  </div>
                 )}
               </div>
 

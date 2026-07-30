@@ -3,9 +3,6 @@
 @tailwind utilities;
 
 @layer base {
-  :root {
-    --sidebar-width: 0px;
-  }
   * {
     box-sizing: border-box;
   }

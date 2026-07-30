@@ -39,7 +39,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
       )}
       <div className="flex flex-1 overflow-hidden">
         <Sidebar isAdmin={(profile as Profile).is_admin} />
-        <main className="flex-1 overflow-hidden">
+        <main className="flex-1 overflow-hidden" data-dashboard-main>
           {children}
         </main>
       </div>
