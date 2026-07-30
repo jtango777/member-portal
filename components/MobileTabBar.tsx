@@ -71,9 +71,11 @@ export default function MobileTabBar({ isAdmin }: { isAdmin: boolean }) {
               </>
             )}
 
-            <div className="mt-2 pt-2 border-t border-gray-100">
-              <FeedbackForm />
-            </div>
+            {!isAdmin && (
+              <div className="mt-2 pt-2 border-t border-gray-100">
+                <FeedbackForm />
+              </div>
+            )}
           </div>
         </div>
       )}

@@ -67,9 +67,11 @@ export default function Sidebar({ isAdmin }: { isAdmin: boolean }) {
         )}
       </div>
 
-      <div className="border-t border-gray-100 p-3 pt-2">
-        <FeedbackForm collapsed={collapsed} />
-      </div>
+      {!isAdmin && (
+        <div className="border-t border-gray-100 p-3 pt-2">
+          <FeedbackForm collapsed={collapsed} />
+        </div>
+      )}
 
       <button onClick={toggle} title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
         className="absolute -right-3 top-6 z-10 flex items-center justify-center w-6 h-6 rounded-full bg-white border border-gray-200 shadow-sm text-gray-400 hover:text-gray-700 hover:border-gray-300 transition-colors">
