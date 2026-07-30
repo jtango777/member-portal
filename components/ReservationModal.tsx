@@ -526,8 +526,12 @@ export default function ReservationModal({
                   >
                     {showCalendar ? 'Hide calendar' : 'Show calendar'}
                   </button>
-                  {showCalendar && (
-                    <div className="relative mt-1 bg-white border border-gray-200 rounded-xl p-3 shadow-lg">
+                  <div className={cn(
+                    'grid transition-[grid-template-rows,opacity] duration-200 ease-out',
+                    showCalendar ? 'grid-rows-[1fr] opacity-100 mt-1' : 'grid-rows-[0fr] opacity-0'
+                  )}>
+                  <div className="overflow-hidden">
+                    <div className="relative bg-white border border-gray-200 rounded-xl p-3 shadow-lg">
                       <div className="flex items-center justify-between mb-2">
                         <button type="button" onClick={() => setDatePickerMonth(m => subMonths(m, 1))}
                           className="p-1 hover:bg-gray-100 rounded transition-colors">
@@ -577,7 +581,8 @@ export default function ReservationModal({
                         })}
                       </div>
                     </div>
-                  )}
+                  </div>
+                  </div>
                 </div>
 
                 <div>
