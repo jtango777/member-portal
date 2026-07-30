@@ -82,20 +82,19 @@ function parseFuzzyDate(input: string): Date | null {
 }
 
 // Centers the modal within the visible content area (to the right of the nav
-// sidebar and any page-specific left-hand panels, e.g. the mini calendar on
-// the Rooms page), rather than the full browser viewport. We measure the
-// actual rendered content region via the DOM instead of relying on a global
-// CSS variable + calc(), since that approach can't account for page-specific
-// chrome and is prone to drifting out of sync when panels resize.
+// sidebar), rather than the full browser viewport. The whole page (including
+// any page-specific panels like the Rooms page's mini calendar) gets dimmed
+// by the modal overlay anyway, so we center on the full main content area,
+// not a sub-region of it. We measure the actual rendered content region via
+// the DOM instead of relying on a global CSS variable + calc(), since that
+// approach can't account for page-specific chrome and drifts out of sync
+// when panels resize.
 function useModalCenterX(): number | null {
   const [centerX, setCenterX] = useState<number | null>(null)
 
   useEffect(() => {
     function findAnchor(): HTMLElement | null {
-      return (
-        document.querySelector<HTMLElement>('[data-modal-anchor]') ??
-        document.querySelector<HTMLElement>('[data-dashboard-main]')
-      )
+      return document.querySelector<HTMLElement>('[data-dashboard-main]')
     }
 
     function measure() {
@@ -482,7 +481,7 @@ export default function ReservationModal({
                   <input
                     value={title}
                     onChange={e => setTitle(e.target.value)}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                     placeholder={isRecurring ? 'e.g. Staff Meeting' : 'e.g. Team Standup'}
                     autoFocus
                   />
@@ -517,7 +516,7 @@ export default function ReservationModal({
                         }
                       }
                     }}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-base sm:text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                     placeholder="e.g. June 24 or 6/24/2026"
                   />
                   <button
@@ -586,7 +585,7 @@ export default function ReservationModal({
                   <select
                     value={roomId}
                     onChange={e => { setRoomId(e.target.value); setAdminConflicts([]) }}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
                     {rooms.map(r => (
                       <option key={r.id} value={r.id}>{r.name} (cap. {r.capacity})</option>
@@ -601,7 +600,7 @@ export default function ReservationModal({
                     <button
                       type="button"
                       onClick={() => { setShowOwnerDropdown(v => !v); setOwnerSearch('') }}
-                      className="w-full text-left border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white hover:border-gray-400 cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full text-left border border-gray-300 rounded-lg px-3 py-2 text-base sm:text-sm bg-white hover:border-gray-400 cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500"
                     >
                       {selectedOwnerId === profile.id
                         ? `${profile.full_name} (you)`
@@ -621,7 +620,7 @@ export default function ReservationModal({
                                 value={ownerSearch}
                                 onChange={e => setOwnerSearch(e.target.value)}
                                 placeholder="Search members..."
-                                className="w-full pl-8 pr-3 py-1.5 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                className="w-full pl-8 pr-3 py-1.5 border border-gray-300 rounded text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                                 autoFocus={showOwnerDropdown}
                               />
                             </div>
@@ -667,7 +666,7 @@ export default function ReservationModal({
                         const nm = newEndMinutes % 60
                         if (nh <= 24) setEndVal(`${nh}:${nm === 0 ? '00' : '30'}`)
                       }}
-                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                     >
                       {TIME_OPTIONS.slice(0, -1).map(opt => (
                         <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -679,7 +678,7 @@ export default function ReservationModal({
                     <select
                       value={endVal}
                       onChange={e => { setEndVal(e.target.value); setAdminConflicts([]) }}
-                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                     >
                       {endOptions.map(opt => (
                         <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -713,7 +712,7 @@ export default function ReservationModal({
                   <textarea
                     value={notes}
                     onChange={e => setNotes(e.target.value)}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
                     rows={2}
                     placeholder="Any additional details…"
                   />
@@ -790,7 +789,7 @@ export default function ReservationModal({
                               <input type="number" min={1} max={365} value={endCount}
                                 onChange={e => setEndCount(Math.max(1, parseInt(e.target.value) || 1))}
                                 disabled={endType !== 'count'}
-                                className="w-20 text-sm border border-gray-300 rounded-lg px-3 py-2 disabled:opacity-40 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                className="w-20 text-base sm:text-sm border border-gray-300 rounded-lg px-3 py-2 disabled:opacity-40 focus:outline-none focus:ring-2 focus:ring-blue-500"
                               />
                               <span className="text-sm text-gray-700">occurrences</span>
                             </div>
