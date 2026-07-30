@@ -31,11 +31,11 @@ export default function AnnouncementPreviewDialog({ open, onOpenChange, message,
           <div className="p-5">
             <p className="text-xs text-gray-400 mb-3">This is exactly what members will see:</p>
 
-            <div className="bg-gray-50 border border-gray-200 rounded-xl p-6">
-              <AnnouncementCard message={message} TitleAs="p" DescriptionAs="p" />
-              <div className="w-full bg-blue-600 text-white text-sm font-semibold px-4 py-2 rounded-lg text-center mt-5 opacity-60">
-                Got it
+            <div className="relative bg-gray-50 border border-gray-200 rounded-xl p-6">
+              <div className="absolute top-3 right-3 text-gray-300">
+                <X size={16} />
               </div>
+              <AnnouncementCard message={message} TitleAs="p" DescriptionAs="p" />
             </div>
 
             <p className="text-xs text-gray-400 mt-3">
