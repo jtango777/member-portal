@@ -1,9 +1,10 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { Megaphone, Send } from 'lucide-react'
+import { Megaphone, Eye } from 'lucide-react'
 import { formatShortDate } from '@/lib/utils'
 import toast from 'react-hot-toast'
+import AnnouncementPreviewDialog from './AnnouncementPreviewDialog'
 
 type Announcement = { id: string; message: string; created_at: string }
 
@@ -12,6 +13,7 @@ export default function AnnouncementsManager() {
   const [loading, setLoading] = useState(true)
   const [message, setMessage] = useState('')
   const [posting, setPosting] = useState(false)
+  const [previewOpen, setPreviewOpen] = useState(false)
 
   const refresh = useCallback(async () => {
     const r = await fetch('/api/admin/announcements')
@@ -21,8 +23,13 @@ export default function AnnouncementsManager() {
 
   useEffect(() => { refresh() }, [refresh])
 
-  async function handlePost(e: React.FormEvent) {
+  function handlePreview(e: React.FormEvent) {
     e.preventDefault()
+    if (!message.trim()) return
+    setPreviewOpen(true)
+  }
+
+  async function handleConfirmPost() {
     setPosting(true)
     const res = await fetch('/api/admin/announcements', {
       method: 'POST',
@@ -32,6 +39,7 @@ export default function AnnouncementsManager() {
     if (res.ok) {
       toast.success('Announcement posted — members will see it next time they visit.')
       setMessage('')
+      setPreviewOpen(false)
       await refresh()
     } else {
       const d = await res.json()
@@ -48,13 +56,13 @@ export default function AnnouncementsManager() {
       </div>
 
       <div className="bg-white border border-gray-200 rounded-xl p-4">
-        <form onSubmit={handlePost} className="space-y-3">
+        <form onSubmit={handlePreview} className="space-y-3">
           <textarea value={message} onChange={e => setMessage(e.target.value)} required rows={3}
             placeholder="e.g. The Costa Mesa lobby will be closed for renovations July 20-22."
             className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-          <button type="submit" disabled={posting || !message.trim()}
+          <button type="submit" disabled={!message.trim()}
             className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-semibold px-4 py-2 rounded-lg">
-            <Send size={14} /> {posting ? 'Posting…' : 'Post Announcement'}
+            <Eye size={14} /> Preview
           </button>
         </form>
       </div>
@@ -81,6 +89,14 @@ export default function AnnouncementsManager() {
           )}
         </div>
       </div>
+
+      <AnnouncementPreviewDialog
+        open={previewOpen}
+        onOpenChange={setPreviewOpen}
+        message={message}
+        onConfirm={handleConfirmPost}
+        posting={posting}
+      />
     </div>
   )
 }
