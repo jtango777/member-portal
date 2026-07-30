@@ -31,13 +31,18 @@ export default function HausSmilesMemberActions({ id, source, fullName, avatarUr
 
   if (confirming) {
     return (
-      <div className="flex items-center justify-center gap-2 mt-4">
-        <span className="text-sm text-amber-700">Archive from Faces?</span>
-        <button onClick={handleRemove} disabled={removing}
-          className="text-sm bg-amber-600 text-white px-3 py-1.5 rounded-lg font-medium">
-          {removing ? '…' : 'Yes, archive'}
-        </button>
-        <button onClick={() => setConfirming(false)} className="text-sm text-gray-500">Cancel</button>
+      <div className="flex flex-col items-center gap-1.5 mt-4">
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-amber-700">Archive from Faces?</span>
+          <button onClick={handleRemove} disabled={removing}
+            className="text-sm bg-amber-600 text-white px-3 py-1.5 rounded-lg font-medium">
+            {removing ? '…' : 'Yes, archive'}
+          </button>
+          <button onClick={() => setConfirming(false)} className="text-sm text-gray-500">Cancel</button>
+        </div>
+        <p className="text-xs text-gray-400 text-center max-w-xs">
+          This only removes the photo — it won't archive their membership or invite.
+        </p>
       </div>
     )
   }

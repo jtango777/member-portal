@@ -69,8 +69,8 @@ export default function HausSmilesTabs({ groups, defaultLocationId, isAdmin }: P
           <div key={member.id} className="relative group">
             {isAdmin && (
               confirmRemove === member.id ? (
-                <div className="absolute inset-0 z-10 bg-white/95 rounded-lg border border-amber-200 flex flex-col items-center justify-center gap-2 p-2 text-center">
-                  <p className="text-xs text-amber-700 font-medium">Archive from Faces?</p>
+                <div className="absolute inset-0 z-10 bg-white/95 rounded-lg border border-amber-200 flex flex-col items-center justify-center gap-1.5 p-2 text-center">
+                  <p className="text-xs text-amber-700 font-medium">Archive photo only?</p>
                   <div className="flex items-center gap-2">
                     <button onClick={() => handleRemove(member)} disabled={removing === member.id}
                       className="text-xs bg-amber-600 text-white px-2 py-1 rounded font-medium">
@@ -78,6 +78,7 @@ export default function HausSmilesTabs({ groups, defaultLocationId, isAdmin }: P
                     </button>
                     <button onClick={() => setConfirmRemove(null)} className="text-xs text-gray-500">No</button>
                   </div>
+                  <p className="text-[10px] leading-tight text-gray-400">Doesn't affect their membership</p>
                 </div>
               ) : (
                 <div className="absolute top-1.5 right-1.5 z-10 flex gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
