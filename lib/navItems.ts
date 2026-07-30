@@ -1,4 +1,4 @@
-import { LayoutDashboard, DoorOpen, Smile, CalendarClock, Users, Building2, Megaphone, BarChart2, CalendarDays, BookOpen, Clock, Activity } from 'lucide-react'
+import { LayoutDashboard, DoorOpen, Smile, CalendarClock, Users, Building2, Megaphone, BarChart2, CalendarDays, BookOpen, Clock, Activity, MessageSquare } from 'lucide-react'
 
 export type NavItem = { href: string; label: string; icon: React.ElementType }
 
@@ -29,6 +29,7 @@ export const adminManageGroups: NavGroup[] = [
     label: 'Comms',
     items: [
       { href: '/dashboard/admin/announcements', label: 'Announcements', icon: Megaphone },
+      { href: '/dashboard/admin/feedback', label: 'Feedback', icon: MessageSquare },
     ],
   },
   {
