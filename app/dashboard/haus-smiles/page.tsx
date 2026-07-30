@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import HausSmilesTabs from '@/components/HausSmilesTabs'
 import PageVisitTracker from '@/components/PageVisitTracker'
+import FeedbackForm from '@/components/FeedbackForm'
 
 export const dynamic = 'force-dynamic'
 
@@ -48,6 +49,7 @@ export default async function HausSmilesPage() {
       <PageVisitTracker path="/dashboard/haus-smiles" />
       <div className="max-w-5xl mx-auto">
         <HausSmilesTabs groups={groups} defaultLocationId={currentProfile?.default_location_id ?? null} isAdmin={currentProfile?.is_admin ?? false} />
+        <FeedbackForm />
       </div>
     </div>
   )
