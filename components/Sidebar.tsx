@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { memberNavItems, adminNavItems, adminManageGroups, type NavItem } from '@/lib/navItems'
+import FeedbackForm from './FeedbackForm'
 
 const STORAGE_KEY = 'sidebar-collapsed'
 
@@ -64,6 +65,10 @@ export default function Sidebar({ isAdmin }: { isAdmin: boolean }) {
             ))}
           </>
         )}
+      </div>
+
+      <div className="border-t border-gray-100 p-3 pt-2">
+        <FeedbackForm collapsed={collapsed} />
       </div>
 
       <button onClick={toggle} title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}

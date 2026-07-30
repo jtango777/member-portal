@@ -7,6 +7,7 @@ import { LayoutDashboard, DoorOpen, Smile, CalendarClock, Menu, X, LogOut, UserC
 import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
 import { adminManageGroups } from '@/lib/navItems'
+import FeedbackForm from './FeedbackForm'
 
 const tabs = [
   { href: '/dashboard', label: 'Home', icon: LayoutDashboard },
@@ -69,6 +70,10 @@ export default function MobileTabBar({ isAdmin }: { isAdmin: boolean }) {
                 ))}
               </>
             )}
+
+            <div className="mt-2 pt-2 border-t border-gray-100">
+              <FeedbackForm />
+            </div>
           </div>
         </div>
       )}
