@@ -89,14 +89,9 @@ export default function CalendarView({ locations, profile, company, hoursUsed, d
   // Fetch members list for admin booking on behalf
   useEffect(() => {
     if (!profile.is_admin) return
-    fetch('/api/admin/members/details')
+    fetch('/api/admin/members/registered')
       .then(r => r.json())
-      .then((data: any[]) => {
-        setMembersList(data
-          .filter((m: any) => m.user_id)
-          .map((m: any) => ({ id: m.user_id, full_name: m.full_name ?? m.email, company_name: m.company_name, company_id: m.company_id }))
-        )
-      })
+      .then((data: any[]) => setMembersList(data))
       .catch(() => {})
   }, [profile.is_admin])
 
