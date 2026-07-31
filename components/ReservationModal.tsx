@@ -56,8 +56,14 @@ function slotToTimeValue(slot: number): string {
 // the DOM instead of relying on a global CSS variable + calc(), since that
 // approach can't account for page-specific chrome and drifts out of sync
 // when panels resize.
-function useModalCenterX(): number | null {
-  const [centerX, setCenterX] = useState<number | null>(null)
+// Returns how far (in px) the modal needs to shift horizontally from the
+// viewport's own center to land on the content area's center instead —
+// meant to be applied as a translateX on a plain flex-centering wrapper,
+// never on the scrollable element itself (a transform combined with
+// overflow-y-auto on the same element can cause scroll-repaint glitches
+// on trackpad momentum scrolling).
+function useModalCenterOffset(): number {
+  const [offset, setOffset] = useState(0)
 
   useEffect(() => {
     function findAnchor(): HTMLElement | null {
@@ -66,9 +72,10 @@ function useModalCenterX(): number | null {
 
     function measure() {
       const anchor = findAnchor()
-      if (!anchor) { setCenterX(null); return }
+      if (!anchor) { setOffset(0); return }
       const rect = anchor.getBoundingClientRect()
-      setCenterX(rect.left + rect.width / 2)
+      const anchorCenter = rect.left + rect.width / 2
+      setOffset(anchorCenter - window.innerWidth / 2)
     }
 
     measure()
@@ -87,7 +94,7 @@ function useModalCenterX(): number | null {
     }
   }, [])
 
-  return centerX
+  return offset
 }
 
 function defaultRecurEndDate(from: Date): string {
@@ -196,7 +203,7 @@ export default function ReservationModal({
   const [recurEndDate, setRecurEndDate] = useState(() => defaultRecurEndDate(selectedDate))
   const [endCount, setEndCount]         = useState(10)
 
-  const modalCenterX = useModalCenterX()
+  const modalCenterOffset = useModalCenterOffset()
 
   const isAdmin = profile.is_admin
   const isOwn   = reservation?.user_id === profile.id
@@ -366,11 +373,11 @@ export default function ReservationModal({
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 bg-black/40 z-40" />
         <div
-          className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50"
-          style={modalCenterX !== null ? { left: modalCenterX } : undefined}
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none"
+          style={modalCenterOffset ? { transform: `translateX(${modalCenterOffset}px)` } : undefined}
         >
         <Dialog.Content
-          className="bg-white rounded-xl shadow-2xl w-[92vw] sm:w-full max-w-lg md:max-w-2xl max-h-[90dvh] overflow-y-auto"
+          className="pointer-events-auto bg-white rounded-xl shadow-2xl w-[92vw] sm:w-full max-w-lg md:max-w-2xl max-h-[90dvh] overflow-y-auto"
         >
           {/* Header */}
           <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
