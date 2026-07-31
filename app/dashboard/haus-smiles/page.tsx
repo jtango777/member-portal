@@ -11,7 +11,7 @@ export default async function HausSmilesPage() {
   if (!currentProfile) redirect('/login')
   const supabase = await createClient()
 
-  const [{ data: locations }, { data: profiles }, { data: directoryPhotos }] = await Promise.all([
+  const [{ data: locations }, { data: profiles }] = await Promise.all([
     supabase.from('locations').select('*').order('name'),
     supabase
       .from('profiles')
@@ -19,16 +19,13 @@ export default async function HausSmilesPage() {
       .not('avatar_url', 'is', null)
       .eq('is_active', true)
       .order('full_name'),
-    supabase
-      .from('directory_photos')
-      .select('id, full_name, avatar_url, location_id')
-      .order('full_name'),
   ])
 
-  const allMembers = [
-    ...(profiles ?? []).map(p => ({ id: p.id, full_name: p.full_name, avatar_url: p.avatar_url, location_id: p.default_location_id, seating: p.seating, source: 'profile' as const })),
-    ...(directoryPhotos ?? []).map(d => ({ id: d.id, full_name: d.full_name, avatar_url: d.avatar_url, location_id: d.location_id, seating: null, source: 'directory' as const })),
-  ]
+  // Faces only shows members formally linked to a real profile — not
+  // directory_photos entries, which have no account behind them.
+  const allMembers = (profiles ?? []).map(p => ({
+    id: p.id, full_name: p.full_name, avatar_url: p.avatar_url, location_id: p.default_location_id, seating: p.seating, source: 'profile' as const,
+  }))
 
   const groups = (locations ?? [])
     .map(location => ({

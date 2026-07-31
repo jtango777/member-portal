@@ -20,28 +20,20 @@ export default async function NewFacesPage() {
 
   let newFaces: { id: string; full_name: string; avatar_url: string }[] = []
 
+  // Only ever shows members formally linked to a real profile — not
+  // directory_photos entries, which have no account behind them.
   if (profile.default_location_id) {
     const cutoff = newFacesCutoff().toISOString()
 
-    const [{ data: newProfiles }, { data: newDirectoryPhotos }] = await Promise.all([
-      supabase
-        .from('profiles')
-        .select('id, full_name, avatar_url')
-        .eq('default_location_id', profile.default_location_id)
-        .eq('is_active', true)
-        .not('avatar_url', 'is', null)
-        .gte('created_at', cutoff),
-      supabase
-        .from('directory_photos')
-        .select('id, full_name, avatar_url')
-        .eq('location_id', profile.default_location_id)
-        .gte('created_at', cutoff),
-    ])
+    const { data: newProfiles } = await supabase
+      .from('profiles')
+      .select('id, full_name, avatar_url')
+      .eq('default_location_id', profile.default_location_id)
+      .eq('is_active', true)
+      .not('avatar_url', 'is', null)
+      .gte('created_at', cutoff)
 
-    newFaces = [
-      ...(newProfiles ?? []),
-      ...(newDirectoryPhotos ?? []),
-    ].sort((a, b) => a.full_name.localeCompare(b.full_name))
+    newFaces = (newProfiles ?? []).sort((a, b) => a.full_name.localeCompare(b.full_name))
   }
 
   return (
