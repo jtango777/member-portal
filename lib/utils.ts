@@ -102,3 +102,37 @@ export function isSameDay(a: Date, b: Date): boolean {
 export function generateToken(): string {
   return crypto.randomUUID()
 }
+
+/** Parses loose date text like "June 24, 2026", "6/24/26", or "Jun 24" into a Date. */
+export function parseFuzzyDate(input: string): Date | null {
+  const s = input.trim()
+  if (!s) return null
+  const thisYear = new Date().getFullYear()
+  function resolveYear(raw: string | undefined): number {
+    if (!raw) return thisYear
+    const n = parseInt(raw)
+    return raw.length <= 2 ? 2000 + n : n
+  }
+
+  // Numeric with / or - or . separators: 6/24/2026, 06-24-26, 6.24, etc.
+  const numMatch = s.match(/^(\d{1,2})[\/\-.](\d{1,2})(?:[\/\-.](\d{2,4}))?$/)
+  if (numMatch) {
+    const date = new Date(resolveYear(numMatch[3]), parseInt(numMatch[1]) - 1, parseInt(numMatch[2]))
+    if (!isNaN(date.getTime())) return date
+  }
+
+  // Word month: "June 24, 2026", "Jun 24 26", "June 24", "Jun 24, 2026", etc.
+  const months = ['january','february','march','april','may','june','july','august','september','october','november','december']
+  const abbrevs = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec']
+  const wordMatch = s.match(/^([a-zA-Z]+)\.?\s+(\d{1,2})(?:[,\s]+(\d{2,4}))?$/)
+  if (wordMatch) {
+    const name = wordMatch[1].toLowerCase()
+    const mi = months.indexOf(name) !== -1 ? months.indexOf(name) : abbrevs.indexOf(name)
+    if (mi >= 0) {
+      const date = new Date(resolveYear(wordMatch[3]), mi, parseInt(wordMatch[2]))
+      if (!isNaN(date.getTime())) return date
+    }
+  }
+
+  return null
+}

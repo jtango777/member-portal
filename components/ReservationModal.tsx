@@ -1,12 +1,12 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { format, addDays, addMonths, startOfMonth, endOfMonth, eachDayOfInterval, getDay, subMonths, isToday } from 'date-fns'
+import { format, addDays, addMonths } from 'date-fns'
 import * as Dialog from '@radix-ui/react-dialog'
-import { X, Lock, Trash2, Edit2, Check, AlertCircle, Repeat, Ban, ChevronLeft, ChevronRight, Search } from 'lucide-react'
-import MiniDatePicker from './MiniDatePicker'
+import { X, Lock, Trash2, Edit2, Check, AlertCircle, Repeat, Ban, Search } from 'lucide-react'
+import InlineDatePicker from './InlineDatePicker'
 import { Reservation, Room, Profile, Company } from '@/types'
-import { cn, buildTimeOptions, parseTimeValue, formatTime, isSameDay, toPacificDate } from '@/lib/utils'
+import { cn, buildTimeOptions, parseTimeValue, formatTime, toPacificDate } from '@/lib/utils'
 import toast from 'react-hot-toast'
 
 const START_HOUR = 0
@@ -46,39 +46,6 @@ function slotToTimeValue(slot: number): string {
   const h = START_HOUR + Math.floor(slot / 2)
   const m = slot % 2 === 0 ? '00' : '30'
   return `${h}:${m}`
-}
-
-function parseFuzzyDate(input: string): Date | null {
-  const s = input.trim()
-  if (!s) return null
-  const thisYear = new Date().getFullYear()
-  function resolveYear(raw: string | undefined): number {
-    if (!raw) return thisYear
-    const n = parseInt(raw)
-    return raw.length <= 2 ? 2000 + n : n
-  }
-
-  // Numeric with / or - or . separators: 6/24/2026, 06-24-26, 6.24, etc.
-  const numMatch = s.match(/^(\d{1,2})[\/\-.](\d{1,2})(?:[\/\-.](\d{2,4}))?$/)
-  if (numMatch) {
-    const date = new Date(resolveYear(numMatch[3]), parseInt(numMatch[1]) - 1, parseInt(numMatch[2]))
-    if (!isNaN(date.getTime())) return date
-  }
-
-  // Word month: "June 24, 2026", "Jun 24 26", "June 24", "Jun 24, 2026", etc.
-  const months = ['january','february','march','april','may','june','july','august','september','october','november','december']
-  const abbrevs = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec']
-  const wordMatch = s.match(/^([a-zA-Z]+)\.?\s+(\d{1,2})(?:[,\s]+(\d{2,4}))?$/)
-  if (wordMatch) {
-    const name = wordMatch[1].toLowerCase()
-    const mi = months.indexOf(name) !== -1 ? months.indexOf(name) : abbrevs.indexOf(name)
-    if (mi >= 0) {
-      const date = new Date(resolveYear(wordMatch[3]), mi, parseInt(wordMatch[2]))
-      if (!isNaN(date.getTime())) return date
-    }
-  }
-
-  return null
 }
 
 // Centers the modal within the visible content area (to the right of the nav
@@ -193,10 +160,6 @@ export default function ReservationModal({
 }: Props) {
   const [editing, setEditing]     = useState(mode === 'create')
   const [dateVal, setDateVal]     = useState(format(selectedDate, 'yyyy-MM-dd'))
-  const [showDatePicker, setShowDatePicker] = useState(false)
-  const [datePickerMonth, setDatePickerMonth] = useState(new Date(format(selectedDate, 'yyyy-MM-dd') + 'T12:00:00'))
-  const [dateInputText, setDateInputText] = useState(format(selectedDate, 'MMMM d, yyyy'))
-  const [showCalendar, setShowCalendar] = useState(false)
   const [roomId, setRoomId]       = useState(initialRoomId ?? reservation?.room_id ?? rooms[0]?.id ?? '')
   // Admin book on behalf
   const [selectedOwnerId, setSelectedOwnerId] = useState(profile.id)
@@ -487,102 +450,12 @@ export default function ReservationModal({
                   />
                 </div>
 
-                <div className="relative">
+                <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
-                  <input
-                    type="text"
-                    value={dateInputText}
-                    onChange={e => setDateInputText(e.target.value)}
-                    onBlur={() => {
-                      const parsed = parseFuzzyDate(dateInputText)
-                      if (parsed) {
-                        setDateVal(format(parsed, 'yyyy-MM-dd'))
-                        setPastWarningConfirmed(false)
-                        setDatePickerMonth(parsed)
-                        setDateInputText(format(parsed, 'MMMM d, yyyy'))
-                      } else if (dateVal) {
-                        setDateInputText(format(new Date(dateVal + 'T12:00:00'), 'MMMM d, yyyy'))
-                      }
-                    }}
-                    onKeyDown={e => {
-                      if (e.key === 'Enter') {
-                        e.preventDefault()
-                        const parsed = parseFuzzyDate(dateInputText)
-                        if (parsed) {
-                          setDateVal(format(parsed, 'yyyy-MM-dd'))
-                          setPastWarningConfirmed(false)
-                          setDatePickerMonth(parsed)
-                          setDateInputText(format(parsed, 'MMMM d, yyyy'))
-                        }
-                      }
-                    }}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-base sm:text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="e.g. June 24 or 6/24/2026"
+                  <InlineDatePicker
+                    value={dateVal}
+                    onChange={v => { setDateVal(v); setPastWarningConfirmed(false) }}
                   />
-                  <button
-                    type="button"
-                    onClick={() => setShowCalendar(v => !v)}
-                    className="mt-1.5 text-xs text-blue-600 hover:text-blue-800 font-medium"
-                  >
-                    {showCalendar ? 'Hide calendar' : 'Show calendar'}
-                  </button>
-                  <div className={cn(
-                    'grid transition-[grid-template-rows,opacity] duration-200 ease-out',
-                    showCalendar ? 'grid-rows-[1fr] opacity-100 mt-1' : 'grid-rows-[0fr] opacity-0'
-                  )}>
-                  <div className="overflow-hidden">
-                    <div className="relative bg-white border border-gray-200 rounded-xl p-3 shadow-lg">
-                      <div className="flex items-center justify-between mb-2">
-                        <button type="button" onClick={() => setDatePickerMonth(m => subMonths(m, 1))}
-                          className="p-1 hover:bg-gray-100 rounded transition-colors">
-                          <ChevronLeft size={14} />
-                        </button>
-                        <span className="text-sm font-semibold text-gray-900">{format(datePickerMonth, 'MMMM yyyy')}</span>
-                        <button type="button" onClick={() => setDatePickerMonth(m => addMonths(m, 1))}
-                          className="p-1 hover:bg-gray-100 rounded transition-colors">
-                          <ChevronRight size={14} />
-                        </button>
-                      </div>
-                      <div className="grid grid-cols-7 mb-1">
-                        {['S','M','T','W','T','F','S'].map((d, i) => (
-                          <div key={i} className="text-center text-xs text-gray-400 font-medium py-1">{d}</div>
-                        ))}
-                      </div>
-                      <div className="grid grid-cols-7 gap-0.5">
-                        {Array.from({ length: getDay(startOfMonth(datePickerMonth)) }).map((_, i) => (
-                          <div key={`pad-${i}`} />
-                        ))}
-                        {eachDayOfInterval({ start: startOfMonth(datePickerMonth), end: endOfMonth(datePickerMonth) }).map(day => {
-                          const selected = dateVal && isSameDay(day, new Date(dateVal + 'T12:00:00'))
-                          const today = isToday(day)
-                          return (
-                            <button
-                              key={day.toISOString()}
-                              type="button"
-                              onClick={() => {
-                                setDateVal(format(day, 'yyyy-MM-dd'))
-                                setPastWarningConfirmed(false)
-                                setDatePickerMonth(day)
-                                setDateInputText(format(day, 'MMMM d, yyyy'))
-                                setShowCalendar(false)
-                              }}
-                              className={cn(
-                                'text-center text-xs py-1.5 rounded-md transition-colors',
-                                selected
-                                  ? 'bg-blue-600 text-white font-semibold'
-                                  : today
-                                  ? 'bg-blue-50 text-blue-600 font-semibold'
-                                  : 'hover:bg-gray-100 text-gray-700'
-                              )}
-                            >
-                              {format(day, 'd')}
-                            </button>
-                          )
-                        })}
-                      </div>
-                    </div>
-                  </div>
-                  </div>
                 </div>
 
                 <div>
@@ -780,10 +653,11 @@ export default function ReservationModal({
                                 checked={endType === 'date'} onChange={() => setEndType('date')} />
                               <span className="text-sm text-gray-700">On</span>
                               <div className="flex-1">
-                                <MiniDatePicker
+                                <InlineDatePicker
                                   value={recurEndDate}
                                   onChange={setRecurEndDate}
                                   disabled={endType !== 'date'}
+                                  disablePast
                                 />
                               </div>
                             </div>
