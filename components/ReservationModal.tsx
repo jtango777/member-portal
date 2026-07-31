@@ -648,10 +648,12 @@ export default function ReservationModal({
                           {/* End condition */}
                           <div className="space-y-2">
                             <span className="text-sm font-medium text-gray-700">Ends:</span>
-                            <div className="flex items-center gap-2">
-                              <input type="radio" name="recurEnd" value="date"
-                                checked={endType === 'date'} onChange={() => setEndType('date')} />
-                              <span className="text-sm text-gray-700">On</span>
+                            <div className="flex items-start gap-2">
+                              <div className="flex items-center gap-2 pt-2">
+                                <input type="radio" name="recurEnd" value="date"
+                                  checked={endType === 'date'} onChange={() => setEndType('date')} />
+                                <span className="text-sm text-gray-700">On</span>
+                              </div>
                               <div className="flex-1">
                                 <InlineDatePicker
                                   value={recurEndDate}
