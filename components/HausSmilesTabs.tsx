@@ -69,16 +69,16 @@ export default function HausSmilesTabs({ groups, defaultLocationId, isAdmin }: P
           <div key={member.id} className="relative group">
             {isAdmin && (
               confirmRemove === member.id ? (
-                <div className="absolute inset-0 z-10 bg-white/95 rounded-lg border border-amber-200 flex flex-col items-center justify-center gap-1.5 p-2 text-center">
-                  <p className="text-xs text-amber-700 font-medium">Archive photo only?</p>
+                <div className="absolute inset-0 z-10 bg-white/95 rounded-lg border border-red-200 flex flex-col items-center justify-center gap-1.5 p-2 text-center">
+                  <p className="text-xs text-red-700 font-medium">Archive photo only?</p>
                   <div className="flex items-center gap-2">
                     <button onClick={() => handleRemove(member)} disabled={removing === member.id}
-                      className="text-xs bg-amber-600 text-white px-2 py-1 rounded font-medium">
+                      className="text-xs bg-red-600 text-white px-2 py-1 rounded font-medium">
                       {removing === member.id ? '…' : 'Yes'}
                     </button>
                     <button onClick={() => setConfirmRemove(null)} className="text-xs text-gray-500">No</button>
                   </div>
-                  <p className="text-[10px] leading-tight text-gray-400">Doesn't affect their membership</p>
+                  <p className="text-[10px] leading-tight text-gray-400">Does not archive the user</p>
                 </div>
               ) : (
                 <div className="absolute top-1.5 right-1.5 z-10 flex gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
@@ -89,7 +89,7 @@ export default function HausSmilesTabs({ groups, defaultLocationId, isAdmin }: P
                   </button>
                   <button onClick={() => setConfirmRemove(member.id)}
                     title="Archive from Faces"
-                    className="p-1 rounded-md bg-white/90 border border-gray-200 text-gray-400 hover:text-amber-700 hover:bg-white">
+                    className="p-1 rounded-md bg-white/90 border border-gray-200 text-gray-400 hover:text-red-700 hover:bg-white">
                     <Trash2 size={13} />
                   </button>
                 </div>

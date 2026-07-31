@@ -33,15 +33,15 @@ export default function HausSmilesMemberActions({ id, source, fullName, avatarUr
     return (
       <div className="flex flex-col items-center gap-1.5 mt-4">
         <div className="flex items-center gap-2">
-          <span className="text-sm text-amber-700">Archive from Faces?</span>
+          <span className="text-sm text-red-700">Archive from Faces?</span>
           <button onClick={handleRemove} disabled={removing}
-            className="text-sm bg-amber-600 text-white px-3 py-1.5 rounded-lg font-medium">
+            className="text-sm bg-red-600 text-white px-3 py-1.5 rounded-lg font-medium">
             {removing ? '…' : 'Yes, archive'}
           </button>
           <button onClick={() => setConfirming(false)} className="text-sm text-gray-500">Cancel</button>
         </div>
         <p className="text-xs text-gray-400 text-center max-w-xs">
-          This only removes the photo — it won't archive their membership or invite.
+          This only removes the photo — does not archive the user. To fully archive them, do it from the Members page.
         </p>
       </div>
     )
@@ -54,7 +54,7 @@ export default function HausSmilesMemberActions({ id, source, fullName, avatarUr
         <Pencil size={14} /> Change photo
       </button>
       <button onClick={() => setConfirming(true)}
-        className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-amber-700">
+        className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-red-700">
         <Trash2 size={14} /> Archive from Faces
       </button>
 
