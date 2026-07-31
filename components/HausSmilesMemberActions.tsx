@@ -41,7 +41,7 @@ export default function HausSmilesMemberActions({ id, source, fullName, avatarUr
           <button onClick={() => setConfirming(false)} className="text-sm text-gray-500">Cancel</button>
         </div>
         <p className="text-xs text-gray-400 text-center max-w-xs">
-          This only removes the photo — does not archive the user. To fully archive them, do it from the Members page.
+          Only removes the photo. To archive the user, use the Members page.
         </p>
       </div>
     )
