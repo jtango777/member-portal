@@ -4,8 +4,8 @@ import DevBanner from '@/components/DevBanner'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'BizHaus Room Bookings',
-  description: 'Room Reservation System',
+  title: 'BizHaus Member Portal',
+  description: 'BizHaus Member Portal',
   icons: {
     icon: '/favicon.svg',
   },

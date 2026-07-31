@@ -42,7 +42,7 @@ export default function RoomsNotSetUp({ alreadyRequested, contactEmail }: Props)
         ) : (
           <div className="text-sm text-gray-500 space-y-3">
             <p>
-              If you do this often, register for our room reservation system. If you don't need it often, just send us a request — email, Slack, or stop by the front desk!
+              If you do this often, register for the member portal to book rooms yourself. If you don't need it often, just send us a request — email, Slack, or stop by the front desk!
             </p>
             <div className="flex items-center justify-center gap-2">
               <button onClick={requestAccess} disabled={submitting}

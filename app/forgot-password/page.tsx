@@ -30,7 +30,7 @@ export default function ForgotPasswordPage() {
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-white tracking-tight">BizHaus</h1>
-          <p className="text-slate-400 mt-2 text-sm">Room Reservation System</p>
+          <p className="text-slate-400 mt-2 text-sm">Member Portal</p>
         </div>
         <div className="bg-white rounded-xl shadow-lg p-8">
           {sent ? (
