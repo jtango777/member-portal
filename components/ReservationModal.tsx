@@ -97,6 +97,27 @@ function useModalCenterOffset(): number {
   return offset
 }
 
+// CSS `dvh` can be computed against a stale (too-tall) viewport height in a
+// normal windowed browser on macOS — before the browser's own chrome (tab
+// bar, URL bar) is accounted for — and only recalculates once something
+// forces it, which is why a modal capped with max-h-[90dvh] can render
+// taller than what's actually visible until an overscroll bounce corrects
+// it. True fullscreen (no browser chrome at all) never hits this, which is
+// the tell. Measuring window.innerHeight directly in JS sidesteps the whole
+// CSS unit and its timing quirks.
+function useModalMaxHeight(): number | null {
+  const [maxHeight, setMaxHeight] = useState<number | null>(null)
+
+  useEffect(() => {
+    function measure() { setMaxHeight(window.innerHeight * 0.9) }
+    measure()
+    window.addEventListener('resize', measure)
+    return () => window.removeEventListener('resize', measure)
+  }, [])
+
+  return maxHeight
+}
+
 function defaultRecurEndDate(from: Date): string {
   const d = addMonths(from, 3)
   return format(d, 'yyyy-MM-dd')
@@ -204,22 +225,8 @@ export default function ReservationModal({
   const [endCount, setEndCount]         = useState(10)
 
   const modalCenterOffset = useModalCenterOffset()
-
-  // Newly-mounted fixed-position + overflow-y-auto elements can sometimes
-  // fail to register as scrollable with the browser's compositor until
-  // something forces it — the user has to "overscroll" (bounce past the
-  // end) before normal scrolling starts working. Nudging scrollTop right
-  // after mount forces that registration immediately, before anyone tries
-  // to scroll for real.
+  const modalMaxHeight = useModalMaxHeight()
   const contentRef = useRef<HTMLDivElement>(null)
-  useEffect(() => {
-    const el = contentRef.current
-    if (!el) return
-    requestAnimationFrame(() => {
-      el.scrollTop = 1
-      el.scrollTop = 0
-    })
-  }, [])
 
   const isAdmin = profile.is_admin
   const isOwn   = reservation?.user_id === profile.id
@@ -394,7 +401,8 @@ export default function ReservationModal({
         >
         <Dialog.Content
           ref={contentRef}
-          className="pointer-events-auto will-change-transform bg-white rounded-xl shadow-2xl w-[92vw] sm:w-full max-w-lg md:max-w-2xl max-h-[90dvh] overflow-y-auto"
+          className="pointer-events-auto bg-white rounded-xl shadow-2xl w-[92vw] sm:w-full max-w-lg md:max-w-2xl overflow-y-auto"
+          style={modalMaxHeight !== null ? { maxHeight: modalMaxHeight } : undefined}
         >
           {/* Header */}
           <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
