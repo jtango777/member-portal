@@ -62,27 +62,36 @@ function slotToTimeValue(slot: number): string {
 // never on the scrollable element itself (a transform combined with
 // overflow-y-auto on the same element can cause scroll-repaint glitches
 // on trackpad momentum scrolling).
+function findModalAnchor(): HTMLElement | null {
+  return document.querySelector<HTMLElement>('[data-dashboard-main]')
+}
+
+function computeModalCenterOffset(): number {
+  const anchor = findModalAnchor()
+  if (!anchor) return 0
+  const rect = anchor.getBoundingClientRect()
+  const anchorCenter = rect.left + rect.width / 2
+  return anchorCenter - window.innerWidth / 2
+}
+
+// Computed via a lazy useState initializer (runs synchronously during the
+// component's first render, before anything paints) rather than useEffect
+// (which only runs after the browser has already painted once). This modal
+// only ever mounts in response to a user click, well after the dashboard
+// layout has rendered, so the anchor element is already there to measure —
+// no need to wait a tick for it. Repositioning a fixed + scrollable element
+// *after* its first paint is a known trigger for the browser losing track
+// of its scroll area until forced (e.g. by an overscroll bounce), which is
+// exactly the bug this replaced.
 function useModalCenterOffset(): number {
-  const [offset, setOffset] = useState(0)
+  const [offset, setOffset] = useState(computeModalCenterOffset)
 
   useEffect(() => {
-    function findAnchor(): HTMLElement | null {
-      return document.querySelector<HTMLElement>('[data-dashboard-main]')
-    }
-
-    function measure() {
-      const anchor = findAnchor()
-      if (!anchor) { setOffset(0); return }
-      const rect = anchor.getBoundingClientRect()
-      const anchorCenter = rect.left + rect.width / 2
-      setOffset(anchorCenter - window.innerWidth / 2)
-    }
-
-    measure()
+    function measure() { setOffset(computeModalCenterOffset()) }
     window.addEventListener('resize', measure)
 
     let ro: ResizeObserver | undefined
-    const anchor = findAnchor()
+    const anchor = findModalAnchor()
     if (anchor && typeof ResizeObserver !== 'undefined') {
       ro = new ResizeObserver(measure)
       ro.observe(anchor)
@@ -105,12 +114,11 @@ function useModalCenterOffset(): number {
 // it. True fullscreen (no browser chrome at all) never hits this, which is
 // the tell. Measuring window.innerHeight directly in JS sidesteps the whole
 // CSS unit and its timing quirks.
-function useModalMaxHeight(): number | null {
-  const [maxHeight, setMaxHeight] = useState<number | null>(null)
+function useModalMaxHeight(): number {
+  const [maxHeight, setMaxHeight] = useState(() => window.innerHeight * 0.9)
 
   useEffect(() => {
     function measure() { setMaxHeight(window.innerHeight * 0.9) }
-    measure()
     window.addEventListener('resize', measure)
     return () => window.removeEventListener('resize', measure)
   }, [])
@@ -402,7 +410,7 @@ export default function ReservationModal({
         <Dialog.Content
           ref={contentRef}
           className="pointer-events-auto bg-white rounded-xl shadow-2xl w-[92vw] sm:w-full max-w-lg md:max-w-2xl overflow-y-auto"
-          style={modalMaxHeight !== null ? { maxHeight: modalMaxHeight } : undefined}
+          style={{ maxHeight: modalMaxHeight }}
         >
           {/* Header */}
           <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
