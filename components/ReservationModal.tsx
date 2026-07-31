@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { format, addDays, addMonths } from 'date-fns'
 import * as Dialog from '@radix-ui/react-dialog'
 import { X, Lock, Trash2, Edit2, Check, AlertCircle, Repeat, Ban, Search } from 'lucide-react'
@@ -205,6 +205,22 @@ export default function ReservationModal({
 
   const modalCenterOffset = useModalCenterOffset()
 
+  // Newly-mounted fixed-position + overflow-y-auto elements can sometimes
+  // fail to register as scrollable with the browser's compositor until
+  // something forces it — the user has to "overscroll" (bounce past the
+  // end) before normal scrolling starts working. Nudging scrollTop right
+  // after mount forces that registration immediately, before anyone tries
+  // to scroll for real.
+  const contentRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    const el = contentRef.current
+    if (!el) return
+    requestAnimationFrame(() => {
+      el.scrollTop = 1
+      el.scrollTop = 0
+    })
+  }, [])
+
   const isAdmin = profile.is_admin
   const isOwn   = reservation?.user_id === profile.id
 
@@ -377,7 +393,8 @@ export default function ReservationModal({
           style={modalCenterOffset ? { transform: `translateX(${modalCenterOffset}px)` } : undefined}
         >
         <Dialog.Content
-          className="pointer-events-auto bg-white rounded-xl shadow-2xl w-[92vw] sm:w-full max-w-lg md:max-w-2xl max-h-[90dvh] overflow-y-auto"
+          ref={contentRef}
+          className="pointer-events-auto will-change-transform bg-white rounded-xl shadow-2xl w-[92vw] sm:w-full max-w-lg md:max-w-2xl max-h-[90dvh] overflow-y-auto"
         >
           {/* Header */}
           <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
