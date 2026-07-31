@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { getAuthedProfile } from '@/lib/supabase/session'
 import { redirect } from 'next/navigation'
 import HausSmilesTabs from '@/components/HausSmilesTabs'
 import PageVisitTracker from '@/components/PageVisitTracker'
@@ -6,29 +7,23 @@ import PageVisitTracker from '@/components/PageVisitTracker'
 export const dynamic = 'force-dynamic'
 
 export default async function HausSmilesPage() {
+  const currentProfile = await getAuthedProfile()
+  if (!currentProfile) redirect('/login')
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
 
-  const { data: currentProfile } = await supabase
-    .from('profiles')
-    .select('default_location_id, is_admin')
-    .eq('id', user.id)
-    .single()
-
-  const { data: locations } = await supabase.from('locations').select('*').order('name')
-
-  const { data: profiles } = await supabase
-    .from('profiles')
-    .select('id, full_name, avatar_url, default_location_id, seating')
-    .not('avatar_url', 'is', null)
-    .eq('is_active', true)
-    .order('full_name')
-
-  const { data: directoryPhotos } = await supabase
-    .from('directory_photos')
-    .select('id, full_name, avatar_url, location_id')
-    .order('full_name')
+  const [{ data: locations }, { data: profiles }, { data: directoryPhotos }] = await Promise.all([
+    supabase.from('locations').select('*').order('name'),
+    supabase
+      .from('profiles')
+      .select('id, full_name, avatar_url, default_location_id, seating')
+      .not('avatar_url', 'is', null)
+      .eq('is_active', true)
+      .order('full_name'),
+    supabase
+      .from('directory_photos')
+      .select('id, full_name, avatar_url, location_id')
+      .order('full_name'),
+  ])
 
   const allMembers = [
     ...(profiles ?? []).map(p => ({ id: p.id, full_name: p.full_name, avatar_url: p.avatar_url, location_id: p.default_location_id, seating: p.seating, source: 'profile' as const })),

@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { getAuthedProfile } from '@/lib/supabase/session'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
@@ -13,16 +14,9 @@ function firstNameLastInitial(fullName: string): string {
 }
 
 export default async function NewFacesPage() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
-
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('default_location_id')
-    .eq('id', user.id)
-    .single()
+  const profile = await getAuthedProfile()
   if (!profile) redirect('/login')
+  const supabase = await createClient()
 
   let newFaces: { id: string; full_name: string; avatar_url: string }[] = []
 

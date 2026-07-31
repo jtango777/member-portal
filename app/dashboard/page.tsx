@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { getAuthedProfile } from '@/lib/supabase/session'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { DoorOpen, Smile, ChevronRight } from 'lucide-react'
@@ -10,16 +11,9 @@ function firstName(fullName: string): string {
 }
 
 export default async function PortalHomePage() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
-
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('full_name, default_location_id')
-    .eq('id', user.id)
-    .single()
+  const profile = await getAuthedProfile()
   if (!profile) redirect('/login')
+  const supabase = await createClient()
 
   let neighbors: { full_name: string; avatar_url: string }[] = []
   if (profile.default_location_id) {
@@ -30,7 +24,7 @@ export default async function PortalHomePage() {
         .eq('default_location_id', profile.default_location_id)
         .eq('is_active', true)
         .not('avatar_url', 'is', null)
-        .neq('id', user.id),
+        .neq('id', profile.id),
       supabase
         .from('directory_photos')
         .select('id, full_name, avatar_url')

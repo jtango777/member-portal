@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { getAuthedProfile } from '@/lib/supabase/session'
 import { redirect } from 'next/navigation'
 import CalendarView from '@/components/CalendarView'
 import RoomsNotSetUp from '@/components/RoomsNotSetUp'
@@ -8,12 +9,9 @@ import { calcHoursUsed, getMonthBounds } from '@/lib/utils'
 export const dynamic = 'force-dynamic'
 
 export default async function RoomsPage() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
-
-  const { data: profile } = await supabase.from('profiles').select('*, companies(*)').eq('id', user.id).single()
+  const profile = await getAuthedProfile()
   if (!profile) redirect('/login')
+  const supabase = await createClient()
 
   const noCompany = !profile.is_admin && !profile.company_id
 

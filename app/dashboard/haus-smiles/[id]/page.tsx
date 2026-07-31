@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { getAuthedProfile } from '@/lib/supabase/session'
 import { redirect, notFound } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
@@ -14,11 +15,9 @@ function firstNameLastInitial(fullName: string): string {
 
 export default async function HausSmilesMemberPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
+  const currentProfile = await getAuthedProfile()
+  if (!currentProfile) redirect('/login')
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
-
-  const { data: currentProfile } = await supabase.from('profiles').select('is_admin').eq('id', user.id).single()
 
   const { data: profileMember } = await supabase
     .from('profiles')

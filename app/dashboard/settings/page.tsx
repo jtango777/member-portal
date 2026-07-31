@@ -1,16 +1,17 @@
 import { createClient } from '@/lib/supabase/server'
+import { getAuthedUser, getAuthedProfile } from '@/lib/supabase/session'
 import { redirect } from 'next/navigation'
 import SettingsForm from '@/components/SettingsForm'
 
 export const dynamic = 'force-dynamic'
 
 export default async function SettingsPage() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getAuthedUser()
   if (!user) redirect('/login')
+  const supabase = await createClient()
 
-  const [{ data: profile }, { data: locations }] = await Promise.all([
-    supabase.from('profiles').select('*, companies(*)').eq('id', user.id).single(),
+  const [profile, { data: locations }] = await Promise.all([
+    getAuthedProfile(),
     supabase.from('locations').select('*').order('name'),
   ])
 

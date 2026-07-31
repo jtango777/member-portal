@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { getAuthedUser, getAuthedProfile } from '@/lib/supabase/session'
 import Nav from '@/components/Nav'
 import Sidebar from '@/components/Sidebar'
 import MobileTabBar from '@/components/MobileTabBar'
@@ -8,25 +9,21 @@ import AnnouncementPopup from '@/components/AnnouncementPopup'
 import { Profile } from '@/types'
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-
+  const user = await getAuthedUser()
   if (!user) redirect('/login')
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('*, companies(*)')
-    .eq('id', user.id)
-    .single()
+  const supabase = await createClient()
+  const [profile, { data: latestAnnouncement }] = await Promise.all([
+    getAuthedProfile(),
+    supabase
+      .from('announcements')
+      .select('id, message')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+  ])
 
   if (!profile) redirect('/auth/signout')
-
-  const { data: latestAnnouncement } = await supabase
-    .from('announcements')
-    .select('id, message')
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle()
 
   const shouldShowAnnouncement = !!latestAnnouncement && latestAnnouncement.id !== (profile as Profile).dismissed_announcement_id
 

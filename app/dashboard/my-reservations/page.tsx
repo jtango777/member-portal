@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { getAuthedUser, getAuthedProfile } from '@/lib/supabase/session'
 import { redirect } from 'next/navigation'
 import { calcHoursUsed, getMonthBounds } from '@/lib/utils'
 import MyReservationsList from '@/components/MyReservationsList'
@@ -6,16 +7,16 @@ import MyReservationsList from '@/components/MyReservationsList'
 export const dynamic = 'force-dynamic'
 
 export default async function MyReservationsPage() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getAuthedUser()
   if (!user) redirect('/login')
+  const supabase = await createClient()
 
   const [
-    { data: profileData },
+    profileData,
     { data: myReservations },
     { data: rooms },
   ] = await Promise.all([
-    supabase.from('profiles').select('*, companies(*)').eq('id', user.id).single(),
+    getAuthedProfile(),
     supabase.from('reservations')
       .select('*, rooms(name, locations(name)), profiles(full_name)')
       .eq('user_id', user.id)
