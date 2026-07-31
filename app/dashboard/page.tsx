@@ -15,18 +15,28 @@ export default async function PortalHomePage() {
   if (!profile) redirect('/login')
   const supabase = await createClient()
 
-  // Only ever shows members formally linked to a real profile — not
-  // directory_photos entries, which have no account behind them.
+  // Only ever shows people formally linked to someone on the Members page —
+  // a real registered profile, or a pending invite with a linked photo —
+  // never a directory_photos entry, which isn't tied to any invite/account.
   let neighbors: { full_name: string; avatar_url: string }[] = []
   if (profile.default_location_id) {
-    const { data: locationProfiles } = await supabase
-      .from('profiles')
-      .select('id, full_name, avatar_url')
-      .eq('default_location_id', profile.default_location_id)
-      .eq('is_active', true)
-      .not('avatar_url', 'is', null)
-      .neq('id', profile.id)
-    neighbors = (locationProfiles ?? [])
+    const [{ data: locationProfiles }, { data: locationPending }] = await Promise.all([
+      supabase
+        .from('profiles')
+        .select('id, full_name, avatar_url')
+        .eq('default_location_id', profile.default_location_id)
+        .eq('is_active', true)
+        .not('avatar_url', 'is', null)
+        .neq('id', profile.id),
+      supabase
+        .from('permitted_emails')
+        .select('id, full_name, avatar_url')
+        .eq('default_location_id', profile.default_location_id)
+        .is('accepted_at', null)
+        .eq('is_active', true)
+        .not('avatar_url', 'is', null),
+    ])
+    neighbors = [...(locationProfiles ?? []), ...(locationPending ?? [])]
       .sort(() => Math.random() - 0.5)
       .slice(0, 3)
       .map(c => ({ full_name: c.full_name, avatar_url: c.avatar_url }))

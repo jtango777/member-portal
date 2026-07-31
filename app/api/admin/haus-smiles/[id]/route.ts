@@ -23,6 +23,13 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
     return NextResponse.json({ ok: true })
   }
 
+  if (source === 'pending') {
+    // Only clears the linked photo — doesn't touch the invite itself.
+    const { error } = await admin.from('permitted_emails').update({ avatar_url: null }).eq('id', id)
+    if (error) return NextResponse.json({ error: 'Failed to remove photo.' }, { status: 500 })
+    return NextResponse.json({ ok: true })
+  }
+
   if (source === 'profile') {
     const { data: profile, error } = await admin.from('profiles').update({ is_active: false }).eq('id', id).select('id').single()
     if (error) return NextResponse.json({ error: 'Failed to archive member.' }, { status: 500 })
@@ -36,5 +43,5 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
     return NextResponse.json({ ok: true, id: profile.id })
   }
 
-  return NextResponse.json({ error: 'source must be "profile" or "directory"' }, { status: 400 })
+  return NextResponse.json({ error: 'source must be "profile", "pending", or "directory"' }, { status: 400 })
 }

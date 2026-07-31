@@ -20,20 +20,32 @@ export default async function NewFacesPage() {
 
   let newFaces: { id: string; full_name: string; avatar_url: string }[] = []
 
-  // Only ever shows members formally linked to a real profile — not
-  // directory_photos entries, which have no account behind them.
+  // Only ever shows people formally linked to someone on the Members page —
+  // a real registered profile, or a pending invite with a linked photo —
+  // never a directory_photos entry, which isn't tied to any invite/account.
   if (profile.default_location_id) {
     const cutoff = newFacesCutoff().toISOString()
 
-    const { data: newProfiles } = await supabase
-      .from('profiles')
-      .select('id, full_name, avatar_url')
-      .eq('default_location_id', profile.default_location_id)
-      .eq('is_active', true)
-      .not('avatar_url', 'is', null)
-      .gte('created_at', cutoff)
+    const [{ data: newProfiles }, { data: newPending }] = await Promise.all([
+      supabase
+        .from('profiles')
+        .select('id, full_name, avatar_url')
+        .eq('default_location_id', profile.default_location_id)
+        .eq('is_active', true)
+        .not('avatar_url', 'is', null)
+        .gte('created_at', cutoff),
+      supabase
+        .from('permitted_emails')
+        .select('id, full_name, avatar_url')
+        .eq('default_location_id', profile.default_location_id)
+        .is('accepted_at', null)
+        .eq('is_active', true)
+        .not('avatar_url', 'is', null)
+        .gte('invited_at', cutoff),
+    ])
 
-    newFaces = (newProfiles ?? []).sort((a, b) => a.full_name.localeCompare(b.full_name))
+    newFaces = [...(newProfiles ?? []), ...(newPending ?? [])]
+      .sort((a, b) => a.full_name.localeCompare(b.full_name))
   }
 
   return (

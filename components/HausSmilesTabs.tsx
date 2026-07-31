@@ -7,7 +7,7 @@ import { Trash2, Pencil } from 'lucide-react'
 import toast from 'react-hot-toast'
 import AssignPhotoDialog from './admin/AssignPhotoDialog'
 
-type Member = { id: string; full_name: string; avatar_url: string | null; seating?: string | null; source: 'profile' | 'directory' }
+type Member = { id: string; full_name: string; avatar_url: string | null; seating?: string | null; source: 'profile' | 'directory' | 'pending' }
 type Group = { key: string; name: string; members: Member[] }
 
 function firstNameLastInitial(fullName: string): string {
@@ -114,7 +114,7 @@ export default function HausSmilesTabs({ groups, defaultLocationId, isAdmin }: P
           open
           onOpenChange={v => { if (!v) setEditingPhoto(null) }}
           onSuccess={() => { setEditingPhoto(null); router.refresh() }}
-          targetType={editingPhoto.source === 'profile' ? 'member' : 'directory'}
+          targetType={editingPhoto.source === 'profile' ? 'member' : editingPhoto.source === 'pending' ? 'pending' : 'directory'}
           targetId={editingPhoto.id}
           memberName={editingPhoto.full_name}
           hasPhoto

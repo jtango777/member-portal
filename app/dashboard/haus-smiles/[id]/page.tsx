@@ -27,7 +27,18 @@ export default async function HausSmilesMemberPage({ params }: { params: Promise
     .not('avatar_url', 'is', null)
     .single()
 
-  const member = profileMember ?? (
+  const pendingMember = profileMember ? null : (
+    await supabase
+      .from('permitted_emails')
+      .select('id, full_name, avatar_url')
+      .eq('id', id)
+      .is('accepted_at', null)
+      .eq('is_active', true)
+      .not('avatar_url', 'is', null)
+      .single()
+  ).data
+
+  const member = profileMember ?? pendingMember ?? (
     await supabase
       .from('directory_photos')
       .select('id, full_name, avatar_url')
@@ -37,7 +48,7 @@ export default async function HausSmilesMemberPage({ params }: { params: Promise
 
   if (!member) notFound()
 
-  const source: 'profile' | 'directory' = profileMember ? 'profile' : 'directory'
+  const source: 'profile' | 'pending' | 'directory' = profileMember ? 'profile' : pendingMember ? 'pending' : 'directory'
 
   return (
     <div className="h-full overflow-auto p-6">

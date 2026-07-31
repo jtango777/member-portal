@@ -11,7 +11,7 @@ export default async function HausSmilesPage() {
   if (!currentProfile) redirect('/login')
   const supabase = await createClient()
 
-  const [{ data: locations }, { data: profiles }] = await Promise.all([
+  const [{ data: locations }, { data: profiles }, { data: pendingWithPhoto }] = await Promise.all([
     supabase.from('locations').select('*').order('name'),
     supabase
       .from('profiles')
@@ -19,13 +19,27 @@ export default async function HausSmilesPage() {
       .not('avatar_url', 'is', null)
       .eq('is_active', true)
       .order('full_name'),
+    supabase
+      .from('permitted_emails')
+      .select('id, full_name, avatar_url, default_location_id')
+      .not('avatar_url', 'is', null)
+      .is('accepted_at', null)
+      .eq('is_active', true)
+      .order('full_name'),
   ])
 
-  // Faces only shows members formally linked to a real profile — not
-  // directory_photos entries, which have no account behind them.
-  const allMembers = (profiles ?? []).map(p => ({
-    id: p.id, full_name: p.full_name, avatar_url: p.avatar_url, location_id: p.default_location_id, seating: p.seating, source: 'profile' as const,
-  }))
+  // Faces only shows people formally linked to someone on the Members page —
+  // either a real registered profile, or a pending invite that's had a photo
+  // linked to it (the green "Photo linked" indicator on Members) — never a
+  // directory_photos entry, which isn't tied to any invite or account at all.
+  const allMembers = [
+    ...(profiles ?? []).map(p => ({
+      id: p.id, full_name: p.full_name, avatar_url: p.avatar_url, location_id: p.default_location_id, seating: p.seating, source: 'profile' as const,
+    })),
+    ...(pendingWithPhoto ?? []).map(p => ({
+      id: p.id, full_name: p.full_name ?? 'Pending member', avatar_url: p.avatar_url, location_id: p.default_location_id, seating: null, source: 'pending' as const,
+    })),
+  ]
 
   const groups = (locations ?? [])
     .map(location => ({

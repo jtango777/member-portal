@@ -6,7 +6,7 @@ import { Trash2, Pencil } from 'lucide-react'
 import toast from 'react-hot-toast'
 import AssignPhotoDialog from './admin/AssignPhotoDialog'
 
-type Props = { id: string; source: 'profile' | 'directory'; fullName: string; avatarUrl: string | null }
+type Props = { id: string; source: 'profile' | 'pending' | 'directory'; fullName: string; avatarUrl: string | null }
 
 export default function HausSmilesMemberActions({ id, source, fullName, avatarUrl }: Props) {
   const router = useRouter()
@@ -63,7 +63,7 @@ export default function HausSmilesMemberActions({ id, source, fullName, avatarUr
           open
           onOpenChange={v => setEditingPhoto(v)}
           onSuccess={() => { setEditingPhoto(false); router.refresh() }}
-          targetType={source === 'profile' ? 'member' : 'directory'}
+          targetType={source === 'profile' ? 'member' : source === 'pending' ? 'pending' : 'directory'}
           targetId={id}
           memberName={fullName}
           hasPhoto
