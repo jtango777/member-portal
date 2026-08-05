@@ -4,8 +4,7 @@ import { getAuthedUser, getAuthedProfile } from '@/lib/supabase/session'
 import Nav from '@/components/Nav'
 import Sidebar from '@/components/Sidebar'
 import MobileTabBar from '@/components/MobileTabBar'
-import AvatarUploadPrompt from '@/components/AvatarUploadPrompt'
-import AnnouncementPopup from '@/components/AnnouncementPopup'
+import OnboardingOverlays from '@/components/OnboardingOverlays'
 import { Profile } from '@/types'
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -30,10 +29,10 @@ export default async function DashboardLayout({ children }: { children: React.Re
   return (
     <div className="flex flex-col h-dvh overflow-hidden">
       <Nav profile={profile as Profile} />
-      <AvatarUploadPrompt hasAvatar={!!(profile as Profile).avatar_url} />
-      {shouldShowAnnouncement && latestAnnouncement && (
-        <AnnouncementPopup announcementId={latestAnnouncement.id} message={latestAnnouncement.message} />
-      )}
+      <OnboardingOverlays
+        hasAvatar={!!(profile as Profile).avatar_url}
+        announcement={shouldShowAnnouncement && latestAnnouncement ? latestAnnouncement : null}
+      />
       <div className="flex flex-1 overflow-hidden">
         <Sidebar isAdmin={(profile as Profile).is_admin} />
         <main className="flex-1 overflow-hidden" data-dashboard-main>

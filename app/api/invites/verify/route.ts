@@ -10,10 +10,10 @@ export async function GET(request: Request) {
   const admin = createAdminClient()
   const { data } = await admin
     .from('permitted_emails')
-    .select('email, accepted_at')
+    .select('email, accepted_at, default_location_id')
     .eq('invite_token', token)
     .single()
 
   if (!data || data.accepted_at) return NextResponse.json({ valid: false })
-  return NextResponse.json({ valid: true, email: data.email })
+  return NextResponse.json({ valid: true, email: data.email, default_location_id: data.default_location_id })
 }

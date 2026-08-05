@@ -2,7 +2,7 @@
 
 import { useRef, useState, useEffect } from 'react'
 import * as Dialog from '@radix-ui/react-dialog'
-import { X, Upload, Images, ArrowLeft } from 'lucide-react'
+import { X, Upload, Images, ArrowLeft, Crop } from 'lucide-react'
 import toast from 'react-hot-toast'
 import Cropper, { Area } from 'react-easy-crop'
 import { getCroppedImageBlob } from '@/lib/cropImage'
@@ -162,8 +162,14 @@ export default function AssignPhotoDialog({ open, onOpenChange, onSuccess, targe
                   </div>
                 )}
                 <p className="text-sm text-gray-500">
-                  {hasPhoto ? 'Add or link new photo?' : `Add a photo for ${memberName}`}
+                  {hasPhoto ? 'Adjust sizing, add a new photo, or link one from the directory?' : `Add a photo for ${memberName}`}
                 </p>
+                {hasPhoto && avatarUrl && (
+                  <button onClick={() => { setImageSrc(avatarUrl); setCrop({ x: 0, y: 0 }); setZoom(1); setMode('upload') }}
+                    className="w-full flex items-center justify-center gap-2 border border-gray-300 text-gray-700 hover:bg-gray-50 text-sm font-semibold px-4 py-3 rounded-lg">
+                    <Crop size={16} /> Adjust Sizing on Current Photo
+                  </button>
+                )}
                 <button onClick={() => setMode('upload')}
                   className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-4 py-3 rounded-lg">
                   <Upload size={16} /> Upload from Computer

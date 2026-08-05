@@ -8,11 +8,11 @@ export async function POST(request: Request) {
   const admin = createAdminClient()
   const { data } = await admin
     .from('permitted_emails')
-    .select('email, accepted_at')
+    .select('email, accepted_at, default_location_id')
     .eq('email', email.toLowerCase().trim())
     .single()
 
   if (!data) return NextResponse.json({ status: 'not_found' })
   if (data.accepted_at) return NextResponse.json({ status: 'already_registered' })
-  return NextResponse.json({ status: 'ok', email: data.email })
+  return NextResponse.json({ status: 'ok', email: data.email, default_location_id: data.default_location_id })
 }

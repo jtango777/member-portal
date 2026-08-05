@@ -45,7 +45,10 @@ export default async function HausSmilesPage() {
     .map(location => ({
       key: location.id,
       name: location.name,
-      members: allMembers.filter(p => p.location_id === location.id).sort((a, b) => a.full_name.localeCompare(b.full_name)),
+      members: allMembers
+        .filter(p => p.location_id === location.id)
+        .sort((a, b) => a.full_name.localeCompare(b.full_name))
+        .map(p => ({ ...p, location_name: location.name })),
     }))
     .filter(g => g.members.length > 0)
 

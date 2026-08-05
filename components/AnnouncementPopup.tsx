@@ -9,9 +9,14 @@ import AnnouncementCard from './AnnouncementCard'
 type Props = {
   announcementId: string
   message: string
+  // Called once this popup has closed (by X, Escape, or clicking outside),
+  // so a caller stacking another reminder on top of this one — e.g. the
+  // "add your photo" prompt — can wait its turn instead of showing both
+  // at once.
+  onDismissed?: () => void
 }
 
-export default function AnnouncementPopup({ announcementId, message }: Props) {
+export default function AnnouncementPopup({ announcementId, message, onDismissed }: Props) {
   const [open, setOpen] = useState(true)
   const [dismissing, setDismissing] = useState(false)
   const navBottom = useNavBottom()
@@ -19,6 +24,7 @@ export default function AnnouncementPopup({ announcementId, message }: Props) {
   async function dismiss() {
     setDismissing(true)
     setOpen(false)
+    onDismissed?.()
     await fetch('/api/profile/dismiss-announcement', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

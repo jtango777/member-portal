@@ -20,14 +20,18 @@ function SetupForm() {
   const [loading, setLoading]     = useState(false)
   const [tokenValid, setTokenValid] = useState<boolean | null>(null)
   const [email, setEmail]         = useState('')
+  const [invitedLocationId, setInvitedLocationId] = useState<string | null>(null)
 
   useEffect(() => {
     if (!token) { setTokenValid(false); return }
     fetch(`/api/invites/verify?token=${token}`)
       .then(r => r.json())
       .then(data => {
-        if (data.valid) { setTokenValid(true); setEmail(data.email) }
-        else setTokenValid(false)
+        if (data.valid) {
+          setTokenValid(true)
+          setEmail(data.email)
+          setInvitedLocationId(data.default_location_id ?? null)
+        } else setTokenValid(false)
       })
       .catch(() => setTokenValid(false))
 
@@ -36,9 +40,17 @@ function SetupForm() {
       .then(r => r.json())
       .then((data: Location[]) => {
         setLocations(data)
-        if (data.length > 0) setLocationId(data[0].id)
+        if (data.length > 0) setLocationId(prev => prev || data[0].id)
       })
   }, [token])
+
+  // Once we know the invite's assigned location, prefer it over whatever
+  // was already selected (e.g. the /api/locations fallback that may have
+  // resolved first) — this is the location an admin deliberately set for
+  // this member, not just whichever location happened to load first.
+  useEffect(() => {
+    if (invitedLocationId) setLocationId(invitedLocationId)
+  }, [invitedLocationId])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()

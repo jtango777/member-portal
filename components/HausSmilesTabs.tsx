@@ -7,7 +7,7 @@ import { Trash2, Pencil } from 'lucide-react'
 import toast from 'react-hot-toast'
 import AssignPhotoDialog from './admin/AssignPhotoDialog'
 
-type Member = { id: string; full_name: string; avatar_url: string | null; seating?: string | null; source: 'profile' | 'directory' | 'pending' }
+type Member = { id: string; full_name: string; avatar_url: string | null; seating?: string | null; location_name?: string | null; source: 'profile' | 'directory' | 'pending' }
 type Group = { key: string; name: string; members: Member[] }
 
 function firstNameLastInitial(fullName: string): string {
@@ -103,6 +103,7 @@ export default function HausSmilesTabs({ groups, defaultLocationId, isAdmin }: P
                 className="w-full aspect-square object-cover rounded-lg border border-gray-200 mb-2 group-hover:opacity-80 transition-opacity"
               />
               <p className="text-sm text-gray-700">{firstNameLastInitial(member.full_name)}</p>
+              {member.location_name && <p className="text-xs text-gray-400">{member.location_name}</p>}
               {member.seating && <p className="text-xs text-gray-400">{member.seating}</p>}
             </Link>
           </div>

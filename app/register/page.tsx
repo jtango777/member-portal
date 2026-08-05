@@ -10,7 +10,7 @@ import { SEATING_OPTIONS } from '@/lib/seating'
 
 type Location = { id: string; name: string }
 
-function EmailStep({ onFound }: { onFound: (email: string) => void }) {
+function EmailStep({ onFound }: { onFound: (email: string, defaultLocationId: string | null) => void }) {
   const [email, setEmail] = useState('')
   const [checking, setChecking] = useState(false)
   const [notFound, setNotFound] = useState(false)
@@ -27,7 +27,7 @@ function EmailStep({ onFound }: { onFound: (email: string) => void }) {
       body: JSON.stringify({ email }),
     })
     const data = await res.json()
-    if (data.status === 'ok') onFound(data.email)
+    if (data.status === 'ok') onFound(data.email, data.default_location_id ?? null)
     else if (data.status === 'already_registered') setAlreadyRegistered(true)
     else setNotFound(true)
     setChecking(false)
@@ -67,12 +67,12 @@ function EmailStep({ onFound }: { onFound: (email: string) => void }) {
   )
 }
 
-function DetailsStep({ email }: { email: string }) {
+function DetailsStep({ email, defaultLocationId }: { email: string; defaultLocationId: string | null }) {
   const router = useRouter()
   const [name, setName]           = useState('')
   const [password, setPassword]   = useState('')
   const [password2, setPassword2] = useState('')
-  const [locationId, setLocationId] = useState('')
+  const [locationId, setLocationId] = useState(defaultLocationId ?? '')
   const [locations, setLocations] = useState<Location[]>([])
   const [seating, setSeating] = useState('')
   const [loading, setLoading]     = useState(false)
@@ -82,7 +82,7 @@ function DetailsStep({ email }: { email: string }) {
       .then(r => r.json())
       .then((data: Location[]) => {
         setLocations(data)
-        if (data.length > 0) setLocationId(data[0].id)
+        if (data.length > 0) setLocationId(prev => prev || data[0].id)
       })
   }, [])
 
@@ -157,6 +157,12 @@ function DetailsStep({ email }: { email: string }) {
 
 export default function RegisterPage() {
   const [foundEmail, setFoundEmail] = useState<string | null>(null)
+  const [foundLocationId, setFoundLocationId] = useState<string | null>(null)
+
+  function handleFound(email: string, defaultLocationId: string | null) {
+    setFoundEmail(email)
+    setFoundLocationId(defaultLocationId)
+  }
 
   return (
     <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
@@ -166,7 +172,9 @@ export default function RegisterPage() {
           <img src="/brand/bizhaus-logo-white.png" alt="BizHaus" className="h-8 w-auto mx-auto" />
           <p className="mt-3 text-sm text-slate-400">Member Portal</p>
         </div>
-        {foundEmail ? <DetailsStep email={foundEmail} /> : <EmailStep onFound={setFoundEmail} />}
+        {foundEmail
+          ? <DetailsStep email={foundEmail} defaultLocationId={foundLocationId} />
+          : <EmailStep onFound={handleFound} />}
       </div>
     </div>
   )
