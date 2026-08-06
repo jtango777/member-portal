@@ -510,13 +510,13 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
               </button>
               <button type="button" disabled={sending} onClick={e => handleInvite(e as unknown as React.FormEvent, true)}
                 className="flex items-center gap-1.5 border border-gray-300 hover:bg-gray-50 disabled:opacity-50 text-gray-700 text-sm font-semibold px-4 py-2 rounded-lg">
-                {sending ? 'Saving…' : 'Just Add (No Email)'}
+                {sending ? 'Saving…' : 'Add to Pending'}
               </button>
               <button type="button" onClick={() => { setShowForm(false); setLastInviteLink(null) }}
                 className="text-sm text-gray-500 hover:text-gray-700 px-3 py-2">Cancel</button>
             </div>
             <p className="text-xs text-gray-400">
-              "Just Add" creates their record with no email sent — invite them later whenever you're ready, from the row's send icon.
+              "Add to Pending" creates their record with no email sent — invite them later whenever you're ready, from the row's send icon.
             </p>
           </form>
 
