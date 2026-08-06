@@ -729,7 +729,7 @@ function Section({ title, children, footer }: { title: string; children: React.R
       <div className="px-4 py-3 border-b border-gray-100 bg-gray-50 rounded-t-xl">
         <h2 className="text-sm font-semibold text-blue-600">{title}</h2>
       </div>
-      <div className="overflow-x-auto">{children}</div>
+      <div className="overflow-x-auto overflow-y-hidden">{children}</div>
       {footer}
     </div>
   )

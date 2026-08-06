@@ -69,6 +69,7 @@ export default function AssignPhotoDialog({ open, onOpenChange, onSuccess, targe
     setImageSrc(URL.createObjectURL(file))
     setCrop({ x: 0, y: 0 })
     setZoom(1)
+    setMode('upload')
   }
 
   async function handleUploadConfirm() {
@@ -121,6 +122,8 @@ export default function AssignPhotoDialog({ open, onOpenChange, onSuccess, targe
         <Dialog.Overlay className="fixed inset-0 bg-black/40 z-40" />
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <Dialog.Content className="bg-white rounded-xl border border-gray-200 p-6 w-full max-w-sm max-h-[85vh] overflow-y-auto">
+            <input ref={fileRef} type="file" accept="image/*" onChange={handlePickFile} className="hidden" />
+
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
                 {mode !== 'choose' && (
@@ -170,7 +173,7 @@ export default function AssignPhotoDialog({ open, onOpenChange, onSuccess, targe
                     <Crop size={16} /> Adjust Sizing on Current Photo
                   </button>
                 )}
-                <button onClick={() => setMode('upload')}
+                <button onClick={() => fileRef.current?.click()}
                   className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-4 py-3 rounded-lg">
                   <Upload size={16} /> Upload from Computer
                 </button>
@@ -183,45 +186,35 @@ export default function AssignPhotoDialog({ open, onOpenChange, onSuccess, targe
               </div>
             )}
 
-            {mode === 'upload' && (
-              imageSrc ? (
-                <div className="space-y-4">
-                  <div className="relative w-full aspect-square bg-gray-100 rounded-lg overflow-hidden">
-                    <Cropper
-                      image={imageSrc}
-                      crop={crop}
-                      zoom={zoom}
-                      aspect={1}
-                      cropShape="round"
-                      showGrid={false}
-                      onCropChange={setCrop}
-                      onZoomChange={setZoom}
-                      onCropComplete={(_, pixels) => setCroppedAreaPixels(pixels)}
-                    />
-                  </div>
-                  <input type="range" min={1} max={3} step={0.01} value={zoom}
-                    onChange={e => setZoom(Number(e.target.value))}
-                    className="w-full" />
-                  <div className="flex gap-2">
-                    <button onClick={() => setImageSrc(null)} disabled={uploading}
-                      className="flex-1 text-sm font-semibold px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 disabled:opacity-50">
-                      Choose Different Photo
-                    </button>
-                    <button onClick={handleUploadConfirm} disabled={uploading}
-                      className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-semibold px-4 py-2 rounded-lg">
-                      {uploading ? 'Saving…' : 'Save Photo'}
-                    </button>
-                  </div>
+            {mode === 'upload' && imageSrc && (
+              <div className="space-y-4">
+                <div className="relative w-full aspect-square bg-gray-100 rounded-lg overflow-hidden">
+                  <Cropper
+                    image={imageSrc}
+                    crop={crop}
+                    zoom={zoom}
+                    aspect={1}
+                    cropShape="round"
+                    showGrid={false}
+                    onCropChange={setCrop}
+                    onZoomChange={setZoom}
+                    onCropComplete={(_, pixels) => setCroppedAreaPixels(pixels)}
+                  />
                 </div>
-              ) : (
-                <div>
-                  <input ref={fileRef} type="file" accept="image/*" onChange={handlePickFile} className="hidden" />
-                  <button onClick={() => fileRef.current?.click()}
-                    className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-4 py-2 rounded-lg">
-                    <Upload size={16} /> Choose Photo
+                <input type="range" min={1} max={3} step={0.01} value={zoom}
+                  onChange={e => setZoom(Number(e.target.value))}
+                  className="w-full" />
+                <div className="flex gap-2">
+                  <button onClick={() => fileRef.current?.click()} disabled={uploading}
+                    className="flex-1 text-sm font-semibold px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 disabled:opacity-50">
+                    Choose Different Photo
+                  </button>
+                  <button onClick={handleUploadConfirm} disabled={uploading}
+                    className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-semibold px-4 py-2 rounded-lg">
+                    {uploading ? 'Saving…' : 'Save Photo'}
                   </button>
                 </div>
-              )
+              </div>
             )}
 
             {mode === 'directory' && (
