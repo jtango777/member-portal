@@ -1,5 +1,6 @@
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
+import { recalcOfficeHours } from '@/lib/officeHours'
 
 async function assertAdmin() {
   const supabase = await createClient()
@@ -20,9 +21,10 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   const admin = createAdminClient()
 
   // Get current permitted_email to find old email (needed to look up auth user)
+  // and old company_id (needed to recalc office hours if company is changing)
   const { data: current, error: fetchErr } = await admin
     .from('permitted_emails')
-    .select('email')
+    .select('email, company_id')
     .eq('id', id)
     .single()
 
@@ -76,6 +78,13 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     }
   }
 
+  // Recalc office hours for whichever company(s) could have changed headcount:
+  // the new company (if moved/changed), the old one, or the same one if just
+  // is_active flipped.
+  if (company_id !== undefined || is_active !== undefined) {
+    await Promise.all([recalcOfficeHours(company_id ?? current.company_id), recalcOfficeHours(current.company_id)])
+  }
+
   return NextResponse.json({ ok: true })
 }
 
@@ -91,7 +100,7 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
   // Get the permitted_email record first
   const { data: pe } = await admin
     .from('permitted_emails')
-    .select('email, accepted_at')
+    .select('email, accepted_at, company_id')
     .eq('id', id)
     .single()
 
@@ -113,6 +122,8 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
     console.error('[admin/members] DELETE error:', error.message)
     return NextResponse.json({ error: 'Failed to remove member.' }, { status: 500 })
   }
+
+  await recalcOfficeHours(pe.company_id)
 
   return NextResponse.json({ ok: true })
 }
