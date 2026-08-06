@@ -16,7 +16,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   const caller = await assertAdmin()
   if (!caller) return NextResponse.json({ error: 'Admins only' }, { status: 403 })
 
-  const { company_id, full_name, email, default_location_id, is_active } = await request.json()
+  const { company_id, membership_type_id, full_name, email, default_location_id, is_active } = await request.json()
 
   const admin = createAdminClient()
 
@@ -32,9 +32,18 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     return NextResponse.json({ error: 'Member not found' }, { status: 404 })
   }
 
+  // Whichever company will end up in effect after this update — used to
+  // decide whether membership_type_id should be allowed to stick.
+  const effectiveCompanyId = company_id !== undefined ? (company_id || null) : current.company_id
+
   // Build permitted_emails update
   const peUpdate: Record<string, string | null | boolean> = {}
-  if (company_id           !== undefined) peUpdate.company_id           = company_id
+  if (company_id           !== undefined) peUpdate.company_id           = company_id || null
+  // Membership type only matters without a company — clear it whenever a
+  // company is (or already is) assigned so the two never disagree about
+  // where hours live.
+  if (membership_type_id   !== undefined) peUpdate.membership_type_id   = effectiveCompanyId ? null : (membership_type_id || null)
+  else if (company_id && !current.company_id) peUpdate.membership_type_id = null // gaining a company clears any individual membership type
   if (full_name            !== undefined) peUpdate.full_name            = full_name
   if (email                !== undefined) peUpdate.email                = email
   if (default_location_id  !== undefined) peUpdate.default_location_id  = default_location_id ?? null
@@ -59,7 +68,9 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   if (authUser) {
     // Update profile fields
     const profileUpdate: Record<string, string | null | boolean> = {}
-    if (company_id           !== undefined) profileUpdate.company_id           = company_id
+    if (company_id           !== undefined) profileUpdate.company_id           = company_id || null
+    if (membership_type_id   !== undefined) profileUpdate.membership_type_id   = effectiveCompanyId ? null : (membership_type_id || null)
+    else if (company_id && !current.company_id) profileUpdate.membership_type_id = null
     if (full_name            !== undefined) profileUpdate.full_name            = full_name
     if (default_location_id  !== undefined) profileUpdate.default_location_id  = default_location_id ?? null
     if (is_active             !== undefined) profileUpdate.is_active            = is_active
@@ -82,7 +93,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   // the new company (if moved/changed), the old one, or the same one if just
   // is_active flipped.
   if (company_id !== undefined || is_active !== undefined) {
-    await Promise.all([recalcOfficeHours(company_id ?? current.company_id), recalcOfficeHours(current.company_id)])
+    await Promise.all([recalcOfficeHours(effectiveCompanyId), recalcOfficeHours(current.company_id)])
   }
 
   return NextResponse.json({ ok: true })

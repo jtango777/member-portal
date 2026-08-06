@@ -37,6 +37,9 @@ export type Company = {
 export type Profile = {
   id: string
   company_id: string | null
+  // Only used when company_id is null — lets a standalone individual carry
+  // their own membership type instead of sharing a company's hour pool.
+  membership_type_id: string | null
   full_name: string
   is_admin: boolean
   created_at: string
@@ -49,23 +52,26 @@ export type Profile = {
   room_access_requested_at: string | null
   dismissed_announcement_id: string | null
   companies?: Company
+  membership_types?: MembershipType | null
 }
 
 export type PermittedEmail = {
   id: string
   email: string
-  company_id: string
+  company_id: string | null
+  membership_type_id: string | null
   invite_token: string | null
   invited_at: string
   accepted_at: string | null
   companies?: Company
+  membership_types?: MembershipType | null
 }
 
 export type Reservation = {
   id: string
   room_id: string
   user_id: string
-  company_id: string
+  company_id: string | null
   title: string
   notes: string | null
   start_time: string

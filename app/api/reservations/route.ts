@@ -50,14 +50,17 @@ export async function POST(request: Request) {
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('*, companies(*)')
+    .select('*, companies(*), membership_types(*)')
     .eq('id', user.id)
     .single()
 
   if (!profile) return NextResponse.json({ error: 'Profile not found' }, { status: 403 })
 
-  if (!profile.is_admin && !profile.company_id) {
-    return NextResponse.json({ error: 'Your account is not linked to a company. Contact your admin.' }, { status: 403 })
+  // A company gives a shared pool; a membership type (set directly when
+  // there's no company) gives an individual one. Neither means the account
+  // isn't set up for room access yet.
+  if (!profile.is_admin && !profile.company_id && !profile.membership_type_id) {
+    return NextResponse.json({ error: 'Your account is not set up for room access. Contact your admin.' }, { status: 403 })
   }
 
   const body = await request.json()
@@ -115,22 +118,27 @@ export async function POST(request: Request) {
   const end   = new Date(end_time)
   if (end <= start) return NextResponse.json({ error: 'End time must be after start time' }, { status: 400 })
 
-  // Check hour allotment for non-admins
-  if (!profile.is_admin && profile.company_id) {
+  // Check hour allotment for non-admins — a shared company pool if they
+  // have one, otherwise their own individual pool from their membership type.
+  if (!profile.is_admin && (profile.company_id || profile.membership_type_id)) {
     const { start: monthStart, end: monthEnd } = getMonthBounds(start)
-    const { data: monthRes } = await adminSupabase
+    let monthQuery = adminSupabase
       .from('reservations')
       .select('start_time, end_time')
-      .eq('company_id', profile.company_id)
       .gte('start_time', monthStart)
       .lt('start_time', monthEnd)
+    monthQuery = profile.company_id
+      ? monthQuery.eq('company_id', profile.company_id)
+      : monthQuery.eq('user_id', user.id)
+    const { data: monthRes } = await monthQuery
 
     const used   = calcHoursUsed(monthRes ?? [])
-    const limit  = profile.companies?.monthly_hours_allotment ?? 0
+    const limit  = profile.company_id ? (profile.companies?.monthly_hours_allotment ?? 0) : (profile.membership_types?.hours_per_month ?? 0)
     const newHrs = (end.getTime() - start.getTime()) / 3600000
     if (used + newHrs > limit) {
+      const whose = profile.company_id ? 'Your company' : 'You'
       return NextResponse.json(
-        { error: `Your company only has ${(limit - used).toFixed(1)}h remaining this month.` },
+        { error: `${whose} only ${profile.company_id ? 'has' : 'have'} ${(limit - used).toFixed(1)}h remaining this month.` },
         { status: 403 }
       )
     }
@@ -163,7 +171,11 @@ export async function POST(request: Request) {
 
   // For admin booking on behalf of a member, use the provided owner_id/owner_company_id
   const bookingUserId = profile.is_admin && owner_id ? owner_id : user.id
-  const bookingCompanyId = profile.is_admin && owner_company_id ? owner_company_id : profile.company_id
+  // Use owner_id's presence (not owner_company_id's truthiness) to decide
+  // whether we're booking on behalf of someone else — otherwise a
+  // company-less member being booked for falls through to the admin's own
+  // company_id instead of staying null.
+  const bookingCompanyId = profile.is_admin && owner_id ? (owner_company_id ?? null) : profile.company_id
 
   const { data: reservation, error } = await adminSupabase
     .from('reservations')

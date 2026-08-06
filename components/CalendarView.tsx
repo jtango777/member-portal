@@ -26,13 +26,16 @@ type Props = {
   locations:         Location[]
   profile:           Profile
   company:           Company | null
+  // Whose bookings the hour cap above is scoped to — a shared company pool,
+  // or (when the member has no company) just this one person's own bookings.
+  hourScope:         'company' | 'individual'
   hoursUsed:         number
   defaultLocationId: string | null
 }
 
 type MemberOption = { id: string; full_name: string; company_name: string; company_id: string }
 
-export default function CalendarView({ locations, profile, company, hoursUsed, defaultLocationId }: Props) {
+export default function CalendarView({ locations, profile, company, hourScope, hoursUsed, defaultLocationId }: Props) {
   const defaultLocation = locations.find(l => l.id === defaultLocationId) ?? locations[0]
   const [selectedLocation, setSelectedLocation] = useState<Location>(defaultLocation)
   const [selectedDate, setSelectedDate]         = useState<Date>(new Date())
@@ -100,13 +103,13 @@ export default function CalendarView({ locations, profile, company, hoursUsed, d
     if (!company || profile.is_admin) return
     const month = selectedDate.getMonth()
     const year = selectedDate.getFullYear()
-    fetch(`/api/reservations/month-hours?month=${year}-${String(month + 1).padStart(2, '0')}&companyId=${company.id}`)
+    fetch(`/api/reservations/month-hours?month=${year}-${String(month + 1).padStart(2, '0')}&scope=${hourScope}&id=${company.id}`)
       .then(r => r.json())
       .then((data: any) => {
         if (typeof data.hours === 'number') setUsedHours(data.hours)
       })
       .catch(() => {})
-  }, [selectedDate, company, profile.is_admin, reservations])
+  }, [selectedDate, company, hourScope, profile.is_admin, reservations])
 
 
   function slotToTime(slot: number): Date {

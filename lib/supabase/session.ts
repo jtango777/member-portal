@@ -19,7 +19,7 @@ export const getAuthedProfile = cache(async () => {
   const supabase = await createClient()
   const { data: profile } = await supabase
     .from('profiles')
-    .select('*, companies(*)')
+    .select('*, companies(*), membership_types(*)')
     .eq('id', user.id)
     .single()
   return profile as Profile | null

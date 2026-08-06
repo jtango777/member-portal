@@ -2,11 +2,12 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import NextLink from 'next/link'
-import { Company } from '@/types'
+import { Company, MembershipType } from '@/types'
 import { Plus, Send, Check, Shield, ShieldOff, Download, Copy, Link, Search, Edit2, Trash2, X, ChevronLeft, ChevronRight, Camera, Users, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react'
 import { formatShortDate } from '@/lib/utils'
 import toast from 'react-hot-toast'
 import AssignPhotoDialog from '@/components/admin/AssignPhotoDialog'
+import CompanyCombobox from '@/components/admin/CompanyCombobox'
 
 function IconAction({ icon: Icon, label, onClick, disabled, colorClass }: {
   icon: React.ElementType
@@ -29,19 +30,21 @@ function IconAction({ icon: Icon, label, onClick, disabled, colorClass }: {
 }
 
 type MemberRow = {
-  id:                  string
-  email:               string
-  company_id:          string
-  company_name:        string
-  invited_at:          string
-  accepted_at:         string | null
-  invite_token:        string | null
-  user_id:             string | null
-  full_name:           string | null
-  is_admin:            boolean
-  avatar_url:          string | null
-  default_location_id: string | null
-  is_active:           boolean
+  id:                    string
+  email:                 string
+  company_id:            string | null
+  company_name:          string
+  membership_type_id:    string | null
+  membership_type_name:  string
+  invited_at:            string
+  accepted_at:           string | null
+  invite_token:          string | null
+  user_id:               string | null
+  full_name:             string | null
+  is_admin:              boolean
+  avatar_url:            string | null
+  default_location_id:   string | null
+  is_active:             boolean
 }
 
 type EditRow = {
@@ -49,15 +52,36 @@ type EditRow = {
   full_name:           string
   email:               string
   company_id:          string
+  membership_type_id:  string
   default_location_id: string
 }
 
-function EditForm({ m, colSpan, editingRow, setEditingRow, companies, locations, savingRow, saveRow }: {
+// Company only matters for people sharing an hour pool with others — a
+// standalone individual can instead carry a membership type directly, and
+// "Private Office" is a company-only concept (per-office, not per-person),
+// so it's left out of that list.
+function individualMembershipTypes(types: MembershipType[]) {
+  return types.filter(t => t.hours_per_month != null)
+}
+
+function companyOrTypeLabel(m: Pick<MemberRow, 'company_name' | 'membership_type_name'>) {
+  if (m.company_name) return m.company_name
+  if (m.membership_type_name) return `${m.membership_type_name} (individual)`
+  return '—'
+}
+
+function pooledHoursLabel(companies: Company[], companyId: string) {
+  const hours = companies.find(c => c.id === companyId)?.monthly_hours_allotment ?? 0
+  return `${hours}h/month (pooled with company)`
+}
+
+function EditForm({ m, colSpan, editingRow, setEditingRow, companies, membershipTypes, locations, savingRow, saveRow }: {
   m: MemberRow
   colSpan: number
   editingRow: EditRow | null
   setEditingRow: React.Dispatch<React.SetStateAction<EditRow | null>>
   companies: Company[]
+  membershipTypes: MembershipType[]
   locations: { id: string; name: string }[]
   savingRow: boolean
   saveRow: (memberId: string) => void
@@ -81,13 +105,25 @@ function EditForm({ m, colSpan, editingRow, setEditingRow, companies, locations,
             onChange={e => setEditingRow(r => r ? { ...r, email: e.target.value } : r)}
             className="border border-gray-300 rounded px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 w-48"
           />
-          <select
+          <CompanyCombobox
+            companies={companies}
             value={editingRow.company_id}
-            onChange={e => setEditingRow(r => r ? { ...r, company_id: e.target.value } : r)}
-            className="border border-gray-300 rounded px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            {companies.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-          </select>
+            onChange={id => setEditingRow(r => r ? { ...r, company_id: id, membership_type_id: id ? '' : r.membership_type_id } : r)}
+            className="w-44 text-xs"
+          />
+          {editingRow.company_id ? (
+            <input type="text" disabled value={pooledHoursLabel(companies, editingRow.company_id)}
+              className="border border-gray-300 rounded px-2 py-1 text-xs bg-gray-100 text-gray-500 w-40" />
+          ) : (
+            <select
+              value={editingRow.membership_type_id}
+              onChange={e => setEditingRow(r => r ? { ...r, membership_type_id: e.target.value } : r)}
+              className="border border-gray-300 rounded px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">No hours assigned</option>
+              {individualMembershipTypes(membershipTypes).map(t => <option key={t.id} value={t.id}>{t.hours_per_month}h/month ({t.name})</option>)}
+            </select>
+          )}
           {locations.length > 0 && (
             <select
               value={editingRow.default_location_id}
@@ -110,15 +146,16 @@ function EditForm({ m, colSpan, editingRow, setEditingRow, companies, locations,
   )
 }
 
-type Props = { companies: Company[] }
+type Props = { companies: Company[]; membershipTypes: MembershipType[] }
 
-export default function MembersManager({ companies }: Props) {
+export default function MembersManager({ companies, membershipTypes }: Props) {
   const [members, setMembers]       = useState<MemberRow[]>([])
   const [loading, setLoading]       = useState(true)
   const [search, setSearch]         = useState('')
   const [showForm, setShowForm]     = useState(false)
   const [email, setEmail]           = useState('')
-  const [companyId, setCompanyId]   = useState(companies[0]?.id ?? '')
+  const [companyId, setCompanyId]           = useState('')
+  const [membershipTypeId, setMembershipTypeId] = useState('')
   const [sending, setSending]       = useState(false)
   const [copiedLink, setCopiedLink] = useState<string | null>(null)
   const [lastInviteLink, setLastInviteLink] = useState<string | null>(null)
@@ -183,7 +220,7 @@ export default function MembersManager({ companies }: Props) {
     const res  = await fetch('/api/invites/send', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, company_id: companyId, skipEmail }),
+      body: JSON.stringify({ email, company_id: companyId || null, membership_type_id: membershipTypeId || null, skipEmail }),
     })
     const data = await res.json()
     if (!res.ok) {
@@ -193,6 +230,8 @@ export default function MembersManager({ companies }: Props) {
       else if (data.emailSent) toast.success('Invite sent!')
       else { setLastInviteLink(data.inviteLink); toast.success('Member added — copy the link below to invite them manually.') }
       setEmail('')
+      setCompanyId('')
+      setMembershipTypeId('')
       await refresh()
     }
     setSending(false)
@@ -259,7 +298,8 @@ export default function MembersManager({ companies }: Props) {
       body: JSON.stringify({
         full_name:           editingRow.full_name.trim() || null,
         email:               editingRow.email.trim(),
-        company_id:          editingRow.company_id,
+        company_id:          editingRow.company_id || null,
+        membership_type_id:  editingRow.membership_type_id || null,
         default_location_id: editingRow.default_location_id || null,
       }),
     })
@@ -316,7 +356,7 @@ export default function MembersManager({ companies }: Props) {
     const rows = filtered.map(m => ({
       Name:         m.full_name ?? '',
       Email:        m.email,
-      Company:      m.company_name,
+      Company:      companyOrTypeLabel(m),
       Status:       m.accepted_at ? 'Active' : m.invite_token ? 'Invited' : 'Not Invited',
       Admin:        m.is_admin ? 'Yes' : 'No',
       'Invited':    formatShortDate(new Date(m.invited_at)),
@@ -340,7 +380,7 @@ export default function MembersManager({ companies }: Props) {
   const q        = search.toLowerCase()
   const filtered = members.filter(m => {
     if (m.is_active === false) return false
-    if (q && !m.email.toLowerCase().includes(q) && !(m.full_name ?? '').toLowerCase().includes(q) && !m.company_name.toLowerCase().includes(q)) return false
+    if (q && !m.email.toLowerCase().includes(q) && !(m.full_name ?? '').toLowerCase().includes(q) && !companyOrTypeLabel(m).toLowerCase().includes(q)) return false
     if (locationFilter && m.default_location_id !== locationFilter) return false
     return true
   })
@@ -420,21 +460,35 @@ export default function MembersManager({ companies }: Props) {
         <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-3">
           <h3 className="font-semibold text-gray-900 text-sm">Add New Member</h3>
           <form onSubmit={handleInvite} className="space-y-3">
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-3 gap-3">
               <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">Email Address</label>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Email</label>
                 <input type="email" required value={email} onChange={e => setEmail(e.target.value)}
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="member@company.com" />
               </div>
               <div>
                 <label className="block text-xs font-medium text-gray-700 mb-1">Company</label>
-                <select value={companyId} onChange={e => setCompanyId(e.target.value)}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-                  {companies.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                </select>
+                <CompanyCombobox companies={companies} value={companyId} onChange={id => { setCompanyId(id); if (id) setMembershipTypeId('') }} />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Room Hours</label>
+                {companyId ? (
+                  <input type="text" disabled value={pooledHoursLabel(companies, companyId)}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-gray-100 text-gray-500" />
+                ) : (
+                  <select value={membershipTypeId}
+                    onChange={e => setMembershipTypeId(e.target.value)}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="">No hours assigned</option>
+                    {individualMembershipTypes(membershipTypes).map(t => <option key={t.id} value={t.id}>{t.hours_per_month}h/month ({t.name})</option>)}
+                  </select>
+                )}
               </div>
             </div>
+            <p className="text-xs text-gray-400 -mt-1">
+              Pick a company only if this person shares an hour pool with others under it — otherwise set their own Room Hours.
+            </p>
             <div className="flex items-center gap-2">
               <button type="submit" disabled={sending}
                 className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-semibold px-4 py-2 rounded-lg">
@@ -502,12 +556,12 @@ export default function MembersManager({ companies }: Props) {
             <tbody>
               {pagedActive.map(m => (
                 editingRow?.id === m.id
-                  ? <EditForm key={m.id} m={m} colSpan={7} editingRow={editingRow} setEditingRow={setEditingRow} companies={companies} locations={locations} savingRow={savingRow} saveRow={saveRow} />
+                  ? <EditForm key={m.id} m={m} colSpan={7} editingRow={editingRow} setEditingRow={setEditingRow} companies={companies} membershipTypes={membershipTypes} locations={locations} savingRow={savingRow} saveRow={saveRow} />
                   : (
                     <tr key={m.id} className="border-b border-gray-100 last:border-0 hover:bg-gray-50">
                       <td className="px-4 py-3 font-medium text-gray-900 truncate" title={m.full_name ?? undefined}>{m.full_name ?? '—'}</td>
                       <td className="px-4 py-3 text-gray-600 truncate" title={m.email}>{m.email}</td>
-                      <td className="px-4 py-3 text-gray-600 truncate" title={m.company_name}>{m.company_name}</td>
+                      <td className="px-4 py-3 text-gray-600 truncate" title={companyOrTypeLabel(m)}>{companyOrTypeLabel(m)}</td>
                       <td className="px-4 py-3 text-gray-600 truncate text-xs">
                         {m.default_location_id ? (locations.find(l => l.id === m.default_location_id)?.name ?? '—') : <span className="text-gray-400">—</span>}
                       </td>
@@ -522,7 +576,7 @@ export default function MembersManager({ companies }: Props) {
                           <IconAction
                             icon={Edit2}
                             label="Edit member"
-                            onClick={() => setEditingRow({ id: m.id, full_name: m.full_name ?? '', email: m.email, company_id: m.company_id, default_location_id: m.default_location_id ?? '' })}
+                            onClick={() => setEditingRow({ id: m.id, full_name: m.full_name ?? '', email: m.email, company_id: m.company_id ?? '', membership_type_id: m.membership_type_id ?? '', default_location_id: m.default_location_id ?? '' })}
                             colorClass="text-gray-400 hover:bg-gray-100 hover:text-gray-600"
                           />
                           {m.user_id && (
@@ -588,14 +642,14 @@ export default function MembersManager({ companies }: Props) {
             <tbody>
               {pagedPending.map(m => (
                 editingRow?.id === m.id
-                  ? <EditForm key={m.id} m={m} colSpan={7} editingRow={editingRow} setEditingRow={setEditingRow} companies={companies} locations={locations} savingRow={savingRow} saveRow={saveRow} />
+                  ? <EditForm key={m.id} m={m} colSpan={7} editingRow={editingRow} setEditingRow={setEditingRow} companies={companies} membershipTypes={membershipTypes} locations={locations} savingRow={savingRow} saveRow={saveRow} />
                   : (
                     <tr key={m.id} className="border-b border-gray-100 last:border-0 hover:bg-gray-50">
                       <td className="px-4 py-3 font-medium text-gray-900 truncate" title={m.full_name ?? undefined}>
                         {m.full_name ?? <span className="text-gray-400 italic">No name</span>}
                       </td>
                       <td className="px-4 py-3 text-gray-700 truncate" title={m.email}>{m.email}</td>
-                      <td className="px-4 py-3 text-gray-600 truncate" title={m.company_name}>{m.company_name}</td>
+                      <td className="px-4 py-3 text-gray-600 truncate" title={companyOrTypeLabel(m)}>{companyOrTypeLabel(m)}</td>
                       <td className="px-4 py-3 text-gray-600 truncate text-xs">
                         {m.default_location_id ? (locations.find(l => l.id === m.default_location_id)?.name ?? '—') : <span className="text-gray-400">—</span>}
                       </td>
@@ -606,7 +660,7 @@ export default function MembersManager({ companies }: Props) {
                           <IconAction
                             icon={Edit2}
                             label="Edit member"
-                            onClick={() => setEditingRow({ id: m.id, full_name: m.full_name ?? '', email: m.email, company_id: m.company_id, default_location_id: m.default_location_id ?? '' })}
+                            onClick={() => setEditingRow({ id: m.id, full_name: m.full_name ?? '', email: m.email, company_id: m.company_id ?? '', membership_type_id: m.membership_type_id ?? '', default_location_id: m.default_location_id ?? '' })}
                             colorClass="text-gray-400 hover:bg-gray-100 hover:text-gray-600"
                           />
                           <IconAction
