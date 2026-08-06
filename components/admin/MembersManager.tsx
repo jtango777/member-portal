@@ -537,9 +537,9 @@ export default function MembersManager({ companies }: Props) {
                           )}
                           {confirmRemove === m.id ? (
                             <div className="flex items-center gap-1.5 ml-1">
-                              <span className="text-xs text-amber-700">Archive?</span>
+                              <span className="text-xs text-red-700">Archive?</span>
                               <button onClick={() => handleRemove(m.id)} disabled={removing === m.id}
-                                className="text-xs bg-amber-600 text-white px-2 py-1 rounded font-medium">
+                                className="text-xs bg-red-600 text-white px-2 py-1 rounded font-medium">
                                 {removing === m.id ? '…' : 'Yes'}
                               </button>
                               <button onClick={() => setConfirmRemove(null)} className="text-xs text-gray-400">No</button>
@@ -549,7 +549,7 @@ export default function MembersManager({ companies }: Props) {
                               icon={Trash2}
                               label="Archive member"
                               onClick={() => setConfirmRemove(m.id)}
-                              colorClass="text-gray-400 hover:bg-amber-50 hover:text-amber-600"
+                              colorClass="text-gray-400 hover:bg-red-50 hover:text-red-600"
                             />
                           )}
                         </div>
@@ -625,9 +625,9 @@ export default function MembersManager({ companies }: Props) {
                           />
                           {confirmRemove === m.id ? (
                             <div className="flex items-center gap-1.5">
-                              <span className="text-xs text-amber-700">Archive?</span>
+                              <span className="text-xs text-red-700">Archive?</span>
                               <button onClick={() => handleRemove(m.id)} disabled={removing === m.id}
-                                className="text-xs bg-amber-600 text-white px-2 py-1 rounded font-medium">
+                                className="text-xs bg-red-600 text-white px-2 py-1 rounded font-medium">
                                 {removing === m.id ? '…' : 'Yes'}
                               </button>
                               <button onClick={() => setConfirmRemove(null)} className="text-xs text-gray-400">No</button>
@@ -637,7 +637,7 @@ export default function MembersManager({ companies }: Props) {
                               icon={Trash2}
                               label="Archive member"
                               onClick={() => setConfirmRemove(m.id)}
-                              colorClass="text-gray-400 hover:bg-amber-50 hover:text-amber-600"
+                              colorClass="text-gray-400 hover:bg-red-50 hover:text-red-600"
                             />
                           )}
                         </div>
