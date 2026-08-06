@@ -176,22 +176,22 @@ export default function MembersManager({ companies }: Props) {
 
   // ── Add member ─────────────────────────────────────────────────────────────
 
-  async function handleInvite(e: React.FormEvent) {
+  async function handleInvite(e: React.FormEvent, skipEmail = false) {
     e.preventDefault()
     setSending(true)
     setLastInviteLink(null)
     const res  = await fetch('/api/invites/send', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, company_id: companyId }),
+      body: JSON.stringify({ email, company_id: companyId, skipEmail }),
     })
     const data = await res.json()
     if (!res.ok) {
       toast.error(data.error ?? 'Failed')
     } else {
-      setLastInviteLink(data.inviteLink)
-      if (data.emailSent) toast.success('Invite sent!')
-      else toast.success('Member added — copy the link below to invite them manually.')
+      if (skipEmail) toast.success('Member added — no invite sent.')
+      else if (data.emailSent) toast.success('Invite sent!')
+      else { setLastInviteLink(data.inviteLink); toast.success('Member added — copy the link below to invite them manually.') }
       setEmail('')
       await refresh()
     }
@@ -440,9 +440,16 @@ export default function MembersManager({ companies }: Props) {
                 className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-semibold px-4 py-2 rounded-lg">
                 <Send size={13} /> {sending ? 'Saving…' : 'Add & Send Invite'}
               </button>
+              <button type="button" disabled={sending} onClick={e => handleInvite(e as unknown as React.FormEvent, true)}
+                className="flex items-center gap-1.5 border border-gray-300 hover:bg-gray-50 disabled:opacity-50 text-gray-700 text-sm font-semibold px-4 py-2 rounded-lg">
+                {sending ? 'Saving…' : 'Just Add (No Email)'}
+              </button>
               <button type="button" onClick={() => { setShowForm(false); setLastInviteLink(null) }}
                 className="text-sm text-gray-500 hover:text-gray-700 px-3 py-2">Cancel</button>
             </div>
+            <p className="text-xs text-gray-400">
+              "Just Add" creates their record with no email sent — invite them later whenever you're ready, from the row's send icon.
+            </p>
           </form>
 
           {lastInviteLink && (
@@ -478,7 +485,7 @@ export default function MembersManager({ companies }: Props) {
 
       {/* Active members */}
       {active.length > 0 && (
-        <Section title={`Active Members (${active.length})`} footer={
+        <Section title={`Active Members (${active.length})`} headerRight={
           <Pagination page={activePage} totalPages={activeTotalPages} onPageChange={setActivePage}
             showAll={showAllActive} onToggleShowAll={() => setShowAllActive(v => !v)}
             pageSize={activePageSize} onPageSizeChange={size => { setActivePageSize(size); setActivePage(1) }} />
@@ -564,7 +571,7 @@ export default function MembersManager({ companies }: Props) {
 
       {/* Pending invites */}
       {pending.length > 0 && (
-        <Section title={`Pending (${pending.length})`} footer={
+        <Section title={`Pending (${pending.length})`} headerRight={
           <Pagination page={pendingPage} totalPages={pendingTotalPages} onPageChange={setPendingPage}
             showAll={showAllPending} onToggleShowAll={() => setShowAllPending(v => !v)}
             pageSize={pendingPageSize} onPageSizeChange={size => { setPendingPageSize(size); setPendingPage(1) }} />
@@ -688,26 +695,24 @@ function Pagination({ page, totalPages, onPageChange, showAll, onToggleShowAll, 
   onPageSizeChange: (size: number) => void
 }) {
   return (
-    <div className="flex items-center justify-between px-4 py-2 border-t border-gray-100 bg-gray-50 text-xs rounded-b-xl">
-      <div className="flex items-center gap-3">
-        <button onClick={onToggleShowAll} className="text-blue-600 hover:text-blue-800 font-medium">
-          {showAll ? `Show ${pageSize} per page` : 'Show all'}
-        </button>
-        {!showAll && (
-          <label className="flex items-center gap-1 text-gray-500">
-            Per page:
-            <select
-              value={pageSize}
-              onChange={e => onPageSizeChange(Number(e.target.value))}
-              className="border border-gray-300 rounded px-1.5 py-0.5 text-xs bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              {[10, 25, 50, 100].map(n => <option key={n} value={n}>{n}</option>)}
-            </select>
-          </label>
-        )}
-      </div>
+    <div className="flex items-center gap-3 text-xs flex-shrink-0">
+      <button onClick={onToggleShowAll} className="text-blue-600 hover:text-blue-800 font-medium whitespace-nowrap">
+        {showAll ? `Show ${pageSize} per page` : 'Show all'}
+      </button>
+      {!showAll && (
+        <label className="flex items-center gap-1 text-gray-500 whitespace-nowrap">
+          Per page:
+          <select
+            value={pageSize}
+            onChange={e => onPageSizeChange(Number(e.target.value))}
+            className="border border-gray-300 rounded px-1.5 py-0.5 text-xs bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            {[10, 25, 50, 100].map(n => <option key={n} value={n}>{n}</option>)}
+          </select>
+        </label>
+      )}
       {!showAll && totalPages > 1 && (
-        <div className="flex items-center gap-1.5 text-gray-500">
+        <div className="flex items-center gap-1 text-gray-500 whitespace-nowrap">
           <button onClick={() => onPageChange(Math.max(1, page - 1))} disabled={page === 1}
             className="p-1 hover:text-gray-800 disabled:opacity-30 rounded">
             <ChevronLeft size={14} />
@@ -723,14 +728,14 @@ function Pagination({ page, totalPages, onPageChange, showAll, onToggleShowAll, 
   )
 }
 
-function Section({ title, children, footer }: { title: string; children: React.ReactNode; footer?: React.ReactNode }) {
+function Section({ title, children, headerRight }: { title: string; children: React.ReactNode; headerRight?: React.ReactNode }) {
   return (
     <div className="bg-white rounded-xl border border-gray-200">
-      <div className="px-4 py-3 border-b border-gray-100 bg-gray-50 rounded-t-xl">
+      <div className="px-4 py-3 border-b border-gray-100 bg-gray-50 rounded-t-xl flex items-center justify-between gap-3">
         <h2 className="text-sm font-semibold text-blue-600">{title}</h2>
+        {headerRight}
       </div>
       <div className="overflow-x-auto overflow-y-hidden">{children}</div>
-      {footer}
     </div>
   )
 }
