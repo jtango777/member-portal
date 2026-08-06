@@ -471,7 +471,7 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
 
       {/* Add member form */}
       {showForm && (
-        <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-5 space-y-4 transition-all">
+        <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-6 space-y-5 transition-all">
           <div className="flex items-center gap-2">
             <div className="flex items-center justify-center w-7 h-7 rounded-full bg-blue-50">
               <Users size={14} className="text-blue-600" />
@@ -479,7 +479,7 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
             <h3 className="font-semibold text-gray-900 text-sm">Add New Member</h3>
           </div>
           <form onSubmit={handleInvite} className="space-y-4">
-            <div className="flex items-start gap-5">
+            <div className="flex items-start gap-10">
               <div className="w-64">
                 <label className="block text-xs font-medium text-gray-700 mb-1">Email</label>
                 <input type="email" required value={email} onChange={e => setEmail(e.target.value)}
@@ -504,12 +504,12 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
               {/* Smoothly expands/collapses via a grid-columns transition instead of mounting/unmounting */}
               <div className={`grid transition-[grid-template-columns] duration-300 ease-in-out ${connectToRooms ? 'grid-cols-[1fr]' : 'grid-cols-[0fr]'}`}>
                 <div className={`transition-opacity duration-200 ${connectToRooms ? 'opacity-100 delay-100' : 'opacity-0'} ${roomsPanelSettled ? 'overflow-visible' : 'overflow-hidden'}`}>
-                  <div className="flex gap-3 bg-gray-50 border border-gray-200 rounded-lg p-3 w-[27rem]">
-                    <div className="w-56">
+                  <div className="flex gap-6 bg-gray-50 border border-gray-200 rounded-lg p-4 w-[34rem]">
+                    <div className="w-64">
                       <label className="block text-xs font-medium text-gray-700 mb-1">Company</label>
                       <CompanyCombobox companies={companies} value={companyId} onChange={id => { setCompanyId(id); if (id) setMembershipTypeId('') }} />
                     </div>
-                    <div className="w-56">
+                    <div className="w-64">
                       <label className="block text-xs font-medium text-gray-700 mb-1">Room Hours</label>
                       {companyId ? (
                         <input type="text" disabled value={pooledHoursLabel(companies, companyId)}
