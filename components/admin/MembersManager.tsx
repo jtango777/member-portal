@@ -154,6 +154,7 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
   const [search, setSearch]         = useState('')
   const [showForm, setShowForm]     = useState(false)
   const [email, setEmail]           = useState('')
+  const [connectToRooms, setConnectToRooms] = useState(false)
   const [companyId, setCompanyId]           = useState('')
   const [membershipTypeId, setMembershipTypeId] = useState('')
   const [sending, setSending]       = useState(false)
@@ -230,6 +231,7 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
       else if (data.emailSent) toast.success('Invite sent!')
       else { setLastInviteLink(data.inviteLink); toast.success('Member added — copy the link below to invite them manually.') }
       setEmail('')
+      setConnectToRooms(false)
       setCompanyId('')
       setMembershipTypeId('')
       await refresh()
@@ -460,35 +462,47 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
         <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-3">
           <h3 className="font-semibold text-gray-900 text-sm">Add New Member</h3>
           <form onSubmit={handleInvite} className="space-y-3">
-            <div className="grid grid-cols-3 gap-3">
-              <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">Email</label>
-                <input type="email" required value={email} onChange={e => setEmail(e.target.value)}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="member@company.com" />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">Company</label>
-                <CompanyCombobox companies={companies} value={companyId} onChange={id => { setCompanyId(id); if (id) setMembershipTypeId('') }} />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">Room Hours</label>
-                {companyId ? (
-                  <input type="text" disabled value={pooledHoursLabel(companies, companyId)}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-gray-100 text-gray-500" />
-                ) : (
-                  <select value={membershipTypeId}
-                    onChange={e => setMembershipTypeId(e.target.value)}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    <option value="">No hours assigned</option>
-                    {individualMembershipTypes(membershipTypes).map(t => <option key={t.id} value={t.id}>{t.hours_per_month}h/month ({t.name})</option>)}
-                  </select>
-                )}
-              </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">Email</label>
+              <input type="email" required value={email} onChange={e => setEmail(e.target.value)}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="member@company.com" />
             </div>
-            <p className="text-xs text-gray-400 -mt-1">
-              Pick a company only if this person shares an hour pool with others under it — otherwise set their own Room Hours.
-            </p>
+            <label className="flex items-center gap-2 text-sm text-gray-700 select-none">
+              <input type="checkbox" checked={connectToRooms}
+                onChange={e => {
+                  const checked = e.target.checked
+                  setConnectToRooms(checked)
+                  if (!checked) { setCompanyId(''); setMembershipTypeId('') }
+                }}
+                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
+              Connect to Rooms?
+            </label>
+            {connectToRooms && (
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">Company</label>
+                  <CompanyCombobox companies={companies} value={companyId} onChange={id => { setCompanyId(id); if (id) setMembershipTypeId('') }} />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">Room Hours</label>
+                  {companyId ? (
+                    <input type="text" disabled value={pooledHoursLabel(companies, companyId)}
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-gray-100 text-gray-500" />
+                  ) : (
+                    <select value={membershipTypeId}
+                      onChange={e => setMembershipTypeId(e.target.value)}
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                      <option value="">No hours assigned</option>
+                      {individualMembershipTypes(membershipTypes).map(t => <option key={t.id} value={t.id}>{t.hours_per_month}h/month ({t.name})</option>)}
+                    </select>
+                  )}
+                </div>
+                <p className="text-xs text-gray-400 col-span-2 -mt-1">
+                  Pick a company only if this person shares an hour pool with others under it — otherwise set their own Room Hours.
+                </p>
+              </div>
+            )}
             <div className="flex items-center gap-2">
               <button type="submit" disabled={sending}
                 className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-semibold px-4 py-2 rounded-lg">
