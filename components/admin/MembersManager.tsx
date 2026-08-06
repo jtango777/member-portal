@@ -479,50 +479,50 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
             <h3 className="font-semibold text-gray-900 text-sm">Add New Member</h3>
           </div>
           <form onSubmit={handleInvite} className="space-y-4">
-            <div className="flex items-start gap-10">
-              <div className="w-64">
+            <div className="flex items-end gap-4">
+              <div className="w-72">
                 <label className="block text-xs font-medium text-gray-700 mb-1">Email</label>
                 <input type="email" required value={email} onChange={e => setEmail(e.target.value)}
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm transition-shadow focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="member@company.com" />
-                <label className="flex items-center gap-2 cursor-pointer select-none mt-2">
-                  <span className="relative inline-flex h-4 w-7 flex-shrink-0 items-center">
-                    <input type="checkbox" checked={connectToRooms}
-                      onChange={e => {
-                        const checked = e.target.checked
-                        setConnectToRooms(checked)
-                        if (!checked) { setCompanyId(''); setMembershipTypeId('') }
-                      }}
-                      className="peer sr-only" />
-                    <span className="absolute inset-0 rounded-full bg-gray-300 peer-checked:bg-blue-600 transition-colors duration-200" />
-                    <span className="absolute left-0.5 top-0.5 h-3 w-3 rounded-full bg-white shadow transition-transform duration-200 peer-checked:translate-x-3" />
-                  </span>
-                  <span className="text-sm text-gray-700">Connect to Rooms?</span>
-                </label>
               </div>
+              <label className="flex items-center gap-2 cursor-pointer select-none pb-2.5">
+                <span className="relative inline-flex h-4 w-7 flex-shrink-0 items-center">
+                  <input type="checkbox" checked={connectToRooms}
+                    onChange={e => {
+                      const checked = e.target.checked
+                      setConnectToRooms(checked)
+                      if (!checked) { setCompanyId(''); setMembershipTypeId('') }
+                    }}
+                    className="peer sr-only" />
+                  <span className="absolute inset-0 rounded-full bg-gray-300 peer-checked:bg-blue-600 transition-colors duration-200" />
+                  <span className="absolute left-0.5 top-0.5 h-3 w-3 rounded-full bg-white shadow transition-transform duration-200 peer-checked:translate-x-3" />
+                </span>
+                <span className="text-sm text-gray-700">Connect to Rooms?</span>
+              </label>
+            </div>
 
-              {/* Smoothly expands/collapses via a grid-columns transition instead of mounting/unmounting */}
-              <div className={`grid transition-[grid-template-columns] duration-300 ease-in-out ${connectToRooms ? 'grid-cols-[1fr]' : 'grid-cols-[0fr]'}`}>
-                <div className={`transition-opacity duration-200 ${connectToRooms ? 'opacity-100 delay-100' : 'opacity-0'} ${roomsPanelSettled ? 'overflow-visible' : 'overflow-hidden'}`}>
-                  <div className="flex gap-6 bg-gray-50 border border-gray-200 rounded-lg p-4 w-[34rem]">
-                    <div className="w-64">
-                      <label className="block text-xs font-medium text-gray-700 mb-1">Company</label>
-                      <CompanyCombobox companies={companies} value={companyId} onChange={id => { setCompanyId(id); if (id) setMembershipTypeId('') }} />
-                    </div>
-                    <div className="w-64">
-                      <label className="block text-xs font-medium text-gray-700 mb-1">Room Hours</label>
-                      {companyId ? (
-                        <input type="text" disabled value={pooledHoursLabel(companies, companyId)}
-                          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-gray-100 text-gray-500" />
-                      ) : (
-                        <select value={membershipTypeId}
-                          onChange={e => setMembershipTypeId(e.target.value)}
-                          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-                          <option value="">No hours assigned</option>
-                          {individualMembershipTypes(membershipTypes).map(t => <option key={t.id} value={t.id}>{t.hours_per_month}h/month ({t.name})</option>)}
-                        </select>
-                      )}
-                    </div>
+            {/* Smoothly expands/collapses via a grid-rows transition instead of mounting/unmounting */}
+            <div className={`grid transition-[grid-template-rows] duration-300 ease-in-out ${connectToRooms ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}>
+              <div className={`transition-opacity duration-200 ${connectToRooms ? 'opacity-100 delay-100' : 'opacity-0'} ${roomsPanelSettled ? 'overflow-visible' : 'overflow-hidden'}`}>
+                <div className="flex gap-4 pt-4 mt-1 border-t border-gray-100">
+                  <div className="w-72">
+                    <label className="block text-xs font-medium text-gray-700 mb-1">Company</label>
+                    <CompanyCombobox companies={companies} value={companyId} onChange={id => { setCompanyId(id); if (id) setMembershipTypeId('') }} />
+                  </div>
+                  <div className="w-72">
+                    <label className="block text-xs font-medium text-gray-700 mb-1">Room Hours</label>
+                    {companyId ? (
+                      <input type="text" disabled value={pooledHoursLabel(companies, companyId)}
+                        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-gray-100 text-gray-500" />
+                    ) : (
+                      <select value={membershipTypeId}
+                        onChange={e => setMembershipTypeId(e.target.value)}
+                        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="">No hours assigned</option>
+                        {individualMembershipTypes(membershipTypes).map(t => <option key={t.id} value={t.id}>{t.hours_per_month}h/month ({t.name})</option>)}
+                      </select>
+                    )}
                   </div>
                 </div>
               </div>
