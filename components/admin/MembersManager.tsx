@@ -153,6 +153,9 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
   const [loading, setLoading]       = useState(true)
   const [search, setSearch]         = useState('')
   const [showForm, setShowForm]     = useState(false)
+  // Same settle-after-animating trick as roomsPanelSettled below, but for
+  // the whole Add Member card appearing/disappearing.
+  const [formPanelSettled, setFormPanelSettled] = useState(false)
   const [email, setEmail]           = useState('')
   const [connectToRooms, setConnectToRooms] = useState(false)
   // Tracks whether the expand animation has finished — the panel needs
@@ -223,6 +226,12 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
     const t = setTimeout(() => setRoomsPanelSettled(true), 300)
     return () => clearTimeout(t)
   }, [connectToRooms])
+
+  useEffect(() => {
+    if (!showForm) { setFormPanelSettled(false); return }
+    const t = setTimeout(() => setFormPanelSettled(true), 300)
+    return () => clearTimeout(t)
+  }, [showForm])
 
   // ── Add member ─────────────────────────────────────────────────────────────
 
@@ -469,9 +478,12 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
         </div>
       )}
 
-      {/* Add member form */}
-      {showForm && (
-        <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-6 space-y-5 transition-all">
+      {/* Add member form — always mounted so opening/closing animates
+          smoothly via a grid-rows transition, instead of an abrupt
+          mount/unmount (same trick as the Rooms panel inside it). */}
+      <div className={`grid transition-[grid-template-rows] duration-300 ease-in-out ${showForm ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}>
+        <div className={`transition-opacity duration-200 ${showForm ? 'opacity-100 delay-100' : 'opacity-0'} ${formPanelSettled ? 'overflow-visible' : 'overflow-hidden'}`}>
+        <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-6 space-y-5">
           <div className="flex items-center gap-2">
             <div className="flex items-center justify-center w-7 h-7 rounded-full bg-blue-50">
               <Users size={14} className="text-blue-600" />
@@ -554,7 +566,8 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
             </div>
           )}
         </div>
-      )}
+        </div>
+      </div>
 
       {/* Search + Location filter */}
       <div className="flex gap-2">
