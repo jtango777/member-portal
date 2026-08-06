@@ -155,6 +155,11 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
   const [showForm, setShowForm]     = useState(false)
   const [email, setEmail]           = useState('')
   const [connectToRooms, setConnectToRooms] = useState(false)
+  // Tracks whether the expand animation has finished — the panel needs
+  // overflow-hidden while animating open (so the height transition looks
+  // right) but that same overflow-hidden clips the Company search popover
+  // once it's actually open, so we lift it after the transition settles.
+  const [roomsPanelSettled, setRoomsPanelSettled] = useState(false)
   const [companyId, setCompanyId]           = useState('')
   const [membershipTypeId, setMembershipTypeId] = useState('')
   const [sending, setSending]       = useState(false)
@@ -211,6 +216,13 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
     fetch('/api/locations').then(r => r.json()).then(setLocations)
   }, [])
   useEffect(() => { setActivePage(1); setPendingPage(1) }, [search, locationFilter])
+
+  // Match the panel's expand transition duration (300ms) below
+  useEffect(() => {
+    if (!connectToRooms) { setRoomsPanelSettled(false); return }
+    const t = setTimeout(() => setRoomsPanelSettled(true), 300)
+    return () => clearTimeout(t)
+  }, [connectToRooms])
 
   // ── Add member ─────────────────────────────────────────────────────────────
 
@@ -492,7 +504,7 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
 
             {/* Smoothly expands/collapses via a grid-rows transition instead of mounting/unmounting */}
             <div className={`grid transition-[grid-template-rows] duration-300 ease-in-out ${connectToRooms ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}>
-              <div className={`overflow-hidden transition-opacity duration-200 ${connectToRooms ? 'opacity-100 delay-100' : 'opacity-0'}`}>
+              <div className={`transition-opacity duration-200 ${connectToRooms ? 'opacity-100 delay-100' : 'opacity-0'} ${roomsPanelSettled ? 'overflow-visible' : 'overflow-hidden'}`}>
                 <div className="grid grid-cols-2 gap-3 bg-gray-50 border border-gray-200 rounded-lg p-3 mt-1">
                   <div>
                     <label className="block text-xs font-medium text-gray-700 mb-1">Company</label>
