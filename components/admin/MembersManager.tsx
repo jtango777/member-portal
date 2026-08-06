@@ -462,22 +462,24 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
         <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-3">
           <h3 className="font-semibold text-gray-900 text-sm">Add New Member</h3>
           <form onSubmit={handleInvite} className="space-y-3">
-            <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1">Email</label>
-              <input type="email" required value={email} onChange={e => setEmail(e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="member@company.com" />
+            <div className="flex items-end gap-4">
+              <div className="w-64">
+                <label className="block text-xs font-medium text-gray-700 mb-1">Email</label>
+                <input type="email" required value={email} onChange={e => setEmail(e.target.value)}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="member@company.com" />
+              </div>
+              <label className="flex items-center gap-2 text-sm text-gray-700 select-none pb-2">
+                <input type="checkbox" checked={connectToRooms}
+                  onChange={e => {
+                    const checked = e.target.checked
+                    setConnectToRooms(checked)
+                    if (!checked) { setCompanyId(''); setMembershipTypeId('') }
+                  }}
+                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
+                Connect to Rooms?
+              </label>
             </div>
-            <label className="flex items-center gap-2 text-sm text-gray-700 select-none">
-              <input type="checkbox" checked={connectToRooms}
-                onChange={e => {
-                  const checked = e.target.checked
-                  setConnectToRooms(checked)
-                  if (!checked) { setCompanyId(''); setMembershipTypeId('') }
-                }}
-                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
-              Connect to Rooms?
-            </label>
             {connectToRooms && (
               <div className="grid grid-cols-2 gap-3">
                 <div>
