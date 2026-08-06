@@ -133,7 +133,11 @@ export default function AssignPhotoDialog({ open, onOpenChange, onSuccess, targe
                 )}
                 <Dialog.Title className="text-sm font-semibold text-gray-900">Photo for {memberName}</Dialog.Title>
               </div>
-              <Dialog.Close className="text-gray-400 hover:text-gray-600"><X size={16} /></Dialog.Close>
+              {mode === 'choose' ? (
+                <Dialog.Close className="text-sm text-gray-500 hover:text-gray-700 font-medium">Skip for now</Dialog.Close>
+              ) : (
+                <Dialog.Close className="text-gray-400 hover:text-gray-600"><X size={16} /></Dialog.Close>
+              )}
             </div>
 
             {mode === 'choose' && (
