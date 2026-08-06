@@ -459,63 +459,77 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
 
       {/* Add member form */}
       {showForm && (
-        <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-3">
-          <h3 className="font-semibold text-gray-900 text-sm">Add New Member</h3>
-          <form onSubmit={handleInvite} className="space-y-3">
-            <div className="flex items-end gap-4">
+        <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-5 space-y-4 transition-all">
+          <div className="flex items-center gap-2">
+            <div className="flex items-center justify-center w-7 h-7 rounded-full bg-blue-50">
+              <Users size={14} className="text-blue-600" />
+            </div>
+            <h3 className="font-semibold text-gray-900 text-sm">Add New Member</h3>
+          </div>
+          <form onSubmit={handleInvite} className="space-y-4">
+            <div className="flex items-end gap-5">
               <div className="w-64">
                 <label className="block text-xs font-medium text-gray-700 mb-1">Email</label>
                 <input type="email" required value={email} onChange={e => setEmail(e.target.value)}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm transition-shadow focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="member@company.com" />
               </div>
-              <label className="flex items-center gap-2 text-sm text-gray-700 select-none pb-2">
-                <input type="checkbox" checked={connectToRooms}
-                  onChange={e => {
-                    const checked = e.target.checked
-                    setConnectToRooms(checked)
-                    if (!checked) { setCompanyId(''); setMembershipTypeId('') }
-                  }}
-                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
-                Connect to Rooms?
+              <label className="flex items-center gap-2.5 cursor-pointer select-none pb-2">
+                <span className="relative inline-flex h-5 w-9 flex-shrink-0 items-center">
+                  <input type="checkbox" checked={connectToRooms}
+                    onChange={e => {
+                      const checked = e.target.checked
+                      setConnectToRooms(checked)
+                      if (!checked) { setCompanyId(''); setMembershipTypeId('') }
+                    }}
+                    className="peer sr-only" />
+                  <span className="absolute inset-0 rounded-full bg-gray-300 peer-checked:bg-blue-600 transition-colors duration-200" />
+                  <span className="absolute left-0.5 top-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform duration-200 peer-checked:translate-x-4" />
+                </span>
+                <span className="text-sm font-medium text-gray-700">Connect to Rooms?</span>
               </label>
             </div>
-            {connectToRooms && (
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1">Company</label>
-                  <CompanyCombobox companies={companies} value={companyId} onChange={id => { setCompanyId(id); if (id) setMembershipTypeId('') }} />
+
+            {/* Smoothly expands/collapses via a grid-rows transition instead of mounting/unmounting */}
+            <div className={`grid transition-[grid-template-rows] duration-300 ease-in-out ${connectToRooms ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}>
+              <div className={`overflow-hidden transition-opacity duration-200 ${connectToRooms ? 'opacity-100 delay-100' : 'opacity-0'}`}>
+                <div className="grid grid-cols-2 gap-3 bg-gray-50 border border-gray-200 rounded-lg p-3 mt-1">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">Company</label>
+                    <CompanyCombobox companies={companies} value={companyId} onChange={id => { setCompanyId(id); if (id) setMembershipTypeId('') }} />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">Room Hours</label>
+                    {companyId ? (
+                      <input type="text" disabled value={pooledHoursLabel(companies, companyId)}
+                        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-gray-100 text-gray-500" />
+                    ) : (
+                      <select value={membershipTypeId}
+                        onChange={e => setMembershipTypeId(e.target.value)}
+                        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="">No hours assigned</option>
+                        {individualMembershipTypes(membershipTypes).map(t => <option key={t.id} value={t.id}>{t.hours_per_month}h/month ({t.name})</option>)}
+                      </select>
+                    )}
+                  </div>
+                  <p className="text-xs text-gray-400 col-span-2">
+                    Pick a company only if this person shares an hour pool with others under it — otherwise set their own Room Hours.
+                  </p>
                 </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1">Room Hours</label>
-                  {companyId ? (
-                    <input type="text" disabled value={pooledHoursLabel(companies, companyId)}
-                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-gray-100 text-gray-500" />
-                  ) : (
-                    <select value={membershipTypeId}
-                      onChange={e => setMembershipTypeId(e.target.value)}
-                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-                      <option value="">No hours assigned</option>
-                      {individualMembershipTypes(membershipTypes).map(t => <option key={t.id} value={t.id}>{t.hours_per_month}h/month ({t.name})</option>)}
-                    </select>
-                  )}
-                </div>
-                <p className="text-xs text-gray-400 col-span-2 -mt-1">
-                  Pick a company only if this person shares an hour pool with others under it — otherwise set their own Room Hours.
-                </p>
               </div>
-            )}
-            <div className="flex items-center gap-2">
+            </div>
+
+            <div className="flex items-center gap-2 pt-1">
               <button type="submit" disabled={sending}
-                className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-semibold px-4 py-2 rounded-lg">
+                className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-semibold px-4 py-2 rounded-lg shadow-sm transition-colors">
                 <Send size={13} /> {sending ? 'Saving…' : 'Add & Send Invite'}
               </button>
               <button type="button" disabled={sending} onClick={e => handleInvite(e as unknown as React.FormEvent, true)}
-                className="flex items-center gap-1.5 border border-gray-300 hover:bg-gray-50 disabled:opacity-50 text-gray-700 text-sm font-semibold px-4 py-2 rounded-lg">
+                className="flex items-center gap-1.5 border border-gray-300 hover:bg-gray-50 disabled:opacity-50 text-gray-700 text-sm font-semibold px-4 py-2 rounded-lg transition-colors">
                 {sending ? 'Saving…' : 'Add to Pending'}
               </button>
               <button type="button" onClick={() => { setShowForm(false); setLastInviteLink(null) }}
-                className="text-sm text-gray-500 hover:text-gray-700 px-3 py-2">Cancel</button>
+                className="text-sm text-gray-500 hover:text-gray-700 px-3 py-2 transition-colors">Cancel</button>
             </div>
             <p className="text-xs text-gray-400">
               "Add to Pending" creates their record with no email sent — invite them later whenever you're ready, from the row's send icon.
