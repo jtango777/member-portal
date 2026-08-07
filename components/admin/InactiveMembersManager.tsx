@@ -155,11 +155,11 @@ export default function InactiveMembersManager() {
                     ) : (
                       <>
                         <button onClick={() => handleRestore(m.id)} disabled={restoring === m.id}
-                          className="flex items-center gap-1.5 text-xs border border-gray-300 hover:bg-gray-50 text-gray-700 font-medium px-2.5 py-1.5 rounded-md transition-colors disabled:opacity-50">
+                          className="flex items-center gap-1.5 text-xs bg-green-50 hover:bg-green-100 border border-green-200 text-green-700 font-medium px-2.5 py-1.5 rounded-md transition-colors disabled:opacity-50">
                           <RotateCcw size={12} /> {restoring === m.id ? '…' : 'Restore'}
                         </button>
                         <button onClick={() => setConfirmPurge(m.id)}
-                          className="flex items-center gap-1.5 text-xs border border-gray-300 hover:bg-red-50 hover:border-red-200 hover:text-red-600 text-gray-700 font-medium px-2.5 py-1.5 rounded-md transition-colors">
+                          className="flex items-center gap-1.5 text-xs bg-red-50 hover:bg-red-100 border border-red-200 text-red-700 font-medium px-2.5 py-1.5 rounded-md transition-colors">
                           <Trash2 size={12} /> Remove
                         </button>
                       </>
