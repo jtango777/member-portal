@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { Company, MembershipType } from '@/types'
-import { Plus, Edit2, Check, X, Settings, Trash2, Search, ChevronDown, ChevronRight } from 'lucide-react'
+import { Plus, Edit2, Check, X, Settings, Trash2, Search, ChevronDown, ChevronRight, ChevronLeft } from 'lucide-react'
 import toast from 'react-hot-toast'
 import EditCompanyDialog, { EditableCompany } from '@/components/admin/EditCompanyDialog'
 
@@ -183,6 +183,17 @@ export default function CompaniesManager({ companies: initial, membershipTypes: 
     fetch('/api/locations').then(r => r.json()).then(setLocations)
   }, [])
 
+  // TEMPORARY — remove once the GetARoom hours reconciliation is done. Lets
+  // Caroline isolate the "0 hours" group to see collectively who still
+  // needs a real number.
+  const [hoursFilter, setHoursFilter] = useState<'all' | 'zero' | 'nonzero'>('all')
+  const zeroCount    = companies.filter(c => !c.monthly_hours_allotment).length
+  const nonzeroCount = companies.length - zeroCount
+
+  const [page, setPage]         = useState(1)
+  const [pageSize, setPageSize] = useState(10)
+  const [showAll, setShowAll]   = useState(false)
+
   const companiesWithLocation = locationFilter
     ? new Set(memberUsage.filter(m => m.default_location_id === locationFilter).map(m => m.company_id))
     : null
@@ -191,8 +202,15 @@ export default function CompaniesManager({ companies: initial, membershipTypes: 
     const q = searchQuery.toLowerCase()
     if (q && !c.name.toLowerCase().includes(q)) return false
     if (companiesWithLocation && !companiesWithLocation.has(c.id)) return false
+    if (hoursFilter === 'zero' && c.monthly_hours_allotment) return false
+    if (hoursFilter === 'nonzero' && !c.monthly_hours_allotment) return false
     return true
   })
+
+  useEffect(() => { setPage(1) }, [searchQuery, locationFilter, hoursFilter])
+
+  const totalPages = Math.max(1, Math.ceil(filteredCompanies.length / pageSize))
+  const pagedCompanies = showAll ? filteredCompanies : filteredCompanies.slice((page - 1) * pageSize, page * pageSize)
 
   // ── Render ─────────────────────────────────────────────────────────────────
 
@@ -362,8 +380,54 @@ export default function CompaniesManager({ companies: initial, membershipTypes: 
         )}
       </div>
 
+      {/* TEMPORARY — remove once the GetARoom hours reconciliation is done */}
+      <div className="flex items-center gap-1.5">
+        {([
+          ['all', `All (${companies.length})`],
+          ['nonzero', `Has Hours (${nonzeroCount})`],
+          ['zero', `0 Hours (${zeroCount})`],
+        ] as const).map(([value, label]) => (
+          <button key={value} onClick={() => setHoursFilter(value)}
+            className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+              hoursFilter === value ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+            }`}>
+            {label}
+          </button>
+        ))}
+      </div>
+
       {/* Companies table */}
       <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+        <div className="px-4 py-3 border-b border-gray-100 bg-gray-50 flex items-center justify-between gap-3">
+          <h2 className="text-sm font-semibold text-blue-600">Companies ({filteredCompanies.length})</h2>
+          <div className="flex items-center gap-3 text-xs flex-shrink-0">
+            <button onClick={() => setShowAll(v => !v)} className="text-blue-600 hover:text-blue-800 font-medium whitespace-nowrap">
+              {showAll ? `Show ${pageSize} per page` : 'Show all'}
+            </button>
+            {!showAll && (
+              <label className="flex items-center gap-1 text-gray-500 whitespace-nowrap">
+                Per page:
+                <select value={pageSize} onChange={e => { setPageSize(Number(e.target.value)); setPage(1) }}
+                  className="border border-gray-300 rounded px-1.5 py-0.5 text-xs bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                  {[10, 25, 50, 100].map(n => <option key={n} value={n}>{n}</option>)}
+                </select>
+              </label>
+            )}
+            {!showAll && totalPages > 1 && (
+              <div className="flex items-center gap-1 text-gray-500 whitespace-nowrap">
+                <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}
+                  className="p-1 hover:text-gray-800 disabled:opacity-30 rounded">
+                  <ChevronLeft size={14} />
+                </button>
+                <span>Page {page} of {totalPages}</span>
+                <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages}
+                  className="p-1 hover:text-gray-800 disabled:opacity-30 rounded">
+                  <ChevronRight size={14} />
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-gray-100 bg-gray-50">
@@ -378,7 +442,7 @@ export default function CompaniesManager({ companies: initial, membershipTypes: 
             {filteredCompanies.length === 0 && (
               <tr><td colSpan={5} className="px-4 py-8 text-center text-gray-400">{searchQuery ? 'No companies match your search.' : 'No companies yet.'}</td></tr>
             )}
-            {filteredCompanies.map(c => {
+            {pagedCompanies.map(c => {
               const isExpanded = expandedCompanies.has(c.id)
               const members = getMembersForCompany(c.id)
               const type = membershipTypes.find(t => t.id === c.membership_type_id)
