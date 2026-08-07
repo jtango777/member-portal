@@ -158,6 +158,19 @@ export async function sendCancellationEmail(
   })
 }
 
+export async function sendRoomAccessGrantedEmail(to: string, name: string) {
+  await resend.emails.send({
+    from: FROM,
+    to,
+    subject: "You're set up to book rooms",
+    html: emailWrapper(`
+      <h2 style="color:#0f172a;margin:0 0 8px;font-size:22px;font-weight:700;">You're all set, ${name}!</h2>
+      <p style="color:#475569;line-height:1.6;margin:0 0 24px;">Your BizHaus admin just gave you access to book conference rooms. Click below to check availability and reserve a room.</p>
+      <a href="${APP_URL}/dashboard/rooms" style="display:inline-block;background:#2563eb;color:white;padding:13px 28px;border-radius:7px;text-decoration:none;font-weight:600;font-size:15px;">Book a Room →</a>
+    `),
+  })
+}
+
 export async function sendRoomAccessRequestEmail(details: { name: string; email: string }) {
   await resend.emails.send({
     from: FROM,

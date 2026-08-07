@@ -1,6 +1,7 @@
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 import { recalcOfficeHours } from '@/lib/officeHours'
+import { sendRoomAccessGrantedEmail } from '@/lib/email'
 
 async function assertAdmin() {
   const supabase = await createClient()
@@ -24,7 +25,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   // and old company_id (needed to recalc office hours if company is changing)
   const { data: current, error: fetchErr } = await admin
     .from('permitted_emails')
-    .select('email, company_id, membership_type_id')
+    .select('email, company_id, membership_type_id, full_name')
     .eq('id', id)
     .single()
 
@@ -41,6 +42,10 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   // They now have a way to book — clear any "please give me room access"
   // request so it stops showing up as outstanding.
   const grantsRoomAccess = !!effectiveCompanyId || !!effectiveMembershipTypeId
+  // Only email if this is the actual moment access turns on, not every
+  // edit to an already-connected member.
+  const hadAccessBefore = !!current.company_id || !!current.membership_type_id
+  const isNewlyGranted = !hadAccessBefore && grantsRoomAccess
 
   // Build permitted_emails update
   const peUpdate: Record<string, string | null | boolean> = {}
@@ -96,6 +101,16 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       if (authErr) {
         console.error('[admin/members] PATCH auth email error:', authErr.message)
         return NextResponse.json({ error: 'Failed to update email.' }, { status: 500 })
+      }
+    }
+
+    // Let them know they can actually book now — separate from the invite
+    // email, and only fires the moment access actually turns on.
+    if (isNewlyGranted) {
+      try {
+        await sendRoomAccessGrantedEmail(email ?? current.email, (full_name ?? current.full_name) || 'there')
+      } catch (err) {
+        console.error('[admin/members] room-access-granted email failed:', err)
       }
     }
   }
