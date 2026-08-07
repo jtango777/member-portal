@@ -45,10 +45,12 @@ export async function POST(request: Request) {
   await admin.from('profiles').insert({
     id:                  userId,
     company_id:          invite.company_id,
+    membership_type_id:  invite.membership_type_id ?? null,
     full_name:           name.trim(),
     is_admin:            false,
     default_location_id: default_location_id ?? invite.default_location_id ?? null,
     avatar_url:          invite.avatar_url ?? null,
+    seating:             invite.seating ?? null,
   })
 
   // Mark invite as accepted

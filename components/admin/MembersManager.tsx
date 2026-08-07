@@ -3,11 +3,12 @@
 import { useState, useEffect, useCallback } from 'react'
 import NextLink from 'next/link'
 import { Company, MembershipType } from '@/types'
-import { Plus, Send, Check, Shield, ShieldOff, Download, Copy, Link, Search, Edit2, Trash2, X, ChevronLeft, ChevronRight, Camera, Users, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react'
+import { Plus, Send, Check, Shield, ShieldOff, Download, Copy, Link, Search, Edit2, Trash2, X, ChevronLeft, ChevronRight, Camera, Users, ArrowUp, ArrowDown, ArrowUpDown, DoorOpen } from 'lucide-react'
 import { formatShortDate } from '@/lib/utils'
 import toast from 'react-hot-toast'
 import AssignPhotoDialog from '@/components/admin/AssignPhotoDialog'
 import CompanyCombobox from '@/components/admin/CompanyCombobox'
+import { SEATING_OPTIONS } from '@/lib/seating'
 
 function IconAction({ icon: Icon, label, onClick, disabled, colorClass }: {
   icon: React.ElementType
@@ -44,6 +45,8 @@ type MemberRow = {
   is_admin:              boolean
   avatar_url:            string | null
   default_location_id:   string | null
+  seating:               string | null
+  room_access_requested_at: string | null
   is_active:             boolean
 }
 
@@ -54,6 +57,7 @@ type EditRow = {
   company_id:          string
   membership_type_id:  string
   default_location_id: string
+  seating:             string
 }
 
 // Company only matters for people sharing an hour pool with others — a
@@ -88,7 +92,7 @@ function EditForm({ m, colSpan, editingRow, setEditingRow, companies, membership
 }) {
   if (!editingRow || editingRow.id !== m.id) return null
   return (
-    <tr className="border-b border-gray-100 bg-blue-50/30">
+    <tr id={`member-row-${m.id}`} className="border-b border-gray-100 bg-blue-50/30">
       <td colSpan={colSpan} className="px-4 py-3">
         <div className="flex items-center gap-2 flex-wrap">
           <input
@@ -134,6 +138,14 @@ function EditForm({ m, colSpan, editingRow, setEditingRow, companies, membership
               {locations.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
             </select>
           )}
+          <select
+            value={editingRow.seating}
+            onChange={e => setEditingRow(r => r ? { ...r, seating: e.target.value } : r)}
+            className="border border-gray-300 rounded px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="">No seating set</option>
+            {SEATING_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
+          </select>
           <button onClick={() => saveRow(m.id)} disabled={savingRow}
             className="text-xs bg-blue-600 text-white px-2.5 py-1 rounded font-medium hover:bg-blue-700 disabled:opacity-50">
             {savingRow ? '…' : 'Save'}
@@ -324,6 +336,7 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
         company_id:          editingRow.company_id || null,
         membership_type_id:  editingRow.membership_type_id || null,
         default_location_id: editingRow.default_location_id || null,
+        seating:             editingRow.seating || null,
       }),
     })
     if (res.ok) {
@@ -414,6 +427,22 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
       .sort((a, b) => (a.full_name ?? a.email).localeCompare(b.full_name ?? b.email))
   )
   const notInvited  = members.filter(m => m.is_active !== false && !m.accepted_at && !m.invite_token)
+  // Registered members who hit "Register for Rooms" but still have no
+  // company or Room Hours assigned — i.e. their request hasn't been
+  // granted yet. Sorted oldest-request-first so the longest wait surfaces.
+  const roomAccessRequests = members
+    .filter(m => m.is_active !== false && !!m.room_access_requested_at && !m.company_id && !m.membership_type_id)
+    .sort((a, b) => new Date(a.room_access_requested_at!).getTime() - new Date(b.room_access_requested_at!).getTime())
+
+  function jumpToMember(m: MemberRow) {
+    // Clear anything that could hide the row (search text, a location
+    // filter, or pagination) before scrolling to it.
+    setSearch('')
+    setLocationFilter('')
+    setShowAllActive(true)
+    setEditingRow({ id: m.id, full_name: m.full_name ?? '', email: m.email, company_id: m.company_id ?? '', membership_type_id: m.membership_type_id ?? '', default_location_id: m.default_location_id ?? '', seating: m.seating ?? '' })
+    setTimeout(() => document.getElementById(`member-row-${m.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 100)
+  }
 
   const activeTotalPages  = Math.max(1, Math.ceil(active.length / activePageSize))
   const pendingTotalPages = Math.max(1, Math.ceil(pending.length / pendingPageSize))
@@ -475,6 +504,28 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
               {invitingAll ? 'Sending…' : `Invite Uninvited (${notInvited.length})`}
             </button>
           )}
+        </div>
+      )}
+
+      {/* Members who clicked "Register for Rooms" but don't have access yet */}
+      {roomAccessRequests.length > 0 && (
+        <div className="flex flex-wrap items-start gap-3 bg-amber-50 border border-amber-200 rounded-lg px-3.5 py-2.5">
+          <span className="flex items-center justify-center w-6 h-6 rounded-full bg-amber-200 text-amber-800 flex-shrink-0 mt-0.5">
+            <DoorOpen size={12} />
+          </span>
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-semibold text-amber-900">
+              {roomAccessRequests.length} {roomAccessRequests.length === 1 ? 'person has' : 'people have'} requested room access
+            </p>
+            <div className="flex flex-wrap gap-1.5 mt-1.5">
+              {roomAccessRequests.map(m => (
+                <button key={m.id} onClick={() => jumpToMember(m)}
+                  className="text-xs bg-white border border-amber-300 hover:bg-amber-100 text-amber-900 font-medium px-2 py-1 rounded-md">
+                  {m.full_name ?? m.email}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
       )}
 
@@ -607,8 +658,15 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
                 editingRow?.id === m.id
                   ? <EditForm key={m.id} m={m} colSpan={7} editingRow={editingRow} setEditingRow={setEditingRow} companies={companies} membershipTypes={membershipTypes} locations={locations} savingRow={savingRow} saveRow={saveRow} />
                   : (
-                    <tr key={m.id} className="border-b border-gray-100 last:border-0 hover:bg-gray-50">
-                      <td className="px-4 py-3 font-medium text-gray-900 truncate" title={m.full_name ?? undefined}>{m.full_name ?? '—'}</td>
+                    <tr key={m.id} id={`member-row-${m.id}`} className="border-b border-gray-100 last:border-0 hover:bg-gray-50">
+                      <td className="px-4 py-3 font-medium text-gray-900 truncate" title={m.full_name ?? undefined}>
+                        {m.full_name ?? '—'}
+                        {m.room_access_requested_at && !m.company_id && !m.membership_type_id && (
+                          <span title="Requested room access" className="inline-flex items-center justify-center w-4 h-4 ml-1.5 rounded-full bg-amber-100 text-amber-700 align-middle">
+                            <DoorOpen size={10} />
+                          </span>
+                        )}
+                      </td>
                       <td className="px-4 py-3 text-gray-600 truncate" title={m.email}>{m.email}</td>
                       <td className="px-4 py-3 text-gray-600 truncate" title={companyOrTypeLabel(m)}>{companyOrTypeLabel(m)}</td>
                       <td className="px-4 py-3 text-gray-600 truncate text-xs">
@@ -625,7 +683,7 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
                           <IconAction
                             icon={Edit2}
                             label="Edit member"
-                            onClick={() => setEditingRow({ id: m.id, full_name: m.full_name ?? '', email: m.email, company_id: m.company_id ?? '', membership_type_id: m.membership_type_id ?? '', default_location_id: m.default_location_id ?? '' })}
+                            onClick={() => setEditingRow({ id: m.id, full_name: m.full_name ?? '', email: m.email, company_id: m.company_id ?? '', membership_type_id: m.membership_type_id ?? '', default_location_id: m.default_location_id ?? '', seating: m.seating ?? '' })}
                             colorClass="text-gray-400 hover:bg-gray-100 hover:text-gray-600"
                           />
                           {m.user_id && (
@@ -709,7 +767,7 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
                           <IconAction
                             icon={Edit2}
                             label="Edit member"
-                            onClick={() => setEditingRow({ id: m.id, full_name: m.full_name ?? '', email: m.email, company_id: m.company_id ?? '', membership_type_id: m.membership_type_id ?? '', default_location_id: m.default_location_id ?? '' })}
+                            onClick={() => setEditingRow({ id: m.id, full_name: m.full_name ?? '', email: m.email, company_id: m.company_id ?? '', membership_type_id: m.membership_type_id ?? '', default_location_id: m.default_location_id ?? '', seating: m.seating ?? '' })}
                             colorClass="text-gray-400 hover:bg-gray-100 hover:text-gray-600"
                           />
                           <IconAction

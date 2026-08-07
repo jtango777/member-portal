@@ -60,6 +60,7 @@ export type PermittedEmail = {
   email: string
   company_id: string | null
   membership_type_id: string | null
+  seating: string | null
   invite_token: string | null
   invited_at: string
   accepted_at: string | null

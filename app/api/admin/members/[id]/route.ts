@@ -16,7 +16,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   const caller = await assertAdmin()
   if (!caller) return NextResponse.json({ error: 'Admins only' }, { status: 403 })
 
-  const { company_id, membership_type_id, full_name, email, default_location_id, is_active } = await request.json()
+  const { company_id, membership_type_id, full_name, email, default_location_id, seating, is_active } = await request.json()
 
   const admin = createAdminClient()
 
@@ -24,7 +24,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   // and old company_id (needed to recalc office hours if company is changing)
   const { data: current, error: fetchErr } = await admin
     .from('permitted_emails')
-    .select('email, company_id')
+    .select('email, company_id, membership_type_id')
     .eq('id', id)
     .single()
 
@@ -35,6 +35,12 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   // Whichever company will end up in effect after this update — used to
   // decide whether membership_type_id should be allowed to stick.
   const effectiveCompanyId = company_id !== undefined ? (company_id || null) : current.company_id
+  const effectiveMembershipTypeId = effectiveCompanyId
+    ? null
+    : (membership_type_id !== undefined ? (membership_type_id || null) : current.membership_type_id)
+  // They now have a way to book — clear any "please give me room access"
+  // request so it stops showing up as outstanding.
+  const grantsRoomAccess = !!effectiveCompanyId || !!effectiveMembershipTypeId
 
   // Build permitted_emails update
   const peUpdate: Record<string, string | null | boolean> = {}
@@ -47,6 +53,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   if (full_name            !== undefined) peUpdate.full_name            = full_name
   if (email                !== undefined) peUpdate.email                = email
   if (default_location_id  !== undefined) peUpdate.default_location_id  = default_location_id ?? null
+  if (seating              !== undefined) peUpdate.seating              = seating || null
   if (is_active             !== undefined) peUpdate.is_active            = is_active
 
   if (Object.keys(peUpdate).length > 0) {
@@ -73,7 +80,11 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     else if (company_id && !current.company_id) profileUpdate.membership_type_id = null
     if (full_name            !== undefined) profileUpdate.full_name            = full_name
     if (default_location_id  !== undefined) profileUpdate.default_location_id  = default_location_id ?? null
+    if (seating              !== undefined) profileUpdate.seating              = seating || null
     if (is_active             !== undefined) profileUpdate.is_active            = is_active
+    if ((company_id !== undefined || membership_type_id !== undefined) && grantsRoomAccess) {
+      profileUpdate.room_access_requested_at = null
+    }
 
     if (Object.keys(profileUpdate).length > 0) {
       await admin.from('profiles').update(profileUpdate).eq('id', authUser.id)
