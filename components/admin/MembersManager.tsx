@@ -540,9 +540,9 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
             showAll={showAllActive} onToggleShowAll={() => setShowAllActive(v => !v)}
             pageSize={activePageSize} onPageSizeChange={size => { setActivePageSize(size); setActivePage(1) }} />
         }>
-          <table className="w-full min-w-[640px] text-sm table-fixed">
+          <table className="w-full min-w-[1000px] text-sm table-fixed">
             <colgroup>
-              <col className="w-[14%]" /><col className="w-[27%]" /><col className="w-[13%]" /><col className="w-[16%]" /><col className="w-[8%]" /><col className="w-[14%]" /><col className="w-[8%]" />
+              <col className="w-[13%]" /><col className="w-[24%]" /><col className="w-[12%]" /><col className="w-[15%]" /><col className="w-[8%]" /><col className="w-[12%]" /><col className="w-[16%]" />
             </colgroup>
             <thead>
               <tr className="border-b border-gray-100 bg-gray-50">
@@ -636,9 +636,9 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
             showAll={showAllPending} onToggleShowAll={() => setShowAllPending(v => !v)}
             pageSize={pendingPageSize} onPageSizeChange={size => { setPendingPageSize(size); setPendingPage(1) }} />
         }>
-          <table className="w-full min-w-[640px] text-sm table-fixed">
+          <table className="w-full min-w-[1000px] text-sm table-fixed">
             <colgroup>
-              <col className="w-[14%]" /><col className="w-[27%]" /><col className="w-[13%]" /><col className="w-[16%]" /><col className="w-[8%]" /><col className="w-[14%]" /><col className="w-[8%]" />
+              <col className="w-[13%]" /><col className="w-[24%]" /><col className="w-[12%]" /><col className="w-[15%]" /><col className="w-[8%]" /><col className="w-[12%]" /><col className="w-[16%]" />
             </colgroup>
             <thead>
               <tr className="border-b border-gray-100 bg-gray-50">

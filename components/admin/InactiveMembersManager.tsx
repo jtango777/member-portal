@@ -113,7 +113,7 @@ export default function InactiveMembersManager() {
       </div>
 
       <div className="bg-white rounded-xl border border-gray-200">
-        <table className="w-full text-sm table-fixed">
+        <table className="w-full min-w-[900px] text-sm table-fixed">
           <colgroup>
             <col className="w-[16%]" /><col className="w-[22%]" /><col className="w-[18%]" /><col className="w-[12%]" /><col className="w-[9%]" /><col className="w-[23%]" />
           </colgroup>
