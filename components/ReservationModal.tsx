@@ -106,25 +106,6 @@ function useModalCenterOffset(): number {
   return offset
 }
 
-// CSS `dvh` can be computed against a stale (too-tall) viewport height in a
-// normal windowed browser on macOS — before the browser's own chrome (tab
-// bar, URL bar) is accounted for — and only recalculates once something
-// forces it, which is why a modal capped with max-h-[90dvh] can render
-// taller than what's actually visible until an overscroll bounce corrects
-// it. True fullscreen (no browser chrome at all) never hits this, which is
-// the tell. Measuring window.innerHeight directly in JS sidesteps the whole
-// CSS unit and its timing quirks.
-function useModalMaxHeight(): number {
-  const [maxHeight, setMaxHeight] = useState(() => window.innerHeight * 0.9)
-
-  useEffect(() => {
-    function measure() { setMaxHeight(window.innerHeight * 0.9) }
-    window.addEventListener('resize', measure)
-    return () => window.removeEventListener('resize', measure)
-  }, [])
-
-  return maxHeight
-}
 
 function defaultRecurEndDate(from: Date): string {
   const d = addMonths(from, 3)
@@ -233,7 +214,6 @@ export default function ReservationModal({
   const [endCount, setEndCount]         = useState(10)
 
   const modalCenterOffset = useModalCenterOffset()
-  const modalMaxHeight = useModalMaxHeight()
   const contentRef = useRef<HTMLDivElement>(null)
 
   const isAdmin = profile.is_admin
@@ -409,8 +389,7 @@ export default function ReservationModal({
         >
         <Dialog.Content
           ref={contentRef}
-          className="pointer-events-auto bg-white rounded-xl shadow-2xl w-[92vw] sm:w-full max-w-lg md:max-w-2xl overflow-hidden flex flex-col"
-          style={{ maxHeight: modalMaxHeight }}
+          className="pointer-events-auto bg-white rounded-xl shadow-2xl w-[92vw] sm:w-full max-w-lg md:max-w-2xl max-h-[85vh] overflow-hidden flex flex-col"
         >
           {/* Header — stays pinned at top; only the middle section scrolls */}
           <div className="flex-shrink-0 flex items-center justify-between px-5 py-4 border-b border-gray-100">
