@@ -19,8 +19,8 @@ export default function AnnouncementPreviewDialog({ open, onOpenChange, message,
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 bg-black/40 z-40" />
-        <Dialog.Content className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-xl shadow-2xl w-[92vw] sm:w-full max-w-sm z-50">
+        <Dialog.Overlay className="fixed inset-0 bg-black/40 z-40 transition-opacity duration-200 data-[state=open]:opacity-100 data-[state=closed]:opacity-0" />
+        <Dialog.Content className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-xl shadow-2xl w-[92vw] sm:w-full max-w-sm z-50 transition-all duration-200 data-[state=open]:opacity-100 data-[state=open]:scale-100 data-[state=closed]:opacity-0 data-[state=closed]:scale-95">
           <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
             <Dialog.Title className="font-semibold text-gray-900 text-sm">Preview</Dialog.Title>
             <Dialog.Close className="text-gray-400 hover:text-gray-600 transition-colors">

@@ -382,14 +382,18 @@ export default function ReservationModal({
   return (
     <Dialog.Root open onOpenChange={open => { if (!open) onClose() }}>
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 bg-black/40 z-40" />
+        <Dialog.Overlay className="fixed inset-0 bg-black/40 z-40 transition-opacity duration-200 data-[state=open]:opacity-100 data-[state=closed]:opacity-0" />
         <div
           className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none"
           style={modalCenterOffset ? { transform: `translateX(${modalCenterOffset}px)` } : undefined}
         >
+        {/* Entrance-only: the parent unmounts this whole component
+            immediately on close (no open={false} transition state), so
+            only the fade/scale-in on mount plays — there's no exit
+            animation to wire up without changing how the parent mounts it. */}
         <Dialog.Content
           ref={contentRef}
-          className="pointer-events-auto bg-white rounded-xl shadow-2xl w-[92vw] sm:w-full max-w-lg md:max-w-2xl max-h-[85vh] overflow-hidden flex flex-col"
+          className="pointer-events-auto bg-white rounded-xl shadow-2xl w-[92vw] sm:w-full max-w-lg md:max-w-2xl max-h-[85vh] overflow-hidden flex flex-col transition-all duration-200 data-[state=open]:opacity-100 data-[state=open]:scale-100 data-[state=closed]:opacity-0 data-[state=closed]:scale-95"
         >
           {/* Header — stays pinned at top; only the middle section scrolls */}
           <div className="flex-shrink-0 flex items-center justify-between px-5 py-4 border-b border-gray-100">

@@ -72,9 +72,9 @@ export default function PhotoUploadDialog({
   return (
     <Dialog.Root open={open} onOpenChange={v => { onOpenChange(v); if (!v) reset() }}>
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-x-0 bottom-0 bg-black/40 z-40" style={{ top: navBottom }} />
+        <Dialog.Overlay className="fixed inset-x-0 bottom-0 bg-black/40 z-40 transition-opacity duration-200 data-[state=open]:opacity-100 data-[state=closed]:opacity-0" style={{ top: navBottom }} />
         <div className="fixed inset-x-0 bottom-0 z-50 flex items-center justify-center pointer-events-none p-4" style={{ top: navBottom }}>
-        <Dialog.Content className="pointer-events-auto bg-white rounded-xl border border-gray-200 p-6 w-full max-w-sm">
+        <Dialog.Content className="pointer-events-auto bg-white rounded-xl border border-gray-200 p-6 w-full max-w-sm transition-all duration-200 data-[state=open]:opacity-100 data-[state=open]:scale-100 data-[state=closed]:opacity-0 data-[state=closed]:scale-95">
           <div className="flex items-center justify-between mb-4">
             <Dialog.Title className="text-sm font-semibold text-gray-900">{title}</Dialog.Title>
             {imageSrc ? (

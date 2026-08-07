@@ -119,9 +119,9 @@ export default function AssignPhotoDialog({ open, onOpenChange, onSuccess, targe
   return (
     <Dialog.Root open={open} onOpenChange={v => { onOpenChange(v); if (!v) reset() }}>
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 bg-black/40 z-40" />
+        <Dialog.Overlay className="fixed inset-0 bg-black/40 z-40 transition-opacity duration-200 data-[state=open]:opacity-100 data-[state=closed]:opacity-0" />
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <Dialog.Content className="bg-white rounded-xl border border-gray-200 p-6 w-full max-w-sm max-h-[85vh] overflow-y-auto">
+          <Dialog.Content className="bg-white rounded-xl border border-gray-200 p-6 w-full max-w-sm max-h-[85vh] overflow-y-auto transition-all duration-200 data-[state=open]:opacity-100 data-[state=open]:scale-100 data-[state=closed]:opacity-0 data-[state=closed]:scale-95">
             <input ref={fileRef} type="file" accept="image/*" onChange={handlePickFile} className="hidden" />
 
             <div className="flex items-center justify-between mb-4">

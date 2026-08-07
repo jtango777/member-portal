@@ -92,9 +92,9 @@ export default function EditMemberDialog({ member, onOpenChange, onSuccess, comp
   return (
     <Dialog.Root open={!!member} onOpenChange={onOpenChange}>
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 bg-black/40 z-40" />
+        <Dialog.Overlay className="fixed inset-0 bg-black/40 z-40 transition-opacity duration-200 data-[state=open]:opacity-100 data-[state=closed]:opacity-0" />
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <Dialog.Content className="bg-white rounded-xl border border-gray-200 p-6 w-full max-w-md max-h-[85vh] overflow-y-auto space-y-4">
+          <Dialog.Content className="bg-white rounded-xl border border-gray-200 p-6 w-full max-w-md max-h-[85vh] overflow-y-auto space-y-4 transition-all duration-200 data-[state=open]:opacity-100 data-[state=open]:scale-100 data-[state=closed]:opacity-0 data-[state=closed]:scale-95">
             <div className="flex items-center justify-between">
               <Dialog.Title className="text-sm font-semibold text-gray-900">Edit Member</Dialog.Title>
               <Dialog.Close className="text-gray-400 hover:text-gray-600"><X size={16} /></Dialog.Close>
