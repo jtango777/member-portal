@@ -90,46 +90,52 @@ function EditForm({ m, colSpan, editingRow, setEditingRow, companies, membership
   savingRow: boolean
   saveRow: (memberId: string) => void
 }) {
+  const [expanded, setExpanded] = useState(false)
   if (!editingRow || editingRow.id !== m.id) return null
   return (
     <>
-      {/* Row 1 — one field per column, lined up under the same headers as
-          the locked row (Name/Email/Company/Location) instead of a single
-          wide cell whose fields don't match the header widths. */}
-      <tr id={`member-row-${m.id}`} className="border-b-0 bg-blue-50/30">
-        <td className="px-4 py-2">
+      {/* Row 1 — same padding/columns as the locked row, so editing swaps
+          values in place without shifting anything. Only Name/Email/Company/
+          Location live here, matching their header columns exactly. */}
+      <tr id={`member-row-${m.id}`} className={expanded ? 'border-b-0 bg-blue-50/30' : 'border-b border-gray-100 bg-blue-50/30'}>
+        <td className="px-4 py-3">
           <input type="text" placeholder="Name" value={editingRow.full_name}
             onChange={e => setEditingRow(r => r ? { ...r, full_name: e.target.value } : r)}
-            className="w-full border border-gray-300 rounded px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            className="w-full bg-transparent border border-transparent hover:border-gray-200 focus:border-blue-400 rounded px-1 -mx-1 text-sm font-medium text-gray-900 focus:outline-none focus:ring-1 focus:ring-blue-500" />
         </td>
-        <td className="px-4 py-2">
+        <td className="px-4 py-3">
           <input type="email" placeholder="Email" value={editingRow.email}
             onChange={e => setEditingRow(r => r ? { ...r, email: e.target.value } : r)}
-            className="w-full border border-gray-300 rounded px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            className="w-full bg-transparent border border-transparent hover:border-gray-200 focus:border-blue-400 rounded px-1 -mx-1 text-sm text-gray-600 focus:outline-none focus:ring-1 focus:ring-blue-500" />
         </td>
-        <td className="px-4 py-2">
+        <td className="px-4 py-3">
           <CompanyCombobox
             companies={companies}
             value={editingRow.company_id}
             onChange={id => setEditingRow(r => r ? { ...r, company_id: id, membership_type_id: id ? '' : r.membership_type_id } : r)}
-            className="w-full text-xs"
+            variant="inline"
           />
         </td>
-        <td className="px-4 py-2">
+        <td className="px-4 py-3">
           {locations.length > 0 ? (
             <select
               value={editingRow.default_location_id}
               onChange={e => setEditingRow(r => r ? { ...r, default_location_id: e.target.value } : r)}
-              className="w-full border border-gray-300 rounded px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full bg-transparent border border-transparent hover:border-gray-200 focus:border-blue-400 rounded px-1 -mx-1 text-xs text-gray-600 focus:outline-none focus:ring-1 focus:ring-blue-500"
             >
               <option value="">No default location</option>
               {locations.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
             </select>
           ) : <span className="text-xs text-gray-300">—</span>}
         </td>
-        <td className="px-4 py-2" />
-        <td className="px-4 py-2" />
-        <td className="px-4 py-2 text-right whitespace-nowrap">
+        <td className="px-4 py-3">
+          <button type="button" onClick={() => setExpanded(v => !v)}
+            className="text-xs text-gray-400 hover:text-gray-600 font-medium whitespace-nowrap">
+            {expanded ? 'Less fields ▲' : 'More fields ▾'}
+          </button>
+        </td>
+        <td className="px-4 py-3" />
+        <td className="px-4 py-3 text-right whitespace-nowrap">
           <button onClick={() => saveRow(m.id)} disabled={savingRow}
             className="text-xs bg-blue-600 text-white px-2.5 py-1 rounded font-medium hover:bg-blue-700 disabled:opacity-50">
             {savingRow ? '…' : 'Save'}
@@ -139,40 +145,43 @@ function EditForm({ m, colSpan, editingRow, setEditingRow, companies, membership
         </td>
       </tr>
 
-      {/* Row 2 — extra fields with no header column of their own */}
-      <tr className="border-b border-gray-100 bg-blue-50/30">
-        <td colSpan={colSpan} className="px-4 pb-2.5 pt-0">
-          <div className="flex items-center gap-3 flex-wrap">
-            <label className="flex items-center gap-1.5 text-xs text-gray-500">
-              Room Hours:
-              {editingRow.company_id ? (
-                <input type="text" disabled value={pooledHoursLabel(companies, editingRow.company_id)}
-                  className="border border-gray-300 rounded px-2 py-1 text-xs bg-gray-100 text-gray-500 w-40" />
-              ) : (
+      {/* Row 2 — extra fields with no header column of their own, tucked
+          behind "More fields" so they don't clutter every edit by default. */}
+      {expanded && (
+        <tr className="border-b border-gray-100 bg-blue-50/30">
+          <td colSpan={colSpan} className="px-4 pb-3 pt-0">
+            <div className="flex items-center gap-3 flex-wrap">
+              <label className="flex items-center gap-1.5 text-xs text-gray-500">
+                Room Hours:
+                {editingRow.company_id ? (
+                  <input type="text" disabled value={pooledHoursLabel(companies, editingRow.company_id)}
+                    className="border border-gray-300 rounded px-2 py-1 text-xs bg-gray-100 text-gray-500 w-40" />
+                ) : (
+                  <select
+                    value={editingRow.membership_type_id}
+                    onChange={e => setEditingRow(r => r ? { ...r, membership_type_id: e.target.value } : r)}
+                    className="border border-gray-300 rounded px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="">No hours assigned</option>
+                    {individualMembershipTypes(membershipTypes).map(t => <option key={t.id} value={t.id}>{t.hours_per_month}h/month ({t.name})</option>)}
+                  </select>
+                )}
+              </label>
+              <label className="flex items-center gap-1.5 text-xs text-gray-500">
+                Seating:
                 <select
-                  value={editingRow.membership_type_id}
-                  onChange={e => setEditingRow(r => r ? { ...r, membership_type_id: e.target.value } : r)}
+                  value={editingRow.seating}
+                  onChange={e => setEditingRow(r => r ? { ...r, seating: e.target.value } : r)}
                   className="border border-gray-300 rounded px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
-                  <option value="">No hours assigned</option>
-                  {individualMembershipTypes(membershipTypes).map(t => <option key={t.id} value={t.id}>{t.hours_per_month}h/month ({t.name})</option>)}
+                  <option value="">No seating set</option>
+                  {SEATING_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
                 </select>
-              )}
-            </label>
-            <label className="flex items-center gap-1.5 text-xs text-gray-500">
-              Seating:
-              <select
-                value={editingRow.seating}
-                onChange={e => setEditingRow(r => r ? { ...r, seating: e.target.value } : r)}
-                className="border border-gray-300 rounded px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="">No seating set</option>
-                {SEATING_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
-              </select>
-            </label>
-          </div>
-        </td>
-      </tr>
+              </label>
+            </div>
+          </td>
+        </tr>
+      )}
     </>
   )
 }

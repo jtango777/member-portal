@@ -11,12 +11,16 @@ type Props = {
   value: string // company id, or '' for none
   onChange: (id: string) => void
   className?: string
+  // 'inline' looks like plain table text until hovered/focused — no
+  // visible border or padding shift, so dropping it into a table cell
+  // doesn't change that row's height or column width.
+  variant?: 'default' | 'inline'
 }
 
 // A searchable dropdown for picking a company out of a long list — a plain
 // <select> gets unwieldy once there are hundreds of companies to scroll
 // through. Always offers "No company (individual)" as the top option.
-export default function CompanyCombobox({ companies, value, onChange, className }: Props) {
+export default function CompanyCombobox({ companies, value, onChange, className, variant = 'default' }: Props) {
   const [open, setOpen]   = useState(false)
   const [query, setQuery] = useState('')
   const wrapRef = useRef<HTMLDivElement>(null)
@@ -52,12 +56,16 @@ export default function CompanyCombobox({ companies, value, onChange, className 
       <button
         type="button"
         onClick={() => { setOpen(o => !o); setTimeout(() => inputRef.current?.focus(), 0) }}
-        className="w-full flex items-center justify-between gap-2 border border-gray-300 rounded-lg px-3 py-2 text-sm text-left focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+        className={
+          variant === 'inline'
+            ? 'w-full flex items-center justify-between gap-1 rounded px-1 -mx-1 py-0.5 text-sm text-left bg-transparent border border-transparent hover:border-gray-200 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-400'
+            : 'w-full flex items-center justify-between gap-2 border border-gray-300 rounded-lg px-3 py-2 text-sm text-left focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white'
+        }
       >
-        <span className={selected ? 'text-gray-900 truncate' : 'text-gray-500 truncate'}>
-          {selected ? selected.name : NONE_LABEL}
+        <span className={selected ? 'text-gray-900 truncate' : 'text-gray-400 truncate'}>
+          {selected ? selected.name : (variant === 'inline' ? 'No company' : NONE_LABEL)}
         </span>
-        <ChevronDown size={14} className="text-gray-400 flex-shrink-0" />
+        <ChevronDown size={13} className="text-gray-400 flex-shrink-0" />
       </button>
 
       {open && (
