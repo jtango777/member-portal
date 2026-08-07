@@ -32,14 +32,22 @@ export async function middleware(request: NextRequest) {
   const isPublic = publicPaths.some(p => pathname.startsWith(p))
 
   if (!user && !isPublic) {
+    // Preserve where they were headed (e.g. a link straight to Members from
+    // an email) so login can send them there instead of dropping them on
+    // the generic dashboard home.
     const url = request.nextUrl.clone()
+    const next = `${pathname}${url.search}`
     url.pathname = '/login'
+    url.search = ''
+    if (next && next !== '/') url.searchParams.set('next', next)
     return NextResponse.redirect(url)
   }
 
   if (user && pathname === '/login') {
     const url = request.nextUrl.clone()
-    url.pathname = '/dashboard'
+    const next = request.nextUrl.searchParams.get('next')
+    url.pathname = next && next.startsWith('/') ? next : '/dashboard'
+    url.search = ''
     return NextResponse.redirect(url)
   }
 

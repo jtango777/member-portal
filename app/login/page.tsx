@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect, Suspense } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
 import toast from 'react-hot-toast'
@@ -9,7 +9,17 @@ import PasswordInput from '@/components/PasswordInput'
 import { cn } from '@/lib/utils'
 
 export default function LoginPage() {
+  return (
+    <Suspense>
+      <LoginForm />
+    </Suspense>
+  )
+}
+
+function LoginForm() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const next = searchParams.get('next')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
@@ -30,7 +40,7 @@ export default function LoginPage() {
       setLoading(false)
     } else {
       const { data: profile } = await supabase.from('profiles').select('is_admin').eq('id', data.user.id).single()
-      router.push('/dashboard')
+      router.push(next && next.startsWith('/') ? next : '/dashboard')
       router.refresh()
     }
   }

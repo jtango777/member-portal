@@ -403,9 +403,9 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
           </span>
           <div className="flex-1 min-w-0">
             <p className="text-xs font-semibold text-amber-900">
-              {roomAccessRequests.length} {roomAccessRequests.length === 1 ? 'person has' : 'people have'} requested room access
+              {roomAccessRequests.length} {roomAccessRequests.length === 1 ? 'person is' : 'people are'} waiting for room access
             </p>
-            <p className="text-xs text-amber-700 mt-0.5">Click a name to open their row and grant access (set a Company or Room Hours):</p>
+            <p className="text-xs text-amber-700 mt-0.5">Click a name below to grant it:</p>
             <div className="flex flex-wrap gap-1.5 mt-1.5">
               {roomAccessRequests.map(m => (
                 <button key={m.id} onClick={() => jumpToMember(m)}

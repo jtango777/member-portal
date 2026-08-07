@@ -12,6 +12,7 @@ export async function GET() {
   const { data, error } = await supabase
     .from('feedback')
     .select('id, category, message, created_at, profiles(full_name)')
+    .eq('resolved', false)
     .order('created_at', { ascending: false })
 
   if (error) return NextResponse.json({ error: 'Failed to load feedback.' }, { status: 500 })
