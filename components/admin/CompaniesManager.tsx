@@ -5,6 +5,7 @@ import { Company, MembershipType } from '@/types'
 import { Plus, Edit2, Check, X, Settings, Trash2, Search, ChevronDown, ChevronRight, ChevronLeft } from 'lucide-react'
 import toast from 'react-hot-toast'
 import EditCompanyDialog, { EditableCompany } from '@/components/admin/EditCompanyDialog'
+import { AdminTable, Th, tdBase, tdTruncate, tdNowrap } from '@/components/admin/AdminTable'
 
 type MemberUsage = {
   user_id: string | null
@@ -428,14 +429,14 @@ export default function CompaniesManager({ companies: initial, membershipTypes: 
             )}
           </div>
         </div>
-        <table className="w-full text-sm">
+        <AdminTable colWidths={['6%', '38%', '15%', '24%', '17%']} minWidth={900}>
           <thead>
             <tr className="border-b border-gray-100 bg-gray-50">
-              <th className="w-10 px-2 py-3" />
-              <th className="text-left font-semibold text-gray-600 px-4 py-3">Company</th>
-              <th className="text-left font-semibold text-gray-600 px-4 py-3">Monthly Hours</th>
-              <th className="text-left font-semibold text-gray-600 px-4 py-3">Membership Type</th>
-              <th className="text-left font-semibold text-gray-600 px-4 py-3">Actions</th>
+              <th className="px-2 py-3" />
+              <Th>Company</Th>
+              <Th>Monthly Hours</Th>
+              <Th>Membership Type</Th>
+              <Th>Actions</Th>
             </tr>
           </thead>
           <tbody>
@@ -454,20 +455,20 @@ export default function CompaniesManager({ companies: initial, membershipTypes: 
                         {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
                       </button>
                     </td>
-                    <td className="px-4 py-3">
+                    <td className={tdTruncate} title={c.name}>
                       <span className="font-medium text-gray-900">{c.name}</span>
                     </td>
-                    <td className="px-4 py-3">
+                    <td className={tdNowrap}>
                       <span className="text-gray-700">{c.monthly_hours_allotment}h</span>
                     </td>
-                    <td className="px-4 py-3">
+                    <td className={tdBase}>
                       {type ? (
                         <span className="text-xs rounded-full px-2.5 py-1 bg-gray-100 text-gray-600 font-medium">{type.name}</span>
                       ) : (
                         <span className="text-xs text-gray-300">—</span>
                       )}
                     </td>
-                    <td className="px-4 py-3">
+                    <td className={tdBase}>
                       <button
                         onClick={() => setEditTarget({ id: c.id, name: c.name, monthly_hours_allotment: c.monthly_hours_allotment, membership_type_id: c.membership_type_id })}
                         className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 font-medium">
@@ -519,7 +520,7 @@ export default function CompaniesManager({ companies: initial, membershipTypes: 
               )
             })}
           </tbody>
-        </table>
+        </AdminTable>
       </div>
 
       <EditCompanyDialog

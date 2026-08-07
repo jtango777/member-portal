@@ -3,13 +3,14 @@
 import { useState, useEffect, useCallback } from 'react'
 import NextLink from 'next/link'
 import { Company, MembershipType } from '@/types'
-import { Plus, Send, Check, Shield, ShieldOff, Download, Copy, Link, Search, Edit2, Trash2, X, ChevronLeft, ChevronRight, Camera, Users, ArrowUp, ArrowDown, ArrowUpDown, DoorOpen } from 'lucide-react'
+import { Plus, Send, Check, Shield, ShieldOff, Download, Copy, Link, Search, Edit2, Trash2, X, ChevronLeft, ChevronRight, Camera, Users, DoorOpen } from 'lucide-react'
 import { formatShortDate } from '@/lib/utils'
 import { useAutoScrollIntoView } from '@/lib/useAutoScrollIntoView'
 import toast from 'react-hot-toast'
 import AssignPhotoDialog from '@/components/admin/AssignPhotoDialog'
 import CompanyCombobox from '@/components/admin/CompanyCombobox'
 import EditMemberDialog from '@/components/admin/EditMemberDialog'
+import { AdminTable, Th, tdBase, tdTruncate, tdNowrap } from '@/components/admin/AdminTable'
 
 function IconAction({ icon: Icon, label, onClick, disabled, colorClass }: {
   icon: React.ElementType
@@ -540,10 +541,7 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
             showAll={showAllActive} onToggleShowAll={() => setShowAllActive(v => !v)}
             pageSize={activePageSize} onPageSizeChange={size => { setActivePageSize(size); setActivePage(1) }} />
         }>
-          <table className="w-full min-w-[1000px] text-sm table-fixed">
-            <colgroup>
-              <col className="w-[13%]" /><col className="w-[24%]" /><col className="w-[12%]" /><col className="w-[15%]" /><col className="w-[8%]" /><col className="w-[12%]" /><col className="w-[16%]" />
-            </colgroup>
+          <AdminTable colWidths={['13%', '24%', '12%', '15%', '8%', '12%', '16%']} minWidth={1000}>
             <thead>
               <tr className="border-b border-gray-100 bg-gray-50">
                 <Th>Name</Th><Th>Email</Th><Th>Company</Th><Th sortDir={locationSort} onClick={toggleLocationSort}>Location</Th><Th>Admin</Th><Th>Joined</Th><Th />
@@ -625,7 +623,7 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
                     </tr>
               ))}
             </tbody>
-          </table>
+          </AdminTable>
         </Section>
       )}
 
@@ -636,10 +634,7 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
             showAll={showAllPending} onToggleShowAll={() => setShowAllPending(v => !v)}
             pageSize={pendingPageSize} onPageSizeChange={size => { setPendingPageSize(size); setPendingPage(1) }} />
         }>
-          <table className="w-full min-w-[1000px] text-sm table-fixed">
-            <colgroup>
-              <col className="w-[13%]" /><col className="w-[24%]" /><col className="w-[12%]" /><col className="w-[15%]" /><col className="w-[8%]" /><col className="w-[12%]" /><col className="w-[16%]" />
-            </colgroup>
+          <AdminTable colWidths={['13%', '24%', '12%', '15%', '8%', '12%', '16%']} minWidth={1000}>
             <thead>
               <tr className="border-b border-gray-100 bg-gray-50">
                 <Th>Name</Th><Th>Email</Th><Th>Company</Th><Th>Location</Th><Th>Status</Th><Th>Added</Th><Th />
@@ -709,7 +704,7 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
                     </tr>
               ))}
             </tbody>
-          </table>
+          </AdminTable>
         </Section>
       )}
 
@@ -805,16 +800,3 @@ function Section({ title, children, headerRight }: { title: string; children: Re
   )
 }
 
-function Th({ children, sortDir, onClick }: { children?: React.ReactNode; sortDir?: 'asc' | 'desc' | null; onClick?: () => void }) {
-  if (!onClick) {
-    return <th className="text-left font-semibold text-gray-500 px-4 py-2.5 text-xs uppercase tracking-wide">{children}</th>
-  }
-  const Icon = sortDir === 'asc' ? ArrowUp : sortDir === 'desc' ? ArrowDown : ArrowUpDown
-  return (
-    <th className="text-left font-semibold text-gray-500 px-4 py-2.5 text-xs uppercase tracking-wide">
-      <button onClick={onClick} className="flex items-center gap-1 hover:text-gray-700">
-        {children} <Icon size={11} />
-      </button>
-    </th>
-  )
-}
