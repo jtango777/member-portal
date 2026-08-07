@@ -535,7 +535,7 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
         }>
           <table className="w-full min-w-[640px] text-sm table-fixed">
             <colgroup>
-              <col className="w-[15%]" /><col className="w-[19%]" /><col className="w-[13%]" /><col className="w-[15%]" /><col className="w-[9%]" /><col className="w-[9%]" /><col className="w-[20%]" />
+              <col className="w-[14%]" /><col className="w-[22%]" /><col className="w-[13%]" /><col className="w-[16%]" /><col className="w-[8%]" /><col className="w-[14%]" /><col className="w-[13%]" />
             </colgroup>
             <thead>
               <tr className="border-b border-gray-100 bg-gray-50">
@@ -563,7 +563,7 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
                           ? <span className="inline-flex items-center gap-1 whitespace-nowrap text-xs font-medium text-blue-700 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-full"><Shield size={10} /> Admin</span>
                           : <span className="text-xs text-gray-400">Member</span>}
                       </td>
-                      <td className="px-4 py-3 text-gray-500 text-xs">{formatShortDate(new Date(m.accepted_at!))}</td>
+                      <td className="px-4 py-3 text-gray-500 text-xs whitespace-nowrap">{formatShortDate(new Date(m.accepted_at!))}</td>
                       <td className="px-4 py-3">
                         <div className="flex items-center justify-end gap-0.5">
                           <IconAction
@@ -631,7 +631,7 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
         }>
           <table className="w-full min-w-[640px] text-sm table-fixed">
             <colgroup>
-              <col className="w-[15%]" /><col className="w-[19%]" /><col className="w-[13%]" /><col className="w-[15%]" /><col className="w-[9%]" /><col className="w-[9%]" /><col className="w-[20%]" />
+              <col className="w-[14%]" /><col className="w-[22%]" /><col className="w-[13%]" /><col className="w-[16%]" /><col className="w-[8%]" /><col className="w-[14%]" /><col className="w-[13%]" />
             </colgroup>
             <thead>
               <tr className="border-b border-gray-100 bg-gray-50">
@@ -650,7 +650,7 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
                         {m.default_location_id ? (locations.find(l => l.id === m.default_location_id)?.name ?? '—') : <span className="text-gray-400">—</span>}
                       </td>
                       <td className="px-4 py-3"><StatusBadge m={m} /></td>
-                      <td className="px-4 py-3 text-gray-500 text-xs">{formatShortDate(new Date(m.invited_at))}</td>
+                      <td className="px-4 py-3 text-gray-500 text-xs whitespace-nowrap">{formatShortDate(new Date(m.invited_at))}</td>
                       <td className="px-4 py-3">
                         <div className="flex items-center justify-end gap-0.5">
                           <IconAction
