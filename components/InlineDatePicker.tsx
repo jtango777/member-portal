@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay, addMonths, subMonths, isToday, isBefore, startOfDay } from 'date-fns'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { cn, isSameDay, parseFuzzyDate } from '@/lib/utils'
+import { useAutoScrollIntoView } from '@/lib/useAutoScrollIntoView'
 
 type Props = {
   value: string // yyyy-MM-dd, or '' for unset
@@ -21,6 +22,7 @@ export default function InlineDatePicker({ value, onChange, disabled, disablePas
   const [showCalendar, setShowCalendar] = useState(false)
   const [inputText, setInputText] = useState(value ? format(new Date(value + 'T12:00:00'), 'MMMM d, yyyy') : '')
   const [pickerMonth, setPickerMonth] = useState(() => value ? new Date(value + 'T12:00:00') : new Date())
+  const calendarRef = useAutoScrollIntoView<HTMLDivElement>(showCalendar)
 
   function commit(date: Date) {
     onChange(format(date, 'yyyy-MM-dd'))
@@ -62,7 +64,7 @@ export default function InlineDatePicker({ value, onChange, disabled, disablePas
       >
         {showCalendar ? 'Hide calendar' : 'Show calendar'}
       </button>
-      <div className={cn(
+      <div ref={calendarRef} className={cn(
         'grid transition-[grid-template-rows,opacity] duration-200 ease-out',
         showCalendar && !disabled ? 'grid-rows-[1fr] opacity-100 mt-1' : 'grid-rows-[0fr] opacity-0'
       )}>

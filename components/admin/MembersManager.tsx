@@ -5,6 +5,7 @@ import NextLink from 'next/link'
 import { Company, MembershipType } from '@/types'
 import { Plus, Send, Check, Shield, ShieldOff, Download, Copy, Link, Search, Edit2, Trash2, X, ChevronLeft, ChevronRight, Camera, Users, ArrowUp, ArrowDown, ArrowUpDown, DoorOpen } from 'lucide-react'
 import { formatShortDate } from '@/lib/utils'
+import { useAutoScrollIntoView } from '@/lib/useAutoScrollIntoView'
 import toast from 'react-hot-toast'
 import AssignPhotoDialog from '@/components/admin/AssignPhotoDialog'
 import CompanyCombobox from '@/components/admin/CompanyCombobox'
@@ -82,8 +83,10 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
   // Same settle-after-animating trick as roomsPanelSettled below, but for
   // the whole Add Member card appearing/disappearing.
   const [formPanelSettled, setFormPanelSettled] = useState(false)
+  const formRef = useAutoScrollIntoView<HTMLDivElement>(showForm)
   const [email, setEmail]           = useState('')
   const [connectToRooms, setConnectToRooms] = useState(false)
+  const connectToRoomsRef = useAutoScrollIntoView<HTMLDivElement>(connectToRooms)
   // Tracks whether the expand animation has finished — the panel needs
   // overflow-hidden while animating open (so the height transition looks
   // right) but that same overflow-hidden clips the Company search popover
@@ -418,7 +421,7 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
       {/* Add member form — always mounted so opening/closing animates
           smoothly via a grid-rows transition, instead of an abrupt
           mount/unmount (same trick as the Rooms panel inside it). */}
-      <div className={`grid transition-[grid-template-rows] duration-300 ease-in-out ${showForm ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}>
+      <div ref={formRef} className={`grid transition-[grid-template-rows] duration-300 ease-in-out ${showForm ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}>
         <div className={`transition-opacity duration-200 ${showForm ? 'opacity-100 delay-100' : 'opacity-0'} ${formPanelSettled ? 'overflow-visible' : 'overflow-hidden'}`}>
         <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-6 space-y-5">
           <div className="flex items-center gap-2">
@@ -452,7 +455,7 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
             </div>
 
             {/* Smoothly expands/collapses via a grid-rows transition instead of mounting/unmounting */}
-            <div className={`grid transition-[grid-template-rows] duration-300 ease-in-out ${connectToRooms ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}>
+            <div ref={connectToRoomsRef} className={`grid transition-[grid-template-rows] duration-300 ease-in-out ${connectToRooms ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}>
               <div className={`transition-opacity duration-200 ${connectToRooms ? 'opacity-100 delay-100' : 'opacity-0'} ${roomsPanelSettled ? 'overflow-visible' : 'overflow-hidden'}`}>
                 <div className="flex gap-4 pt-4 mt-1 border-t border-gray-100">
                   <div className="w-72">

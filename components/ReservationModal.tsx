@@ -7,6 +7,7 @@ import { X, Lock, Trash2, Edit2, Check, AlertCircle, Repeat, Ban, Search } from 
 import InlineDatePicker from './InlineDatePicker'
 import { Reservation, Room, Profile, Company } from '@/types'
 import { cn, buildTimeOptions, parseTimeValue, formatTime, toPacificDate } from '@/lib/utils'
+import { useAutoScrollIntoView } from '@/lib/useAutoScrollIntoView'
 import toast from 'react-hot-toast'
 
 const START_HOUR = 0
@@ -182,6 +183,7 @@ export default function ReservationModal({
   const [selectedOwnerId, setSelectedOwnerId] = useState(profile.id)
   const [ownerSearch, setOwnerSearch] = useState('')
   const [showOwnerDropdown, setShowOwnerDropdown] = useState(false)
+  const ownerDropdownRef = useAutoScrollIntoView<HTMLDivElement>(showOwnerDropdown)
   const [title, setTitle]         = useState(reservation?.title ?? '')
   const [notes, setNotes]         = useState(reservation?.notes ?? '')
   const [startVal, setStartVal]   = useState(
@@ -207,6 +209,7 @@ export default function ReservationModal({
 
   // Recurrence state (admin create only)
   const [isRecurring, setIsRecurring]   = useState(false)
+  const recurringRef = useAutoScrollIntoView<HTMLDivElement>(isRecurring)
   const [frequency, setFrequency]       = useState<'daily' | 'weekly' | 'monthly'>('weekly')
   const [daysOfWeek, setDaysOfWeek]     = useState<number[]>([selectedDate.getDay()])
   const [endType, setEndType]           = useState<'date' | 'count'>('date')
@@ -511,7 +514,7 @@ export default function ReservationModal({
                         : (() => { const m = members.find(m => m.id === selectedOwnerId); return m ? `${m.full_name} — ${m.company_name}` : 'Select member' })()
                       }
                     </button>
-                    <div className={cn(
+                    <div ref={ownerDropdownRef} className={cn(
                       'grid transition-[grid-template-rows,opacity] duration-200 ease-out',
                       showOwnerDropdown ? 'grid-rows-[1fr] opacity-100 mt-1' : 'grid-rows-[0fr] opacity-0'
                     )}>
@@ -636,7 +639,7 @@ export default function ReservationModal({
                       Repeat
                     </label>
 
-                    <div className={cn(
+                    <div ref={recurringRef} className={cn(
                       'grid transition-[grid-template-rows,opacity] duration-200 ease-out',
                       isRecurring ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'
                     )}>
