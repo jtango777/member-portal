@@ -2,7 +2,6 @@ import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 import { sendInviteEmail } from '@/lib/email'
 import { generateToken } from '@/lib/utils'
-import { recalcOfficeHours } from '@/lib/officeHours'
 
 export async function POST(request: Request) {
   const supabase = await createClient()
@@ -12,20 +11,15 @@ export async function POST(request: Request) {
   const { data: profile } = await supabase.from('profiles').select('is_admin').eq('id', user.id).single()
   if (!profile?.is_admin) return NextResponse.json({ error: 'Admins only' }, { status: 403 })
 
-  const { email, company_id, membership_type_id, skipEmail } = await request.json()
+  const { email, company_id, individual_hours_allotment, skipEmail } = await request.json()
   if (!email) return NextResponse.json({ error: 'Missing fields' }, { status: 400 })
   // Company is optional — only needed when this person will share an hour
-  // pool with others. Without one, membership_type_id (if given) tracks
-  // their own hours individually.
+  // pool with others. Without one, individual_hours_allotment (if given)
+  // tracks their own hours individually.
   const companyId = company_id || null
-  const membershipTypeId = companyId ? null : (membership_type_id || null)
+  const individualHours = companyId ? null : (individual_hours_allotment || null)
 
   const admin = createAdminClient()
-
-  // If this email already had a different company (re-adding/moving someone),
-  // grab the old company so we can recalc its office hours too.
-  const { data: existing } = await admin.from('permitted_emails').select('company_id').eq('email', email.toLowerCase().trim()).maybeSingle()
-  const previousCompanyId = existing?.company_id
 
   // "Just add" path — creates the record so the person shows up in Members
   // (and can get a photo linked, etc.) without generating an invite link or
@@ -36,21 +30,20 @@ export async function POST(request: Request) {
     // just bookkeeping; invite_token staying null is what actually marks
     // this person as "not invited" anywhere the UI checks that.
     const { error } = await admin.from('permitted_emails').upsert(
-      { email: email.toLowerCase().trim(), company_id: companyId, membership_type_id: membershipTypeId, invite_token: null, accepted_at: null },
+      { email: email.toLowerCase().trim(), company_id: companyId, individual_hours_allotment: individualHours, invite_token: null, accepted_at: null },
       { onConflict: 'email' }
     )
     if (error) {
       console.error('[invites/send] error:', error.message)
       return NextResponse.json({ error: 'Failed to add member.' }, { status: 500 })
     }
-    await Promise.all([recalcOfficeHours(companyId), recalcOfficeHours(previousCompanyId)])
     return NextResponse.json({ ok: true, emailSent: false, skippedEmail: true })
   }
 
   const token = generateToken()
 
   const { error } = await admin.from('permitted_emails').upsert(
-    { email: email.toLowerCase().trim(), company_id: companyId, membership_type_id: membershipTypeId, invite_token: token, invited_at: new Date().toISOString(), accepted_at: null },
+    { email: email.toLowerCase().trim(), company_id: companyId, individual_hours_allotment: individualHours, invite_token: token, invited_at: new Date().toISOString(), accepted_at: null },
     { onConflict: 'email' }
   )
 
@@ -58,8 +51,6 @@ export async function POST(request: Request) {
     console.error('[invites/send] error:', error.message)
     return NextResponse.json({ error: 'Failed to create invite.' }, { status: 500 })
   }
-
-  await Promise.all([recalcOfficeHours(companyId), recalcOfficeHours(previousCompanyId)])
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
   const inviteLink = `${appUrl}/setup-account?token=${token}`

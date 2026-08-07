@@ -39,8 +39,7 @@ type MemberRow = {
   email:                 string
   company_id:            string | null
   company_name:          string
-  membership_type_id:    string | null
-  membership_type_name:  string
+  individual_hours_allotment: number | null
   invited_at:            string
   accepted_at:           string | null
   invite_token:          string | null
@@ -54,9 +53,9 @@ type MemberRow = {
   is_active:             boolean
 }
 
-function companyOrTypeLabel(m: Pick<MemberRow, 'company_name' | 'membership_type_name'>) {
+function companyOrTypeLabel(m: Pick<MemberRow, 'company_name' | 'individual_hours_allotment'>) {
   if (m.company_name) return m.company_name
-  if (m.membership_type_name) return `${m.membership_type_name} (individual)`
+  if (m.individual_hours_allotment) return `${m.individual_hours_allotment}h/month (individual)`
   return '—'
 }
 
@@ -93,7 +92,7 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
   // once it's actually open, so we lift it after the transition settles.
   const [roomsPanelSettled, setRoomsPanelSettled] = useState(false)
   const [companyId, setCompanyId]           = useState('')
-  const [membershipTypeId, setMembershipTypeId] = useState('')
+  const [individualHours, setIndividualHours] = useState('')
   const [sending, setSending]       = useState(false)
   const [copiedLink, setCopiedLink] = useState<string | null>(null)
   const [lastInviteLink, setLastInviteLink] = useState<string | null>(null)
@@ -170,7 +169,7 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
     const res  = await fetch('/api/invites/send', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, company_id: companyId || null, membership_type_id: membershipTypeId || null, skipEmail }),
+      body: JSON.stringify({ email, company_id: companyId || null, individual_hours_allotment: individualHours !== '' ? Number(individualHours) : null, skipEmail }),
     })
     const data = await res.json()
     if (!res.ok) {
@@ -182,7 +181,7 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
       setEmail('')
       setConnectToRooms(false)
       setCompanyId('')
-      setMembershipTypeId('')
+      setIndividualHours('')
       await refresh()
     }
     setSending(false)
@@ -320,7 +319,7 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
   // company or Room Hours assigned — i.e. their request hasn't been
   // granted yet. Sorted oldest-request-first so the longest wait surfaces.
   const roomAccessRequests = members
-    .filter(m => m.is_active !== false && !!m.room_access_requested_at && !m.company_id && !m.membership_type_id)
+    .filter(m => m.is_active !== false && !!m.room_access_requested_at && !m.company_id && !m.individual_hours_allotment)
     .sort((a, b) => new Date(a.room_access_requested_at!).getTime() - new Date(b.room_access_requested_at!).getTime())
 
   // Opens the edit dialog directly — no need to scroll to the row anymore
@@ -444,7 +443,7 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
                     onChange={e => {
                       const checked = e.target.checked
                       setConnectToRooms(checked)
-                      if (!checked) { setCompanyId(''); setMembershipTypeId('') }
+                      if (!checked) { setCompanyId(''); setIndividualHours('') }
                     }}
                     className="peer sr-only" />
                   <span className="absolute inset-0 rounded-full bg-gray-300 peer-checked:bg-blue-600 transition-colors duration-200" />
@@ -460,7 +459,7 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
                 <div className="flex gap-4 pt-4 mt-1 border-t border-gray-100">
                   <div className="w-72">
                     <label className="block text-xs font-medium text-gray-700 mb-1">Company</label>
-                    <CompanyCombobox companies={companies} value={companyId} onChange={id => { setCompanyId(id); if (id) setMembershipTypeId('') }} />
+                    <CompanyCombobox companies={companies} value={companyId} onChange={id => { setCompanyId(id); if (id) setIndividualHours('') }} />
                   </div>
                   <div className="w-72">
                     <label className="block text-xs font-medium text-gray-700 mb-1">Room Hours</label>
@@ -468,12 +467,20 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
                       <input type="text" disabled value={pooledHoursLabel(companies, companyId)}
                         className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-gray-100 text-gray-500" />
                     ) : (
-                      <select value={membershipTypeId}
-                        onChange={e => setMembershipTypeId(e.target.value)}
-                        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <option value="">No hours assigned</option>
-                        {individualMembershipTypes(membershipTypes).map(t => <option key={t.id} value={t.id}>{t.hours_per_month}h/month ({t.name})</option>)}
-                      </select>
+                      <>
+                        <input type="number" min="0" step="0.5" value={individualHours}
+                          onChange={e => setIndividualHours(e.target.value)}
+                          placeholder="e.g. 6"
+                          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                        <div className="flex flex-wrap gap-1.5 mt-1.5">
+                          {individualMembershipTypes(membershipTypes).map(t => (
+                            <button key={t.id} type="button" onClick={() => setIndividualHours(String(t.hours_per_month))}
+                              className="text-xs bg-gray-100 hover:bg-gray-200 text-gray-600 px-2 py-1 rounded-md">
+                              {t.name} ({t.hours_per_month}h)
+                            </button>
+                          ))}
+                        </div>
+                      </>
                     )}
                   </div>
                 </div>
@@ -547,7 +554,7 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
                     <tr key={m.id} id={`member-row-${m.id}`} className="border-b border-gray-100 last:border-0 hover:bg-gray-50">
                       <td className="px-4 py-3 font-medium text-gray-900 truncate" title={m.full_name ?? undefined}>
                         {m.full_name ?? '—'}
-                        {m.room_access_requested_at && !m.company_id && !m.membership_type_id && (
+                        {m.room_access_requested_at && !m.company_id && !m.individual_hours_allotment && (
                           <span title="Requested room access" className="inline-flex items-center justify-center w-4 h-4 ml-1.5 rounded-full bg-amber-100 text-amber-700 align-middle">
                             <DoorOpen size={10} />
                           </span>

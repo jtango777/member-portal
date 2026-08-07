@@ -45,7 +45,7 @@ export async function POST(request: Request) {
   await admin.from('profiles').insert({
     id:                  userId,
     company_id:          invite.company_id,
-    membership_type_id:  invite.membership_type_id ?? null,
+    individual_hours_allotment: invite.individual_hours_allotment ?? null,
     full_name:           name.trim(),
     is_admin:            false,
     default_location_id: default_location_id ?? invite.default_location_id ?? null,

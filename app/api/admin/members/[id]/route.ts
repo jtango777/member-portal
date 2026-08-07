@@ -1,6 +1,5 @@
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
-import { recalcOfficeHours } from '@/lib/officeHours'
 import { sendRoomAccessGrantedEmail } from '@/lib/email'
 
 async function assertAdmin() {
@@ -17,7 +16,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   const caller = await assertAdmin()
   if (!caller) return NextResponse.json({ error: 'Admins only' }, { status: 403 })
 
-  const { company_id, membership_type_id, full_name, email, default_location_id, seating, is_active } = await request.json()
+  const { company_id, individual_hours_allotment, full_name, email, default_location_id, seating, is_active } = await request.json()
 
   const admin = createAdminClient()
 
@@ -25,7 +24,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   // and old company_id (needed to recalc office hours if company is changing)
   const { data: current, error: fetchErr } = await admin
     .from('permitted_emails')
-    .select('email, company_id, membership_type_id, full_name')
+    .select('email, company_id, individual_hours_allotment, full_name')
     .eq('id', id)
     .single()
 
@@ -34,27 +33,27 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   }
 
   // Whichever company will end up in effect after this update — used to
-  // decide whether membership_type_id should be allowed to stick.
+  // decide whether individual_hours_allotment should be allowed to stick.
   const effectiveCompanyId = company_id !== undefined ? (company_id || null) : current.company_id
-  const effectiveMembershipTypeId = effectiveCompanyId
+  const effectiveIndividualHours = effectiveCompanyId
     ? null
-    : (membership_type_id !== undefined ? (membership_type_id || null) : current.membership_type_id)
+    : (individual_hours_allotment !== undefined ? (individual_hours_allotment || null) : current.individual_hours_allotment)
   // They now have a way to book — clear any "please give me room access"
   // request so it stops showing up as outstanding.
-  const grantsRoomAccess = !!effectiveCompanyId || !!effectiveMembershipTypeId
+  const grantsRoomAccess = !!effectiveCompanyId || !!effectiveIndividualHours
   // Only email if this is the actual moment access turns on, not every
   // edit to an already-connected member.
-  const hadAccessBefore = !!current.company_id || !!current.membership_type_id
+  const hadAccessBefore = !!current.company_id || !!current.individual_hours_allotment
   const isNewlyGranted = !hadAccessBefore && grantsRoomAccess
 
   // Build permitted_emails update
-  const peUpdate: Record<string, string | null | boolean> = {}
+  const peUpdate: Record<string, string | number | null | boolean> = {}
   if (company_id           !== undefined) peUpdate.company_id           = company_id || null
-  // Membership type only matters without a company — clear it whenever a
+  // Individual hours only matter without a company — clear them whenever a
   // company is (or already is) assigned so the two never disagree about
   // where hours live.
-  if (membership_type_id   !== undefined) peUpdate.membership_type_id   = effectiveCompanyId ? null : (membership_type_id || null)
-  else if (company_id && !current.company_id) peUpdate.membership_type_id = null // gaining a company clears any individual membership type
+  if (individual_hours_allotment !== undefined) peUpdate.individual_hours_allotment = effectiveCompanyId ? null : (individual_hours_allotment || null)
+  else if (company_id && !current.company_id) peUpdate.individual_hours_allotment = null // gaining a company clears any individual hours
   if (full_name            !== undefined) peUpdate.full_name            = full_name
   if (email                !== undefined) peUpdate.email                = email
   if (default_location_id  !== undefined) peUpdate.default_location_id  = default_location_id ?? null
@@ -79,15 +78,15 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 
   if (authUser) {
     // Update profile fields
-    const profileUpdate: Record<string, string | null | boolean> = {}
+    const profileUpdate: Record<string, string | number | null | boolean> = {}
     if (company_id           !== undefined) profileUpdate.company_id           = company_id || null
-    if (membership_type_id   !== undefined) profileUpdate.membership_type_id   = effectiveCompanyId ? null : (membership_type_id || null)
-    else if (company_id && !current.company_id) profileUpdate.membership_type_id = null
+    if (individual_hours_allotment !== undefined) profileUpdate.individual_hours_allotment = effectiveCompanyId ? null : (individual_hours_allotment || null)
+    else if (company_id && !current.company_id) profileUpdate.individual_hours_allotment = null
     if (full_name            !== undefined) profileUpdate.full_name            = full_name
     if (default_location_id  !== undefined) profileUpdate.default_location_id  = default_location_id ?? null
     if (seating              !== undefined) profileUpdate.seating              = seating || null
     if (is_active             !== undefined) profileUpdate.is_active            = is_active
-    if ((company_id !== undefined || membership_type_id !== undefined) && grantsRoomAccess) {
+    if ((company_id !== undefined || individual_hours_allotment !== undefined) && grantsRoomAccess) {
       profileUpdate.room_access_requested_at = null
     }
 
@@ -115,12 +114,6 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     }
   }
 
-  // Recalc office hours for whichever company(s) could have changed headcount:
-  // the new company (if moved/changed), the old one, or the same one if just
-  // is_active flipped.
-  if (company_id !== undefined || is_active !== undefined) {
-    await Promise.all([recalcOfficeHours(effectiveCompanyId), recalcOfficeHours(current.company_id)])
-  }
 
   return NextResponse.json({ ok: true })
 }
@@ -159,8 +152,6 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
     console.error('[admin/members] DELETE error:', error.message)
     return NextResponse.json({ error: 'Failed to remove member.' }, { status: 500 })
   }
-
-  await recalcOfficeHours(pe.company_id)
 
   return NextResponse.json({ ok: true })
 }

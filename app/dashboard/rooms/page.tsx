@@ -13,10 +13,10 @@ export default async function RoomsPage() {
   if (!profile) redirect('/login')
   const supabase = await createClient()
 
-  // Access requires either a company (shared pool) or a membership type
-  // assigned directly (individual pool) — a bare account with neither isn't
-  // set up for room access yet.
-  const noAccess = !profile.is_admin && !profile.company_id && !profile.membership_type_id
+  // Access requires either a company (shared pool) or individual hours
+  // assigned directly — a bare account with neither isn't set up for room
+  // access yet.
+  const noAccess = !profile.is_admin && !profile.company_id && !profile.individual_hours_allotment
 
   if (noAccess) {
     return (
@@ -33,12 +33,12 @@ export default async function RoomsPage() {
   const { data: locations } = await supabase.from('locations').select('*').order('name')
 
   // Hour pool: a real company's shared pool, or (no company) a synthetic
-  // pool built from this person's own membership type, scoped to just them.
+  // pool built from this person's own individual hours, scoped to just them.
   const hourScope: 'company' | 'individual' = profile.company_id ? 'company' : 'individual'
   const hourPool = profile.company_id
     ? (profile.companies ?? null)
-    : profile.membership_types
-      ? { id: profile.id, name: profile.membership_types.name, monthly_hours_allotment: profile.membership_types.hours_per_month ?? 0, membership_type_id: null, created_at: '' }
+    : profile.individual_hours_allotment
+      ? { id: profile.id, name: 'Individual', monthly_hours_allotment: profile.individual_hours_allotment, membership_type_id: null, created_at: '' }
       : null
 
   // Calculate hours used for current month (non-admin users)

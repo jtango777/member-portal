@@ -50,16 +50,16 @@ export async function POST(request: Request) {
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('*, companies(*), membership_types(*)')
+    .select('*, companies(*)')
     .eq('id', user.id)
     .single()
 
   if (!profile) return NextResponse.json({ error: 'Profile not found' }, { status: 403 })
 
-  // A company gives a shared pool; a membership type (set directly when
-  // there's no company) gives an individual one. Neither means the account
-  // isn't set up for room access yet.
-  if (!profile.is_admin && !profile.company_id && !profile.membership_type_id) {
+  // A company gives a shared pool; individual_hours_allotment (set directly
+  // when there's no company) gives a personal one. Neither means the
+  // account isn't set up for room access yet.
+  if (!profile.is_admin && !profile.company_id && !profile.individual_hours_allotment) {
     return NextResponse.json({ error: 'Your account is not set up for room access. Contact your admin.' }, { status: 403 })
   }
 
@@ -119,8 +119,8 @@ export async function POST(request: Request) {
   if (end <= start) return NextResponse.json({ error: 'End time must be after start time' }, { status: 400 })
 
   // Check hour allotment for non-admins — a shared company pool if they
-  // have one, otherwise their own individual pool from their membership type.
-  if (!profile.is_admin && (profile.company_id || profile.membership_type_id)) {
+  // have one, otherwise their own individual pool.
+  if (!profile.is_admin && (profile.company_id || profile.individual_hours_allotment)) {
     const { start: monthStart, end: monthEnd } = getMonthBounds(start)
     let monthQuery = adminSupabase
       .from('reservations')
@@ -133,7 +133,7 @@ export async function POST(request: Request) {
     const { data: monthRes } = await monthQuery
 
     const used   = calcHoursUsed(monthRes ?? [])
-    const limit  = profile.company_id ? (profile.companies?.monthly_hours_allotment ?? 0) : (profile.membership_types?.hours_per_month ?? 0)
+    const limit  = profile.company_id ? (profile.companies?.monthly_hours_allotment ?? 0) : (profile.individual_hours_allotment ?? 0)
     const newHrs = (end.getTime() - start.getTime()) / 3600000
     if (used + newHrs > limit) {
       const whose = profile.company_id ? 'Your company' : 'You'

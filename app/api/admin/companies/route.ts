@@ -1,6 +1,5 @@
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
-import { recalcOfficeHours } from '@/lib/officeHours'
 
 async function assertAdmin() {
   const supabase = await createClient()
@@ -41,8 +40,6 @@ export async function POST(request: Request) {
     console.error('[admin/companies] POST error:', error.message)
     return NextResponse.json({ error: 'Failed to create company.' }, { status: 500 })
   }
-
-  if (membership_type_id) await recalcOfficeHours(data.id)
 
   return NextResponse.json(data, { status: 201 })
 }

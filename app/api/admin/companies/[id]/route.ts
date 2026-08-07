@@ -1,6 +1,5 @@
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
-import { recalcOfficeHours } from '@/lib/officeHours'
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -29,15 +28,6 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   if (error) {
     console.error('[admin/companies] PATCH error:', error.message)
     return NextResponse.json({ error: 'Failed to update company.' }, { status: 500 })
-  }
-
-  // If the tier just changed (onto or off Private Office), recalc — a no-op
-  // unless the company is now on the Private Office tier. Re-fetch afterward
-  // so the response reflects the recalculated hours, not the stale value.
-  if ('membership_type_id' in body) {
-    await recalcOfficeHours(id)
-    const { data: refreshed } = await admin.from('companies').select('*, membership_types(*)').eq('id', id).single()
-    return NextResponse.json(refreshed ?? data)
   }
 
   return NextResponse.json(data)

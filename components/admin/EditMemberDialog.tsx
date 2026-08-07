@@ -13,7 +13,7 @@ export type EditableMember = {
   full_name: string | null
   email: string
   company_id: string | null
-  membership_type_id: string | null
+  individual_hours_allotment: number | null
   default_location_id: string | null
   seating: string | null
 }
@@ -27,10 +27,10 @@ type Props = {
   locations: { id: string; name: string }[]
 }
 
-// Company only matters for people sharing an hour pool with others — a
-// standalone individual can instead carry a membership type directly, and
-// "Private Office" is a company-only concept (per-office, not per-person),
-// so it's left out of that list.
+// Presets are just a quick-fill shortcut now, not an enforced tier — real
+// hours are a plain number (GetARoom numbers, bonus hours granted to a
+// specific person, etc. don't fit a fixed preset). "Private Office" is a
+// company-only concept, so it's left out of the shortcut list.
 function individualMembershipTypes(types: MembershipType[]) {
   return types.filter(t => t.hours_per_month != null)
 }
@@ -48,7 +48,7 @@ export default function EditMemberDialog({ member, onOpenChange, onSuccess, comp
   const [fullName, setFullName]     = useState('')
   const [email, setEmail]           = useState('')
   const [companyId, setCompanyId]   = useState('')
-  const [membershipTypeId, setMembershipTypeId] = useState('')
+  const [individualHours, setIndividualHours] = useState('')
   const [locationId, setLocationId] = useState('')
   const [seating, setSeating]       = useState('')
   const [saving, setSaving]         = useState(false)
@@ -58,7 +58,7 @@ export default function EditMemberDialog({ member, onOpenChange, onSuccess, comp
     setFullName(member.full_name ?? '')
     setEmail(member.email)
     setCompanyId(member.company_id ?? '')
-    setMembershipTypeId(member.membership_type_id ?? '')
+    setIndividualHours(member.individual_hours_allotment != null ? String(member.individual_hours_allotment) : '')
     setLocationId(member.default_location_id ?? '')
     setSeating(member.seating ?? '')
   }, [member])
@@ -73,7 +73,7 @@ export default function EditMemberDialog({ member, onOpenChange, onSuccess, comp
         full_name:           fullName.trim() || null,
         email:               email.trim(),
         company_id:          companyId || null,
-        membership_type_id:  membershipTypeId || null,
+        individual_hours_allotment: individualHours !== '' ? Number(individualHours) : null,
         default_location_id: locationId || null,
         seating:             seating || null,
       }),
@@ -117,7 +117,7 @@ export default function EditMemberDialog({ member, onOpenChange, onSuccess, comp
               <CompanyCombobox
                 companies={companies}
                 value={companyId}
-                onChange={id => { setCompanyId(id); if (id) setMembershipTypeId('') }}
+                onChange={id => { setCompanyId(id); if (id) setIndividualHours('') }}
               />
             </div>
 
@@ -127,11 +127,20 @@ export default function EditMemberDialog({ member, onOpenChange, onSuccess, comp
                 <input type="text" disabled value={pooledHoursLabel(companies, companyId)}
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-gray-100 text-gray-500" />
               ) : (
-                <select value={membershipTypeId} onChange={e => setMembershipTypeId(e.target.value)}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-                  <option value="">No hours assigned</option>
-                  {individualMembershipTypes(membershipTypes).map(t => <option key={t.id} value={t.id}>{t.hours_per_month}h/month ({t.name})</option>)}
-                </select>
+                <>
+                  <input type="number" min="0" step="0.5" value={individualHours}
+                    onChange={e => setIndividualHours(e.target.value)}
+                    placeholder="e.g. 6"
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                  <div className="flex flex-wrap gap-1.5 mt-1.5">
+                    {individualMembershipTypes(membershipTypes).map(t => (
+                      <button key={t.id} type="button" onClick={() => setIndividualHours(String(t.hours_per_month))}
+                        className="text-xs bg-gray-100 hover:bg-gray-200 text-gray-600 px-2 py-1 rounded-md">
+                        {t.name} ({t.hours_per_month}h)
+                      </button>
+                    ))}
+                  </div>
+                </>
               )}
             </div>
 

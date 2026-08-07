@@ -1,6 +1,5 @@
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
-import { recalcOfficeHours } from '@/lib/officeHours'
 
 // Permanently deletes an already-archived member — the record, their auth
 // account, and their bookings. Unlike DELETE on the base member route
@@ -46,8 +45,6 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
     console.error('[members/purge] permitted_emails delete error:', error.message)
     return NextResponse.json({ error: 'Failed to permanently remove member.' }, { status: 500 })
   }
-
-  await recalcOfficeHours(pe.company_id)
 
   return NextResponse.json({ ok: true })
 }
