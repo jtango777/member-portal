@@ -409,11 +409,11 @@ export default function ReservationModal({
         >
         <Dialog.Content
           ref={contentRef}
-          className="pointer-events-auto bg-white rounded-xl shadow-2xl w-[92vw] sm:w-full max-w-lg md:max-w-2xl overflow-y-auto"
+          className="pointer-events-auto bg-white rounded-xl shadow-2xl w-[92vw] sm:w-full max-w-lg md:max-w-2xl overflow-hidden flex flex-col"
           style={{ maxHeight: modalMaxHeight }}
         >
-          {/* Header */}
-          <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+          {/* Header — stays pinned at top; only the middle section scrolls */}
+          <div className="flex-shrink-0 flex items-center justify-between px-5 py-4 border-b border-gray-100">
             <Dialog.Title className="font-semibold text-gray-900 flex items-center gap-2">
               {reservation?.is_admin_block
                 ? <><Ban size={15} className="text-slate-500" /> Admin Block</>
@@ -425,7 +425,7 @@ export default function ReservationModal({
             </Dialog.Close>
           </div>
 
-          <div className="p-5 space-y-4">
+          <div className="p-5 space-y-4 overflow-y-auto flex-1 min-h-0">
             {/* Read-only view */}
             {mode === 'view' && !editing && reservation ? (
               <div className="space-y-3">
@@ -773,9 +773,12 @@ export default function ReservationModal({
                 )}
               </div>
             )}
+          </div>
 
-            {/* Actions */}
-            <div className="flex items-center justify-between pt-1">
+          {/* Actions — pinned at the bottom so Save/Cancel are always
+              reachable without scrolling, no matter how much content is
+              in the middle section above. */}
+          <div className="flex-shrink-0 flex items-center justify-between px-5 py-3 border-t border-gray-100 bg-white">
               <div className="flex items-center gap-2">
 
                 {/* Admin delete — admin block */}
@@ -896,7 +899,6 @@ export default function ReservationModal({
                 )}
               </div>
             </div>
-          </div>
         </Dialog.Content>
         </div>
       </Dialog.Portal>
