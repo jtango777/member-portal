@@ -3,12 +3,12 @@
 import { useState, useEffect, useCallback } from 'react'
 import NextLink from 'next/link'
 import { Company, MembershipType } from '@/types'
-import { Plus, Send, Check, Shield, ShieldOff, Download, Copy, Link, Search, Edit2, Trash2, X, ChevronLeft, ChevronRight, ChevronDown, Camera, Users, ArrowUp, ArrowDown, ArrowUpDown, DoorOpen } from 'lucide-react'
+import { Plus, Send, Check, Shield, ShieldOff, Download, Copy, Link, Search, Edit2, Trash2, X, ChevronLeft, ChevronRight, Camera, Users, ArrowUp, ArrowDown, ArrowUpDown, DoorOpen } from 'lucide-react'
 import { formatShortDate } from '@/lib/utils'
 import toast from 'react-hot-toast'
 import AssignPhotoDialog from '@/components/admin/AssignPhotoDialog'
 import CompanyCombobox from '@/components/admin/CompanyCombobox'
-import { SEATING_OPTIONS } from '@/lib/seating'
+import EditMemberDialog from '@/components/admin/EditMemberDialog'
 
 function IconAction({ icon: Icon, label, onClick, disabled, colorClass }: {
   icon: React.ElementType
@@ -50,142 +50,23 @@ type MemberRow = {
   is_active:             boolean
 }
 
-type EditRow = {
-  id:                  string
-  full_name:           string
-  email:               string
-  company_id:          string
-  membership_type_id:  string
-  default_location_id: string
-  seating:             string
-}
-
-// Company only matters for people sharing an hour pool with others — a
-// standalone individual can instead carry a membership type directly, and
-// "Private Office" is a company-only concept (per-office, not per-person),
-// so it's left out of that list.
-function individualMembershipTypes(types: MembershipType[]) {
-  return types.filter(t => t.hours_per_month != null)
-}
-
 function companyOrTypeLabel(m: Pick<MemberRow, 'company_name' | 'membership_type_name'>) {
   if (m.company_name) return m.company_name
   if (m.membership_type_name) return `${m.membership_type_name} (individual)`
   return '—'
 }
 
+// Company only matters for people sharing an hour pool with others — a
+// standalone individual can instead carry a membership type directly, and
+// "Private Office" is a company-only concept (per-office, not per-person),
+// so it's left out of this list. Used by the Add Member form's Room Hours field.
+function individualMembershipTypes(types: MembershipType[]) {
+  return types.filter(t => t.hours_per_month != null)
+}
+
 function pooledHoursLabel(companies: Company[], companyId: string) {
   const hours = companies.find(c => c.id === companyId)?.monthly_hours_allotment ?? 0
   return `${hours}h/month (pooled with company)`
-}
-
-function EditForm({ m, colSpan, editingRow, setEditingRow, companies, membershipTypes, locations, savingRow, saveRow }: {
-  m: MemberRow
-  colSpan: number
-  editingRow: EditRow | null
-  setEditingRow: React.Dispatch<React.SetStateAction<EditRow | null>>
-  companies: Company[]
-  membershipTypes: MembershipType[]
-  locations: { id: string; name: string }[]
-  savingRow: boolean
-  saveRow: (memberId: string) => void
-}) {
-  const [expanded, setExpanded] = useState(false)
-  if (!editingRow || editingRow.id !== m.id) return null
-  return (
-    <>
-      {/* Row 1 — same padding/columns as the locked row, so editing swaps
-          values in place without shifting anything. Only Name/Email/Company/
-          Location live here, matching their header columns exactly. */}
-      <tr id={`member-row-${m.id}`} className={expanded ? 'border-b-0 bg-blue-50/30' : 'border-b border-gray-100 bg-blue-50/30'}>
-        <td className="px-4 py-3">
-          <input type="text" placeholder="Name" value={editingRow.full_name}
-            onChange={e => setEditingRow(r => r ? { ...r, full_name: e.target.value } : r)}
-            className="w-full bg-transparent border border-transparent hover:border-gray-200 focus:border-blue-400 rounded px-1 -mx-1 text-sm font-medium text-gray-900 focus:outline-none focus:ring-1 focus:ring-blue-500" />
-        </td>
-        <td className="px-4 py-3">
-          <input type="email" placeholder="Email" value={editingRow.email}
-            onChange={e => setEditingRow(r => r ? { ...r, email: e.target.value } : r)}
-            className="w-full bg-transparent border border-transparent hover:border-gray-200 focus:border-blue-400 rounded px-1 -mx-1 text-sm text-gray-600 focus:outline-none focus:ring-1 focus:ring-blue-500" />
-        </td>
-        <td className="px-4 py-3">
-          <CompanyCombobox
-            companies={companies}
-            value={editingRow.company_id}
-            onChange={id => setEditingRow(r => r ? { ...r, company_id: id, membership_type_id: id ? '' : r.membership_type_id } : r)}
-            variant="inline"
-          />
-        </td>
-        <td className="px-4 py-3">
-          {locations.length > 0 ? (
-            <div className="relative">
-              <select
-                value={editingRow.default_location_id}
-                onChange={e => setEditingRow(r => r ? { ...r, default_location_id: e.target.value } : r)}
-                className="w-full appearance-none bg-transparent border border-transparent hover:border-gray-200 focus:border-blue-400 rounded pl-1 -ml-1 pr-4 py-0 text-sm text-gray-600 truncate focus:outline-none focus:ring-1 focus:ring-blue-500"
-              >
-                <option value="">No default location</option>
-                {locations.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
-              </select>
-              <ChevronDown size={12} className="pointer-events-none absolute right-0.5 top-1/2 -translate-y-1/2 text-gray-400" />
-            </div>
-          ) : <span className="text-sm text-gray-300">—</span>}
-        </td>
-        <td className="px-4 py-3" />
-        <td className="px-4 py-3" />
-        <td className="px-4 py-3 text-right whitespace-nowrap">
-          <button type="button" onClick={() => setExpanded(v => !v)}
-            className="block ml-auto text-xs text-gray-400 hover:text-gray-600 font-medium mb-1">
-            {expanded ? 'Less fields ▲' : 'More fields ▾'}
-          </button>
-          <button onClick={() => saveRow(m.id)} disabled={savingRow}
-            className="text-xs bg-blue-600 text-white px-2.5 py-1 rounded font-medium hover:bg-blue-700 disabled:opacity-50">
-            {savingRow ? '…' : 'Save'}
-          </button>{' '}
-          <button onClick={() => setEditingRow(null)}
-            className="text-xs text-gray-500 hover:text-gray-700">Cancel</button>
-        </td>
-      </tr>
-
-      {/* Row 2 — extra fields with no header column of their own, tucked
-          behind "More fields" so they don't clutter every edit by default. */}
-      {expanded && (
-        <tr className="border-b border-gray-100 bg-blue-50/30">
-          <td colSpan={colSpan} className="px-4 pb-3 pt-0">
-            <div className="flex items-center gap-3 flex-wrap">
-              <label className="flex items-center gap-1.5 text-xs text-gray-500">
-                Room Hours:
-                {editingRow.company_id ? (
-                  <input type="text" disabled value={pooledHoursLabel(companies, editingRow.company_id)}
-                    className="border border-gray-300 rounded px-2 py-1 text-xs bg-gray-100 text-gray-500 w-40" />
-                ) : (
-                  <select
-                    value={editingRow.membership_type_id}
-                    onChange={e => setEditingRow(r => r ? { ...r, membership_type_id: e.target.value } : r)}
-                    className="border border-gray-300 rounded px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="">No hours assigned</option>
-                    {individualMembershipTypes(membershipTypes).map(t => <option key={t.id} value={t.id}>{t.hours_per_month}h/month ({t.name})</option>)}
-                  </select>
-                )}
-              </label>
-              <label className="flex items-center gap-1.5 text-xs text-gray-500">
-                Seating:
-                <select
-                  value={editingRow.seating}
-                  onChange={e => setEditingRow(r => r ? { ...r, seating: e.target.value } : r)}
-                  className="border border-gray-300 rounded px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="">No seating set</option>
-                  {SEATING_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
-                </select>
-              </label>
-            </div>
-          </td>
-        </tr>
-      )}
-    </>
-  )
 }
 
 type Props = { companies: Company[]; membershipTypes: MembershipType[] }
@@ -212,8 +93,7 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
   const [lastInviteLink, setLastInviteLink] = useState<string | null>(null)
   const [togglingAdmin, setTogglingAdmin]   = useState<string | null>(null)
   const [resending, setResending]   = useState<string | null>(null)
-  const [editingRow, setEditingRow] = useState<EditRow | null>(null)
-  const [savingRow, setSavingRow]   = useState(false)
+  const [editTarget, setEditTarget] = useState<MemberRow | null>(null)
   const [confirmRemove, setConfirmRemove]   = useState<string | null>(null)
   const [removing, setRemoving]             = useState<string | null>(null)
   const [confirmInviteAll, setConfirmInviteAll] = useState(false)
@@ -352,33 +232,6 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
     setTogglingAdmin(null)
   }
 
-  // ── Edit row ───────────────────────────────────────────────────────────────
-
-  async function saveRow(memberId: string) {
-    if (!editingRow) return
-    setSavingRow(true)
-    const res = await fetch(`/api/admin/members/${memberId}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        full_name:           editingRow.full_name.trim() || null,
-        email:               editingRow.email.trim(),
-        company_id:          editingRow.company_id || null,
-        membership_type_id:  editingRow.membership_type_id || null,
-        default_location_id: editingRow.default_location_id || null,
-        seating:             editingRow.seating || null,
-      }),
-    })
-    if (res.ok) {
-      toast.success('Member updated')
-      setEditingRow(null)
-      await refresh()
-    } else {
-      const d = await res.json()
-      toast.error(d.error ?? 'Failed')
-    }
-    setSavingRow(false)
-  }
 
   // ── Remove member ──────────────────────────────────────────────────────────
 
@@ -464,14 +317,10 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
     .filter(m => m.is_active !== false && !!m.room_access_requested_at && !m.company_id && !m.membership_type_id)
     .sort((a, b) => new Date(a.room_access_requested_at!).getTime() - new Date(b.room_access_requested_at!).getTime())
 
+  // Opens the edit dialog directly — no need to scroll to the row anymore
+  // since editing happens in a modal, not inline in the table.
   function jumpToMember(m: MemberRow) {
-    // Clear anything that could hide the row (search text, a location
-    // filter, or pagination) before scrolling to it.
-    setSearch('')
-    setLocationFilter('')
-    setShowAllActive(true)
-    setEditingRow({ id: m.id, full_name: m.full_name ?? '', email: m.email, company_id: m.company_id ?? '', membership_type_id: m.membership_type_id ?? '', default_location_id: m.default_location_id ?? '', seating: m.seating ?? '' })
-    setTimeout(() => document.getElementById(`member-row-${m.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 100)
+    setEditTarget(m)
   }
 
   const activeTotalPages  = Math.max(1, Math.ceil(active.length / activePageSize))
@@ -686,9 +535,6 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
             </thead>
             <tbody>
               {pagedActive.map(m => (
-                editingRow?.id === m.id
-                  ? <EditForm key={m.id} m={m} colSpan={7} editingRow={editingRow} setEditingRow={setEditingRow} companies={companies} membershipTypes={membershipTypes} locations={locations} savingRow={savingRow} saveRow={saveRow} />
-                  : (
                     <tr key={m.id} id={`member-row-${m.id}`} className="border-b border-gray-100 last:border-0 hover:bg-gray-50">
                       <td className="px-4 py-3 font-medium text-gray-900 truncate" title={m.full_name ?? undefined}>
                         {m.full_name ?? '—'}
@@ -714,7 +560,7 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
                           <IconAction
                             icon={Edit2}
                             label="Edit member"
-                            onClick={() => setEditingRow({ id: m.id, full_name: m.full_name ?? '', email: m.email, company_id: m.company_id ?? '', membership_type_id: m.membership_type_id ?? '', default_location_id: m.default_location_id ?? '', seating: m.seating ?? '' })}
+                            onClick={() => setEditTarget(m)}
                             colorClass="text-gray-400 hover:bg-gray-100 hover:text-gray-600"
                           />
                           {m.user_id && (
@@ -754,7 +600,6 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
                         </div>
                       </td>
                     </tr>
-                  )
               ))}
             </tbody>
           </table>
@@ -779,9 +624,6 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
             </thead>
             <tbody>
               {pagedPending.map(m => (
-                editingRow?.id === m.id
-                  ? <EditForm key={m.id} m={m} colSpan={7} editingRow={editingRow} setEditingRow={setEditingRow} companies={companies} membershipTypes={membershipTypes} locations={locations} savingRow={savingRow} saveRow={saveRow} />
-                  : (
                     <tr key={m.id} className="border-b border-gray-100 last:border-0 hover:bg-gray-50">
                       <td className="px-4 py-3 font-medium text-gray-900 truncate" title={m.full_name ?? undefined}>
                         {m.full_name ?? <span className="text-gray-400 italic">No name</span>}
@@ -798,7 +640,7 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
                           <IconAction
                             icon={Edit2}
                             label="Edit member"
-                            onClick={() => setEditingRow({ id: m.id, full_name: m.full_name ?? '', email: m.email, company_id: m.company_id ?? '', membership_type_id: m.membership_type_id ?? '', default_location_id: m.default_location_id ?? '', seating: m.seating ?? '' })}
+                            onClick={() => setEditTarget(m)}
                             colorClass="text-gray-400 hover:bg-gray-100 hover:text-gray-600"
                           />
                           <IconAction
@@ -842,7 +684,6 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
                         </div>
                       </td>
                     </tr>
-                  )
               ))}
             </tbody>
           </table>
@@ -867,6 +708,15 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
           avatarUrl={photoTarget.avatarUrl}
         />
       )}
+
+      <EditMemberDialog
+        member={editTarget}
+        onOpenChange={v => { if (!v) setEditTarget(null) }}
+        onSuccess={refresh}
+        companies={companies}
+        membershipTypes={membershipTypes}
+        locations={locations}
+      />
     </div>
   )
 }
