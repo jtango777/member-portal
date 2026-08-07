@@ -77,7 +77,11 @@ export default function PhotoUploadDialog({
         <Dialog.Content className="pointer-events-auto bg-white rounded-xl border border-gray-200 p-6 w-full max-w-sm">
           <div className="flex items-center justify-between mb-4">
             <Dialog.Title className="text-sm font-semibold text-gray-900">{title}</Dialog.Title>
-            <Dialog.Close className="text-gray-400 hover:text-gray-600"><X size={16} /></Dialog.Close>
+            {imageSrc ? (
+              <Dialog.Close className="text-gray-400 hover:text-gray-600"><X size={16} /></Dialog.Close>
+            ) : (
+              <Dialog.Close className="text-sm text-gray-500 hover:text-gray-700 font-medium">Skip for now</Dialog.Close>
+            )}
           </div>
           <Dialog.Description className="text-sm text-gray-500 mb-4">{description}</Dialog.Description>
 

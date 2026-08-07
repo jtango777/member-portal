@@ -121,16 +121,16 @@ function EditForm({ m, colSpan, editingRow, setEditingRow, companies, membership
             <select
               value={editingRow.default_location_id}
               onChange={e => setEditingRow(r => r ? { ...r, default_location_id: e.target.value } : r)}
-              className="w-full bg-transparent border border-transparent hover:border-gray-200 focus:border-blue-400 rounded px-1 -mx-1 text-xs text-gray-600 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="w-full bg-transparent border border-transparent hover:border-gray-200 focus:border-blue-400 rounded px-1 -mx-1 text-sm text-gray-600 focus:outline-none focus:ring-1 focus:ring-blue-500"
             >
               <option value="">No default location</option>
               {locations.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
             </select>
-          ) : <span className="text-xs text-gray-300">—</span>}
+          ) : <span className="text-sm text-gray-300">—</span>}
         </td>
         <td className="px-4 py-3">
           <button type="button" onClick={() => setExpanded(v => !v)}
-            className="text-xs text-gray-400 hover:text-gray-600 font-medium whitespace-nowrap">
+            className="text-sm text-gray-400 hover:text-gray-600 font-medium whitespace-nowrap">
             {expanded ? 'Less fields ▲' : 'More fields ▾'}
           </button>
         </td>
