@@ -23,7 +23,10 @@ function IconAction({ icon: Icon, label, onClick, disabled, colorClass }: {
         className={`p-1.5 rounded-md transition-colors disabled:opacity-50 ${colorClass}`}>
         <Icon size={14} />
       </button>
-      <span className="pointer-events-none absolute right-0 top-full z-10 mt-1.5 whitespace-nowrap rounded bg-gray-900 px-2 py-1 text-xs text-white opacity-0 transition-opacity group-hover:opacity-100">
+      {/* Above, not below — the table wrapper clips vertical overflow (to
+          kill an unrelated scrollbar bug), which cut this off whenever it's
+          the last (or only) row. */}
+      <span className="pointer-events-none absolute right-0 bottom-full z-10 mb-1.5 whitespace-nowrap rounded bg-gray-900 px-2 py-1 text-xs text-white opacity-0 transition-opacity group-hover:opacity-100">
         {label}
       </span>
     </div>
