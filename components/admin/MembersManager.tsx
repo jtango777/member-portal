@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import NextLink from 'next/link'
 import { Company, MembershipType } from '@/types'
-import { Plus, Send, Check, Shield, ShieldOff, Download, Copy, Link, Search, Edit2, Trash2, X, ChevronLeft, ChevronRight, Camera, Users, ArrowUp, ArrowDown, ArrowUpDown, DoorOpen } from 'lucide-react'
+import { Plus, Send, Check, Shield, ShieldOff, Download, Copy, Link, Search, Edit2, Trash2, X, ChevronLeft, ChevronRight, ChevronDown, Camera, Users, ArrowUp, ArrowDown, ArrowUpDown, DoorOpen } from 'lucide-react'
 import { formatShortDate } from '@/lib/utils'
 import toast from 'react-hot-toast'
 import AssignPhotoDialog from '@/components/admin/AssignPhotoDialog'
@@ -118,24 +118,26 @@ function EditForm({ m, colSpan, editingRow, setEditingRow, companies, membership
         </td>
         <td className="px-4 py-3">
           {locations.length > 0 ? (
-            <select
-              value={editingRow.default_location_id}
-              onChange={e => setEditingRow(r => r ? { ...r, default_location_id: e.target.value } : r)}
-              className="w-full bg-transparent border border-transparent hover:border-gray-200 focus:border-blue-400 rounded px-1 -mx-1 text-sm text-gray-600 focus:outline-none focus:ring-1 focus:ring-blue-500"
-            >
-              <option value="">No default location</option>
-              {locations.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
-            </select>
+            <div className="relative">
+              <select
+                value={editingRow.default_location_id}
+                onChange={e => setEditingRow(r => r ? { ...r, default_location_id: e.target.value } : r)}
+                className="w-full appearance-none bg-transparent border border-transparent hover:border-gray-200 focus:border-blue-400 rounded pl-1 -ml-1 pr-4 py-0 text-sm text-gray-600 truncate focus:outline-none focus:ring-1 focus:ring-blue-500"
+              >
+                <option value="">No default location</option>
+                {locations.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
+              </select>
+              <ChevronDown size={12} className="pointer-events-none absolute right-0.5 top-1/2 -translate-y-1/2 text-gray-400" />
+            </div>
           ) : <span className="text-sm text-gray-300">—</span>}
         </td>
-        <td className="px-4 py-3">
-          <button type="button" onClick={() => setExpanded(v => !v)}
-            className="text-sm text-gray-400 hover:text-gray-600 font-medium whitespace-nowrap">
-            {expanded ? 'Less fields ▲' : 'More fields ▾'}
-          </button>
-        </td>
+        <td className="px-4 py-3" />
         <td className="px-4 py-3" />
         <td className="px-4 py-3 text-right whitespace-nowrap">
+          <button type="button" onClick={() => setExpanded(v => !v)}
+            className="block ml-auto text-xs text-gray-400 hover:text-gray-600 font-medium mb-1">
+            {expanded ? 'Less fields ▲' : 'More fields ▾'}
+          </button>
           <button onClick={() => saveRow(m.id)} disabled={savingRow}
             className="text-xs bg-blue-600 text-white px-2.5 py-1 rounded font-medium hover:bg-blue-700 disabled:opacity-50">
             {savingRow ? '…' : 'Save'}
@@ -545,11 +547,12 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
             <p className="text-xs font-semibold text-amber-900">
               {roomAccessRequests.length} {roomAccessRequests.length === 1 ? 'person has' : 'people have'} requested room access
             </p>
+            <p className="text-xs text-amber-700 mt-0.5">Click a name to open their row and grant access (set a Company or Room Hours):</p>
             <div className="flex flex-wrap gap-1.5 mt-1.5">
               {roomAccessRequests.map(m => (
                 <button key={m.id} onClick={() => jumpToMember(m)}
-                  className="text-xs bg-white border border-amber-300 hover:bg-amber-100 text-amber-900 font-medium px-2 py-1 rounded-md">
-                  {m.full_name ?? m.email}
+                  className="flex items-center gap-1.5 text-xs bg-white border border-amber-300 hover:bg-amber-100 text-amber-900 font-medium pl-2 pr-2.5 py-1 rounded-md">
+                  <Plus size={11} className="text-amber-600" /> {m.full_name ?? m.email}
                 </button>
               ))}
             </div>
@@ -674,7 +677,7 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
         }>
           <table className="w-full min-w-[640px] text-sm table-fixed">
             <colgroup>
-              <col className="w-[15%]" /><col className="w-[20%]" /><col className="w-[16%]" /><col className="w-[13%]" /><col className="w-[10%]" /><col className="w-[10%]" /><col className="w-[16%]" />
+              <col className="w-[15%]" /><col className="w-[19%]" /><col className="w-[13%]" /><col className="w-[15%]" /><col className="w-[9%]" /><col className="w-[9%]" /><col className="w-[20%]" />
             </colgroup>
             <thead>
               <tr className="border-b border-gray-100 bg-gray-50">
@@ -767,7 +770,7 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
         }>
           <table className="w-full min-w-[640px] text-sm table-fixed">
             <colgroup>
-              <col className="w-[15%]" /><col className="w-[20%]" /><col className="w-[16%]" /><col className="w-[13%]" /><col className="w-[10%]" /><col className="w-[10%]" /><col className="w-[16%]" />
+              <col className="w-[15%]" /><col className="w-[19%]" /><col className="w-[13%]" /><col className="w-[15%]" /><col className="w-[9%]" /><col className="w-[9%]" /><col className="w-[20%]" />
             </colgroup>
             <thead>
               <tr className="border-b border-gray-100 bg-gray-50">
