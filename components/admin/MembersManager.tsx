@@ -92,69 +92,88 @@ function EditForm({ m, colSpan, editingRow, setEditingRow, companies, membership
 }) {
   if (!editingRow || editingRow.id !== m.id) return null
   return (
-    <tr id={`member-row-${m.id}`} className="border-b border-gray-100 bg-blue-50/30">
-      <td colSpan={colSpan} className="px-4 py-3">
-        <div className="flex items-center gap-2 flex-wrap">
-          <input
-            type="text"
-            placeholder="Name"
-            value={editingRow.full_name}
+    <>
+      {/* Row 1 — one field per column, lined up under the same headers as
+          the locked row (Name/Email/Company/Location) instead of a single
+          wide cell whose fields don't match the header widths. */}
+      <tr id={`member-row-${m.id}`} className="border-b-0 bg-blue-50/30">
+        <td className="px-4 py-2">
+          <input type="text" placeholder="Name" value={editingRow.full_name}
             onChange={e => setEditingRow(r => r ? { ...r, full_name: e.target.value } : r)}
-            className="border border-gray-300 rounded px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 w-36"
-          />
-          <input
-            type="email"
-            placeholder="Email"
-            value={editingRow.email}
+            className="w-full border border-gray-300 rounded px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500" />
+        </td>
+        <td className="px-4 py-2">
+          <input type="email" placeholder="Email" value={editingRow.email}
             onChange={e => setEditingRow(r => r ? { ...r, email: e.target.value } : r)}
-            className="border border-gray-300 rounded px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 w-48"
-          />
+            className="w-full border border-gray-300 rounded px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500" />
+        </td>
+        <td className="px-4 py-2">
           <CompanyCombobox
             companies={companies}
             value={editingRow.company_id}
             onChange={id => setEditingRow(r => r ? { ...r, company_id: id, membership_type_id: id ? '' : r.membership_type_id } : r)}
-            className="w-44 text-xs"
+            className="w-full text-xs"
           />
-          {editingRow.company_id ? (
-            <input type="text" disabled value={pooledHoursLabel(companies, editingRow.company_id)}
-              className="border border-gray-300 rounded px-2 py-1 text-xs bg-gray-100 text-gray-500 w-40" />
-          ) : (
-            <select
-              value={editingRow.membership_type_id}
-              onChange={e => setEditingRow(r => r ? { ...r, membership_type_id: e.target.value } : r)}
-              className="border border-gray-300 rounded px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="">No hours assigned</option>
-              {individualMembershipTypes(membershipTypes).map(t => <option key={t.id} value={t.id}>{t.hours_per_month}h/month ({t.name})</option>)}
-            </select>
-          )}
-          {locations.length > 0 && (
+        </td>
+        <td className="px-4 py-2">
+          {locations.length > 0 ? (
             <select
               value={editingRow.default_location_id}
               onChange={e => setEditingRow(r => r ? { ...r, default_location_id: e.target.value } : r)}
-              className="border border-gray-300 rounded px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full border border-gray-300 rounded px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="">No default location</option>
               {locations.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
             </select>
-          )}
-          <select
-            value={editingRow.seating}
-            onChange={e => setEditingRow(r => r ? { ...r, seating: e.target.value } : r)}
-            className="border border-gray-300 rounded px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="">No seating set</option>
-            {SEATING_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
-          </select>
+          ) : <span className="text-xs text-gray-300">—</span>}
+        </td>
+        <td className="px-4 py-2" />
+        <td className="px-4 py-2" />
+        <td className="px-4 py-2 text-right whitespace-nowrap">
           <button onClick={() => saveRow(m.id)} disabled={savingRow}
             className="text-xs bg-blue-600 text-white px-2.5 py-1 rounded font-medium hover:bg-blue-700 disabled:opacity-50">
             {savingRow ? '…' : 'Save'}
-          </button>
+          </button>{' '}
           <button onClick={() => setEditingRow(null)}
             className="text-xs text-gray-500 hover:text-gray-700">Cancel</button>
-        </div>
-      </td>
-    </tr>
+        </td>
+      </tr>
+
+      {/* Row 2 — extra fields with no header column of their own */}
+      <tr className="border-b border-gray-100 bg-blue-50/30">
+        <td colSpan={colSpan} className="px-4 pb-2.5 pt-0">
+          <div className="flex items-center gap-3 flex-wrap">
+            <label className="flex items-center gap-1.5 text-xs text-gray-500">
+              Room Hours:
+              {editingRow.company_id ? (
+                <input type="text" disabled value={pooledHoursLabel(companies, editingRow.company_id)}
+                  className="border border-gray-300 rounded px-2 py-1 text-xs bg-gray-100 text-gray-500 w-40" />
+              ) : (
+                <select
+                  value={editingRow.membership_type_id}
+                  onChange={e => setEditingRow(r => r ? { ...r, membership_type_id: e.target.value } : r)}
+                  className="border border-gray-300 rounded px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">No hours assigned</option>
+                  {individualMembershipTypes(membershipTypes).map(t => <option key={t.id} value={t.id}>{t.hours_per_month}h/month ({t.name})</option>)}
+                </select>
+              )}
+            </label>
+            <label className="flex items-center gap-1.5 text-xs text-gray-500">
+              Seating:
+              <select
+                value={editingRow.seating}
+                onChange={e => setEditingRow(r => r ? { ...r, seating: e.target.value } : r)}
+                className="border border-gray-300 rounded px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">No seating set</option>
+                {SEATING_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
+              </select>
+            </label>
+          </div>
+        </td>
+      </tr>
+    </>
   )
 }
 
