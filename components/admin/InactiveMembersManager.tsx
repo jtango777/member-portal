@@ -142,28 +142,32 @@ export default function InactiveMembersManager() {
                 </td>
                 <td className="px-4 py-3 text-xs text-gray-500">{m.accepted_at ? `Joined ${formatShortDate(new Date(m.accepted_at))}` : 'Never joined'}</td>
                 <td className="px-4 py-3">
-                  <div className="flex items-center justify-end gap-1.5">
-                    {confirmPurge === m.id ? (
-                      <>
-                        <span className="text-xs text-red-700 font-medium whitespace-nowrap">Delete forever?</span>
-                        <button onClick={() => handlePurge(m.id)} disabled={purging === m.id}
-                          className="text-xs bg-red-600 hover:bg-red-700 text-white font-medium px-2 py-1 rounded-md disabled:opacity-50">
-                          {purging === m.id ? '…' : 'Yes'}
-                        </button>
-                        <button onClick={() => setConfirmPurge(null)} className="text-xs text-gray-400 hover:text-gray-600">No</button>
-                      </>
-                    ) : (
-                      <>
-                        <button onClick={() => handleRestore(m.id)} disabled={restoring === m.id}
-                          className="flex items-center gap-1.5 text-xs bg-green-50 hover:bg-green-100 border border-green-200 text-green-700 font-medium px-2.5 py-1.5 rounded-md transition-colors disabled:opacity-50">
-                          <RotateCcw size={12} /> {restoring === m.id ? '…' : 'Restore'}
-                        </button>
-                        <button onClick={() => setConfirmPurge(m.id)}
-                          className="flex items-center gap-1.5 text-xs bg-red-50 hover:bg-red-100 border border-red-200 text-red-700 font-medium px-2.5 py-1.5 rounded-md transition-colors">
-                          <Trash2 size={12} /> Remove
-                        </button>
-                      </>
-                    )}
+                  <div className="grid justify-end">
+                    {/* Both states occupy the same grid cell and cross-fade,
+                        instead of one hard-swapping for the other — avoids
+                        the row jumping/resizing on click. */}
+                    <div className={`col-start-1 row-start-1 flex items-center justify-end gap-1.5 transition-all duration-150 ${
+                      confirmPurge === m.id ? 'opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none'
+                    }`}>
+                      <span className="text-xs text-red-700 font-medium whitespace-nowrap">Delete forever?</span>
+                      <button onClick={() => handlePurge(m.id)} disabled={purging === m.id}
+                        className="text-xs bg-red-600 hover:bg-red-700 text-white font-medium px-2 py-1 rounded-md disabled:opacity-50">
+                        {purging === m.id ? '…' : 'Yes'}
+                      </button>
+                      <button onClick={() => setConfirmPurge(null)} className="text-xs text-gray-400 hover:text-gray-600">No</button>
+                    </div>
+                    <div className={`col-start-1 row-start-1 flex items-center justify-end gap-1.5 transition-all duration-150 ${
+                      confirmPurge === m.id ? 'opacity-0 scale-95 pointer-events-none' : 'opacity-100 scale-100'
+                    }`}>
+                      <button onClick={() => handleRestore(m.id)} disabled={restoring === m.id}
+                        className="flex items-center gap-1.5 text-xs bg-green-50 hover:bg-green-100 border border-green-200 text-green-700 font-medium px-2.5 py-1.5 rounded-md transition-colors disabled:opacity-50">
+                        <RotateCcw size={12} /> {restoring === m.id ? '…' : 'Restore'}
+                      </button>
+                      <button onClick={() => setConfirmPurge(m.id)}
+                        className="flex items-center gap-1.5 text-xs bg-red-50 hover:bg-red-100 border border-red-200 text-red-700 font-medium px-2.5 py-1.5 rounded-md transition-colors">
+                        <Trash2 size={12} /> Remove
+                      </button>
+                    </div>
                   </div>
                 </td>
               </tr>

@@ -91,8 +91,10 @@ export default function HausSmilesTabs({ groups, defaultLocationId, isAdmin }: P
         {visibleMembers.map(member => (
           <div key={member.id} className="relative group">
             {isAdmin && (
-              confirmRemove === member.id ? (
-                <div className="absolute inset-0 z-10 bg-white/95 rounded-lg border border-red-200 flex flex-col items-center justify-center gap-1.5 p-2 text-center">
+              <>
+                <div className={`absolute inset-0 z-10 bg-white/95 rounded-lg border border-red-200 flex flex-col items-center justify-center gap-1.5 p-2 text-center transition-all duration-150 ${
+                  confirmRemove === member.id ? 'opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none'
+                }`}>
                   <p className="text-xs text-red-700 font-medium">Archive photo only?</p>
                   <div className="flex items-center gap-2">
                     <button onClick={() => handleRemove(member)} disabled={removing === member.id}
@@ -103,8 +105,9 @@ export default function HausSmilesTabs({ groups, defaultLocationId, isAdmin }: P
                   </div>
                   <p className="text-[10px] leading-tight text-gray-400">Does not archive the user</p>
                 </div>
-              ) : (
-                <div className="absolute top-1.5 right-1.5 z-10 flex gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+                <div className={`absolute top-1.5 right-1.5 z-10 flex gap-1 transition-opacity sm:opacity-0 sm:group-hover:opacity-100 ${
+                  confirmRemove === member.id ? 'opacity-0 pointer-events-none' : 'opacity-100'
+                }`}>
                   <button onClick={() => setEditingPhoto(member)}
                     title="Change photo"
                     className="p-1 rounded-md bg-white/90 border border-gray-200 text-gray-400 hover:text-blue-700 hover:bg-white">
@@ -116,7 +119,7 @@ export default function HausSmilesTabs({ groups, defaultLocationId, isAdmin }: P
                     <Trash2 size={13} />
                   </button>
                 </div>
-              )
+              </>
             )}
             <Link href={`/dashboard/haus-smiles/${member.id}`} className="text-center block">
               {/* eslint-disable-next-line @next/next/no-img-element */}

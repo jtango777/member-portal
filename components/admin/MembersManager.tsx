@@ -367,9 +367,11 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
             <p className="text-xs font-semibold text-green-900">Temporary — delete this banner once cleared</p>
             <p className="text-xs text-green-700">{notInvited.length} members have never been invited</p>
           </div>
-          {confirmInviteAll ? (
-            <div className="flex items-center gap-2 flex-shrink-0">
-              <span className="text-xs text-green-800 font-medium">Send {notInvited.length} invites?</span>
+          <div className="grid flex-shrink-0">
+            <div className={`col-start-1 row-start-1 flex items-center gap-2 transition-all duration-150 ${
+              confirmInviteAll ? 'opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none'
+            }`}>
+              <span className="text-xs text-green-800 font-medium whitespace-nowrap">Send {notInvited.length} invites?</span>
               <button onClick={handleInviteAll}
                 className="text-xs bg-green-600 hover:bg-green-700 text-white font-semibold px-2.5 py-1.5 rounded-md">
                 Yes, send
@@ -377,12 +379,13 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
               <button onClick={() => setConfirmInviteAll(false)}
                 className="text-xs text-gray-500 hover:text-gray-700">Cancel</button>
             </div>
-          ) : (
             <button onClick={() => setConfirmInviteAll(true)} disabled={invitingAll}
-              className="flex items-center gap-1.5 text-xs bg-green-600 hover:bg-green-700 text-white font-semibold px-3 py-1.5 rounded-md flex-shrink-0 disabled:opacity-50">
+              className={`col-start-1 row-start-1 flex items-center gap-1.5 text-xs bg-green-600 hover:bg-green-700 text-white font-semibold px-3 py-1.5 rounded-md disabled:opacity-50 transition-all duration-150 whitespace-nowrap ${
+                confirmInviteAll ? 'opacity-0 scale-95 pointer-events-none' : 'opacity-100 scale-100'
+              }`}>
               {invitingAll ? 'Sending…' : `Invite Uninvited (${notInvited.length})`}
             </button>
-          )}
+          </div>
         </div>
       )}
 
@@ -580,23 +583,30 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
                               colorClass={m.is_admin ? 'text-red-500 hover:bg-red-50' : 'text-blue-500 hover:bg-blue-50'}
                             />
                           )}
-                          {confirmRemove === m.id ? (
-                            <div className="flex items-center gap-1.5 ml-1">
-                              <span className="text-xs text-red-700">Archive?</span>
+                          <div className="grid ml-1">
+                            {/* Both states share one grid cell and cross-fade
+                                instead of hard-swapping, so the row doesn't jump. */}
+                            <div className={`col-start-1 row-start-1 flex items-center gap-1.5 transition-all duration-150 ${
+                              confirmRemove === m.id ? 'opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none'
+                            }`}>
+                              <span className="text-xs text-red-700 whitespace-nowrap">Archive?</span>
                               <button onClick={() => handleRemove(m.id)} disabled={removing === m.id}
                                 className="text-xs bg-red-600 text-white px-2 py-1 rounded font-medium">
                                 {removing === m.id ? '…' : 'Yes'}
                               </button>
                               <button onClick={() => setConfirmRemove(null)} className="text-xs text-gray-400">No</button>
                             </div>
-                          ) : (
-                            <IconAction
-                              icon={Trash2}
-                              label="Archive member"
-                              onClick={() => setConfirmRemove(m.id)}
-                              colorClass="text-gray-400 hover:bg-red-50 hover:text-red-600"
-                            />
-                          )}
+                            <div className={`col-start-1 row-start-1 transition-all duration-150 ${
+                              confirmRemove === m.id ? 'opacity-0 scale-95 pointer-events-none' : 'opacity-100 scale-100'
+                            }`}>
+                              <IconAction
+                                icon={Trash2}
+                                label="Archive member"
+                                onClick={() => setConfirmRemove(m.id)}
+                                colorClass="text-gray-400 hover:bg-red-50 hover:text-red-600"
+                              />
+                            </div>
+                          </div>
                         </div>
                       </td>
                     </tr>

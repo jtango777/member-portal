@@ -79,20 +79,23 @@ export default function AllReservationsView({ reservations: initial }: Props) {
                 <td className="px-4 py-3 text-gray-600">{r.companies?.name}</td>
                 {showDelete && (
                   <td className="px-4 py-3 w-24">
-                    {confirm === r.id ? (
-                      <div className="flex items-center gap-1.5">
+                    <div className="grid">
+                      <div className={`col-start-1 row-start-1 flex items-center gap-1.5 transition-all duration-150 ${
+                        confirm === r.id ? 'opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none'
+                      }`}>
                         <button onClick={() => handleDelete(r.id)} disabled={deleting === r.id}
                           className="text-xs bg-red-600 text-white px-2 py-1 rounded font-medium">
                           {deleting === r.id ? '…' : 'Delete'}
                         </button>
                         <button onClick={() => setConfirm(null)} className="text-xs text-gray-400">No</button>
                       </div>
-                    ) : (
                       <button onClick={() => setConfirm(r.id)}
-                        className="text-gray-400 hover:text-red-500 transition-colors">
+                        className={`col-start-1 row-start-1 text-gray-400 hover:text-red-500 transition-all duration-150 w-fit ${
+                          confirm === r.id ? 'opacity-0 scale-95 pointer-events-none' : 'opacity-100 scale-100'
+                        }`}>
                         <Trash2 size={15} />
                       </button>
-                    )}
+                    </div>
                   </td>
                 )}
               </tr>
@@ -119,21 +122,24 @@ export default function AllReservationsView({ reservations: initial }: Props) {
         <div>
           <div className="flex items-center justify-between mb-2">
             <h2 className="text-sm font-semibold text-blue-600">Past ({past.length})</h2>
-            {confirmClear ? (
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-gray-500">Delete all {past.length} past reservations?</span>
+            <div className="grid justify-end">
+              <div className={`col-start-1 row-start-1 flex items-center gap-2 transition-all duration-150 ${
+                confirmClear ? 'opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none'
+              }`}>
+                <span className="text-xs text-gray-500 whitespace-nowrap">Delete all {past.length} past reservations?</span>
                 <button onClick={handleClearPast} disabled={clearingPast}
                   className="text-xs bg-red-600 text-white px-3 py-1 rounded font-medium disabled:opacity-50">
                   {clearingPast ? 'Clearing…' : 'Yes, clear all'}
                 </button>
                 <button onClick={() => setConfirmClear(false)} className="text-xs text-gray-400">Cancel</button>
               </div>
-            ) : (
               <button onClick={() => setConfirmClear(true)}
-                className="text-xs text-gray-400 hover:text-red-500 transition-colors">
+                className={`col-start-1 row-start-1 text-xs text-gray-400 hover:text-red-500 transition-all duration-150 whitespace-nowrap ${
+                  confirmClear ? 'opacity-0 scale-95 pointer-events-none' : 'opacity-100 scale-100'
+                }`}>
                 Clear past bookings
               </button>
-            )}
+            </div>
           </div>
           <Table rows={past} showDelete={false} />
         </div>
