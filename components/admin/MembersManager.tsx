@@ -535,7 +535,7 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
         }>
           <table className="w-full min-w-[640px] text-sm table-fixed">
             <colgroup>
-              <col className="w-[14%]" /><col className="w-[22%]" /><col className="w-[13%]" /><col className="w-[16%]" /><col className="w-[8%]" /><col className="w-[14%]" /><col className="w-[13%]" />
+              <col className="w-[14%]" /><col className="w-[27%]" /><col className="w-[13%]" /><col className="w-[16%]" /><col className="w-[8%]" /><col className="w-[14%]" /><col className="w-[8%]" />
             </colgroup>
             <thead>
               <tr className="border-b border-gray-100 bg-gray-50">
@@ -631,7 +631,7 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
         }>
           <table className="w-full min-w-[640px] text-sm table-fixed">
             <colgroup>
-              <col className="w-[14%]" /><col className="w-[22%]" /><col className="w-[13%]" /><col className="w-[16%]" /><col className="w-[8%]" /><col className="w-[14%]" /><col className="w-[13%]" />
+              <col className="w-[14%]" /><col className="w-[27%]" /><col className="w-[13%]" /><col className="w-[16%]" /><col className="w-[8%]" /><col className="w-[14%]" /><col className="w-[8%]" />
             </colgroup>
             <thead>
               <tr className="border-b border-gray-100 bg-gray-50">
