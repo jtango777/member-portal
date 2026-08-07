@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
-import { ArrowLeft, RotateCcw, Search, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react'
+import { ArrowLeft, RotateCcw, Search, ArrowUp, ArrowDown, ArrowUpDown, Trash2 } from 'lucide-react'
 import { formatShortDate } from '@/lib/utils'
 import toast from 'react-hot-toast'
 
@@ -22,6 +22,8 @@ export default function InactiveMembersManager() {
   const [loading, setLoading]   = useState(true)
   const [search, setSearch]     = useState('')
   const [restoring, setRestoring] = useState<string | null>(null)
+  const [confirmPurge, setConfirmPurge] = useState<string | null>(null)
+  const [purging, setPurging] = useState<string | null>(null)
   const [locations, setLocations] = useState<{ id: string; name: string }[]>([])
   const [locationSort, setLocationSort] = useState<'asc' | 'desc' | null>(null)
 
@@ -59,6 +61,20 @@ export default function InactiveMembersManager() {
       toast.error(d.error ?? 'Failed')
     }
     setRestoring(null)
+  }
+
+  async function handlePurge(memberId: string) {
+    setPurging(memberId)
+    const res = await fetch(`/api/admin/members/${memberId}/purge`, { method: 'DELETE' })
+    if (res.ok) {
+      toast.success('Member permanently removed')
+      setConfirmPurge(null)
+      await refresh()
+    } else {
+      const d = await res.json()
+      toast.error(d.error ?? 'Failed')
+    }
+    setPurging(null)
   }
 
   const q = search.toLowerCase()
@@ -99,7 +115,7 @@ export default function InactiveMembersManager() {
       <div className="bg-white rounded-xl border border-gray-200">
         <table className="w-full text-sm table-fixed">
           <colgroup>
-            <col className="w-[18%]" /><col className="w-[24%]" /><col className="w-[20%]" /><col className="w-[16%]" /><col className="w-[10%]" /><col className="w-[12%]" />
+            <col className="w-[16%]" /><col className="w-[22%]" /><col className="w-[18%]" /><col className="w-[12%]" /><col className="w-[9%]" /><col className="w-[23%]" />
           </colgroup>
           <thead>
             <tr className="border-b border-gray-100 bg-gray-50">
@@ -126,11 +142,28 @@ export default function InactiveMembersManager() {
                 </td>
                 <td className="px-4 py-3 text-xs text-gray-500">{m.accepted_at ? `Joined ${formatShortDate(new Date(m.accepted_at))}` : 'Never joined'}</td>
                 <td className="px-4 py-3">
-                  <div className="flex items-center justify-end">
-                    <button onClick={() => handleRestore(m.id)} disabled={restoring === m.id}
-                      className="flex items-center gap-1.5 text-xs border border-gray-300 hover:bg-gray-50 text-gray-700 font-medium px-2.5 py-1.5 rounded-md transition-colors disabled:opacity-50">
-                      <RotateCcw size={12} /> {restoring === m.id ? '…' : 'Restore'}
-                    </button>
+                  <div className="flex items-center justify-end gap-1.5">
+                    {confirmPurge === m.id ? (
+                      <>
+                        <span className="text-xs text-red-700 font-medium whitespace-nowrap">Delete forever?</span>
+                        <button onClick={() => handlePurge(m.id)} disabled={purging === m.id}
+                          className="text-xs bg-red-600 hover:bg-red-700 text-white font-medium px-2 py-1 rounded-md disabled:opacity-50">
+                          {purging === m.id ? '…' : 'Yes'}
+                        </button>
+                        <button onClick={() => setConfirmPurge(null)} className="text-xs text-gray-400 hover:text-gray-600">No</button>
+                      </>
+                    ) : (
+                      <>
+                        <button onClick={() => handleRestore(m.id)} disabled={restoring === m.id}
+                          className="flex items-center gap-1.5 text-xs border border-gray-300 hover:bg-gray-50 text-gray-700 font-medium px-2.5 py-1.5 rounded-md transition-colors disabled:opacity-50">
+                          <RotateCcw size={12} /> {restoring === m.id ? '…' : 'Restore'}
+                        </button>
+                        <button onClick={() => setConfirmPurge(m.id)}
+                          className="flex items-center gap-1.5 text-xs border border-gray-300 hover:bg-red-50 hover:border-red-200 hover:text-red-600 text-gray-700 font-medium px-2.5 py-1.5 rounded-md transition-colors">
+                          <Trash2 size={12} /> Remove
+                        </button>
+                      </>
+                    )}
                   </div>
                 </td>
               </tr>
