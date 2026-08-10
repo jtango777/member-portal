@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server'
 import { verifyRecaptcha } from '@/lib/recaptcha'
 
 export async function POST(request: Request) {
-  const { token, name, password, default_location_id, recaptcha_token } = await request.json()
+  const { token, name, password, default_location_id, seating, recaptcha_token } = await request.json()
 
   if (!token || !name || !password) {
     return NextResponse.json({ error: 'Missing fields' }, { status: 400 })
@@ -55,7 +55,7 @@ export async function POST(request: Request) {
     is_admin:            false,
     default_location_id: default_location_id ?? invite.default_location_id ?? null,
     avatar_url:          invite.avatar_url ?? null,
-    seating:             invite.seating ?? null,
+    seating:             seating ?? invite.seating ?? null,
   })
 
   // Mark invite as accepted

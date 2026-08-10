@@ -5,7 +5,7 @@ import * as Dialog from '@radix-ui/react-dialog'
 import { X } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { Company, MembershipType } from '@/types'
-import { SEATING_OPTIONS } from '@/lib/seating'
+import { getSeatingOptions } from '@/lib/seating'
 import CompanyCombobox from '@/components/admin/CompanyCombobox'
 
 export type EditableMember = {
@@ -160,7 +160,7 @@ export default function EditMemberDialog({ member, onOpenChange, onSuccess, comp
               <select value={seating} onChange={e => setSeating(e.target.value)}
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
                 <option value="">No seating set</option>
-                {SEATING_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
+                {getSeatingOptions(locations.find(l => l.id === locationId)?.name).map(s => <option key={s} value={s}>{s}</option>)}
               </select>
             </div>
 

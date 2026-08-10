@@ -6,6 +6,7 @@ import toast from 'react-hot-toast'
 import PasswordInput from '@/components/PasswordInput'
 import Recaptcha, { RecaptchaHandle } from '@/components/Recaptcha'
 import { createClient } from '@/lib/supabase/client'
+import { getSeatingOptions } from '@/lib/seating'
 
 type Location = { id: string; name: string }
 
@@ -23,6 +24,7 @@ function SetupForm() {
   const [tokenValid, setTokenValid] = useState<boolean | null>(null)
   const [email, setEmail]         = useState('')
   const [invitedLocationId, setInvitedLocationId] = useState<string | null>(null)
+  const [seating, setSeating] = useState('')
   const [recaptchaToken, setRecaptchaToken] = useState<string | null>(null)
   const recaptchaRef = useRef<RecaptchaHandle>(null)
 
@@ -66,7 +68,7 @@ function SetupForm() {
     const res = await fetch('/api/invites/accept', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ token, name, password, default_location_id: locationId, recaptcha_token: recaptchaToken }),
+      body: JSON.stringify({ token, name, password, default_location_id: locationId, seating: seating || null, recaptcha_token: recaptchaToken }),
     })
     const data = await res.json()
     if (!res.ok) {
@@ -134,6 +136,17 @@ function SetupForm() {
             {locations.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
           </select>
         </div>
+        {locationId && (
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Where do you sit?</label>
+            <p className="text-xs text-gray-400 mb-1.5">Shown below your name on Faces. Optional.</p>
+            <select value={seating} onChange={e => setSeating(e.target.value)}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+              <option value="">Prefer not to say</option>
+              {getSeatingOptions(locations.find(l => l.id === locationId)?.name).map(s => <option key={s} value={s}>{s}</option>)}
+            </select>
+          </div>
+        )}
         <div className="flex justify-center">
           <Recaptcha ref={recaptchaRef} onChange={setRecaptchaToken} />
         </div>

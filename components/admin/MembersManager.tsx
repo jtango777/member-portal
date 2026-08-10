@@ -11,6 +11,7 @@ import AssignPhotoDialog from '@/components/admin/AssignPhotoDialog'
 import CompanyCombobox from '@/components/admin/CompanyCombobox'
 import EditMemberDialog from '@/components/admin/EditMemberDialog'
 import { AdminTable, Th, tdBase, tdTruncate, tdNowrap } from '@/components/admin/AdminTable'
+import { getSeatingOptions } from '@/lib/seating'
 
 function IconAction({ icon: Icon, label, onClick, disabled, colorClass }: {
   icon: React.ElementType
@@ -94,6 +95,8 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
   const [roomsPanelSettled, setRoomsPanelSettled] = useState(false)
   const [companyId, setCompanyId]           = useState('')
   const [individualHours, setIndividualHours] = useState('')
+  const [addLocationId, setAddLocationId]   = useState('')
+  const [addSeating, setAddSeating]         = useState('')
   const [sending, setSending]       = useState(false)
   const [copiedLink, setCopiedLink] = useState<string | null>(null)
   const [lastInviteLink, setLastInviteLink] = useState<string | null>(null)
@@ -170,7 +173,14 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
     const res  = await fetch('/api/invites/send', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, company_id: companyId || null, individual_hours_allotment: individualHours !== '' ? Number(individualHours) : null, skipEmail }),
+      body: JSON.stringify({
+        email,
+        company_id: companyId || null,
+        individual_hours_allotment: individualHours !== '' ? Number(individualHours) : null,
+        default_location_id: addLocationId || null,
+        seating: addSeating || null,
+        skipEmail,
+      }),
     })
     const data = await res.json()
     if (!res.ok) {
@@ -183,6 +193,8 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
       setConnectToRooms(false)
       setCompanyId('')
       setIndividualHours('')
+      setAddLocationId('')
+      setAddSeating('')
       await refresh()
     }
     setSending(false)
@@ -456,6 +468,27 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
                 </span>
                 <span className="text-sm text-gray-700">Connect to Rooms?</span>
               </label>
+            </div>
+
+            <div className="flex gap-4">
+              <div className="w-72">
+                <label className="block text-xs font-medium text-gray-700 mb-1">Location</label>
+                <select value={addLocationId} onChange={e => { setAddLocationId(e.target.value); setAddSeating('') }}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                  <option value="">No default location</option>
+                  {locations.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
+                </select>
+              </div>
+              {addLocationId && (
+                <div className="w-72">
+                  <label className="block text-xs font-medium text-gray-700 mb-1">Seating</label>
+                  <select value={addSeating} onChange={e => setAddSeating(e.target.value)}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="">No seating set</option>
+                    {getSeatingOptions(locations.find(l => l.id === addLocationId)?.name).map(s => <option key={s} value={s}>{s}</option>)}
+                  </select>
+                </div>
+              )}
             </div>
 
             {/* Smoothly expands/collapses via a grid-rows transition instead of mounting/unmounting */}

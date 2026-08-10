@@ -6,7 +6,7 @@ import Link from 'next/link'
 import toast from 'react-hot-toast'
 import PasswordInput from '@/components/PasswordInput'
 import { ArrowLeft } from 'lucide-react'
-import { SEATING_OPTIONS } from '@/lib/seating'
+import { getSeatingOptions } from '@/lib/seating'
 import { createClient } from '@/lib/supabase/client'
 
 type Location = { id: string; name: string }
@@ -156,7 +156,7 @@ function DetailsStep({ email, defaultLocationId }: { email: string; defaultLocat
           <select value={seating} onChange={e => setSeating(e.target.value)}
             className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
             <option value="">Prefer not to say</option>
-            {SEATING_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
+            {getSeatingOptions(locations.find(l => l.id === locationId)?.name).map(s => <option key={s} value={s}>{s}</option>)}
           </select>
         </div>
         <button type="submit" disabled={loading}

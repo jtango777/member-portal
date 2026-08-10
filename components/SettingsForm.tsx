@@ -7,7 +7,7 @@ import toast from 'react-hot-toast'
 import { useRouter } from 'next/navigation'
 import PhotoUploadDialog from '@/components/PhotoUploadDialog'
 import PasswordInput from '@/components/PasswordInput'
-import { SEATING_OPTIONS } from '@/lib/seating'
+import { getSeatingOptions } from '@/lib/seating'
 
 type Props = {
   profile:   Profile
@@ -157,7 +157,7 @@ export default function SettingsForm({ profile, company, locations, email }: Pro
             <select value={seating} onChange={e => setSeating(e.target.value)}
               className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
               <option value="">Prefer not to say</option>
-              {SEATING_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
+              {getSeatingOptions(locations.find(l => l.id === locationId)?.name).map(s => <option key={s} value={s}>{s}</option>)}
             </select>
             <p className="text-xs text-gray-400 mt-1">Shown below your name on Faces.</p>
           </div>
