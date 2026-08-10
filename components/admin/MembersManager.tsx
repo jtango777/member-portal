@@ -191,6 +191,10 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
   // ── Resend / get link ──────────────────────────────────────────────────────
 
   async function handleResend(memberId: string) {
+    // A member added via "Add to Pending" has never actually been sent
+    // anything (invite_token is null) — this is their first invite, not a
+    // resend, and the toast should say so.
+    const isFirstInvite = !members.find(m => m.id === memberId)?.invite_token
     setResending(memberId)
     const res  = await fetch('/api/invites/resend', {
       method: 'POST',
@@ -199,7 +203,7 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
     })
     const data = await res.json()
     if (res.ok) {
-      if (data.emailSent) toast.success('Invite resent!')
+      if (data.emailSent) toast.success(isFirstInvite ? 'Invite sent!' : 'Invite resent!')
       else toast.success('Link generated — click the copy icon to get it.')
       setMembers(prev => prev.map(m =>
         m.id === memberId ? { ...m, invite_token: data.inviteLink } : m
