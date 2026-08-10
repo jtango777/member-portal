@@ -16,6 +16,12 @@ export async function verifyRecaptcha(token: string | undefined | null): Promise
       body: new URLSearchParams({ secret, response: token }),
     })
     const data = await res.json()
+    if (!data.success) {
+      // error-codes tells us WHY: "invalid-input-secret" = wrong/missing
+      // secret key, "timeout-or-duplicate" = token reused or expired,
+      // "invalid-input-response" = malformed/missing token.
+      console.error('[recaptcha] Verification failed:', data['error-codes'])
+    }
     return data.success === true
   } catch (err) {
     console.error('[recaptcha] Verification request failed:', err)
