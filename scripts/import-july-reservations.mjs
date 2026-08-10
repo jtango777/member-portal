@@ -4,10 +4,12 @@
  *
  * Reads the Nexudus/getaroom July 2026 reservation export and loads it into
  * the `reservations` table so it's visible in the portal's calendar/reports.
- * All rows are attributed to caroline@bizhaus.com / BizHaus, since the real
- * bookers don't have portal accounts — same convention used previously
- * (migration 011_seed_july_2026_reservations.sql, which used an earlier,
- * less-complete version of this file).
+ * Since the real historical bookers don't have portal accounts, every row is
+ * attributed to a neutral "Historical Booking" placeholder account (not a
+ * real staff member), with the actual company matched against the existing
+ * Companies table wherever possible (falling back to a generic "External
+ * Booking (Legacy)" company otherwise) — so the calendar shows real company
+ * names instead of implying one person made every booking.
  *
  * Clears existing July 2026 reservations first, then re-inserts fresh from
  * the CSV — this is a full replace, not an append.
@@ -22,6 +24,7 @@ import { readFileSync, existsSync } from 'fs'
 import { createClient }             from '@supabase/supabase-js'
 import { fileURLToPath }            from 'url'
 import { dirname, join, resolve }   from 'path'
+import { randomUUID }               from 'crypto'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const DRY_RUN   = process.argv.includes('--dry-run')
@@ -115,18 +118,41 @@ async function main() {
   const { data: rooms } = await db.from('rooms').select('id, name, locations(name)')
   const roomIdByKey = new Map(rooms.map(r => [`${r.name}::${r.locations.name}`, r.id]))
 
+  // Placeholder account for historical bookings — not a real staff member,
+  // so the calendar doesn't imply anyone personally made all these bookings.
+  const PLACEHOLDER_EMAIL = 'legacy-bookings@bizhaus.internal'
   const { data: { users } } = await db.auth.admin.listUsers({ perPage: 1000 })
-  const caroline = users.find(u => u.email === 'caroline@bizhaus.com')
-  if (!caroline) { console.error('❌  Could not find caroline@bizhaus.com auth user.'); process.exit(1) }
+  let placeholder = users.find(u => u.email === PLACEHOLDER_EMAIL)
+  if (!placeholder) {
+    if (DRY_RUN) {
+      console.log(`  [dry] would create placeholder account: ${PLACEHOLDER_EMAIL}`)
+      placeholder = { id: 'dry-placeholder' }
+    } else {
+      const { data: created, error } = await db.auth.admin.createUser({
+        email: PLACEHOLDER_EMAIL,
+        password: randomUUID(),
+        email_confirm: true,
+      })
+      if (error) { console.error('❌  Failed to create placeholder account:', error.message); process.exit(1) }
+      placeholder = created.user
+      await db.from('profiles').insert({ id: placeholder.id, full_name: 'Historical Booking', is_admin: false, is_active: false })
+      console.log(`  + created placeholder account: ${PLACEHOLDER_EMAIL}`)
+    }
+  }
 
-  const { data: bizhausCo } = await db.from('companies').select('id').eq('name', 'BizHaus').single()
-  if (!bizhausCo) { console.error('❌  Could not find BizHaus company.'); process.exit(1) }
+  // Match each booking's real company against existing companies; fall back
+  // to a single generic "External Booking (Legacy)" company otherwise —
+  // never BizHaus, since these aren't BizHaus's own bookings.
+  const { data: companies } = await db.from('companies').select('id, name')
+  const companyIdByName = new Map(companies.map(c => [c.name.toLowerCase(), c.id]))
+  const FALLBACK_CO_NAME = 'External Booking (Legacy)'
+  let fallbackCoId = companyIdByName.get(FALLBACK_CO_NAME.toLowerCase())
 
   const rows = parseCSV(csvFile)
   console.log(`CSV rows: ${rows.length}\n`)
 
   const toInsert = []
-  let noRoomMatch = 0, badDates = 0
+  let noRoomMatch = 0, badDates = 0, matchedCompany = 0, fallbackCompany = 0
 
   for (const row of rows) {
     const mappedName = ROOM_NAME_MAP[row['Room Name']] ?? row['Room Name']
@@ -137,17 +163,38 @@ async function main() {
     const end   = toISO(row['End At Tz'])
     if (!start || !end) { badDates++; continue }
 
+    const csvCompanyName = row['Other Company Name']?.trim()
+    let companyId = csvCompanyName ? companyIdByName.get(csvCompanyName.toLowerCase()) : null
+    if (companyId) {
+      matchedCompany++
+    } else {
+      fallbackCompany++
+      if (!fallbackCoId) {
+        if (DRY_RUN) {
+          fallbackCoId = 'dry-fallback-co'
+        } else {
+          const { data: created, error } = await db.from('companies').insert({ name: FALLBACK_CO_NAME, monthly_hours_allotment: 0 }).select('id').single()
+          if (error) { console.error('❌  Failed to create fallback company:', error.message); process.exit(1) }
+          fallbackCoId = created.id
+          companyIdByName.set(FALLBACK_CO_NAME.toLowerCase(), fallbackCoId)
+        }
+      }
+      companyId = fallbackCoId
+    }
+
     toInsert.push({
       room_id:    roomId,
-      user_id:    caroline.id,
-      company_id: bizhausCo.id,
-      title:      row['Name']?.trim() || row['Other Company Name'] || 'Reservation',
+      user_id:    placeholder.id,
+      company_id: companyId,
+      title:      row['Name']?.trim() || csvCompanyName || 'Reservation',
       start_time: start,
       end_time:   end,
     })
   }
 
   console.log(`Mapped and ready to insert: ${toInsert.length}`)
+  console.log(`  matched to a real company: ${matchedCompany}`)
+  console.log(`  fell back to "${FALLBACK_CO_NAME}": ${fallbackCompany}`)
   console.log(`No room match (skipped): ${noRoomMatch}`)
   console.log(`Bad/missing dates (skipped): ${badDates}\n`)
 
