@@ -64,5 +64,12 @@ export async function POST(request: Request) {
     .update({ accepted_at: new Date().toISOString(), invite_token: null })
     .eq('id', invite.id)
 
+  // Reassign any historical (pre-signup) bookings tagged with this email to
+  // the real account they just created.
+  await admin
+    .from('reservations')
+    .update({ user_id: userId, historical_email: null })
+    .ilike('historical_email', invite.email)
+
   return NextResponse.json({ ok: true })
 }

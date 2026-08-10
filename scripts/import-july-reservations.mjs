@@ -4,12 +4,16 @@
  *
  * Reads the Nexudus/getaroom July 2026 reservation export and loads it into
  * the `reservations` table so it's visible in the portal's calendar/reports.
- * Since the real historical bookers don't have portal accounts, every row is
- * attributed to a neutral "Historical Booking" placeholder account (not a
- * real staff member), with the actual company matched against the existing
- * Companies table wherever possible (falling back to a generic "External
- * Booking (Legacy)" company otherwise) — so the calendar shows real company
- * names instead of implying one person made every booking.
+ *
+ * Each booking's "Owner Email" is matched against permitted_emails:
+ *   - Already has a real account  -> linked directly to their real profile.
+ *   - Known but hasn't signed up yet (pending) -> attributed to a neutral
+ *     "Historical Booking" placeholder for now, but tagged with
+ *     historical_email so /api/invites/accept(-by-email) can reassign it to
+ *     their real account the moment they sign up.
+ *   - Not a member at all -> placeholder, untagged.
+ * Company is matched against the existing Companies table wherever
+ * possible, falling back to a generic "External Booking (Legacy)" company.
  *
  * Clears existing July 2026 reservations first, then re-inserts fresh from
  * the CSV — this is a full replace, not an append.
@@ -148,11 +152,19 @@ async function main() {
   const FALLBACK_CO_NAME = 'External Booking (Legacy)'
   let fallbackCoId = companyIdByName.get(FALLBACK_CO_NAME.toLowerCase())
 
+  // Match each booking's real person against known members (accepted or pending).
+  const { data: permitted } = await db.from('permitted_emails').select('email, accepted_at, company_id')
+  const permittedByEmail = new Map(permitted.map(p => [p.email.toLowerCase(), p]))
+  const authIdByEmail = new Map(users.map(u => [(u.email ?? '').toLowerCase(), u.id]))
+  const { data: profiles } = await db.from('profiles').select('id, company_id')
+  const profileById = new Map(profiles.map(p => [p.id, p]))
+
   const rows = parseCSV(csvFile)
   console.log(`CSV rows: ${rows.length}\n`)
 
   const toInsert = []
   let noRoomMatch = 0, badDates = 0, matchedCompany = 0, fallbackCompany = 0
+  let linkedActive = 0, linkedPending = 0, linkedNone = 0
 
   for (const row of rows) {
     const mappedName = ROOM_NAME_MAP[row['Room Name']] ?? row['Room Name']
@@ -182,19 +194,46 @@ async function main() {
       companyId = fallbackCoId
     }
 
+    // Who actually booked this, if we know them? Check for a real account
+    // FIRST regardless of permitted_emails.accepted_at — that flag can be
+    // unset even for someone with a real, working account if they were set
+    // up outside the normal invite flow (e.g. the original admin account).
+    const ownerEmail = row['Owner Email']?.trim().toLowerCase()
+    const knownMember = ownerEmail ? permittedByEmail.get(ownerEmail) : null
+    const realAuthId  = ownerEmail ? authIdByEmail.get(ownerEmail) : null
+    const realProfile = realAuthId ? profileById.get(realAuthId) : null
+    let userId = placeholder.id
+    let historicalEmail = null
+
+    if (realProfile) {
+      userId = realProfile.id
+      companyId = realProfile.company_id ?? companyId
+      linkedActive++
+    } else if (knownMember) {
+      // Known but hasn't signed up yet — reassigned automatically at signup.
+      historicalEmail = ownerEmail
+      linkedPending++
+    } else {
+      linkedNone++
+    }
+
     toInsert.push({
       room_id:    roomId,
-      user_id:    placeholder.id,
+      user_id:    userId,
       company_id: companyId,
       title:      row['Name']?.trim() || csvCompanyName || 'Reservation',
       start_time: start,
       end_time:   end,
+      historical_email: historicalEmail,
     })
   }
 
   console.log(`Mapped and ready to insert: ${toInsert.length}`)
   console.log(`  matched to a real company: ${matchedCompany}`)
   console.log(`  fell back to "${FALLBACK_CO_NAME}": ${fallbackCompany}`)
+  console.log(`  linked to an already-signed-up member: ${linkedActive}`)
+  console.log(`  tagged for a pending member (will link at signup): ${linkedPending}`)
+  console.log(`  no member match at all: ${linkedNone}`)
   console.log(`No room match (skipped): ${noRoomMatch}`)
   console.log(`Bad/missing dates (skipped): ${badDates}\n`)
 
