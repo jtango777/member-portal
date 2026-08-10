@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { format } from 'date-fns'
 import { ArrowLeft, CheckCircle, Clock, MapPin, Users } from 'lucide-react'
@@ -12,7 +12,7 @@ import {
   useElements,
 } from '@stripe/react-stripe-js'
 import { cn } from '@/lib/utils'
-import Recaptcha from '@/components/Recaptcha'
+import Recaptcha, { RecaptchaHandle } from '@/components/Recaptcha'
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!)
 
@@ -53,6 +53,7 @@ function CheckoutForm({
   const [loading, setLoading] = useState(false)
   const [error,   setError]   = useState<string | null>(null)
   const [recaptchaToken, setRecaptchaToken] = useState<string | null>(null)
+  const recaptchaRef = useRef<RecaptchaHandle>(null)
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -103,6 +104,10 @@ function CheckoutForm({
       onSuccess(email.trim())
     } else {
       setError(data.error ?? 'Booking saved but something went wrong. Contact us at bookings@bizhaus.com.')
+      // The reCAPTCHA token is single-use — even though booking failed for an
+      // unrelated reason, Google may have already consumed it. Reset so a
+      // retry gets a fresh one instead of silently failing on resubmit.
+      recaptchaRef.current?.reset()
       setLoading(false)
     }
   }
@@ -172,7 +177,7 @@ function CheckoutForm({
       </div>
 
       <div className="flex justify-center">
-        <Recaptcha onChange={setRecaptchaToken} />
+        <Recaptcha ref={recaptchaRef} onChange={setRecaptchaToken} />
       </div>
 
       {error && (

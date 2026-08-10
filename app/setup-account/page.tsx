@@ -1,10 +1,10 @@
 'use client'
 
-import { useState, useEffect, Suspense } from 'react'
+import { useState, useEffect, useRef, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import toast from 'react-hot-toast'
 import PasswordInput from '@/components/PasswordInput'
-import Recaptcha from '@/components/Recaptcha'
+import Recaptcha, { RecaptchaHandle } from '@/components/Recaptcha'
 
 type Location = { id: string; name: string }
 
@@ -23,6 +23,7 @@ function SetupForm() {
   const [email, setEmail]         = useState('')
   const [invitedLocationId, setInvitedLocationId] = useState<string | null>(null)
   const [recaptchaToken, setRecaptchaToken] = useState<string | null>(null)
+  const recaptchaRef = useRef<RecaptchaHandle>(null)
 
   useEffect(() => {
     if (!token) { setTokenValid(false); return }
@@ -69,6 +70,10 @@ function SetupForm() {
     const data = await res.json()
     if (!res.ok) {
       toast.error(data.error ?? 'Something went wrong')
+      // The reCAPTCHA token is single-use — even though signup failed for an
+      // unrelated reason, Google may have already consumed it. Reset so the
+      // retry gets a fresh one instead of silently failing on resubmit.
+      recaptchaRef.current?.reset()
       setLoading(false)
     } else {
       toast.success('Account created! Please sign in.')
@@ -117,7 +122,7 @@ function SetupForm() {
           </select>
         </div>
         <div className="flex justify-center">
-          <Recaptcha onChange={setRecaptchaToken} />
+          <Recaptcha ref={recaptchaRef} onChange={setRecaptchaToken} />
         </div>
         <button type="submit" disabled={loading || !recaptchaToken}
           className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-semibold py-2 px-4 rounded-lg transition-colors">
