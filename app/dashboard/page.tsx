@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { getAuthedProfile } from '@/lib/supabase/session'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
@@ -14,6 +14,13 @@ export default async function PortalHomePage() {
   const profile = await getAuthedProfile()
   if (!profile) redirect('/login')
   const supabase = await createClient()
+
+  // Only ever true the very first time — flip it right away so every visit
+  // after this one gets "Welcome back" instead.
+  const isFirstVisit = !profile.welcomed
+  if (isFirstVisit) {
+    await createAdminClient().from('profiles').update({ welcomed: true }).eq('id', profile.id)
+  }
 
   // Only ever shows people formally linked to someone on the Members page —
   // a real registered profile, or a pending invite with a linked photo —
@@ -52,7 +59,9 @@ export default async function PortalHomePage() {
           </h1>
         </div>
 
-        <p className="text-xl font-semibold text-gray-900 mb-6">Welcome back, {profile.full_name}</p>
+        <p className="text-xl font-semibold text-gray-900 mb-6">
+          {isFirstVisit ? 'Welcome' : 'Welcome back'}, {profile.full_name}
+        </p>
 
         <div className="grid grid-cols-1 gap-3 sm:gap-4">
           <Link href="/dashboard/rooms"

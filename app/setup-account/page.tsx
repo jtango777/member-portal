@@ -151,8 +151,7 @@ export default function SetupAccountPage() {
     <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-white tracking-tight">BizHaus</h1>
-          <p className="text-slate-400 mt-2 text-sm">Member Portal</p>
+          <h1 className="text-3xl font-bold text-white tracking-tight">BizHaus <span className="font-medium">Portal</span></h1>
         </div>
         <Suspense fallback={<div className="text-center text-slate-400">Loading…</div>}>
           <SetupForm />

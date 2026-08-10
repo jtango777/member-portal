@@ -180,10 +180,10 @@ export default function RegisterPage() {
   return (
     <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
       <div className="w-full max-w-sm">
-        <div className="text-center mb-8">
+        <div className="flex items-center justify-center gap-2.5 mb-8">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/brand/bizhaus-logo-white.png" alt="BizHaus" className="h-8 w-auto mx-auto" />
-          <p className="mt-3 text-sm text-slate-400">Member Portal</p>
+          <img src="/brand/bizhaus-logo-white.png" alt="BizHaus" className="h-8 w-auto" />
+          <span className="text-lg font-semibold text-white">Portal</span>
         </div>
         {foundEmail
           ? <DetailsStep email={foundEmail} defaultLocationId={foundLocationId} />

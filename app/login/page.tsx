@@ -56,10 +56,10 @@ function LoginForm() {
         />
       )}
       <div className={cn('w-full max-w-sm', isDev && 'relative')}>
-        <div className="text-center mb-8">
+        <div className="flex items-center justify-center gap-2.5 mb-8">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/brand/bizhaus-logo-white.png" alt="BizHaus" className="h-8 w-auto mx-auto" />
-          <p className="mt-3 text-sm text-slate-400">Member Portal</p>
+          <img src="/brand/bizhaus-logo-white.png" alt="BizHaus" className="h-8 w-auto" />
+          <span className="text-lg font-semibold text-white">Portal</span>
         </div>
         <div className="bg-white rounded-xl shadow-lg p-8">
           <h2 className="text-lg font-semibold text-gray-900 mb-6">Sign in to your account</h2>

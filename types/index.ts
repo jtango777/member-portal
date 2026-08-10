@@ -51,6 +51,7 @@ export type Profile = {
   room_access_prompted: boolean
   room_access_requested_at: string | null
   dismissed_announcement_id: string | null
+  welcomed: boolean
   companies?: Company
 }
 
