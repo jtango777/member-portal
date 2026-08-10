@@ -49,8 +49,8 @@ export default function Nav({ profile }: Props) {
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/brand/bizhaus-logo-white.png" alt="BizHaus" className="h-5 w-auto" />
           <span className="text-[10px] font-bold uppercase tracking-wider bg-blue-600 text-white px-2 py-0.5 rounded">Portal</span>
-          <span className="relative inline-flex items-center overflow-hidden text-[10px] font-bold uppercase tracking-wider text-amber-50 px-2.5 py-0.5 rounded-sm border border-[#4a2f18] shadow-sm bg-gradient-to-b from-[#c9915a] via-[#8b5a2b] to-[#5e3c1f] [text-shadow:0_1px_1px_rgba(0,0,0,0.4)]">
-            <span className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/35 to-transparent" />
+          <span className="relative inline-flex items-center overflow-hidden text-[10px] font-bold uppercase tracking-wider text-amber-50 px-3 py-1 bg-gradient-to-br from-[#dba86a] via-[#8b5a2b] to-[#4a2f18] shadow-[inset_0_1px_0_rgba(255,255,255,0.45),inset_0_-2px_3px_rgba(0,0,0,0.5)] [text-shadow:0_1px_1px_rgba(0,0,0,0.5)] [clip-path:polygon(18%_0,82%_0,100%_18%,100%_82%,82%_100%,18%_100%,0_82%,0_18%)]">
+            <span className="absolute inset-y-0 left-1.5 w-2 -skew-x-12 bg-white/40" />
             <span className="relative">Admin</span>
           </span>
         </Link>
