@@ -44,6 +44,10 @@ export default function AnnouncementPopup({ announcementId, message, onDismissed
               <X size={16} />
             </button>
             <AnnouncementCard message={message} TitleAs={Dialog.Title} DescriptionAs={Dialog.Description} />
+            <button onClick={dismiss} disabled={dismissing}
+              className="mt-4 w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-semibold py-2 rounded-lg transition-colors">
+              Close
+            </button>
           </Dialog.Content>
         </div>
       </Dialog.Portal>
