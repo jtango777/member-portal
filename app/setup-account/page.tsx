@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import toast from 'react-hot-toast'
 import PasswordInput from '@/components/PasswordInput'
 import Recaptcha, { RecaptchaHandle } from '@/components/Recaptcha'
+import { createClient } from '@/lib/supabase/client'
 
 type Location = { id: string; name: string }
 
@@ -76,8 +77,20 @@ function SetupForm() {
       recaptchaRef.current?.reset()
       setLoading(false)
     } else {
-      toast.success('Account created! Please sign in.')
-      router.push('/login')
+      // Account was just created server-side (via the service role), so the
+      // browser has no session yet. Sign in right away with the same
+      // credentials instead of bouncing them to a login page to retype what
+      // they just entered.
+      const supabase = createClient()
+      const { error: signInError } = await supabase.auth.signInWithPassword({ email, password })
+      if (signInError) {
+        toast.success('Account created! Please sign in.')
+        router.push('/login')
+        return
+      }
+      toast.success('Account created!')
+      router.push('/dashboard')
+      router.refresh()
     }
   }
 

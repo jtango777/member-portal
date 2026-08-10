@@ -7,6 +7,7 @@ import toast from 'react-hot-toast'
 import PasswordInput from '@/components/PasswordInput'
 import { ArrowLeft } from 'lucide-react'
 import { SEATING_OPTIONS } from '@/lib/seating'
+import { createClient } from '@/lib/supabase/client'
 
 type Location = { id: string; name: string }
 
@@ -102,8 +103,20 @@ function DetailsStep({ email, defaultLocationId }: { email: string; defaultLocat
       toast.error(data.error ?? 'Something went wrong')
       setLoading(false)
     } else {
-      toast.success('Account created! Please sign in.')
-      router.push('/login')
+      // Account was just created server-side (via the service role), so the
+      // browser has no session yet. Sign in right away with the same
+      // credentials instead of bouncing them to a login page to retype what
+      // they just entered.
+      const supabase = createClient()
+      const { error: signInError } = await supabase.auth.signInWithPassword({ email, password })
+      if (signInError) {
+        toast.success('Account created! Please sign in.')
+        router.push('/login')
+        return
+      }
+      toast.success('Account created!')
+      router.push('/dashboard')
+      router.refresh()
     }
   }
 
