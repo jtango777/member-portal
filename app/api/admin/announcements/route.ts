@@ -16,7 +16,7 @@ export async function GET() {
   const admin = createAdminClient()
   const { data, error } = await admin
     .from('announcements')
-    .select('id, message, created_at')
+    .select('id, message, created_at, active')
     .order('created_at', { ascending: false })
 
   if (error) return NextResponse.json({ error: 'Failed to load announcements.' }, { status: 500 })
@@ -31,9 +31,15 @@ export async function POST(request: Request) {
   if (!message?.trim()) return NextResponse.json({ error: 'Message required' }, { status: 400 })
 
   const admin = createAdminClient()
+
+  // A new announcement replaces whatever was current — only one is ever
+  // active at a time.
+  await admin.from('announcements').update({ active: false }).eq('active', true)
+
   const { error } = await admin.from('announcements').insert({
     message: message.trim(),
     created_by: caller.id,
+    active: true,
   })
 
   if (error) return NextResponse.json({ error: 'Failed to post announcement.' }, { status: 500 })

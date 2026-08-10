@@ -1,12 +1,12 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { Megaphone, Eye } from 'lucide-react'
+import { Megaphone, Eye, X } from 'lucide-react'
 import { formatShortDate } from '@/lib/utils'
 import toast from 'react-hot-toast'
 import AnnouncementPreviewDialog from './AnnouncementPreviewDialog'
 
-type Announcement = { id: string; message: string; created_at: string }
+type Announcement = { id: string; message: string; created_at: string; active: boolean }
 
 export default function AnnouncementsManager() {
   const [announcements, setAnnouncements] = useState<Announcement[]>([])
@@ -14,6 +14,7 @@ export default function AnnouncementsManager() {
   const [message, setMessage] = useState('')
   const [posting, setPosting] = useState(false)
   const [previewOpen, setPreviewOpen] = useState(false)
+  const [deactivating, setDeactivating] = useState(false)
 
   const refresh = useCallback(async () => {
     const r = await fetch('/api/admin/announcements')
@@ -48,6 +49,22 @@ export default function AnnouncementsManager() {
     setPosting(false)
   }
 
+  async function handleDeactivate(id: string) {
+    setDeactivating(true)
+    const res = await fetch(`/api/admin/announcements/${id}`, { method: 'PATCH' })
+    if (res.ok) {
+      toast.success('Announcement deactivated — members will no longer see it.')
+      await refresh()
+    } else {
+      const d = await res.json()
+      toast.error(d.error ?? 'Failed to deactivate')
+    }
+    setDeactivating(false)
+  }
+
+  const current = announcements.find(a => a.active)
+  const history = announcements.filter(a => a.id !== current?.id)
+
   return (
     <div className="space-y-5">
       <div>
@@ -69,15 +86,40 @@ export default function AnnouncementsManager() {
 
       <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
         <div className="px-4 py-3 border-b border-gray-100 bg-gray-50">
+          <h2 className="text-sm font-semibold text-blue-600">Current Announcement</h2>
+        </div>
+        <div>
+          {loading ? (
+            <p className="text-sm text-gray-400 p-4">Loading…</p>
+          ) : !current ? (
+            <p className="text-sm text-gray-400 p-4">No active announcement — members won't see a popup.</p>
+          ) : (
+            <div className="flex items-start gap-3 px-4 py-3">
+              <Megaphone size={15} className="text-blue-500 mt-0.5 flex-shrink-0" />
+              <div className="flex-1">
+                <p className="text-sm text-gray-700">{current.message}</p>
+                <p className="text-xs text-gray-400 mt-0.5">{formatShortDate(new Date(current.created_at))}</p>
+              </div>
+              <button onClick={() => handleDeactivate(current.id)} disabled={deactivating}
+                className="flex items-center gap-1.5 text-xs border border-gray-300 hover:bg-gray-50 text-gray-700 font-medium px-2.5 py-1.5 rounded-md disabled:opacity-50 flex-shrink-0">
+                <X size={12} /> {deactivating ? '…' : 'Deactivate'}
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+        <div className="px-4 py-3 border-b border-gray-100 bg-gray-50">
           <h2 className="text-sm font-semibold text-blue-600">History</h2>
         </div>
         <div>
           {loading ? (
             <p className="text-sm text-gray-400 p-4">Loading…</p>
-          ) : announcements.length === 0 ? (
-            <p className="text-sm text-gray-400 p-4">No announcements posted yet.</p>
+          ) : history.length === 0 ? (
+            <p className="text-sm text-gray-400 p-4">No past announcements.</p>
           ) : (
-            announcements.map(a => (
+            history.map(a => (
               <div key={a.id} className="flex items-start gap-3 px-4 py-3 border-b border-gray-100 last:border-0">
                 <Megaphone size={15} className="text-gray-400 mt-0.5 flex-shrink-0" />
                 <div>

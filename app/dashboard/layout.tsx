@@ -17,6 +17,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
     supabase
       .from('announcements')
       .select('id, message')
+      .eq('active', true)
       .order('created_at', { ascending: false })
       .limit(1)
       .maybeSingle(),
