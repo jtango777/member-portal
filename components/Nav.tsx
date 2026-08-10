@@ -49,7 +49,10 @@ export default function Nav({ profile }: Props) {
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/brand/bizhaus-logo-white.png" alt="BizHaus" className="h-5 w-auto" />
           <span className="text-[10px] font-bold uppercase tracking-wider bg-blue-600 text-white px-2 py-0.5 rounded">Portal</span>
-          <span className="text-[10px] font-bold uppercase tracking-wider bg-amber-500 text-white px-2 py-0.5 rounded">Admin</span>
+          <span className="relative inline-flex items-center overflow-hidden text-[10px] font-bold uppercase tracking-wider text-amber-50 px-2.5 py-0.5 rounded-sm border border-[#4a2f18] shadow-sm bg-gradient-to-b from-[#c9915a] via-[#8b5a2b] to-[#5e3c1f] [text-shadow:0_1px_1px_rgba(0,0,0,0.4)]">
+            <span className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/35 to-transparent" />
+            <span className="relative">Admin</span>
+          </span>
         </Link>
 
         <div className="flex items-center gap-3">
