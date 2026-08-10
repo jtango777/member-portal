@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation'
 import { Trash2, Pencil } from 'lucide-react'
 import toast from 'react-hot-toast'
 import AssignPhotoDialog from './admin/AssignPhotoDialog'
-import { SEATING_OPTIONS } from '@/lib/seating'
+import { getSeatingOptions } from '@/lib/seating'
 
 type Member = {
   id: string; full_name: string; avatar_url: string | null; seating?: string | null
@@ -62,7 +62,7 @@ export default function HausSmilesTabs({ groups, defaultLocationId, isAdmin }: P
           {groups.map(group => (
             <button
               key={group.key}
-              onClick={() => setActiveKey(group.key)}
+              onClick={() => { setActiveKey(group.key); setSeatingFilter('') }}
               className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
                 group.key === active.key
                   ? 'border-blue-600 text-blue-600'
@@ -79,7 +79,7 @@ export default function HausSmilesTabs({ groups, defaultLocationId, isAdmin }: P
           className="mb-2 text-sm border border-gray-300 rounded-lg px-2.5 py-1.5 text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
         >
           <option value="">All seating</option>
-          {SEATING_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
+          {getSeatingOptions(active.name).map(s => <option key={s} value={s}>{s}</option>)}
         </select>
       </div>
 
