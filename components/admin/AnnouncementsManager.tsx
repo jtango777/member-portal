@@ -101,7 +101,7 @@ export default function AnnouncementsManager() {
                 <p className="text-xs text-gray-400 mt-0.5">{formatShortDate(new Date(current.created_at))}</p>
               </div>
               <button onClick={() => handleDeactivate(current.id)} disabled={deactivating}
-                className="flex items-center gap-1.5 text-xs border border-gray-300 hover:bg-gray-50 text-gray-700 font-medium px-2.5 py-1.5 rounded-md disabled:opacity-50 flex-shrink-0">
+                className="flex items-center gap-1.5 text-xs bg-red-50 hover:bg-red-100 border border-red-200 text-red-700 font-medium px-2.5 py-1.5 rounded-md transition-colors disabled:opacity-50 flex-shrink-0">
                 <X size={12} /> {deactivating ? '…' : 'Deactivate'}
               </button>
             </div>
