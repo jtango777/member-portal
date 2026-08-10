@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server'
 import { getPacificDayBounds } from '@/lib/utils'
 import { sendExternalBookingReceipt } from '@/lib/email'
 import { rateLimit } from '@/lib/rate-limit'
+import { verifyRecaptcha } from '@/lib/recaptcha'
 import Stripe from 'stripe'
 import { format } from 'date-fns'
 
@@ -23,10 +24,14 @@ export async function POST(request: Request) {
   const admin = createAdminClient()
   const body  = await request.json()
 
-  const { room_id, date, start, end, name, email, phone, company_name, notes, stripe_payment_intent_id } = body
+  const { room_id, date, start, end, name, email, phone, company_name, notes, stripe_payment_intent_id, recaptcha_token } = body
 
   if (!room_id || !date || !start || !end || !name || !email || !phone) {
     return NextResponse.json({ error: 'Missing required fields.' }, { status: 400 })
+  }
+
+  if (!(await verifyRecaptcha(recaptcha_token))) {
+    return NextResponse.json({ error: 'reCAPTCHA verification failed. Please try again.' }, { status: 400 })
   }
 
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {

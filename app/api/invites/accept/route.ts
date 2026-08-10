@@ -1,11 +1,16 @@
 import { createAdminClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
+import { verifyRecaptcha } from '@/lib/recaptcha'
 
 export async function POST(request: Request) {
-  const { token, name, password, default_location_id } = await request.json()
+  const { token, name, password, default_location_id, recaptcha_token } = await request.json()
 
   if (!token || !name || !password) {
     return NextResponse.json({ error: 'Missing fields' }, { status: 400 })
+  }
+
+  if (!(await verifyRecaptcha(recaptcha_token))) {
+    return NextResponse.json({ error: 'reCAPTCHA verification failed. Please try again.' }, { status: 400 })
   }
   if (password.length < 8) {
     return NextResponse.json({ error: 'Password must be at least 8 characters' }, { status: 400 })

@@ -12,6 +12,7 @@ import {
   useElements,
 } from '@stripe/react-stripe-js'
 import { cn } from '@/lib/utils'
+import Recaptcha from '@/components/Recaptcha'
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!)
 
@@ -51,11 +52,13 @@ function CheckoutForm({
   const [agreed,  setAgreed]  = useState(false)
   const [loading, setLoading] = useState(false)
   const [error,   setError]   = useState<string | null>(null)
+  const [recaptchaToken, setRecaptchaToken] = useState<string | null>(null)
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!stripe || !elements) return
     if (!agreed) { setError('Please agree to the cancellation policy.'); return }
+    if (!recaptchaToken) { setError('Please complete the "I\'m not a robot" check.'); return }
 
     setLoading(true)
     setError(null)
@@ -91,6 +94,7 @@ function CheckoutForm({
         company_name:       company.trim() || null,
         notes:              notes.trim() || null,
         stripe_payment_intent_id: paymentIntent.id,
+        recaptcha_token:    recaptchaToken,
       }),
     })
 
@@ -167,16 +171,20 @@ function CheckoutForm({
         </label>
       </div>
 
+      <div className="flex justify-center">
+        <Recaptcha onChange={setRecaptchaToken} />
+      </div>
+
       {error && (
         <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-4 py-3">{error}</p>
       )}
 
       <button
         type="submit"
-        disabled={loading || !agreed || !stripe}
+        disabled={loading || !agreed || !stripe || !recaptchaToken}
         className={cn(
           'w-full py-3.5 rounded-lg text-sm font-semibold transition-colors',
-          loading || !agreed || !stripe
+          loading || !agreed || !stripe || !recaptchaToken
             ? 'bg-blue-300 text-white cursor-not-allowed'
             : 'bg-blue-600 hover:bg-blue-700 text-white'
         )}

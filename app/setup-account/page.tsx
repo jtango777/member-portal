@@ -4,6 +4,7 @@ import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import toast from 'react-hot-toast'
 import PasswordInput from '@/components/PasswordInput'
+import Recaptcha from '@/components/Recaptcha'
 
 type Location = { id: string; name: string }
 
@@ -21,6 +22,7 @@ function SetupForm() {
   const [tokenValid, setTokenValid] = useState<boolean | null>(null)
   const [email, setEmail]         = useState('')
   const [invitedLocationId, setInvitedLocationId] = useState<string | null>(null)
+  const [recaptchaToken, setRecaptchaToken] = useState<string | null>(null)
 
   useEffect(() => {
     if (!token) { setTokenValid(false); return }
@@ -57,11 +59,12 @@ function SetupForm() {
     if (password !== password2) { toast.error('Passwords do not match'); return }
     if (password.length < 8)    { toast.error('Password must be at least 8 characters'); return }
     if (!locationId)             { toast.error('Please select a default location'); return }
+    if (!recaptchaToken)         { toast.error('Please complete the "I\'m not a robot" check'); return }
     setLoading(true)
     const res = await fetch('/api/invites/accept', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ token, name, password, default_location_id: locationId }),
+      body: JSON.stringify({ token, name, password, default_location_id: locationId, recaptcha_token: recaptchaToken }),
     })
     const data = await res.json()
     if (!res.ok) {
@@ -113,7 +116,10 @@ function SetupForm() {
             {locations.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
           </select>
         </div>
-        <button type="submit" disabled={loading}
+        <div className="flex justify-center">
+          <Recaptcha onChange={setRecaptchaToken} />
+        </div>
+        <button type="submit" disabled={loading || !recaptchaToken}
           className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-semibold py-2 px-4 rounded-lg transition-colors">
           {loading ? 'Creating account…' : 'Create Account'}
         </button>
