@@ -11,7 +11,7 @@ export default function BookLayout({ children }: { children: React.ReactNode }) 
       <header className="bg-slate-900 h-16 flex items-center flex-shrink-0 px-6">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/brand/bizhaus-logo-white.png" alt="BizHaus" className="h-5 w-auto" />
-        <span className="ml-2.5 text-lg font-semibold text-white">Portal</span>
+        <span className="ml-2.5 text-[10px] font-bold uppercase tracking-wider bg-blue-600 text-white px-2 py-0.5 rounded">Portal</span>
         <span className="ml-2 text-sm font-medium text-slate-400">Bookings</span>
       </header>
       <main className="flex-1">
