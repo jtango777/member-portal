@@ -14,10 +14,17 @@ export async function GET() {
     { data: permittedEmails },
     { data: profiles },
     { data: { users: authUsers } },
+    { data: taggedReservations },
   ] = await Promise.all([
     admin.from('permitted_emails').select('*, companies(id, name)').order('invited_at', { ascending: false }),
     admin.from('profiles').select('id, full_name, first_name, last_name, is_admin, company_id, avatar_url, default_location_id, seating, room_access_requested_at, individual_hours_allotment'),
     admin.auth.admin.listUsers({ perPage: 1000 }),
+    // Bookings tagged to a pending email (historical_email) carry whatever
+    // company was matched at import time — a strong signal for who someone
+    // actually belongs to even before they're set up as a member, e.g. an
+    // added-but-not-yet-companied person whose CSV bookings all say "M2
+    // Properties".
+    admin.from('reservations').select('historical_email, company_id, companies(name)').not('historical_email', 'is', null).not('company_id', 'is', null),
   ])
 
   // Build lookup: email → auth user id
@@ -29,14 +36,37 @@ export async function GET() {
     (profiles ?? []).map(p => [p.id, p])
   )
 
+  // Build lookup: email → most common company from their tagged bookings
+  const companyCountsByEmail = new Map<string, Map<string, { count: number; name: string }>>()
+  for (const r of taggedReservations ?? []) {
+    const email = r.historical_email!.toLowerCase()
+    const companyId = r.company_id!
+    const companyName = (r.companies as any)?.name ?? ''
+    if (companyName === 'External Booking (Legacy)') continue // not a real company, not a useful suggestion
+    if (!companyCountsByEmail.has(email)) companyCountsByEmail.set(email, new Map())
+    const counts = companyCountsByEmail.get(email)!
+    const existing = counts.get(companyId)
+    counts.set(companyId, { count: (existing?.count ?? 0) + 1, name: companyName })
+  }
+  function suggestedCompanyFor(email: string): { id: string; name: string } | null {
+    const counts = companyCountsByEmail.get(email.toLowerCase())
+    if (!counts) return null
+    const [id, { name }] = [...counts.entries()].sort((a, b) => b[1].count - a[1].count)[0]
+    return { id, name }
+  }
+
   const merged = (permittedEmails ?? []).map(pe => {
     const userId  = emailToUserId[pe.email?.toLowerCase() ?? ''] ?? null
     const prof    = userId ? idToProfile[userId] : null
+    const companyId = pe.company_id
+    const suggested = !companyId ? suggestedCompanyFor(pe.email) : null
     return {
       id:           pe.id,
       email:        pe.email,
-      company_id:   pe.company_id,
+      company_id:   companyId,
       company_name: (pe.companies as any)?.name ?? '',
+      suggested_company_id:   suggested?.id ?? null,
+      suggested_company_name: suggested?.name ?? null,
       individual_hours_allotment: prof?.individual_hours_allotment ?? (pe as any).individual_hours_allotment ?? null,
       invited_at:   pe.invited_at,
       accepted_at:  pe.accepted_at,

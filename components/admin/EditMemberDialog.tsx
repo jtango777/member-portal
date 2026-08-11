@@ -15,6 +15,8 @@ export type EditableMember = {
   last_name: string | null
   email: string
   company_id: string | null
+  suggested_company_id?: string | null
+  suggested_company_name?: string | null
   individual_hours_allotment: number | null
   default_location_id: string | null
   seating: string | null
@@ -69,7 +71,10 @@ export default function EditMemberDialog({ member, onOpenChange, onSuccess, comp
       setLastName(rest.join(' '))
     }
     setEmail(member.email)
-    setCompanyId(member.company_id ?? '')
+    // No company on file yet, but their tagged bookings (even while
+    // pending) consistently point to one — pre-fill it rather than making
+    // the admin notice and look it up themselves.
+    setCompanyId(member.company_id ?? member.suggested_company_id ?? '')
     setIndividualHours(member.individual_hours_allotment != null ? String(member.individual_hours_allotment) : '')
     setLocationId(member.default_location_id ?? '')
     setSeating(member.seating ?? '')
@@ -140,6 +145,11 @@ export default function EditMemberDialog({ member, onOpenChange, onSuccess, comp
                 value={companyId}
                 onChange={id => { setCompanyId(id); if (id) setIndividualHours('') }}
               />
+              {!member?.company_id && member?.suggested_company_id === companyId && companyId && (
+                <p className="text-xs text-gray-400 mt-1">
+                  Filled in from their bookings — {member.suggested_company_name}.
+                </p>
+              )}
             </div>
 
             <div>

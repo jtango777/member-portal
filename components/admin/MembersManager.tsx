@@ -40,6 +40,8 @@ type MemberRow = {
   id:                    string
   email:                 string
   company_id:            string | null
+  suggested_company_id:   string | null
+  suggested_company_name: string | null
   company_name:          string
   individual_hours_allotment: number | null
   invited_at:            string
