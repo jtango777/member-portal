@@ -27,7 +27,7 @@ export async function GET(request: Request) {
     admin.from('profiles').select('id, full_name, company_id, default_location_id'),
     admin.auth.admin.listUsers({ perPage: 1000 }),
     admin.from('reservations')
-      .select('user_id, start_time, end_time')
+      .select('user_id, start_time, end_time, historical_email')
       .gte('start_time', start)
       .lt('start_time', end),
   ])
@@ -40,19 +40,36 @@ export async function GET(request: Request) {
   const idToProfile = Object.fromEntries(
     (profiles ?? []).map(p => [p.id, p])
   )
-  // Build lookup: user id → reservation hours
+  // Build lookup: user id → reservation hours (bookings already tied to a
+  // real account)
   const userHours: Record<string, { hours: number; count: number }> = {}
+  // Build lookup: email → reservation hours (bookings tagged to a pending
+  // member who hasn't signed up yet — still theirs, just no account yet).
+  // Once they join, the reassignment at signup moves these into userHours
+  // instead, so this stays accurate either way.
+  const emailHours: Record<string, { hours: number; count: number }> = {}
   for (const r of reservations ?? []) {
-    if (!userHours[r.user_id]) userHours[r.user_id] = { hours: 0, count: 0 }
-    userHours[r.user_id].hours += (new Date(r.end_time).getTime() - new Date(r.start_time).getTime()) / 3600000
-    userHours[r.user_id].count += 1
+    const hrs = (new Date(r.end_time).getTime() - new Date(r.start_time).getTime()) / 3600000
+    if (r.historical_email) {
+      const key = r.historical_email.toLowerCase()
+      if (!emailHours[key]) emailHours[key] = { hours: 0, count: 0 }
+      emailHours[key].hours += hrs
+      emailHours[key].count += 1
+    } else {
+      if (!userHours[r.user_id]) userHours[r.user_id] = { hours: 0, count: 0 }
+      userHours[r.user_id].hours += hrs
+      userHours[r.user_id].count += 1
+    }
   }
 
   const result = (permittedEmails ?? []).map(pe => {
     const authUser = emailToUser[pe.email?.toLowerCase() ?? '']
     const userId   = authUser?.id ?? null
     const prof     = userId ? idToProfile[userId] : null
-    const usage    = userId ? userHours[userId] : null
+    // Signed-up members use their real booking history; pending members
+    // (no account yet) get credit for bookings already tagged to their
+    // email, so the hours are already accounted for the moment they join.
+    const usage    = userId ? userHours[userId] : emailHours[pe.email?.toLowerCase() ?? '']
 
     return {
       user_id:           userId,

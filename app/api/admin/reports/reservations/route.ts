@@ -20,7 +20,7 @@ export async function GET(request: Request) {
   const { data, error } = await admin
     .from('reservations')
     .select(`
-      id, title, notes, start_time, end_time,
+      id, title, notes, start_time, end_time, historical_email,
       profiles ( full_name ),
       companies ( name ),
       rooms ( name, locations ( name ) )
@@ -33,5 +33,15 @@ export async function GET(request: Request) {
     console.error('[admin/reports] Reservations error:', error.message)
     return NextResponse.json({ error: 'Failed to load report.' }, { status: 500 })
   }
-  return NextResponse.json(data)
+
+  // Same as the admin Reservations page — a booking attributed to a known
+  // (but not-yet-signed-up) member should show that email, not the generic
+  // "Historical Booking" placeholder name.
+  const resolved = (data ?? []).map(r =>
+    r.historical_email
+      ? { ...r, profiles: { ...r.profiles, full_name: `${r.historical_email} (pending)` } }
+      : r
+  )
+
+  return NextResponse.json(resolved)
 }
