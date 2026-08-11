@@ -82,6 +82,7 @@ export type Reservation = {
   recurrence_group_id: string | null
   is_admin_block: boolean
   historical_email: string | null
+  cancellation_requested_at: string | null
   profiles?: Profile
   companies?: Company
   rooms?: Room

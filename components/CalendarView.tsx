@@ -64,6 +64,12 @@ export default function CalendarView({ locations, profile, company, hourScope, h
   const [sidebarLoading, setSidebarLoading]     = useState(false)
   const scrollRef  = useRef<HTMLDivElement>(null)
   const pickerRef  = useRef<HTMLDivElement>(null)
+  // Whatever time-of-day was centered in view right before a zoom change,
+  // expressed independent of pixel height (scrollTop / old slotH) — so it
+  // can be re-applied against the new slotH once the grid re-renders,
+  // keeping the same moment in the day centered instead of the view
+  // jumping around as row heights change.
+  const pendingCenterRef = useRef<number | null>(null)
 
   // Remember the zoom level across visits
   useEffect(() => {
@@ -72,9 +78,19 @@ export default function CalendarView({ locations, profile, company, hourScope, h
   }, [])
 
   function handleSlotHChange(value: number) {
+    const el = scrollRef.current
+    if (el) pendingCenterRef.current = (el.scrollTop + el.clientHeight / 2) / slotH
     setSlotH(value)
     localStorage.setItem(SLOT_H_STORAGE_KEY, String(value))
   }
+
+  // Re-center after the grid re-renders at the new row height
+  useEffect(() => {
+    const el = scrollRef.current
+    if (pendingCenterRef.current == null || !el) return
+    el.scrollTop = pendingCenterRef.current * slotH - el.clientHeight / 2
+    pendingCenterRef.current = null
+  }, [slotH])
 
   // Close date picker when clicking outside
   useEffect(() => {

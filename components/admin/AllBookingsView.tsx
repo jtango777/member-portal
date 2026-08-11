@@ -114,7 +114,14 @@ export default function AllBookingsView({ reservations: initialRes, externalBook
             )}
             {rows.map(r => (
               <tr key={r.id} className="border-b border-gray-100 last:border-0 hover:bg-gray-50">
-                <td className="px-4 py-3 font-medium text-gray-900">{r.title}</td>
+                <td className="px-4 py-3 font-medium text-gray-900">
+                  {r.title}
+                  {r.cancellation_requested_at && (
+                    <span className="ml-2 inline-flex items-center bg-amber-100 text-amber-700 text-[10px] font-semibold px-1.5 py-0.5 rounded-full align-middle" title="Member requested cancellation — starts within 12h">
+                      Cancellation requested
+                    </span>
+                  )}
+                </td>
                 <td className="px-4 py-3 text-gray-600">{r.rooms?.name}</td>
                 <td className="px-4 py-3 text-gray-600">{(r.rooms as any)?.locations?.name ?? '—'}</td>
                 <td className="px-4 py-3 text-gray-600 whitespace-nowrap">

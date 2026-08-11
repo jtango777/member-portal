@@ -248,8 +248,24 @@ export default function ReservationModal({
     ? (new Date(reservation.start_time).getTime() - Date.now()) / 3600000
     : 0
   const canEdit   = isOwn && !isAdmin && !!reservation && hoursUntilStart > 24
-  const canCancel = isOwn && !isAdmin && !!reservation && hoursUntilStart > 24
-  const withinCancelPolicy = isOwn && !isAdmin && !!reservation && hoursUntilStart > 0 && hoursUntilStart <= 24
+  const canCancel = isOwn && !isAdmin && !!reservation && hoursUntilStart > 12
+  const withinCancelPolicy = isOwn && !isAdmin && !!reservation && hoursUntilStart > 0 && hoursUntilStart <= 12
+  const [cancellationRequested, setCancellationRequested] = useState(!!reservation?.cancellation_requested_at)
+  const [requestingCancellation, setRequestingCancellation] = useState(false)
+
+  async function handleRequestCancellation() {
+    if (!reservation) return
+    setRequestingCancellation(true)
+    const res = await fetch(`/api/reservations/${reservation.id}/request-cancellation`, { method: 'POST' })
+    if (res.ok) {
+      setCancellationRequested(true)
+      toast.success('Sent to the BizHaus team for approval — we\'ll take care of it.')
+    } else {
+      const data = await res.json()
+      toast.error(data.error ?? 'Something went wrong')
+    }
+    setRequestingCancellation(false)
+  }
 
   const endOptions = TIME_OPTIONS.filter(opt => {
     const [h, m] = opt.value.split(':').map(Number)
@@ -852,12 +868,26 @@ export default function ReservationModal({
                   </div>
                 )}
 
-                {/* Within 24h policy warning */}
+                {/* Within 12h policy — can't self-cancel this close to the
+                    start time, but can request it and our team handles it. */}
                 {withinCancelPolicy && !editing && (
-                  <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 text-xs text-amber-700">
-                    <AlertCircle size={13} className="flex-shrink-0 mt-0.5" />
-                    Can't edit or cancel within 24 hours. Contact an admin.
-                  </div>
+                  cancellationRequested ? (
+                    <div className="flex items-start gap-2 bg-green-50 border border-green-200 rounded-lg px-3 py-2 text-xs text-green-700">
+                      <Check size={13} className="flex-shrink-0 mt-0.5" />
+                      Cancellation request sent — our team will take care of it.
+                    </div>
+                  ) : (
+                    <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 text-xs text-amber-700">
+                      <AlertCircle size={13} className="flex-shrink-0 mt-0.5" />
+                      <div>
+                        This reservation starts within 12 hours, so it needs BizHaus team approval to cancel.{' '}
+                        <button onClick={handleRequestCancellation} disabled={requestingCancellation}
+                          className="font-semibold underline hover:no-underline disabled:opacity-50">
+                          {requestingCancellation ? 'Sending…' : 'Request cancellation'}
+                        </button>
+                      </div>
+                    </div>
+                  )
                 )}
 
                 {/* Regular user cancel */}

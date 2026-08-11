@@ -159,8 +159,8 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
     }
     const startDate  = new Date(reservation.start_time)
     const hoursUntil = (startDate.getTime() - Date.now()) / 3600000
-    if (hoursUntil < 24) {
-      return NextResponse.json({ error: 'Reservations cannot be cancelled within 24 hours of the start time. Please contact an admin.' }, { status: 403 })
+    if (hoursUntil < 12) {
+      return NextResponse.json({ error: 'This reservation starts within 12 hours — request a cancellation instead and our team will take care of it.' }, { status: 403 })
     }
   }
 

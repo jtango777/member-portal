@@ -171,6 +171,28 @@ export async function sendRoomAccessGrantedEmail(to: string, name: string) {
   })
 }
 
+export async function sendCancellationRequestEmail(
+  details: { name: string; email: string; title: string; room: string; location: string; date: string; time: string }
+) {
+  await resend.emails.send({
+    from: FROM,
+    to: STAFF_EMAIL,
+    subject: `Cancellation request (within 12h): ${details.title}`,
+    html: emailWrapper(`
+      <h2 style="color:#0f172a;margin:0 0 8px;font-size:22px;font-weight:700;">Cancellation requested</h2>
+      <p style="color:#475569;line-height:1.6;margin:0 0 24px;">This reservation starts within 12 hours, so ${details.name} couldn't cancel it themselves — please review and cancel it in Admin if appropriate.</p>
+      <table style="border-collapse:collapse;width:100%;margin-bottom:24px;background:#f8fafc;border-radius:7px;overflow:hidden;">
+        <tr><td style="padding:10px 14px;color:#64748b;font-size:13px;width:110px;">Requested by</td><td style="padding:10px 14px;font-weight:600;color:#0f172a;">${details.name} (${details.email})</td></tr>
+        <tr style="border-top:1px solid #e2e8f0;"><td style="padding:10px 14px;color:#64748b;font-size:13px;">Meeting</td><td style="padding:10px 14px;color:#1e293b;">${details.title}</td></tr>
+        <tr style="border-top:1px solid #e2e8f0;"><td style="padding:10px 14px;color:#64748b;font-size:13px;">Room</td><td style="padding:10px 14px;color:#1e293b;">${details.room} — ${details.location}</td></tr>
+        <tr style="border-top:1px solid #e2e8f0;"><td style="padding:10px 14px;color:#64748b;font-size:13px;">Date</td><td style="padding:10px 14px;color:#1e293b;">${details.date}</td></tr>
+        <tr style="border-top:1px solid #e2e8f0;"><td style="padding:10px 14px;color:#64748b;font-size:13px;">Time</td><td style="padding:10px 14px;color:#1e293b;">${details.time}</td></tr>
+      </table>
+      <a href="${APP_URL}/dashboard/admin/reservations" style="display:inline-block;background:#2563eb;color:white;padding:13px 28px;border-radius:7px;text-decoration:none;font-weight:600;font-size:15px;">Open Reservations →</a>
+    `),
+  })
+}
+
 export async function sendRoomAccessRequestEmail(details: { name: string; email: string }) {
   await resend.emails.send({
     from: FROM,
