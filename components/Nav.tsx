@@ -48,11 +48,7 @@ export default function Nav({ profile }: Props) {
         <Link href="/dashboard" className="flex items-center gap-2">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/brand/bizhaus-logo-white.png" alt="BizHaus" className="h-5 w-auto" />
-          <span className="text-[10px] font-bold uppercase tracking-wider bg-blue-600 text-white px-2 py-0.5 rounded">Portal</span>
-          <span className="relative inline-flex items-center overflow-hidden text-[10px] font-bold uppercase tracking-wider text-white px-3 py-1 bg-gradient-to-br from-[#e4e6ea] via-[#9a9ca3] to-[#43454a] shadow-[inset_0_1px_0_rgba(255,255,255,0.6),inset_0_-2px_3px_rgba(0,0,0,0.5)] [text-shadow:0_1px_1px_rgba(0,0,0,0.6)] [clip-path:polygon(18%_0,82%_0,100%_18%,100%_82%,82%_100%,18%_100%,0_82%,0_18%)]">
-            <span className="absolute inset-y-0 left-1.5 w-2 -skew-x-12 bg-white/50" />
-            <span className="relative">Admin</span>
-          </span>
+          <span className="text-[10px] font-bold uppercase tracking-wider bg-blue-600 text-white px-2 py-0.5 rounded">Member Portal</span>
         </Link>
 
         <div className="flex items-center gap-3">
@@ -79,7 +75,7 @@ export default function Nav({ profile }: Props) {
       <Link href="/dashboard" className="flex items-center gap-2">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/brand/bizhaus-logo-white.png" alt="BizHaus" className="h-5 w-auto" />
-        <span className="text-[10px] font-bold uppercase tracking-wider bg-blue-600 text-white px-2 py-0.5 rounded">Portal</span>
+        <span className="text-[10px] font-bold uppercase tracking-wider bg-blue-600 text-white px-2 py-0.5 rounded">Member Portal</span>
       </Link>
 
       <div className="flex items-center gap-3">
