@@ -39,7 +39,14 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   }
 
   const body = await request.json()
-  const { room_id, title, notes, start_time, end_time } = body
+  const { room_id, title, notes, start_time, end_time, owner_id, owner_company_id } = body
+
+  // Admin-only: reassign who this reservation belongs to. This is what
+  // determines whose (or which company's) hour pool the booking counts
+  // against, so it's restricted the same way create is.
+  if (owner_id !== undefined && !profile.is_admin) {
+    return NextResponse.json({ error: 'Only admins can reassign a reservation\'s owner.' }, { status: 403 })
+  }
 
   const start = new Date(start_time)
   const end   = new Date(end_time)
@@ -92,9 +99,19 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     return NextResponse.json({ error: 'This room is already booked for that time.' }, { status: 409 })
   }
 
+  const update: Record<string, unknown> = { room_id, title, notes: notes || null, start_time, end_time }
+  if (owner_id !== undefined) {
+    update.user_id = owner_id
+    update.company_id = owner_company_id ?? null
+    // Reassigning to a real member's own account clears the "pending" tag
+    // — it's no longer a historical/unmatched booking once an admin has
+    // deliberately attributed it.
+    update.historical_email = null
+  }
+
   const { data, error } = await adminSupabase
     .from('reservations')
-    .update({ room_id, title, notes: notes || null, start_time, end_time })
+    .update(update)
     .eq('id', id)
     .select()
     .single()

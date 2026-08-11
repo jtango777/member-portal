@@ -26,6 +26,14 @@ export default async function MyReservationsPage() {
 
   if (!profileData) redirect('/login')
 
+  // A booking attributed to a known (but not-yet-signed-up) member should
+  // show that email, not the generic "Historical Booking" placeholder name.
+  const resolveHistorical = (rows: any[]) => rows.map(r =>
+    r.historical_email
+      ? { ...r, profiles: { ...r.profiles, full_name: `${r.historical_email} (pending)` } }
+      : r
+  )
+
   // Fetch company-wide or all reservations
   let companyReservations: any[] = []
   if (profileData.is_admin) {
@@ -33,7 +41,7 @@ export default async function MyReservationsPage() {
       .from('reservations')
       .select('*, rooms(name, locations(name)), profiles(full_name), companies(name)')
       .order('start_time', { ascending: false })
-    companyReservations = (data ?? []).filter((r: any) => r.user_id !== user.id)
+    companyReservations = resolveHistorical((data ?? []).filter((r: any) => r.user_id !== user.id))
   } else if (profileData.company_id) {
     const { data } = await supabase
       .from('reservations')
@@ -41,7 +49,7 @@ export default async function MyReservationsPage() {
       .eq('company_id', profileData.company_id)
       .neq('user_id', user.id)
       .order('start_time', { ascending: false })
-    companyReservations = data ?? []
+    companyReservations = resolveHistorical(data ?? [])
   }
 
   // Calculate hours used this month

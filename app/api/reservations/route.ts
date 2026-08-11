@@ -18,6 +18,12 @@ export async function GET(request: Request) {
     .select('*, profiles(id, full_name), companies(id, name), rooms(id, name, location_id, capacity)')
     .order('start_time')
 
+  const resolveHistorical = (rows: any[]) => rows.map(r =>
+    r.historical_email
+      ? { ...r, profiles: { ...r.profiles, full_name: `${r.historical_email} (pending)` } }
+      : r
+  )
+
   if (date) {
     const { start, end } = getPacificDayBounds(date)
     query = query.gte('start_time', start.toISOString()).lte('start_time', end.toISOString())
@@ -38,7 +44,7 @@ export async function GET(request: Request) {
     console.error('[reservations] GET error:', error.message)
     return NextResponse.json({ error: 'Failed to load reservations.' }, { status: 500 })
   }
-  return NextResponse.json(data)
+  return NextResponse.json(resolveHistorical(data ?? []))
 }
 
 export async function POST(request: Request) {

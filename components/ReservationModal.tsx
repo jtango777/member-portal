@@ -179,8 +179,10 @@ export default function ReservationModal({
   const [editing, setEditing]     = useState(mode === 'create')
   const [dateVal, setDateVal]     = useState(format(selectedDate, 'yyyy-MM-dd'))
   const [roomId, setRoomId]       = useState(initialRoomId ?? reservation?.room_id ?? rooms[0]?.id ?? '')
-  // Admin book on behalf
-  const [selectedOwnerId, setSelectedOwnerId] = useState(profile.id)
+  // Admin book on behalf — when editing an existing reservation, default to
+  // whoever currently owns it (if that's a real, still-active member) so
+  // the picker reflects reality instead of resetting to the admin.
+  const [selectedOwnerId, setSelectedOwnerId] = useState(reservation?.user_id ?? profile.id)
   const [ownerSearch, setOwnerSearch] = useState('')
   const [showOwnerDropdown, setShowOwnerDropdown] = useState(false)
   const ownerDropdownRef = useAutoScrollIntoView<HTMLDivElement>(showOwnerDropdown)
@@ -333,10 +335,16 @@ export default function ReservationModal({
       formatted_date: format(new Date(dateVal + 'T12:00:00'), 'EEEE, MMMM d, yyyy'),
       formatted_time: `${format(startDate, 'h:mm a')} – ${format(endDate, 'h:mm a')}`,
     }
-    // Admin booking on behalf of a member
-    if (isAdmin && selectedOwnerId !== profile.id && selectedMember) {
+    // Admin booking on behalf of a member (create), or reassigning an
+    // existing reservation's owner (edit). Send owner_id whenever the
+    // selection differs from the default owner for this action — for a
+    // new booking that's "not the admin," for an edit that's "not whoever
+    // currently owns it" (covers reassigning to the admin themselves, or
+    // off of a placeholder/historical owner, too).
+    const ownerChanged = reservation ? selectedOwnerId !== reservation.user_id : selectedOwnerId !== profile.id
+    if (isAdmin && ownerChanged) {
       body.owner_id = selectedOwnerId
-      body.owner_company_id = selectedMember.company_id
+      body.owner_company_id = selectedOwnerId === profile.id ? (profile.company_id ?? null) : (selectedMember?.company_id ?? null)
     }
 
     const res = reservation
@@ -500,8 +508,11 @@ export default function ReservationModal({
                   </select>
                 </div>
 
-                {/* Owner field (admin only) */}
-                {isAdmin && members && members.length > 0 && mode === 'create' && (
+                {/* Owner field (admin only) — available both when creating
+                    and when editing an existing reservation, so a
+                    misattributed or historical/placeholder booking can be
+                    reassigned to whoever it actually belongs to. */}
+                {isAdmin && members && members.length > 0 && (mode === 'create' || editing) && (
                   <div className="relative">
                     <label className="block text-sm font-medium text-gray-700 mb-1">Owner</label>
                     <button
