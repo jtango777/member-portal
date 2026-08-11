@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import AllBookingsView from '@/components/admin/AllBookingsView'
+import { resolveHistoricalBookings } from '@/lib/resolveHistoricalBookings'
 
 export const dynamic = 'force-dynamic'
 
@@ -18,14 +19,8 @@ export default async function AdminReservationsPage() {
   ])
 
   // Historical bookings we can attribute to a known (but not-yet-signed-up)
-  // member show that email instead of the generic placeholder name — email
-  // is the reliable identifier here (it's what actually links the booking
-  // to their eventual account), not a looked-up name that may not resolve.
-  const resolvedReservations = (reservations ?? []).map(r =>
-    r.historical_email
-      ? { ...r, profiles: { ...r.profiles, full_name: `${r.historical_email} (pending)` } }
-      : r
-  )
+  // member show their company (or name) instead of the generic placeholder.
+  const resolvedReservations = await resolveHistoricalBookings(supabase, reservations ?? [])
 
   return (
     <AllBookingsView

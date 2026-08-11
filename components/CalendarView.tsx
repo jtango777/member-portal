@@ -39,7 +39,7 @@ type Props = {
   defaultLocationId: string | null
 }
 
-type MemberOption = { id: string; full_name: string; company_name: string; company_id: string }
+type MemberOption = { id: string; full_name: string; company_name: string; company_id: string | null; pending?: boolean; email?: string }
 
 export default function CalendarView({ locations, profile, company, hourScope, hoursUsed, defaultLocationId }: Props) {
   const defaultLocation = locations.find(l => l.id === defaultLocationId) ?? locations[0]
@@ -425,7 +425,12 @@ export default function CalendarView({ locations, profile, company, hourScope, h
                       const endSlot    = Math.min(TOTAL_SLOTS, timeToSlot(res.end_time))
                       const top        = startSlot * slotH
                       const height     = Math.max(slotH / 2, (endSlot - startSlot) * slotH)
+                      // "Own" (blue) covers both bookings this person made
+                      // themselves and any booking under their company —
+                      // it's their company's hours either way, so it reads
+                      // as theirs on the calendar too.
                       const isOwn      = res.user_id === profile.id
+                        || (!!profile.company_id && res.company_id === profile.company_id)
                       const isBlock    = res.is_admin_block
 
                       return (

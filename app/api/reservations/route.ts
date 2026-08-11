@@ -2,6 +2,8 @@ import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 import { calcHoursUsed, getMonthBounds, getPacificDayBounds } from '@/lib/utils'
 import { sendConfirmationEmail } from '@/lib/email'
+import { getOrCreateGuestUserId } from '@/lib/guestAccount'
+import { resolveHistoricalBookings } from '@/lib/resolveHistoricalBookings'
 import { format } from 'date-fns'
 
 export async function GET(request: Request) {
@@ -17,12 +19,6 @@ export async function GET(request: Request) {
     .from('reservations')
     .select('*, profiles(id, full_name), companies(id, name), rooms(id, name, location_id, capacity)')
     .order('start_time')
-
-  const resolveHistorical = (rows: any[]) => rows.map(r =>
-    r.historical_email
-      ? { ...r, profiles: { ...r.profiles, full_name: `${r.historical_email} (pending)` } }
-      : r
-  )
 
   if (date) {
     const { start, end } = getPacificDayBounds(date)
@@ -44,7 +40,10 @@ export async function GET(request: Request) {
     console.error('[reservations] GET error:', error.message)
     return NextResponse.json({ error: 'Failed to load reservations.' }, { status: 500 })
   }
-  return NextResponse.json(resolveHistorical(data ?? []))
+  // Admin client for the permitted_emails lookup specifically — RLS on that
+  // table can silently starve this under a regular member's session.
+  const resolved = await resolveHistoricalBookings(createAdminClient(), data ?? [])
+  return NextResponse.json(resolved)
 }
 
 export async function POST(request: Request) {
@@ -70,7 +69,7 @@ export async function POST(request: Request) {
   }
 
   const body = await request.json()
-  const { room_id, title, notes, start_time, end_time, formatted_date, formatted_time, owner_id, owner_company_id } = body
+  const { room_id, title, notes, start_time, end_time, formatted_date, formatted_time, owner_id, owner_company_id, historical_email } = body
 
   // ── Recurring admin block ──────────────────────────────────────────────────
   if (body.occurrences && Array.isArray(body.occurrences)) {
@@ -176,12 +175,17 @@ export async function POST(request: Request) {
   }
 
   // For admin booking on behalf of a member, use the provided owner_id/owner_company_id
-  const bookingUserId = profile.is_admin && owner_id ? owner_id : user.id
-  // Use owner_id's presence (not owner_company_id's truthiness) to decide
-  // whether we're booking on behalf of someone else — otherwise a
-  // company-less member being booked for falls through to the admin's own
-  // company_id instead of staying null.
-  const bookingCompanyId = profile.is_admin && owner_id ? (owner_company_id ?? null) : profile.company_id
+  const bookingOnBehalf = profile.is_admin && (owner_id || historical_email)
+  // Pending member (no real account yet) — attribute to the Guest
+  // placeholder and tag with their email so it auto-links at signup.
+  const bookingUserId = bookingOnBehalf
+    ? (owner_id ? owner_id : await getOrCreateGuestUserId(adminSupabase))
+    : user.id
+  // Use owner_id/historical_email's presence (not owner_company_id's
+  // truthiness) to decide whether we're booking on behalf of someone else —
+  // otherwise a company-less member being booked for falls through to the
+  // admin's own company_id instead of staying null.
+  const bookingCompanyId = bookingOnBehalf ? (owner_company_id ?? null) : profile.company_id
 
   const { data: reservation, error } = await adminSupabase
     .from('reservations')
@@ -193,6 +197,7 @@ export async function POST(request: Request) {
       notes:      notes || null,
       start_time,
       end_time,
+      historical_email: profile.is_admin && historical_email ? historical_email : null,
     })
     .select('*, rooms(name, locations(name))')
     .single()
@@ -216,6 +221,10 @@ export async function POST(request: Request) {
       if (ownerUser?.email) recipientEmail = ownerUser.email
       const { data: ownerProfile } = await adminSupabase.from('profiles').select('full_name').eq('id', owner_id).single()
       if (ownerProfile) bookerName = ownerProfile.full_name
+    } else if (profile.is_admin && historical_email) {
+      recipientEmail = historical_email
+      const { data: pendingMember } = await adminSupabase.from('permitted_emails').select('full_name').eq('email', historical_email).single()
+      if (pendingMember?.full_name) bookerName = pendingMember.full_name
     }
 
     await sendConfirmationEmail(recipientEmail, {

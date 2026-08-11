@@ -18,7 +18,7 @@ const DAYS = [
   { label: 'W', day: 3 }, { label: 'T', day: 4 }, { label: 'F', day: 5 }, { label: 'S', day: 6 },
 ]
 
-type MemberOption = { id: string; full_name: string; company_name: string; company_id: string }
+type MemberOption = { id: string; full_name: string; company_name: string; company_id: string | null; pending?: boolean; email?: string }
 
 type Props = {
   mode: 'create' | 'view'
@@ -181,8 +181,13 @@ export default function ReservationModal({
   const [roomId, setRoomId]       = useState(initialRoomId ?? reservation?.room_id ?? rooms[0]?.id ?? '')
   // Admin book on behalf — when editing an existing reservation, default to
   // whoever currently owns it (if that's a real, still-active member) so
-  // the picker reflects reality instead of resetting to the admin.
-  const [selectedOwnerId, setSelectedOwnerId] = useState(reservation?.user_id ?? profile.id)
+  // the picker reflects reality instead of resetting to the admin. A
+  // reservation tagged with historical_email is attributed to a pending
+  // member (no real account yet) rather than its literal user_id (the
+  // "Guest" placeholder), so the picker should reflect that instead.
+  const [selectedOwnerId, setSelectedOwnerId] = useState(
+    reservation?.historical_email ? `pending:${reservation.historical_email}` : (reservation?.user_id ?? profile.id)
+  )
   const [ownerSearch, setOwnerSearch] = useState('')
   const [showOwnerDropdown, setShowOwnerDropdown] = useState(false)
   const ownerDropdownRef = useAutoScrollIntoView<HTMLDivElement>(showOwnerDropdown)
@@ -336,15 +341,26 @@ export default function ReservationModal({
       formatted_time: `${format(startDate, 'h:mm a')} – ${format(endDate, 'h:mm a')}`,
     }
     // Admin booking on behalf of a member (create), or reassigning an
-    // existing reservation's owner (edit). Send owner_id whenever the
-    // selection differs from the default owner for this action — for a
-    // new booking that's "not the admin," for an edit that's "not whoever
-    // currently owns it" (covers reassigning to the admin themselves, or
-    // off of a placeholder/historical owner, too).
-    const ownerChanged = reservation ? selectedOwnerId !== reservation.user_id : selectedOwnerId !== profile.id
-    if (isAdmin && ownerChanged) {
-      body.owner_id = selectedOwnerId
-      body.owner_company_id = selectedOwnerId === profile.id ? (profile.company_id ?? null) : (selectedMember?.company_id ?? null)
+    // existing reservation's owner (edit). Send owner_id/historical_email
+    // whenever the selection differs from the default owner for this
+    // action — for a new booking that's "not the admin," for an edit
+    // that's "not whoever currently owns it" (covers reassigning to the
+    // admin themselves, or off of a placeholder/pending owner, too).
+    const currentOwnerKey = reservation
+      ? (reservation.historical_email ? `pending:${reservation.historical_email}` : reservation.user_id)
+      : profile.id
+    const isPendingSelection = selectedOwnerId.startsWith('pending:')
+    if (isAdmin && selectedOwnerId !== currentOwnerKey) {
+      if (isPendingSelection) {
+        // No real account yet — tag the booking with their email instead
+        // of a user_id, same as the historical-reservation importer. It
+        // auto-links to their real account the moment they sign up.
+        body.historical_email = selectedMember?.email ?? selectedOwnerId.slice('pending:'.length)
+        body.owner_company_id = selectedMember?.company_id ?? null
+      } else {
+        body.owner_id = selectedOwnerId
+        body.owner_company_id = selectedOwnerId === profile.id ? (profile.company_id ?? null) : (selectedMember?.company_id ?? null)
+      }
     }
 
     const res = reservation
@@ -522,7 +538,7 @@ export default function ReservationModal({
                     >
                       {selectedOwnerId === profile.id
                         ? `${profile.full_name} (you)`
-                        : (() => { const m = members.find(m => m.id === selectedOwnerId); return m ? `${m.full_name} — ${m.company_name}` : 'Select member' })()
+                        : (() => { const m = members.find(m => m.id === selectedOwnerId); return m ? (m.company_name ? `${m.full_name} — ${m.company_name}` : m.full_name) : 'Select member' })()
                       }
                     </button>
                     <div ref={ownerDropdownRef} className={cn(
@@ -556,10 +572,10 @@ export default function ReservationModal({
                                 onClick={() => { setSelectedOwnerId(m.id); setShowOwnerDropdown(false) }}
                                 className={cn(
                                   'w-full text-left px-3 py-2 text-sm hover:bg-blue-50 transition-colors',
-                                  m.id === selectedOwnerId ? 'bg-blue-50 font-medium text-blue-700' : 'text-gray-700'
+                                  m.id === selectedOwnerId ? 'bg-blue-50 font-medium text-blue-700' : m.pending ? 'text-amber-700' : 'text-gray-700'
                                 )}
                               >
-                                {m.full_name} <span className="text-gray-400">— {m.company_name}</span>
+                                {m.full_name}{m.company_name ? <span className="text-gray-400"> — {m.company_name}</span> : null}
                               </button>
                             ))
                           }

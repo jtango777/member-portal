@@ -1,6 +1,7 @@
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 import { getPacificMonthBounds } from '@/lib/utils'
+import { resolveHistoricalBookings } from '@/lib/resolveHistoricalBookings'
 
 export async function GET(request: Request) {
   const supabase = await createClient()
@@ -35,13 +36,9 @@ export async function GET(request: Request) {
   }
 
   // Same as the admin Reservations page — a booking attributed to a known
-  // (but not-yet-signed-up) member should show that email, not the generic
-  // "Historical Booking" placeholder name.
-  const resolved = (data ?? []).map(r =>
-    r.historical_email
-      ? { ...r, profiles: { ...r.profiles, full_name: `${r.historical_email} (pending)` } }
-      : r
-  )
+  // (but not-yet-signed-up) member should show their company (or name),
+  // not the generic Guest placeholder.
+  const resolved = await resolveHistoricalBookings(admin, data ?? [])
 
   return NextResponse.json(resolved)
 }
