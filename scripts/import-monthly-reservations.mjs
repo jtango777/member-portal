@@ -140,7 +140,7 @@ async function main() {
       })
       if (error) { console.error('❌  Failed to create placeholder account:', error.message); process.exit(1) }
       placeholder = created.user
-      await db.from('profiles').insert({ id: placeholder.id, full_name: 'Historical Booking', is_admin: false, is_active: false })
+      await db.from('profiles').insert({ id: placeholder.id, full_name: 'Guest', first_name: 'Guest', is_admin: false, is_active: false })
       console.log(`  + created placeholder account: ${PLACEHOLDER_EMAIL}`)
     }
   }
