@@ -45,10 +45,10 @@ export default function Nav({ profile }: Props) {
   if (profile.is_admin) {
     return (
       <nav className="bg-slate-900 text-white px-4 h-16 flex items-center justify-between gap-4 flex-shrink-0 pointer-events-auto relative z-[60]">
-        <Link href="/dashboard" className="flex items-center gap-2">
+        <Link href="/dashboard" className="flex items-center gap-4">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/brand/bizhaus-logo-white.png" alt="BizHaus" className="h-5 w-auto" />
-          <span className="text-xs font-bold uppercase tracking-wider bg-blue-600 text-white px-2.5 py-1 rounded">Member Portal</span>
+          <span className="text-xs font-bold bg-blue-600 text-white px-2.5 py-1 rounded">Member Portal</span>
         </Link>
 
         <div className="flex items-center gap-3">
@@ -72,10 +72,10 @@ export default function Nav({ profile }: Props) {
 
   return (
     <nav className="bg-slate-900 text-white px-4 h-16 flex items-center justify-between flex-shrink-0 pointer-events-auto relative z-[60]">
-      <Link href="/dashboard" className="flex items-center gap-2">
+      <Link href="/dashboard" className="flex items-center gap-4">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/brand/bizhaus-logo-white.png" alt="BizHaus" className="h-5 w-auto" />
-        <span className="text-xs font-bold uppercase tracking-wider bg-blue-600 text-white px-2.5 py-1 rounded">Member Portal</span>
+        <span className="text-xs font-bold bg-blue-600 text-white px-2.5 py-1 rounded">Member Portal</span>
       </Link>
 
       <div className="flex items-center gap-3">
