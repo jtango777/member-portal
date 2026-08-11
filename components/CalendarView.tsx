@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback, useRef, useEffect } from 'react'
+import { useState, useCallback, useRef, useEffect, useLayoutEffect } from 'react'
 import { format, addDays, subDays, isToday, isBefore, startOfDay, startOfMonth, endOfMonth, eachDayOfInterval, getDay, addMonths, subMonths } from 'date-fns'
 import { ChevronLeft, ChevronRight, Lock, FileText, Plus, Users, Clock, Ban, X, ZoomOut, ZoomIn } from 'lucide-react'
 import { Location, Room, Reservation, Profile, Company } from '@/types'
@@ -70,8 +70,16 @@ export default function CalendarView({ locations, profile, company, hourScope, h
   // keeping the same moment in the day centered instead of the view
   // jumping around as row heights change.
   const pendingCenterRef = useRef<number | null>(null)
+  // Mirrors slotH for code that runs on a delay (fetchData's setTimeout
+  // below) and would otherwise read a stale value captured in an older
+  // closure — kept in sync via the effect right under it.
+  const slotHRef = useRef(slotH)
+  useEffect(() => { slotHRef.current = slotH }, [slotH])
 
-  // Remember the zoom level across visits
+  // Remember the zoom level across visits — read after mount, not during
+  // the initial render, so server-rendered HTML and the client's first
+  // render always agree (reading localStorage during render would disagree
+  // with the server, which has no localStorage, and break hydration).
   useEffect(() => {
     const saved = Number(localStorage.getItem(SLOT_H_STORAGE_KEY))
     if (saved && saved >= MIN_SLOT_H && saved <= MAX_SLOT_H) setSlotH(saved)
@@ -84,8 +92,12 @@ export default function CalendarView({ locations, profile, company, hourScope, h
     localStorage.setItem(SLOT_H_STORAGE_KEY, String(value))
   }
 
-  // Re-center after the grid re-renders at the new row height
-  useEffect(() => {
+  // Re-center after the grid re-renders at the new row height — must run
+  // before the browser paints (useLayoutEffect, not useEffect), or there's
+  // a visible flash of the unscrolled layout on every drag step before the
+  // correction lands, which reads as the calendar jumping around instead
+  // of staying centered.
+  useLayoutEffect(() => {
     const el = scrollRef.current
     if (pendingCenterRef.current == null || !el) return
     el.scrollTop = pendingCenterRef.current * slotH - el.clientHeight / 2
@@ -116,7 +128,7 @@ export default function CalendarView({ locations, profile, company, hourScope, h
     setLoading(false)
     setTimeout(() => {
       if (scrollRef.current) {
-        scrollRef.current.scrollTop = 16 * slotH
+        scrollRef.current.scrollTop = 16 * slotHRef.current
       }
     }, 50)
   }, [selectedLocation, selectedDate])
