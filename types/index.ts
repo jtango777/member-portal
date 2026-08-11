@@ -43,6 +43,7 @@ export type Profile = {
   full_name: string
   first_name: string | null
   last_name: string | null
+  avatar_prompt_dismissed: boolean
   is_admin: boolean
   created_at: string
   avatar_url: string | null
