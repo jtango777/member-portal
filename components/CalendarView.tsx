@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useRef, useEffect } from 'react'
 import { format, addDays, subDays, isToday, isBefore, startOfDay, startOfMonth, endOfMonth, eachDayOfInterval, getDay, addMonths, subMonths } from 'date-fns'
-import { ChevronLeft, ChevronRight, Lock, FileText, Plus, Users, Clock, Ban, X } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Lock, FileText, Plus, Users, Clock, Ban, X, ZoomOut, ZoomIn } from 'lucide-react'
 import { Location, Room, Reservation, Profile, Company } from '@/types'
 import { cn, formatTime, isSameDay, buildTimeOptions, parseTimeValue, calcHoursUsed, toPacificDate } from '@/lib/utils'
 import ReservationModal from './ReservationModal'
@@ -13,9 +13,15 @@ const TIME_OPTIONS = buildTimeOptions()
 // Calendar constants
 const START_HOUR = 0      // 12 AM (midnight)
 const END_HOUR   = 24     // 12 AM (next day)
-const SLOT_H     = 56     // px per 30-min slot
 const TIME_W     = 64     // px for time label column
 const TOTAL_SLOTS = (END_HOUR - START_HOUR) * 2  // 30 slots
+
+// Row height (px per 30-min slot) is user-adjustable on laptop/desktop via
+// a drag slider, so more (or less) of the day fits on screen at once.
+const DEFAULT_SLOT_H = 56
+const MIN_SLOT_H     = 28
+const MAX_SLOT_H     = 72
+const SLOT_H_STORAGE_KEY = 'bizhaus-calendar-slot-height'
 
 type ModalState =
   | { mode: 'closed' }
@@ -48,6 +54,7 @@ export default function CalendarView({ locations, profile, company, hourScope, h
   const [membersList, setMembersList]           = useState<MemberOption[]>([])
   const [showPicker, setShowPicker]             = useState(false)
   const [pickerMonth, setPickerMonth]           = useState(new Date())
+  const [slotH, setSlotH]                       = useState(DEFAULT_SLOT_H)
   const [showSidebarForm, setShowSidebarForm]   = useState(false)
   const [sidebarRoomId, setSidebarRoomId]       = useState('')
   const [sidebarTitle, setSidebarTitle]         = useState('')
@@ -57,6 +64,17 @@ export default function CalendarView({ locations, profile, company, hourScope, h
   const [sidebarLoading, setSidebarLoading]     = useState(false)
   const scrollRef  = useRef<HTMLDivElement>(null)
   const pickerRef  = useRef<HTMLDivElement>(null)
+
+  // Remember the zoom level across visits
+  useEffect(() => {
+    const saved = Number(localStorage.getItem(SLOT_H_STORAGE_KEY))
+    if (saved && saved >= MIN_SLOT_H && saved <= MAX_SLOT_H) setSlotH(saved)
+  }, [])
+
+  function handleSlotHChange(value: number) {
+    setSlotH(value)
+    localStorage.setItem(SLOT_H_STORAGE_KEY, String(value))
+  }
 
   // Close date picker when clicking outside
   useEffect(() => {
@@ -82,7 +100,7 @@ export default function CalendarView({ locations, profile, company, hourScope, h
     setLoading(false)
     setTimeout(() => {
       if (scrollRef.current) {
-        scrollRef.current.scrollTop = 16 * SLOT_H
+        scrollRef.current.scrollTop = 16 * slotH
       }
     }, 50)
   }, [selectedLocation, selectedDate])
@@ -293,6 +311,23 @@ export default function CalendarView({ locations, profile, company, hourScope, h
           </div>
 
           <div className="flex items-center gap-3">
+            {/* Row-height zoom — laptop/desktop only, drag to fit more (or
+                less) of the day on screen at once. */}
+            <div className="hidden lg:flex items-center gap-1.5 text-gray-400" title="Zoom the calendar rows">
+              <ZoomOut size={14} />
+              <input
+                type="range"
+                min={MIN_SLOT_H}
+                max={MAX_SLOT_H}
+                step={4}
+                value={slotH}
+                onChange={e => handleSlotHChange(Number(e.target.value))}
+                className="w-24 accent-blue-600 cursor-pointer"
+                aria-label="Calendar row height"
+              />
+              <ZoomIn size={14} />
+            </div>
+
             {company && !profile.is_admin && hoursRemaining !== null && (
               <div className="flex items-center gap-1.5 text-sm bg-blue-100 border border-blue-300 rounded-lg px-3 py-1.5">
                 <Clock size={14} className="text-blue-700" />
@@ -349,7 +384,7 @@ export default function CalendarView({ locations, profile, company, hourScope, h
                   return (
                     <div
                       key={i}
-                      style={{ height: SLOT_H }}
+                      style={{ height: slotH }}
                       className="flex items-start justify-end pr-2 pt-1"
                     >
                       {isHour && (
@@ -369,14 +404,14 @@ export default function CalendarView({ locations, profile, company, hourScope, h
                   <div
                     key={room.id}
                     className="relative border-l border-gray-200 min-w-[160px] flex-1"
-                    style={{ height: SLOT_H * TOTAL_SLOTS }}
+                    style={{ height: slotH * TOTAL_SLOTS }}
                   >
                     {/* Slot backgrounds / click targets */}
                     {Array.from({ length: TOTAL_SLOTS }, (_, i) => (
                       <div
                         key={i}
                         onClick={() => handleSlotClick(room.id, i)}
-                        style={{ top: i * SLOT_H, height: SLOT_H }}
+                        style={{ top: i * slotH, height: slotH }}
                         className={cn(
                           'absolute inset-x-0 cursor-pointer hover:bg-blue-50 transition-colors',
                           i % 2 === 0 ? 'border-t border-gray-200' : 'border-t border-dashed border-gray-200'
@@ -388,8 +423,8 @@ export default function CalendarView({ locations, profile, company, hourScope, h
                     {roomReservations.map(res => {
                       const startSlot  = Math.max(0, timeToSlot(res.start_time))
                       const endSlot    = Math.min(TOTAL_SLOTS, timeToSlot(res.end_time))
-                      const top        = startSlot * SLOT_H
-                      const height     = Math.max(SLOT_H / 2, (endSlot - startSlot) * SLOT_H)
+                      const top        = startSlot * slotH
+                      const height     = Math.max(slotH / 2, (endSlot - startSlot) * slotH)
                       const isOwn      = res.user_id === profile.id
                       const isBlock    = res.is_admin_block
 
@@ -418,7 +453,7 @@ export default function CalendarView({ locations, profile, company, hourScope, h
                             </span>
                             {!isBlock && res.notes && <FileText size={10} className="flex-shrink-0 ml-auto" />}
                           </div>
-                          {height >= SLOT_H && (
+                          {height >= slotH && (
                             <>
                               <div className="font-semibold text-sm truncate mt-0.5 leading-tight">
                                 {res.title}
