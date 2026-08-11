@@ -41,6 +41,8 @@ export type Profile = {
   // hours for a standalone individual, instead of sharing a company's pool.
   individual_hours_allotment: number | null
   full_name: string
+  first_name: string | null
+  last_name: string | null
   is_admin: boolean
   created_at: string
   avatar_url: string | null

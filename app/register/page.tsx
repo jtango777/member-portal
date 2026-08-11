@@ -70,7 +70,8 @@ function EmailStep({ onFound }: { onFound: (email: string, defaultLocationId: st
 
 function DetailsStep({ email, defaultLocationId }: { email: string; defaultLocationId: string | null }) {
   const router = useRouter()
-  const [name, setName]           = useState('')
+  const [firstName, setFirstName] = useState('')
+  const [lastName, setLastName]   = useState('')
   const [password, setPassword]   = useState('')
   const [password2, setPassword2] = useState('')
   const [locationId, setLocationId] = useState(defaultLocationId ?? '')
@@ -96,7 +97,7 @@ function DetailsStep({ email, defaultLocationId }: { email: string; defaultLocat
     const res = await fetch('/api/invites/accept-by-email', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, name, password, default_location_id: locationId, seating: seating || null }),
+      body: JSON.stringify({ email, first_name: firstName.trim(), last_name: lastName.trim(), password, default_location_id: locationId, seating: seating || null }),
     })
     const data = await res.json()
     if (!res.ok) {
@@ -128,11 +129,19 @@ function DetailsStep({ email, defaultLocationId }: { email: string; defaultLocat
       <h2 className="text-lg font-semibold text-gray-900 mb-1">Set up your account</h2>
       <p className="text-sm text-gray-500 mb-6">Creating account for <strong>{email}</strong></p>
       <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
-          <input type="text" required value={name} onChange={e => setName(e.target.value)}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            placeholder="Jane Smith" />
+        <div className="flex gap-3">
+          <div className="flex-1">
+            <label className="block text-sm font-medium text-gray-700 mb-1">First Name</label>
+            <input type="text" required value={firstName} onChange={e => setFirstName(e.target.value)}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="Jane" />
+          </div>
+          <div className="flex-1">
+            <label className="block text-sm font-medium text-gray-700 mb-1">Last Name</label>
+            <input type="text" required value={lastName} onChange={e => setLastName(e.target.value)}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="Smith" />
+          </div>
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>

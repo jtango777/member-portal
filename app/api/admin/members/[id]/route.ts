@@ -16,7 +16,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   const caller = await assertAdmin()
   if (!caller) return NextResponse.json({ error: 'Admins only' }, { status: 403 })
 
-  const { company_id, individual_hours_allotment, full_name, email, default_location_id, seating, is_active } = await request.json()
+  const { company_id, individual_hours_allotment, full_name, first_name, last_name, email, default_location_id, seating, is_active } = await request.json()
 
   const admin = createAdminClient()
 
@@ -55,6 +55,8 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   if (individual_hours_allotment !== undefined) peUpdate.individual_hours_allotment = effectiveCompanyId ? null : (individual_hours_allotment || null)
   else if (company_id && !current.company_id) peUpdate.individual_hours_allotment = null // gaining a company clears any individual hours
   if (full_name            !== undefined) peUpdate.full_name            = full_name
+  if (first_name           !== undefined) peUpdate.first_name           = first_name
+  if (last_name            !== undefined) peUpdate.last_name            = last_name
   if (email                !== undefined) peUpdate.email                = email
   if (default_location_id  !== undefined) peUpdate.default_location_id  = default_location_id ?? null
   if (seating              !== undefined) peUpdate.seating              = seating || null
@@ -83,6 +85,8 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     if (individual_hours_allotment !== undefined) profileUpdate.individual_hours_allotment = effectiveCompanyId ? null : (individual_hours_allotment || null)
     else if (company_id && !current.company_id) profileUpdate.individual_hours_allotment = null
     if (full_name            !== undefined) profileUpdate.full_name            = full_name
+    if (first_name           !== undefined) profileUpdate.first_name           = first_name
+    if (last_name            !== undefined) profileUpdate.last_name            = last_name
     if (default_location_id  !== undefined) profileUpdate.default_location_id  = default_location_id ?? null
     if (seating              !== undefined) profileUpdate.seating              = seating || null
     if (is_active             !== undefined) profileUpdate.is_active            = is_active

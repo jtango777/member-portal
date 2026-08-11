@@ -11,7 +11,7 @@ export async function POST(request: Request) {
   const { data: profile } = await supabase.from('profiles').select('is_admin').eq('id', user.id).single()
   if (!profile?.is_admin) return NextResponse.json({ error: 'Admins only' }, { status: 403 })
 
-  const { email, company_id, individual_hours_allotment, default_location_id, seating, skipEmail } = await request.json()
+  const { email, first_name, last_name, company_id, individual_hours_allotment, default_location_id, seating, skipEmail } = await request.json()
   if (!email) return NextResponse.json({ error: 'Missing fields' }, { status: 400 })
   // Company is optional — only needed when this person will share an hour
   // pool with others. Without one, individual_hours_allotment (if given)
@@ -20,6 +20,9 @@ export async function POST(request: Request) {
   const individualHours = companyId ? null : (individual_hours_allotment || null)
   const locationId = default_location_id || null
   const seatingValue = seating || null
+  const firstName = first_name?.trim() || null
+  const lastName = last_name?.trim() || null
+  const fullName = [firstName, lastName].filter(Boolean).join(' ') || null
 
   const admin = createAdminClient()
 
@@ -32,7 +35,7 @@ export async function POST(request: Request) {
     // just bookkeeping; invite_token staying null is what actually marks
     // this person as "not invited" anywhere the UI checks that.
     const { error } = await admin.from('permitted_emails').upsert(
-      { email: email.toLowerCase().trim(), company_id: companyId, individual_hours_allotment: individualHours, default_location_id: locationId, seating: seatingValue, invite_token: null, accepted_at: null },
+      { email: email.toLowerCase().trim(), first_name: firstName, last_name: lastName, full_name: fullName, company_id: companyId, individual_hours_allotment: individualHours, default_location_id: locationId, seating: seatingValue, invite_token: null, accepted_at: null },
       { onConflict: 'email' }
     )
     if (error) {
@@ -45,7 +48,7 @@ export async function POST(request: Request) {
   const token = generateToken()
 
   const { error } = await admin.from('permitted_emails').upsert(
-    { email: email.toLowerCase().trim(), company_id: companyId, individual_hours_allotment: individualHours, default_location_id: locationId, seating: seatingValue, invite_token: token, invited_at: new Date().toISOString(), accepted_at: null },
+    { email: email.toLowerCase().trim(), first_name: firstName, last_name: lastName, full_name: fullName, company_id: companyId, individual_hours_allotment: individualHours, default_location_id: locationId, seating: seatingValue, invite_token: token, invited_at: new Date().toISOString(), accepted_at: null },
     { onConflict: 'email' }
   )
 

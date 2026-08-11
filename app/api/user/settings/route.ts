@@ -6,14 +6,16 @@ export async function PATCH(request: Request) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const { full_name, default_location_id, company_name, license_plate, seating } = await request.json()
+  const { first_name, last_name, default_location_id, company_name, license_plate, seating } = await request.json()
   const admin = createAdminClient()
 
   // Update profile
   const { error: profileErr } = await admin
     .from('profiles')
     .update({
-      full_name: full_name?.trim(),
+      first_name: first_name?.trim(),
+      last_name: last_name?.trim(),
+      full_name: [first_name?.trim(), last_name?.trim()].filter(Boolean).join(' '),
       default_location_id: default_location_id ?? null,
       license_plate: license_plate?.trim() || null,
       seating: seating ?? null,

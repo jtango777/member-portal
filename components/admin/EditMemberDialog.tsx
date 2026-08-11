@@ -11,6 +11,8 @@ import CompanyCombobox from '@/components/admin/CompanyCombobox'
 export type EditableMember = {
   id: string
   full_name: string | null
+  first_name: string | null
+  last_name: string | null
   email: string
   company_id: string | null
   individual_hours_allotment: number | null
@@ -45,7 +47,8 @@ function pooledHoursLabel(companies: Company[], companyId: string) {
 // column widths, row height quirks). A dialog sidesteps all of that: the
 // table underneath never changes while it's open.
 export default function EditMemberDialog({ member, onOpenChange, onSuccess, companies, membershipTypes, locations }: Props) {
-  const [fullName, setFullName]     = useState('')
+  const [firstName, setFirstName]   = useState('')
+  const [lastName, setLastName]     = useState('')
   const [email, setEmail]           = useState('')
   const [companyId, setCompanyId]   = useState('')
   const [individualHours, setIndividualHours] = useState('')
@@ -55,7 +58,16 @@ export default function EditMemberDialog({ member, onOpenChange, onSuccess, comp
 
   useEffect(() => {
     if (!member) return
-    setFullName(member.full_name ?? '')
+    // Fall back to splitting the old combined full_name for members that
+    // predate first_name/last_name (e.g. imported before this was added).
+    if (member.first_name || member.last_name) {
+      setFirstName(member.first_name ?? '')
+      setLastName(member.last_name ?? '')
+    } else {
+      const [first, ...rest] = (member.full_name ?? '').trim().split(/\s+/).filter(Boolean)
+      setFirstName(first ?? '')
+      setLastName(rest.join(' '))
+    }
     setEmail(member.email)
     setCompanyId(member.company_id ?? '')
     setIndividualHours(member.individual_hours_allotment != null ? String(member.individual_hours_allotment) : '')
@@ -70,7 +82,9 @@ export default function EditMemberDialog({ member, onOpenChange, onSuccess, comp
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        full_name:           fullName.trim() || null,
+        first_name:          firstName.trim() || null,
+        last_name:           lastName.trim() || null,
+        full_name:           [firstName.trim(), lastName.trim()].filter(Boolean).join(' ') || null,
         email:               email.trim(),
         company_id:          companyId || null,
         individual_hours_allotment: individualHours !== '' ? Number(individualHours) : null,
@@ -100,10 +114,17 @@ export default function EditMemberDialog({ member, onOpenChange, onSuccess, comp
               <Dialog.Close className="text-gray-400 hover:text-gray-600"><X size={16} /></Dialog.Close>
             </div>
 
-            <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1">Name</label>
-              <input type="text" value={fullName} onChange={e => setFullName(e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            <div className="flex gap-3">
+              <div className="flex-1">
+                <label className="block text-xs font-medium text-gray-700 mb-1">First Name</label>
+                <input type="text" value={firstName} onChange={e => setFirstName(e.target.value)}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              </div>
+              <div className="flex-1">
+                <label className="block text-xs font-medium text-gray-700 mb-1">Last Name</label>
+                <input type="text" value={lastName} onChange={e => setLastName(e.target.value)}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              </div>
             </div>
 
             <div>

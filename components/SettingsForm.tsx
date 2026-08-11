@@ -23,7 +23,8 @@ function initials(fullName: string): string {
 
 export default function SettingsForm({ profile, company, locations, email }: Props) {
   const router = useRouter()
-  const [fullName, setFullName]           = useState(profile.full_name)
+  const [firstName, setFirstName]         = useState(profile.first_name ?? profile.full_name.trim().split(/\s+/)[0] ?? '')
+  const [lastName, setLastName]           = useState(profile.last_name ?? profile.full_name.trim().split(/\s+/).slice(1).join(' '))
   const [companyName, setCompanyName]     = useState(company?.name ?? '')
   const [locationId, setLocationId]       = useState((profile as any).default_location_id ?? '')
   const [licensePlate, setLicensePlate]   = useState(profile.license_plate ?? '')
@@ -43,7 +44,8 @@ export default function SettingsForm({ profile, company, locations, email }: Pro
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        full_name:           fullName,
+        first_name:          firstName.trim(),
+        last_name:           lastName.trim(),
         default_location_id: locationId || null,
         company_name:        companyName,
         license_plate:       licensePlate,
@@ -126,10 +128,17 @@ export default function SettingsForm({ profile, company, locations, email }: Pro
             <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
             <p className="text-sm text-gray-900 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">{email}</p>
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
-            <input value={fullName} onChange={e => setFullName(e.target.value)} required
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          <div className="flex gap-3">
+            <div className="flex-1">
+              <label className="block text-sm font-medium text-gray-700 mb-1">First Name</label>
+              <input value={firstName} onChange={e => setFirstName(e.target.value)} required
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            </div>
+            <div className="flex-1">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Last Name</label>
+              <input value={lastName} onChange={e => setLastName(e.target.value)} required
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            </div>
           </div>
           {profile.is_admin ? (
             <div>

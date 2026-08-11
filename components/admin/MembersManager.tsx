@@ -47,6 +47,8 @@ type MemberRow = {
   invite_token:          string | null
   user_id:               string | null
   full_name:             string | null
+  first_name:            string | null
+  last_name:             string | null
   is_admin:              boolean
   avatar_url:            string | null
   default_location_id:   string | null
@@ -86,6 +88,8 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
   const [formPanelSettled, setFormPanelSettled] = useState(false)
   const formRef = useAutoScrollIntoView<HTMLDivElement>(showForm)
   const [email, setEmail]           = useState('')
+  const [addFirstName, setAddFirstName] = useState('')
+  const [addLastName, setAddLastName]   = useState('')
   const [connectToRooms, setConnectToRooms] = useState(false)
   const connectToRoomsRef = useAutoScrollIntoView<HTMLDivElement>(connectToRooms)
   // Tracks whether the expand animation has finished — the panel needs
@@ -175,6 +179,8 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         email,
+        first_name: addFirstName.trim() || null,
+        last_name: addLastName.trim() || null,
         company_id: companyId || null,
         individual_hours_allotment: individualHours !== '' ? Number(individualHours) : null,
         default_location_id: addLocationId || null,
@@ -190,6 +196,8 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
       else if (data.emailSent) toast.success('Invite sent!')
       else { setLastInviteLink(data.inviteLink); toast.success('Member added — copy the link below to invite them manually.') }
       setEmail('')
+      setAddFirstName('')
+      setAddLastName('')
       setConnectToRooms(false)
       setCompanyId('')
       setIndividualHours('')
@@ -447,6 +455,20 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
             <h3 className="font-semibold text-gray-900 text-sm">Add New Member</h3>
           </div>
           <form onSubmit={handleInvite} className="space-y-4">
+            <div className="flex gap-4">
+              <div className="w-40">
+                <label className="block text-xs font-medium text-gray-700 mb-1">First Name</label>
+                <input type="text" value={addFirstName} onChange={e => setAddFirstName(e.target.value)}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm transition-shadow focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="Jane" />
+              </div>
+              <div className="w-40">
+                <label className="block text-xs font-medium text-gray-700 mb-1">Last Name</label>
+                <input type="text" value={addLastName} onChange={e => setAddLastName(e.target.value)}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm transition-shadow focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="Smith" />
+              </div>
+            </div>
             <div className="flex items-end gap-4">
               <div className="w-72">
                 <label className="block text-xs font-medium text-gray-700 mb-1">Email</label>
