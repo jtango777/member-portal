@@ -427,7 +427,7 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
               className={`col-start-1 row-start-1 flex items-center gap-1.5 text-xs bg-green-600 hover:bg-green-700 text-white font-semibold px-3 py-1.5 rounded-md disabled:opacity-50 transition-all duration-150 whitespace-nowrap ${
                 confirmInviteAll ? 'opacity-0 scale-95 pointer-events-none' : 'opacity-100 scale-100'
               }`}>
-              {invitingAll ? 'Sending…' : `Invite Uninvited (${notInvited.length})`}
+              {invitingAll ? 'Sending…' : `Invite All (${notInvited.length})`}
             </button>
           </div>
         </div>
