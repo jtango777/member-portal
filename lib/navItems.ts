@@ -1,11 +1,13 @@
 import { LayoutDashboard, DoorOpen, Smile, CalendarClock, Users, Building2, Megaphone, BarChart2, CalendarDays, BookOpen, Clock, Activity, MessageSquare } from 'lucide-react'
 
-export type NavItem = { href: string; label: string; icon: React.ElementType }
+export type NavItem = { href: string; label: string; icon: React.ElementType; indent?: boolean }
 
 export const memberNavItems: NavItem[] = [
   { href: '/dashboard', label: 'Overview', icon: LayoutDashboard },
   { href: '/dashboard/rooms', label: 'Rooms', icon: DoorOpen },
-  { href: '/dashboard/my-reservations', label: 'My Reservations', icon: CalendarClock },
+  // Indented — it's really a sub-view of Rooms (your own bookings), not a
+  // separate top-level section.
+  { href: '/dashboard/my-reservations', label: 'My Reservations', icon: CalendarClock, indent: true },
   { href: '/dashboard/haus-smiles', label: 'Faces', icon: Smile },
 ]
 

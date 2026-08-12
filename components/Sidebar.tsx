@@ -26,13 +26,14 @@ export default function Sidebar({ isAdmin }: { isAdmin: boolean }) {
     localStorage.setItem(STORAGE_KEY, String(next))
   }
 
-  function NavLink({ href, label, icon: Icon }: NavItem) {
+  function NavLink({ href, label, icon: Icon, indent }: NavItem) {
     const active = pathname === href
     return (
       <Link href={href} title={collapsed ? label : undefined}
         className={cn(
           'relative flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors',
           collapsed && 'justify-center px-2',
+          indent && !collapsed && 'ml-4',
           active ? 'bg-blue-50 text-blue-700 font-semibold' : 'text-gray-600 hover:bg-gray-100'
         )}>
         {active && <span className="absolute left-0 top-1.5 bottom-1.5 w-0.5 rounded-full bg-blue-600" />}
