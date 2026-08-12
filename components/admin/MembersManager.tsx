@@ -355,6 +355,17 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
     setEditTarget(m)
   }
 
+  // True room access means actual bookable hours right now — a company
+  // assigned with a 0h pool (e.g. a placeholder company) doesn't count,
+  // same distinction that caused Ani Boyo to look "set up" but not
+  // actually be able to book anything.
+  function hasRoomAccess(m: MemberRow): boolean {
+    if (m.individual_hours_allotment) return true
+    if (!m.company_id) return false
+    const company = companies.find(c => c.id === m.company_id)
+    return (company?.monthly_hours_allotment ?? 0) > 0
+  }
+
   const activeTotalPages  = Math.max(1, Math.ceil(active.length / activePageSize))
   const pendingTotalPages = Math.max(1, Math.ceil(pending.length / pendingPageSize))
   const pagedActive  = showAllActive  ? active  : active.slice((activePage - 1) * activePageSize, activePage * activePageSize)
@@ -633,6 +644,12 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
                       <td className="px-4 py-3">
                         <div className="flex items-center justify-end gap-0.5">
                           <IconAction
+                            icon={DoorOpen}
+                            label={hasRoomAccess(m) ? 'Has room access — click to edit' : 'No room access — click to grant'}
+                            onClick={() => setEditTarget(m)}
+                            colorClass={hasRoomAccess(m) ? 'text-purple-600 hover:bg-purple-50' : 'text-gray-300 hover:bg-gray-100 hover:text-gray-500'}
+                          />
+                          <IconAction
                             icon={Edit2}
                             label="Edit member"
                             onClick={() => setEditTarget(m)}
@@ -716,6 +733,12 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
                       <td className="px-4 py-3 text-gray-500 text-xs whitespace-nowrap">{formatShortDate(new Date(m.invited_at))}</td>
                       <td className="px-4 py-3">
                         <div className="flex items-center justify-end gap-0.5">
+                          <IconAction
+                            icon={DoorOpen}
+                            label={hasRoomAccess(m) ? 'Has room access — click to edit' : 'No room access — click to set up before they sign up'}
+                            onClick={() => setEditTarget(m)}
+                            colorClass={hasRoomAccess(m) ? 'text-purple-600 hover:bg-purple-50' : 'text-gray-300 hover:bg-gray-100 hover:text-gray-500'}
+                          />
                           <IconAction
                             icon={Edit2}
                             label="Edit member"
