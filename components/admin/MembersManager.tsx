@@ -672,12 +672,8 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
                               colorClass={m.is_admin ? 'text-red-500 hover:bg-red-50' : 'text-blue-500 hover:bg-blue-50'}
                             />
                           )}
-                          <div className="grid ml-1">
-                            {/* Both states share one grid cell and cross-fade
-                                instead of hard-swapping, so the row doesn't jump. */}
-                            <div className={`col-start-1 row-start-1 flex items-center gap-1.5 transition-all duration-150 ${
-                              confirmRemove === m.id ? 'opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none'
-                            }`}>
+                          {confirmRemove === m.id ? (
+                            <div className="flex items-center gap-1.5">
                               <span className="text-xs text-red-700 whitespace-nowrap">Archive?</span>
                               <button onClick={() => handleRemove(m.id)} disabled={removing === m.id}
                                 className="text-xs bg-red-600 text-white px-2 py-1 rounded font-medium">
@@ -685,17 +681,14 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
                               </button>
                               <button onClick={() => setConfirmRemove(null)} className="text-xs text-gray-400">No</button>
                             </div>
-                            <div className={`col-start-1 row-start-1 transition-all duration-150 ${
-                              confirmRemove === m.id ? 'opacity-0 scale-95 pointer-events-none' : 'opacity-100 scale-100'
-                            }`}>
-                              <IconAction
-                                icon={Trash2}
-                                label="Archive member"
-                                onClick={() => setConfirmRemove(m.id)}
-                                colorClass="text-gray-400 hover:bg-red-50 hover:text-red-600"
-                              />
-                            </div>
-                          </div>
+                          ) : (
+                            <IconAction
+                              icon={Trash2}
+                              label="Archive member"
+                              onClick={() => setConfirmRemove(m.id)}
+                              colorClass="text-gray-400 hover:bg-red-50 hover:text-red-600"
+                            />
+                          )}
                         </div>
                       </td>
                     </tr>
