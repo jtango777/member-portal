@@ -1,5 +1,6 @@
 import { createAdminClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
+import { suggestCompanyForEmail } from '@/lib/suggestCompany'
 
 export async function POST(request: Request) {
   const { email, first_name, last_name, password, default_location_id, seating } = await request.json()
@@ -39,9 +40,14 @@ export async function POST(request: Request) {
 
   const userId = authData.user!.id
 
+  // If no company was already set on the invite, check their own booking
+  // history (getaroom-imported reservations) for one before falling back
+  // to no company at all.
+  const companyId = invite.company_id ?? await suggestCompanyForEmail(admin, invite.email, userId)
+
   await admin.from('profiles').insert({
     id:                  userId,
-    company_id:          invite.company_id,
+    company_id:          companyId,
     individual_hours_allotment: invite.individual_hours_allotment ?? null,
     first_name:          first_name.trim(),
     last_name:           last_name.trim(),
@@ -54,7 +60,7 @@ export async function POST(request: Request) {
 
   await admin
     .from('permitted_emails')
-    .update({ accepted_at: new Date().toISOString(), invite_token: null })
+    .update({ accepted_at: new Date().toISOString(), invite_token: null, company_id: companyId })
     .eq('id', invite.id)
 
   // Reassign any historical (pre-signup) bookings tagged with this email to
