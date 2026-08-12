@@ -77,10 +77,8 @@ export default function PhotoUploadDialog({
         <Dialog.Content className="pointer-events-auto bg-white rounded-xl border border-gray-200 p-6 w-full max-w-sm transition-all duration-200 data-[state=open]:opacity-100 data-[state=open]:scale-100 data-[state=closed]:opacity-0 data-[state=closed]:scale-95">
           <div className="flex items-center justify-between mb-4">
             <Dialog.Title className="text-sm font-semibold text-gray-900">{title}</Dialog.Title>
-            {imageSrc ? (
+            {imageSrc && (
               <Dialog.Close className="text-gray-400 hover:text-gray-600"><X size={16} /></Dialog.Close>
-            ) : (
-              <Dialog.Close className="text-sm text-gray-500 hover:text-gray-700 font-medium">Skip for now</Dialog.Close>
             )}
           </div>
           <Dialog.Description className="text-sm text-gray-500 mb-4">{description}</Dialog.Description>
@@ -123,10 +121,15 @@ export default function PhotoUploadDialog({
                   <Crop size={16} /> Recrop Current Photo
                 </button>
               )}
-              <button onClick={() => fileRef.current?.click()}
-                className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-4 py-2 rounded-lg">
-                <Upload size={16} /> Choose Photo
-              </button>
+              <div className="flex gap-2">
+                <Dialog.Close className="flex-1 text-sm font-semibold px-4 py-2 rounded-lg border border-gray-300 bg-white text-gray-700 hover:bg-gray-50">
+                  Skip for now
+                </Dialog.Close>
+                <button onClick={() => fileRef.current?.click()}
+                  className="flex-1 flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-4 py-2 rounded-lg">
+                  <Upload size={16} /> Choose Photo
+                </button>
+              </div>
             </div>
           )}
         </Dialog.Content>
