@@ -32,7 +32,6 @@ export default function CompaniesManager({ companies: initial, membershipTypes: 
   const [showManageTypes, setShowManageTypes] = useState(false)
   const [newName,             setNewName]             = useState('')
   const [newHours,            setNewHours]            = useState('0')
-  const [newMembershipTypeId, setNewMembershipTypeId] = useState('')
   const [creating,            setCreating]            = useState(false)
   const [editTarget,          setEditTarget]          = useState<EditableCompany | null>(null)
   // Manage types state
@@ -91,12 +90,11 @@ export default function CompaniesManager({ companies: initial, membershipTypes: 
       body: JSON.stringify({
         name: newName,
         monthly_hours_allotment: parseFloat(newHours),
-        membership_type_id: newMembershipTypeId || null,
       }),
     })
     if (res.ok) {
       toast.success('Company created')
-      setNewName(''); setNewHours('0'); setNewMembershipTypeId(''); setShowForm(false)
+      setNewName(''); setNewHours('0'); setShowForm(false)
       await refreshCompanies()
     } else {
       const d = await res.json()
@@ -105,15 +103,8 @@ export default function CompaniesManager({ companies: initial, membershipTypes: 
     setCreating(false)
   }
 
-  function handleNewTypeSelect(typeId: string) {
-    setNewMembershipTypeId(typeId)
-    if (typeId) {
-      const type = membershipTypes.find(t => t.id === typeId)
-      setNewHours(type?.hours_per_month != null ? String(type.hours_per_month) : '')
-    }
-  }
-
-  // ── Membership types ───────────────────────────────────────────────────────
+  // ── Membership types (individual-member hours quick-fill only — no
+  // longer linked to companies) ───────────────────────────────────────────────
 
   async function handleCreateType(e: React.FormEvent) {
     e.preventDefault()
@@ -328,22 +319,12 @@ export default function CompaniesManager({ companies: initial, membershipTypes: 
         <div className="overflow-hidden">
           <form onSubmit={handleCreate} className="bg-white border border-gray-200 rounded-xl p-4 space-y-3">
             <h3 className="font-semibold text-gray-900 text-sm">New Company</h3>
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-medium text-gray-700 mb-1">Company Name</label>
                 <input required value={newName} onChange={e => setNewName(e.target.value)}
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="Acme Corp" />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">Membership Type <span className="text-gray-400 font-normal">(optional)</span></label>
-                <select value={newMembershipTypeId} onChange={e => handleNewTypeSelect(e.target.value)}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
-                  <option value="">No type set</option>
-                  {membershipTypes.map(t => (
-                    <option key={t.id} value={t.id}>{t.name}</option>
-                  ))}
-                </select>
               </div>
               <div>
                 <label className="block text-xs font-medium text-gray-700 mb-1">Monthly Hours</label>
@@ -429,24 +410,22 @@ export default function CompaniesManager({ companies: initial, membershipTypes: 
             )}
           </div>
         </div>
-        <AdminTable colWidths={['6%', '38%', '15%', '24%', '17%']} minWidth={900}>
+        <AdminTable colWidths={['6%', '45%', '25%', '24%']} minWidth={900}>
           <thead>
             <tr className="border-b border-gray-100 bg-gray-50">
               <th className="px-2 py-3" />
               <Th>Company</Th>
               <Th>Monthly Hours</Th>
-              <Th>Membership Type</Th>
               <Th>Actions</Th>
             </tr>
           </thead>
           <tbody>
             {filteredCompanies.length === 0 && (
-              <tr><td colSpan={5} className="px-4 py-8 text-center text-gray-400">{searchQuery ? 'No companies match your search.' : 'No companies yet.'}</td></tr>
+              <tr><td colSpan={4} className="px-4 py-8 text-center text-gray-400">{searchQuery ? 'No companies match your search.' : 'No companies yet.'}</td></tr>
             )}
             {pagedCompanies.map(c => {
               const isExpanded = expandedCompanies.has(c.id)
               const members = getMembersForCompany(c.id)
-              const type = membershipTypes.find(t => t.id === c.membership_type_id)
               return (
                 <React.Fragment key={c.id}>
                   <tr className="border-b border-gray-100 last:border-0 hover:bg-gray-50">
@@ -462,15 +441,8 @@ export default function CompaniesManager({ companies: initial, membershipTypes: 
                       <span className="text-gray-700">{c.monthly_hours_allotment}h</span>
                     </td>
                     <td className={tdBase}>
-                      {type ? (
-                        <span className="text-xs rounded-full px-2.5 py-1 bg-gray-100 text-gray-600 font-medium">{type.name}</span>
-                      ) : (
-                        <span className="text-xs text-gray-300">—</span>
-                      )}
-                    </td>
-                    <td className={tdBase}>
                       <button
-                        onClick={() => setEditTarget({ id: c.id, name: c.name, monthly_hours_allotment: c.monthly_hours_allotment, membership_type_id: c.membership_type_id })}
+                        onClick={() => setEditTarget({ id: c.id, name: c.name, monthly_hours_allotment: c.monthly_hours_allotment })}
                         className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 font-medium">
                         <Edit2 size={12} /> Edit
                       </button>
@@ -479,7 +451,7 @@ export default function CompaniesManager({ companies: initial, membershipTypes: 
                   {/* Always mounted — an inner grid-rows transition animates the
                       expand/collapse instead of the row hard-mounting/unmounting. */}
                   <tr className="bg-gray-50/70">
-                    <td colSpan={5} className="p-0">
+                    <td colSpan={4} className="p-0">
                       <div className={`grid transition-[grid-template-rows] duration-250 ease-in-out ${isExpanded ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}>
                         <div className="overflow-hidden">
                           <div className="px-4 py-3">
@@ -527,7 +499,6 @@ export default function CompaniesManager({ companies: initial, membershipTypes: 
         company={editTarget}
         onOpenChange={v => { if (!v) setEditTarget(null) }}
         onSuccess={refreshCompanies}
-        membershipTypes={membershipTypes}
       />
     </div>
   )

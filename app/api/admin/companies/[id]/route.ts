@@ -16,13 +16,12 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   const update: Record<string, unknown> = {}
   if ('name'                   in body) update.name                   = body.name
   if ('monthly_hours_allotment' in body) update.monthly_hours_allotment = body.monthly_hours_allotment
-  if ('membership_type_id'     in body) update.membership_type_id     = body.membership_type_id ?? null
 
   const { data, error } = await admin
     .from('companies')
     .update(update)
     .eq('id', id)
-    .select('*, membership_types(*)')
+    .select('*')
     .single()
 
   if (error) {

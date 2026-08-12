@@ -4,36 +4,31 @@ import { useState, useEffect } from 'react'
 import * as Dialog from '@radix-ui/react-dialog'
 import { X } from 'lucide-react'
 import toast from 'react-hot-toast'
-import { MembershipType } from '@/types'
 
 export type EditableCompany = {
   id: string
   name: string
   monthly_hours_allotment: number
-  membership_type_id: string | null
 }
 
 type Props = {
   company: EditableCompany | null
   onOpenChange: (open: boolean) => void
   onSuccess: () => void
-  membershipTypes: MembershipType[]
 }
 
 // Same modal pattern as EditMemberDialog — a real dialog instead of inline
 // row editing, which kept fighting layout shift the same way it did on
 // Members before that moved to a modal too.
-export default function EditCompanyDialog({ company, onOpenChange, onSuccess, membershipTypes }: Props) {
+export default function EditCompanyDialog({ company, onOpenChange, onSuccess }: Props) {
   const [name, setName]   = useState('')
   const [hours, setHours] = useState('')
-  const [typeId, setTypeId] = useState('')
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
     if (!company) return
     setName(company.name)
     setHours(String(company.monthly_hours_allotment))
-    setTypeId(company.membership_type_id ?? '')
   }, [company])
 
   async function handleSave() {
@@ -45,7 +40,6 @@ export default function EditCompanyDialog({ company, onOpenChange, onSuccess, me
       body: JSON.stringify({
         name:                     name.trim(),
         monthly_hours_allotment:  hours !== '' ? Number(hours) : 0,
-        membership_type_id:       typeId || null,
       }),
     })
     if (res.ok) {
@@ -81,15 +75,6 @@ export default function EditCompanyDialog({ company, onOpenChange, onSuccess, me
               <input type="number" min="0" step="0.5" value={hours} onChange={e => setHours(e.target.value)}
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
               <p className="text-xs text-gray-400 mt-1">Shared pool for everyone at this company — set this to whatever the office actually holds or was granted, not a formula.</p>
-            </div>
-
-            <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1">Membership Type <span className="text-gray-400 font-normal">(optional, for reporting only)</span></label>
-              <select value={typeId} onChange={e => setTypeId(e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
-                <option value="">No type set</option>
-                {membershipTypes.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
-              </select>
             </div>
 
             <div className="flex items-center gap-2 pt-1">
