@@ -19,12 +19,13 @@ export async function GET() {
     admin.from('permitted_emails').select('*, companies(id, name)').order('invited_at', { ascending: false }),
     admin.from('profiles').select('id, full_name, first_name, last_name, is_admin, company_id, avatar_url, default_location_id, seating, room_access_requested_at, individual_hours_allotment'),
     admin.auth.admin.listUsers({ perPage: 1000 }),
-    // Bookings tagged to a pending email (historical_email) carry whatever
-    // company was matched at import time — a strong signal for who someone
-    // actually belongs to even before they're set up as a member, e.g. an
-    // added-but-not-yet-companied person whose CSV bookings all say "M2
-    // Properties".
-    admin.from('reservations').select('historical_email, company_id, companies(name)').not('historical_email', 'is', null).not('company_id', 'is', null),
+    // Every booking with a company on it is a signal for who someone
+    // actually belongs to — whether it's tagged to a pending email
+    // (historical_email, no account yet) or linked straight to their real
+    // account (user_id, e.g. they self-registered and booked before an
+    // admin ever set their company). Both cases should surface a suggestion
+    // when the member record itself still has no company on file.
+    admin.from('reservations').select('user_id, historical_email, company_id, companies(name)').not('company_id', 'is', null),
   ])
 
   // Build lookup: email → auth user id
@@ -35,11 +36,18 @@ export async function GET() {
   const idToProfile = Object.fromEntries(
     (profiles ?? []).map(p => [p.id, p])
   )
+  // Build lookup: user id → email, so a booking linked directly to a real
+  // account (not historical_email) can still be looked up by email below.
+  const userIdToEmail = Object.fromEntries(
+    (authUsers ?? []).map(u => [u.id, u.email?.toLowerCase() ?? ''])
+  )
 
-  // Build lookup: email → most common company from their tagged bookings
+  // Build lookup: email → most common company from their bookings (either
+  // historical_email-tagged, or linked directly via their real account).
   const companyCountsByEmail = new Map<string, Map<string, { count: number; name: string }>>()
   for (const r of taggedReservations ?? []) {
-    const email = r.historical_email!.toLowerCase()
+    const email = (r.historical_email ?? userIdToEmail[r.user_id])?.toLowerCase()
+    if (!email) continue
     const companyId = r.company_id!
     const companyName = (r.companies as any)?.name ?? ''
     if (companyName === 'External Booking (Legacy)') continue // not a real company, not a useful suggestion
