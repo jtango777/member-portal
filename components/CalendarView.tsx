@@ -468,7 +468,12 @@ export default function CalendarView({ locations, profile, company, hourScope, h
                           style={{ top: top + 2, height: height - 4, position: 'absolute', left: 3, right: 3 }}
                           className={cn(
                             'rounded-md px-2 py-1 cursor-pointer z-10 overflow-hidden',
-                            'transition-all hover:brightness-95 select-none',
+                            // Only the hover dim should animate — top/height
+                            // are driven by the zoom slider and must snap
+                            // instantly with the rest of the grid, or the
+                            // card visibly glides out of sync with the grid
+                            // lines and scroll position on every resize.
+                            'transition-[filter] hover:brightness-95 select-none',
                             isBlock
                               ? 'bg-slate-200 text-slate-600 border border-slate-300'
                               : isOwn
