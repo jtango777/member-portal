@@ -29,6 +29,11 @@ type Props = {
   companies: Company[]
   membershipTypes: MembershipType[]
   locations: { id: string; name: string }[]
+  // Room-access-only view — just Company + Room Hours, the two fields that
+  // actually determine access. Opened from the DoorOpen icon as a quick
+  // "is this person set up?" check, distinct from the full Edit Member form
+  // (which would otherwise look identical and be redundant with it).
+  compact?: boolean
 }
 
 // Presets are just a quick-fill shortcut now, not an enforced tier — real
@@ -48,7 +53,7 @@ function pooledHoursLabel(companies: Company[], companyId: string) {
 // place kept fighting us on layout shift (native <select> chrome, table
 // column widths, row height quirks). A dialog sidesteps all of that: the
 // table underneath never changes while it's open.
-export default function EditMemberDialog({ member, onOpenChange, onSuccess, companies, membershipTypes, locations }: Props) {
+export default function EditMemberDialog({ member, onOpenChange, onSuccess, companies, membershipTypes, locations, compact }: Props) {
   const [firstName, setFirstName]   = useState('')
   const [lastName, setLastName]     = useState('')
   const [email, setEmail]           = useState('')
@@ -98,7 +103,7 @@ export default function EditMemberDialog({ member, onOpenChange, onSuccess, comp
       }),
     })
     if (res.ok) {
-      toast.success('Member updated')
+      toast.success(compact ? 'Room access updated' : 'Member updated')
       onOpenChange(false)
       onSuccess()
     } else {
@@ -115,28 +120,32 @@ export default function EditMemberDialog({ member, onOpenChange, onSuccess, comp
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <Dialog.Content className="bg-white rounded-xl border border-gray-200 p-6 w-full max-w-md max-h-[85vh] overflow-y-auto space-y-4 transition-all duration-200 data-[state=open]:opacity-100 data-[state=open]:scale-100 data-[state=closed]:opacity-0 data-[state=closed]:scale-95">
             <div className="flex items-center justify-between">
-              <Dialog.Title className="text-sm font-semibold text-gray-900">Edit Member</Dialog.Title>
+              <Dialog.Title className="text-sm font-semibold text-gray-900">{compact ? `Room Access — ${[firstName, lastName].filter(Boolean).join(' ') || email}` : 'Edit Member'}</Dialog.Title>
               <Dialog.Close className="text-gray-400 hover:text-gray-600"><X size={16} /></Dialog.Close>
             </div>
 
-            <div className="flex gap-3">
-              <div className="flex-1">
-                <label className="block text-xs font-medium text-gray-700 mb-1">First Name</label>
-                <input type="text" value={firstName} onChange={e => setFirstName(e.target.value)}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-              </div>
-              <div className="flex-1">
-                <label className="block text-xs font-medium text-gray-700 mb-1">Last Name</label>
-                <input type="text" value={lastName} onChange={e => setLastName(e.target.value)}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-              </div>
-            </div>
+            {!compact && (
+              <>
+                <div className="flex gap-3">
+                  <div className="flex-1">
+                    <label className="block text-xs font-medium text-gray-700 mb-1">First Name</label>
+                    <input type="text" value={firstName} onChange={e => setFirstName(e.target.value)}
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                  </div>
+                  <div className="flex-1">
+                    <label className="block text-xs font-medium text-gray-700 mb-1">Last Name</label>
+                    <input type="text" value={lastName} onChange={e => setLastName(e.target.value)}
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                  </div>
+                </div>
 
-            <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1">Email</label>
-              <input type="email" value={email} onChange={e => setEmail(e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-            </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">Email</label>
+                  <input type="email" value={email} onChange={e => setEmail(e.target.value)}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                </div>
+              </>
+            )}
 
             <div>
               <label className="block text-xs font-medium text-gray-700 mb-1">Company</label>
@@ -175,7 +184,7 @@ export default function EditMemberDialog({ member, onOpenChange, onSuccess, comp
               )}
             </div>
 
-            {locations.length > 0 && (
+            {!compact && locations.length > 0 && (
               <div>
                 <label className="block text-xs font-medium text-gray-700 mb-1">Default Location</label>
                 <select value={locationId} onChange={e => setLocationId(e.target.value)}
@@ -186,14 +195,16 @@ export default function EditMemberDialog({ member, onOpenChange, onSuccess, comp
               </div>
             )}
 
-            <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1">Seating</label>
-              <select value={seating} onChange={e => setSeating(e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-                <option value="">No seating set</option>
-                {getSeatingOptions(locations.find(l => l.id === locationId)?.name).map(s => <option key={s} value={s}>{s}</option>)}
-              </select>
-            </div>
+            {!compact && (
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Seating</label>
+                <select value={seating} onChange={e => setSeating(e.target.value)}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                  <option value="">No seating set</option>
+                  {getSeatingOptions(locations.find(l => l.id === locationId)?.name).map(s => <option key={s} value={s}>{s}</option>)}
+                </select>
+              </div>
+            )}
 
             <div className="flex items-center gap-2 pt-1">
               <button onClick={handleSave} disabled={saving}

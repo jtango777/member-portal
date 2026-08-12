@@ -109,6 +109,7 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
   const [togglingAdmin, setTogglingAdmin]   = useState<string | null>(null)
   const [resending, setResending]   = useState<string | null>(null)
   const [editTarget, setEditTarget] = useState<MemberRow | null>(null)
+  const [accessTarget, setAccessTarget] = useState<MemberRow | null>(null)
   const [confirmRemove, setConfirmRemove]   = useState<string | null>(null)
   const [removing, setRemoving]             = useState<string | null>(null)
   const [confirmInviteAll, setConfirmInviteAll] = useState(false)
@@ -645,8 +646,8 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
                         <div className="flex items-center justify-end gap-0.5">
                           <IconAction
                             icon={DoorOpen}
-                            label={hasRoomAccess(m) ? 'Has room access — click to edit' : 'No room access — click to grant'}
-                            onClick={() => setEditTarget(m)}
+                            label={hasRoomAccess(m) ? 'Has room access — click to check' : 'No room access — click to grant'}
+                            onClick={() => setAccessTarget(m)}
                             colorClass={hasRoomAccess(m) ? 'text-purple-600 hover:bg-purple-50' : 'text-gray-300 hover:bg-gray-100 hover:text-gray-500'}
                           />
                           <IconAction
@@ -728,8 +729,8 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
                         <div className="flex items-center justify-end gap-0.5">
                           <IconAction
                             icon={DoorOpen}
-                            label={hasRoomAccess(m) ? 'Has room access — click to edit' : 'No room access — click to set up before they sign up'}
-                            onClick={() => setEditTarget(m)}
+                            label={hasRoomAccess(m) ? 'Has room access — click to check' : 'No room access — click to set up before they sign up'}
+                            onClick={() => setAccessTarget(m)}
                             colorClass={hasRoomAccess(m) ? 'text-purple-600 hover:bg-purple-50' : 'text-gray-300 hover:bg-gray-100 hover:text-gray-500'}
                           />
                           <IconAction
@@ -805,8 +806,9 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
       )}
 
       <EditMemberDialog
-        member={editTarget}
-        onOpenChange={v => { if (!v) setEditTarget(null) }}
+        member={editTarget ?? accessTarget}
+        compact={!editTarget && !!accessTarget}
+        onOpenChange={v => { if (!v) { setEditTarget(null); setAccessTarget(null) } }}
         onSuccess={refresh}
         companies={companies}
         membershipTypes={membershipTypes}
