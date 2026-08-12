@@ -88,11 +88,20 @@ function DetailsStep({ email, defaultLocationId }: { email: string; defaultLocat
       })
   }, [])
 
+  // Seating options depend on the selected location — keep a valid default
+  // selected (instead of a blank "Prefer not to say") whenever the location
+  // changes, so the field is never accidentally empty once required.
+  useEffect(() => {
+    const opts = getSeatingOptions(locations.find(l => l.id === locationId)?.name)
+    setSeating(prev => opts.includes(prev) ? prev : (opts[0] ?? ''))
+  }, [locationId, locations])
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (password !== password2) { toast.error('Passwords do not match'); return }
     if (password.length < 8)    { toast.error('Password must be at least 8 characters'); return }
     if (!locationId)             { toast.error('Please select a default location'); return }
+    if (!seating)                { toast.error('Please select where you sit'); return }
     setLoading(true)
     const res = await fetch('/api/invites/accept-by-email', {
       method: 'POST',
@@ -161,10 +170,9 @@ function DetailsStep({ email, defaultLocationId }: { email: string; defaultLocat
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Where do you sit?</label>
-          <p className="text-xs text-gray-400 mb-1.5">Shown below your name on Faces. Optional.</p>
-          <select value={seating} onChange={e => setSeating(e.target.value)}
+          <p className="text-xs text-gray-400 mb-1.5">Shown below your name on Faces.</p>
+          <select required value={seating} onChange={e => setSeating(e.target.value)}
             className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-            <option value="">Prefer not to say</option>
             {getSeatingOptions(locations.find(l => l.id === locationId)?.name).map(s => <option key={s} value={s}>{s}</option>)}
           </select>
         </div>

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Profile, Location, Company } from '@/types'
 import { createClient } from '@/lib/supabase/client'
 import toast from 'react-hot-toast'
@@ -37,8 +37,18 @@ export default function SettingsForm({ profile, company, locations, email }: Pro
   const [confirmPw, setConfirmPw] = useState('')
   const [savingPw, setSavingPw]   = useState(false)
 
+  // Seating options depend on the selected location — keep a valid default
+  // selected (instead of leaving it blank) whenever the location changes,
+  // covering existing members who never had a seating value set before
+  // this became required.
+  useEffect(() => {
+    const opts = getSeatingOptions(locations.find(l => l.id === locationId)?.name)
+    setSeating(prev => opts.includes(prev) ? prev : (opts[0] ?? ''))
+  }, [locationId])
+
   async function handleSaveProfile(e: React.FormEvent) {
     e.preventDefault()
+    if (!seating) { toast.error('Please select where you sit'); return }
     setSavingProfile(true)
     const res = await fetch('/api/user/settings', {
       method: 'PATCH',
@@ -163,9 +173,8 @@ export default function SettingsForm({ profile, company, locations, email }: Pro
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Where do you sit?</label>
-            <select value={seating} onChange={e => setSeating(e.target.value)}
+            <select required value={seating} onChange={e => setSeating(e.target.value)}
               className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-              <option value="">Prefer not to say</option>
               {getSeatingOptions(locations.find(l => l.id === locationId)?.name).map(s => <option key={s} value={s}>{s}</option>)}
             </select>
             <p className="text-xs text-gray-400 mt-1">Shown below your name on Faces.</p>
