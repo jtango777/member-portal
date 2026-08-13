@@ -5,7 +5,7 @@ import { Company, MembershipType } from '@/types'
 import { Plus, Edit2, Check, X, Settings, Trash2, Search, ChevronDown, ChevronRight, ChevronLeft } from 'lucide-react'
 import toast from 'react-hot-toast'
 import EditCompanyDialog, { EditableCompany } from '@/components/admin/EditCompanyDialog'
-import { AdminTable, Th, tdBase, tdTruncate, tdNowrap } from '@/components/admin/AdminTable'
+import { AdminTable, Th } from '@/components/admin/AdminTable'
 
 type MemberUsage = {
   user_id: string | null
@@ -423,24 +423,24 @@ export default function CompaniesManager({ companies: initial, membershipTypes: 
             {filteredCompanies.length === 0 && (
               <tr><td colSpan={4} className="px-4 py-8 text-center text-gray-400">{searchQuery ? 'No companies match your search.' : 'No companies yet.'}</td></tr>
             )}
-            {pagedCompanies.map(c => {
+            {pagedCompanies.map((c, i) => {
               const isExpanded = expandedCompanies.has(c.id)
               const members = getMembersForCompany(c.id)
               return (
                 <React.Fragment key={c.id}>
-                  <tr className="border-b border-gray-100 last:border-0 hover:bg-gray-50">
-                    <td className="px-2 py-3 text-center">
+                  <tr className={`border-b border-gray-100 last:border-0 hover:bg-blue-50/40 ${i % 2 === 1 ? 'bg-gray-50/70' : 'bg-white'}`}>
+                    <td className="px-2 py-1.5 text-center">
                       <button onClick={() => toggleExpand(c.id)} className="p-1 text-gray-400 hover:text-gray-600 transition-colors">
                         {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
                       </button>
                     </td>
-                    <td className={tdTruncate} title={c.name}>
+                    <td className="px-4 py-1.5 truncate" title={c.name}>
                       <span className="font-medium text-gray-900">{c.name}</span>
                     </td>
-                    <td className={tdNowrap}>
+                    <td className="px-4 py-1.5 whitespace-nowrap">
                       <span className="text-gray-700">{c.monthly_hours_allotment}h</span>
                     </td>
-                    <td className={tdBase}>
+                    <td className="px-4 py-1.5">
                       <button
                         onClick={() => setEditTarget({ id: c.id, name: c.name, monthly_hours_allotment: c.monthly_hours_allotment })}
                         className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 font-medium">

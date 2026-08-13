@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import NextLink from 'next/link'
 import { Company, MembershipType } from '@/types'
-import { Plus, Send, Check, Shield, ShieldOff, Download, Copy, Link, Search, Edit2, Trash2, X, ChevronLeft, ChevronRight, Camera, Users, DoorOpen } from 'lucide-react'
+import { Plus, Send, Check, Shield, Download, Copy, Link, Search, Edit2, Trash2, X, ChevronLeft, ChevronRight, Camera, Users, DoorOpen } from 'lucide-react'
 import { formatShortDate } from '@/lib/utils'
 import { useAutoScrollIntoView } from '@/lib/useAutoScrollIntoView'
 import toast from 'react-hot-toast'
@@ -666,11 +666,11 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
                           )}
                           {m.user_id && (
                             <IconAction
-                              icon={m.is_admin ? ShieldOff : Shield}
-                              label={m.is_admin ? 'Remove admin access' : 'Grant admin access'}
+                              icon={Shield}
+                              label={m.is_admin ? 'Admin — click to remove' : 'Not admin — click to grant'}
                               onClick={() => toggleAdmin(m.user_id!, m.is_admin)}
                               disabled={togglingAdmin === m.user_id}
-                              colorClass={m.is_admin ? 'text-red-500 hover:bg-red-50' : 'text-blue-500 hover:bg-blue-50'}
+                              colorClass={m.is_admin ? 'text-blue-500 hover:bg-blue-50' : 'text-gray-300 hover:bg-gray-100 hover:text-gray-500'}
                             />
                           )}
                           {confirmRemove === m.id ? (
