@@ -3,14 +3,14 @@
 import { useState, useEffect, useCallback } from 'react'
 import NextLink from 'next/link'
 import { Company, MembershipType } from '@/types'
-import { Plus, Send, Check, Shield, Download, Copy, Link, Search, Edit2, Trash2, X, ChevronLeft, ChevronRight, Camera, Users, DoorOpen } from 'lucide-react'
+import { Plus, Send, Check, Shield, Download, Copy, Link, Search, Edit2, Trash2, X, Camera, Users, DoorOpen } from 'lucide-react'
 import { formatShortDate } from '@/lib/utils'
 import { useAutoScrollIntoView } from '@/lib/useAutoScrollIntoView'
 import toast from 'react-hot-toast'
 import AssignPhotoDialog from '@/components/admin/AssignPhotoDialog'
 import CompanyCombobox from '@/components/admin/CompanyCombobox'
 import EditMemberDialog from '@/components/admin/EditMemberDialog'
-import { AdminTable, Th, tdBase, tdTruncate, tdNowrap } from '@/components/admin/AdminTable'
+import { AdminTable, Th, Section, Pagination } from '@/components/admin/AdminTable'
 import { getSeatingOptions } from '@/lib/seating'
 
 function IconAction({ icon: Icon, label, onClick, disabled, colorClass }: {
@@ -424,10 +424,10 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
                 className="text-xs text-gray-500 hover:text-gray-700">Cancel</button>
             </div>
             <button onClick={() => setConfirmInviteAll(true)} disabled={invitingAll}
-              className={`col-start-1 row-start-1 flex items-center gap-1.5 text-xs bg-amber-500 hover:bg-amber-600 text-white font-semibold px-3 py-1.5 rounded-md disabled:opacity-50 transition-all duration-150 whitespace-nowrap ${
+              className={`col-start-1 row-start-1 justify-self-start flex items-center gap-1.5 text-xs bg-amber-500 hover:bg-amber-600 text-white font-semibold px-3 py-1.5 rounded-md disabled:opacity-50 transition-all duration-150 whitespace-nowrap ${
                 confirmInviteAll ? 'opacity-0 scale-95 pointer-events-none' : 'opacity-100 scale-100'
               }`}>
-              {invitingAll ? 'Sending…' : 'Invite All'}
+              <Send size={12} /> {invitingAll ? 'Sending…' : 'Invite All'}
             </button>
           </div>
         </div>
@@ -622,7 +622,7 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
             </thead>
             <tbody>
               {pagedActive.map((m, i) => (
-                    <tr key={m.id} id={`member-row-${m.id}`} className={`border-b border-gray-100 last:border-0 hover:bg-blue-50/40 ${i % 2 === 1 ? "bg-gray-50/70" : "bg-white"}`}>
+                    <tr key={m.id} id={`member-row-${m.id}`} className={"border-b border-gray-100 last:border-0 hover:bg-gray-50"}>
                       <td className="px-4 py-2 font-medium text-gray-900 truncate" title={m.full_name ?? undefined}>
                         {m.full_name ?? '—'}
                         {m.room_access_requested_at && !m.company_id && !m.individual_hours_allotment && (
@@ -714,7 +714,7 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
             </thead>
             <tbody>
               {pagedPending.map((m, i) => (
-                    <tr key={m.id} className={`border-b border-gray-100 last:border-0 hover:bg-blue-50/40 ${i % 2 === 1 ? "bg-gray-50/70" : "bg-white"}`}>
+                    <tr key={m.id} className={"border-b border-gray-100 last:border-0 hover:bg-gray-50"}>
                       <td className="px-4 py-2 font-medium text-gray-900 truncate" title={m.full_name ?? undefined}>
                         {m.full_name ?? <span className="text-gray-400 italic">No name</span>}
                       </td>
@@ -822,60 +822,5 @@ function StatusBadge({ m }: { m: MemberRow }) {
   if (m.accepted_at)  return <span className="inline-flex items-center gap-1 whitespace-nowrap text-xs font-medium text-green-700 bg-green-50 border border-green-200 px-2 py-0.5 rounded-full"><Check size={10} /> Active</span>
   if (m.invite_token) return <span className="whitespace-nowrap text-xs font-medium text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">Invited</span>
   return <span className="whitespace-nowrap text-xs font-medium text-gray-500 bg-gray-100 border border-gray-200 px-2 py-0.5 rounded-full">Not invited</span>
-}
-
-function Pagination({ page, totalPages, onPageChange, showAll, onToggleShowAll, pageSize, onPageSizeChange }: {
-  page: number
-  totalPages: number
-  onPageChange: (p: number) => void
-  showAll: boolean
-  onToggleShowAll: () => void
-  pageSize: number
-  onPageSizeChange: (size: number) => void
-}) {
-  return (
-    <div className="flex items-center gap-3 text-xs flex-shrink-0">
-      <button onClick={onToggleShowAll} className="text-blue-600 hover:text-blue-800 font-medium whitespace-nowrap">
-        {showAll ? `Show ${pageSize} per page` : 'Show all'}
-      </button>
-      {!showAll && (
-        <label className="flex items-center gap-1 text-gray-500 whitespace-nowrap">
-          Per page:
-          <select
-            value={pageSize}
-            onChange={e => onPageSizeChange(Number(e.target.value))}
-            className="border border-gray-300 rounded px-1.5 py-0.5 text-xs bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            {[10, 25, 50, 100].map(n => <option key={n} value={n}>{n}</option>)}
-          </select>
-        </label>
-      )}
-      {!showAll && totalPages > 1 && (
-        <div className="flex items-center gap-1 text-gray-500 whitespace-nowrap">
-          <button onClick={() => onPageChange(Math.max(1, page - 1))} disabled={page === 1}
-            className="p-1 hover:text-gray-800 disabled:opacity-30 rounded">
-            <ChevronLeft size={14} />
-          </button>
-          <span>Page {page} of {totalPages}</span>
-          <button onClick={() => onPageChange(Math.min(totalPages, page + 1))} disabled={page === totalPages}
-            className="p-1 hover:text-gray-800 disabled:opacity-30 rounded">
-            <ChevronRight size={14} />
-          </button>
-        </div>
-      )}
-    </div>
-  )
-}
-
-function Section({ title, children, headerRight }: { title: string; children: React.ReactNode; headerRight?: React.ReactNode }) {
-  return (
-    <div className="bg-white rounded-xl border border-gray-200">
-      <div className="px-4 py-3 border-b border-gray-100 bg-gray-50 rounded-t-xl flex items-center justify-between gap-3">
-        <h2 className="text-sm font-semibold text-blue-600">{title}</h2>
-        {headerRight}
-      </div>
-      <div className="overflow-x-auto overflow-y-hidden">{children}</div>
-    </div>
-  )
 }
 

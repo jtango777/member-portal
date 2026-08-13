@@ -5,6 +5,7 @@ import { Reservation } from '@/types'
 import { format } from 'date-fns'
 import { Trash2, MapPin, Clock, Mail, Phone } from 'lucide-react'
 import { cn, formatTime } from '@/lib/utils'
+import { Section, Pagination, usePagedList } from '@/components/admin/AdminTable'
 import toast from 'react-hot-toast'
 
 type ExternalBooking = {
@@ -93,9 +94,10 @@ export default function AllBookingsView({ reservations: initialRes, externalBook
   ]
 
   // --- Internal table ---
-  function InternalTable({ rows, showDelete }: { rows: Reservation[]; showDelete: boolean }) {
+  function InternalTable({ rows: allRows, showDelete, title, headerExtra }: { rows: Reservation[]; showDelete: boolean; title: string; headerExtra?: React.ReactNode }) {
+    const { paged: rows, paginationProps } = usePagedList(allRows)
     return (
-      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+      <Section title={`${title} (${allRows.length})`} headerRight={<div className="flex items-center gap-3">{headerExtra}<Pagination {...paginationProps} /></div>}>
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-gray-100 bg-gray-50">
@@ -112,9 +114,9 @@ export default function AllBookingsView({ reservations: initialRes, externalBook
             {rows.length === 0 && (
               <tr><td colSpan={7} className="px-4 py-6 text-center text-gray-400">None.</td></tr>
             )}
-            {rows.map(r => (
-              <tr key={r.id} className="border-b border-gray-100 last:border-0 hover:bg-gray-50">
-                <td className="px-4 py-3 font-medium text-gray-900">
+            {rows.map((r, i) => (
+              <tr key={r.id} className={"border-b border-gray-100 last:border-0 hover:bg-gray-50"}>
+                <td className="px-4 py-2 font-medium text-gray-900">
                   {r.title}
                   {r.cancellation_requested_at && (
                     <span className="ml-2 inline-flex items-center bg-amber-100 text-amber-700 text-[10px] font-semibold px-1.5 py-0.5 rounded-full align-middle" title="Member requested cancellation — starts within 12h">
@@ -122,18 +124,18 @@ export default function AllBookingsView({ reservations: initialRes, externalBook
                     </span>
                   )}
                 </td>
-                <td className="px-4 py-3 text-gray-600">{r.rooms?.name}</td>
-                <td className="px-4 py-3 text-gray-600">{(r.rooms as any)?.locations?.name ?? '—'}</td>
-                <td className="px-4 py-3 text-gray-600 whitespace-nowrap">
+                <td className="px-4 py-2 text-gray-600">{r.rooms?.name}</td>
+                <td className="px-4 py-2 text-gray-600">{(r.rooms as any)?.locations?.name ?? '—'}</td>
+                <td className="px-4 py-2 text-gray-600 whitespace-nowrap">
                   {format(new Date(r.start_time), 'MMM d, yyyy')}<br />
                   <span className="text-xs text-gray-400">
                     {format(new Date(r.start_time), 'h:mm a')} – {format(new Date(r.end_time), 'h:mm a')}
                   </span>
                 </td>
-                <td className="px-4 py-3 text-gray-600">{r.profiles?.full_name}</td>
-                <td className="px-4 py-3 text-gray-600">{r.companies?.name}</td>
+                <td className="px-4 py-2 text-gray-600">{r.profiles?.full_name}</td>
+                <td className="px-4 py-2 text-gray-600">{r.companies?.name}</td>
                 {showDelete && (
-                  <td className="px-4 py-3 w-24">
+                  <td className="px-4 py-2 w-24">
                     <div className="grid">
                       <div className={`col-start-1 row-start-1 flex items-center gap-1.5 transition-all duration-150 ${
                         confirm === r.id ? 'opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none'
@@ -157,7 +159,7 @@ export default function AllBookingsView({ reservations: initialRes, externalBook
             ))}
           </tbody>
         </table>
-      </div>
+      </Section>
     )
   }
 
@@ -238,10 +240,10 @@ export default function AllBookingsView({ reservations: initialRes, externalBook
   }
 
   // --- External table ---
-  function ExternalTable({ rows }: { rows: ExternalBooking[] }) {
-    if (rows.length === 0) return <div className="text-center py-8 text-gray-400 text-sm">None.</div>
+  function ExternalTable({ rows: allRows, title }: { rows: ExternalBooking[]; title: string }) {
+    const { paged: rows, paginationProps } = usePagedList(allRows)
     return (
-      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+      <Section title={`${title} (${allRows.length})`} headerRight={<Pagination {...paginationProps} />}>
         <table className="w-full text-sm">
           <thead>
             <tr className="bg-gray-50 border-b border-gray-200">
@@ -251,27 +253,30 @@ export default function AllBookingsView({ reservations: initialRes, externalBook
             </tr>
           </thead>
           <tbody>
+            {rows.length === 0 && (
+              <tr><td colSpan={8} className="px-4 py-6 text-center text-gray-400">None.</td></tr>
+            )}
             {rows.map((b, i) => {
               const start = new Date(b.start_time)
               const end = new Date(b.end_time)
               const hours = (end.getTime() - start.getTime()) / 3_600_000
               const amount = hours * (b.rooms?.price_per_hour ?? 0)
               return (
-                <tr key={b.id} className={`border-b border-gray-100 last:border-0 ${i % 2 === 0 ? '' : 'bg-gray-50/50'}`}>
-                  <td className="px-4 py-3 font-medium text-gray-900">
+                <tr key={b.id} className={"border-b border-gray-100 last:border-0 hover:bg-gray-50"}>
+                  <td className="px-4 py-2 font-medium text-gray-900">
                     {b.external_name}
                     {b.company_name && <span className="text-gray-400 font-normal"> · {b.company_name}</span>}
                   </td>
-                  <td className="px-4 py-3 text-gray-600 text-xs">{b.external_email}</td>
-                  <td className="px-4 py-3 text-gray-600 text-xs">{formatPhone(b.external_phone)}</td>
-                  <td className="px-4 py-3 text-gray-600">{b.rooms?.external_name ?? b.rooms?.name}</td>
-                  <td className="px-4 py-3 text-gray-500 text-xs">{b.rooms?.locations?.name}</td>
-                  <td className="px-4 py-3 text-gray-700 whitespace-nowrap">
+                  <td className="px-4 py-2 text-gray-600 text-xs">{b.external_email}</td>
+                  <td className="px-4 py-2 text-gray-600 text-xs">{formatPhone(b.external_phone)}</td>
+                  <td className="px-4 py-2 text-gray-600">{b.rooms?.external_name ?? b.rooms?.name}</td>
+                  <td className="px-4 py-2 text-gray-500 text-xs">{b.rooms?.locations?.name}</td>
+                  <td className="px-4 py-2 text-gray-700 whitespace-nowrap">
                     {format(start, 'MMM d, yyyy')}
                     <span className="block text-xs text-gray-400">{formatTime(start)} – {formatTime(end)}</span>
                   </td>
-                  <td className="px-4 py-3 text-gray-700 font-medium">${amount.toFixed(0)}</td>
-                  <td className="px-4 py-3">
+                  <td className="px-4 py-2 text-gray-700 font-medium">${amount.toFixed(0)}</td>
+                  <td className="px-4 py-2">
                     <span className={cn('text-xs font-semibold px-2 py-0.5 rounded-full border', STATUS_STYLES[b.status] ?? '')}>
                       {b.status}
                     </span>
@@ -281,7 +286,7 @@ export default function AllBookingsView({ reservations: initialRes, externalBook
             })}
           </tbody>
         </table>
-      </div>
+      </Section>
     )
   }
 
@@ -331,10 +336,10 @@ export default function AllBookingsView({ reservations: initialRes, externalBook
     const combinedUpcoming = combined.filter(r => r.dateTime >= now)
     const combinedPast = combined.filter(r => r.dateTime < now)
 
-    function CombinedRows({ rows }: { rows: CombinedRow[] }) {
-      if (rows.length === 0) return <div className="text-center py-8 text-gray-400 text-sm">None.</div>
+    function CombinedRows({ rows: allRows, title }: { rows: CombinedRow[]; title: string }) {
+      const { paged: rows, paginationProps } = usePagedList(allRows)
       return (
-        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+        <Section title={`${title} (${allRows.length})`} headerRight={<Pagination {...paginationProps} />}>
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-gray-100 bg-gray-50">
@@ -348,9 +353,12 @@ export default function AllBookingsView({ reservations: initialRes, externalBook
               </tr>
             </thead>
             <tbody>
-              {rows.map(row => (
-                <tr key={`${row.type}-${row.id}`} className="border-b border-gray-100 last:border-0 hover:bg-gray-50">
-                  <td className="px-4 py-3">
+              {rows.length === 0 && (
+                <tr><td colSpan={7} className="px-4 py-6 text-center text-gray-400">None.</td></tr>
+              )}
+              {rows.map((row, i) => (
+                <tr key={`${row.type}-${row.id}`} className={"border-b border-gray-100 last:border-0 hover:bg-gray-50"}>
+                  <td className="px-4 py-2">
                     <span className={cn(
                       'text-xs font-semibold px-2 py-0.5 rounded-full border',
                       row.type === 'Internal'
@@ -360,37 +368,29 @@ export default function AllBookingsView({ reservations: initialRes, externalBook
                       {row.type}
                     </span>
                   </td>
-                  <td className="px-4 py-3 font-medium text-gray-900">{row.title}</td>
-                  <td className="px-4 py-3 text-gray-600">{row.room}</td>
-                  <td className="px-4 py-3 text-gray-600">{row.location}</td>
-                  <td className="px-4 py-3 text-gray-600 whitespace-nowrap">
+                  <td className="px-4 py-2 font-medium text-gray-900">{row.title}</td>
+                  <td className="px-4 py-2 text-gray-600">{row.room}</td>
+                  <td className="px-4 py-2 text-gray-600">{row.location}</td>
+                  <td className="px-4 py-2 text-gray-600 whitespace-nowrap">
                     {format(row.dateTime, 'MMM d, yyyy')}<br />
                     <span className="text-xs text-gray-400">
                       {format(row.dateTime, 'h:mm a')} – {format(row.endTime, 'h:mm a')}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-gray-600">{row.bookedBy}</td>
-                  <td className="px-4 py-3 text-gray-600">{row.company}</td>
+                  <td className="px-4 py-2 text-gray-600">{row.bookedBy}</td>
+                  <td className="px-4 py-2 text-gray-600">{row.company}</td>
                 </tr>
               ))}
             </tbody>
           </table>
-        </div>
+        </Section>
       )
     }
 
     return (
       <div className="space-y-6">
-        <div>
-          <h2 className="text-sm font-semibold text-blue-600 mb-2">Upcoming ({combinedUpcoming.length})</h2>
-          <CombinedRows rows={combinedUpcoming} />
-        </div>
-        {combinedPast.length > 0 && (
-          <div>
-            <h2 className="text-sm font-semibold text-blue-600 mb-2">Past ({combinedPast.length})</h2>
-            <CombinedRows rows={combinedPast} />
-          </div>
-        )}
+        <CombinedRows rows={combinedUpcoming} title="Upcoming" />
+        {combinedPast.length > 0 && <CombinedRows rows={combinedPast} title="Past" />}
       </div>
     )
   }
@@ -423,15 +423,14 @@ export default function AllBookingsView({ reservations: initialRes, externalBook
       {/* Internal tab */}
       {activeTab === 'internal' && (
         <div className="space-y-6">
-          <div>
-            <h2 className="text-sm font-semibold text-blue-600 mb-2">Upcoming ({upcoming.length})</h2>
-            <InternalTable rows={upcoming} showDelete />
-          </div>
+          <InternalTable rows={upcoming} showDelete title="Upcoming" />
 
           {past.length > 0 && (
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <h2 className="text-sm font-semibold text-blue-600">Past ({past.length})</h2>
+            <InternalTable
+              rows={past}
+              showDelete={false}
+              title="Past"
+              headerExtra={
                 <div className="grid justify-end">
                   <div className={`col-start-1 row-start-1 flex items-center gap-2 transition-all duration-150 ${
                     confirmClear ? 'opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none'
@@ -450,9 +449,8 @@ export default function AllBookingsView({ reservations: initialRes, externalBook
                     Clear past bookings
                   </button>
                 </div>
-              </div>
-              <InternalTable rows={past} showDelete={false} />
-            </div>
+              }
+            />
           )}
         </div>
       )}
@@ -464,16 +462,8 @@ export default function AllBookingsView({ reservations: initialRes, externalBook
         const extPast = externalBookings.filter(b => new Date(b.start_time) < now)
         return (
           <div className="space-y-6">
-            <div>
-              <h2 className="text-sm font-semibold text-blue-600 mb-2">Upcoming ({extUpcoming.length})</h2>
-              <ExternalTable rows={extUpcoming} />
-            </div>
-            {extPast.length > 0 && (
-              <div>
-                <h2 className="text-sm font-semibold text-blue-600 mb-2">Past ({extPast.length})</h2>
-                <ExternalTable rows={extPast} />
-              </div>
-            )}
+            <ExternalTable rows={extUpcoming} title="Upcoming" />
+            {extPast.length > 0 && <ExternalTable rows={extPast} title="Past" />}
           </div>
         )
       })()}

@@ -107,21 +107,26 @@ export default function ExternalRoomsManager({ locations, initialRooms }: Props)
                       </div>
                       <div className="flex items-center gap-3">
                         {/* External bookable toggle */}
-                        <button
-                          onClick={() => handleToggleExternal(room)}
-                          disabled={toggling === room.id}
-                          className={cn(
-                            'flex items-center gap-1.5 text-xs font-medium px-2.5 py-1.5 rounded-lg border transition-colors',
-                            room.external_bookable
-                              ? 'bg-green-50 text-green-700 border-green-200 hover:bg-green-100'
-                              : 'bg-gray-50 text-gray-500 border-gray-200 hover:bg-gray-100'
-                          )}
-                        >
-                          {room.external_bookable
-                            ? <><Globe size={12} /> Live on /book/</>
-                            : <><EyeOff size={12} /> Hidden</>
-                          }
-                        </button>
+                        <div className="relative group">
+                          <button
+                            onClick={() => handleToggleExternal(room)}
+                            disabled={toggling === room.id}
+                            className={cn(
+                              'flex items-center gap-1.5 text-xs font-medium px-2.5 py-1.5 rounded-lg border transition-colors',
+                              room.external_bookable
+                                ? 'bg-green-50 text-green-700 border-green-200 hover:bg-green-100'
+                                : 'bg-gray-50 text-gray-500 border-gray-200 hover:bg-gray-100'
+                            )}
+                          >
+                            {room.external_bookable
+                              ? <><Globe size={12} /> Live on /book/</>
+                              : <><EyeOff size={12} /> Hidden</>
+                            }
+                          </button>
+                          <span className="pointer-events-none absolute right-0 bottom-full z-10 mb-1.5 whitespace-nowrap rounded bg-gray-900 px-2 py-1 text-xs text-white opacity-0 shadow-lg transition-opacity group-hover:opacity-100">
+                            {room.external_bookable ? 'Click to hide from /book/' : 'Click to make live on /book/'}
+                          </span>
+                        </div>
 
                         {/* Edit / Save / Cancel */}
                         {isEditing ? (

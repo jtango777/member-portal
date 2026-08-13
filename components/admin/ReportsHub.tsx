@@ -158,7 +158,7 @@ function ReservationsTable({ month }: { month: string }) {
               const start = new Date(r.start_time), end = new Date(r.end_time)
               const hrs   = ((end.getTime() - start.getTime()) / 3600000).toFixed(1)
               return (
-                <tr key={r.id} className={`border-b border-gray-100 last:border-0 ${i % 2 === 0 ? '' : 'bg-gray-50/50'}`}>
+                <tr key={r.id} className={'border-b border-gray-100 last:border-0'}>
                   <td className="px-4 py-2.5 whitespace-nowrap text-gray-700">{format(start, 'MMM d')}</td>
                   <td className="px-4 py-2.5 whitespace-nowrap text-gray-600 text-xs">{format(start, 'h:mm a')}–{format(end, 'h:mm a')}</td>
                   <td className="px-4 py-2.5 text-gray-600">{hrs}h</td>
@@ -218,7 +218,7 @@ function CompanyUsageTable({ month }: { month: string }) {
               const over = typeof r.hours_remaining === 'number' && r.hours_remaining === 0 && r.hours_used > 0
               const unlimited = r.monthly_allotment === 9999
               return (
-                <tr key={r.company_name} className={`border-b border-gray-100 last:border-0 ${i % 2 === 0 ? '' : 'bg-gray-50/50'}`}>
+                <tr key={r.company_name} className={'border-b border-gray-100 last:border-0'}>
                   <td className="px-4 py-2.5 font-medium text-gray-900">{r.company_name}</td>
                   <td className="px-4 py-2.5 text-gray-600">{unlimited ? '∞' : `${r.monthly_allotment}h`}</td>
                   <td className="px-4 py-2.5 text-gray-800 font-medium">{r.hours_used}h</td>
@@ -301,7 +301,7 @@ function RoomUtilTable({ month }: { month: string }) {
           </thead>
           <tbody>
             {rows.map((r, i) => (
-              <tr key={`${r.location}-${r.room}`} className={`border-b border-gray-100 last:border-0 ${i % 2 === 0 ? '' : 'bg-gray-50/50'}`}>
+              <tr key={`${r.location}-${r.room}`} className={'border-b border-gray-100 last:border-0'}>
                 <td className="px-4 py-2.5 text-gray-600">{r.location}</td>
                 <td className="px-4 py-2.5 font-medium text-gray-900">{r.room}</td>
                 <td className="px-4 py-2.5 text-gray-500">{r.capacity}</td>
@@ -421,7 +421,7 @@ function ExternalBookingsTable({ month }: { month: string }) {
               const hours = (end.getTime() - start.getTime()) / 3600000
               const amount = hours * (r.rooms?.price_per_hour ?? 0)
               return (
-                <tr key={r.id} className={`border-b border-gray-100 last:border-0 ${i % 2 === 0 ? '' : 'bg-gray-50/50'}`}>
+                <tr key={r.id} className={'border-b border-gray-100 last:border-0'}>
                   <td className="px-4 py-2.5 whitespace-nowrap text-gray-700">{format(start, 'MMM d')}</td>
                   <td className="px-4 py-2.5 whitespace-nowrap text-gray-600 text-xs">{format(start, 'h:mm a')}–{format(end, 'h:mm a')}</td>
                   <td className="px-4 py-2.5 font-medium text-gray-900">{r.external_name}</td>

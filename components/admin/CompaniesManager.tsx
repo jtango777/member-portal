@@ -428,7 +428,7 @@ export default function CompaniesManager({ companies: initial, membershipTypes: 
               const members = getMembersForCompany(c.id)
               return (
                 <React.Fragment key={c.id}>
-                  <tr className={`border-b border-gray-100 last:border-0 hover:bg-blue-50/40 ${i % 2 === 1 ? 'bg-gray-50/70' : 'bg-white'}`}>
+                  <tr className={"border-b border-gray-100 last:border-0 hover:bg-gray-50"}>
                     <td className="px-2 py-1.5 text-center">
                       <button onClick={() => toggleExpand(c.id)} className="p-1 text-gray-400 hover:text-gray-600 transition-colors">
                         {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
