@@ -5,7 +5,7 @@ import { Reservation } from '@/types'
 import { format } from 'date-fns'
 import { Trash2, MapPin, Clock, Mail, Phone, Search } from 'lucide-react'
 import { cn, formatTime } from '@/lib/utils'
-import { Section, Pagination, usePagedList } from '@/components/admin/AdminTable'
+import { AdminTable, Th, Section, Pagination, usePagedList } from '@/components/admin/AdminTable'
 import toast from 'react-hot-toast'
 
 type ExternalBooking = {
@@ -127,16 +127,19 @@ export default function AllBookingsView({ reservations: initialRes, externalBook
           <Pagination {...paginationProps} />
         </div>
       }>
-        <table className="w-full text-sm">
+        <AdminTable
+          colWidths={showDelete ? ['18%', '14%', '11%', '16%', '14%', '14%', '13%'] : ['20%', '16%', '13%', '18%', '16%', '17%']}
+          minWidth={900}
+        >
           <thead>
             <tr className="border-b border-gray-100 bg-gray-50">
-              <th className="text-left font-semibold text-gray-600 px-4 py-3">Title</th>
-              <th className="text-left font-semibold text-gray-600 px-4 py-3">Room</th>
-              <th className="text-left font-semibold text-gray-600 px-4 py-3">Location</th>
-              <th className="text-left font-semibold text-gray-600 px-4 py-3">Date & Time</th>
-              <th className="text-left font-semibold text-gray-600 px-4 py-3">Booked by</th>
-              <th className="text-left font-semibold text-gray-600 px-4 py-3">Company</th>
-              {showDelete && <th className="px-4 py-3 w-24" />}
+              <Th>Title</Th>
+              <Th>Room</Th>
+              <Th>Location</Th>
+              <Th>Date & Time</Th>
+              <Th>Booked by</Th>
+              <Th>Company</Th>
+              {showDelete && <th className="px-4 py-3" />}
             </tr>
           </thead>
           <tbody>
@@ -145,7 +148,7 @@ export default function AllBookingsView({ reservations: initialRes, externalBook
             )}
             {rows.map((r, i) => (
               <tr key={r.id} className={"border-b border-gray-100 last:border-0 hover:bg-gray-50"}>
-                <td className="px-4 py-2 font-medium text-gray-900">
+                <td className="px-4 py-2 font-medium text-gray-900 truncate">
                   {r.title}
                   {r.cancellation_requested_at && (
                     <span className="ml-2 inline-flex items-center bg-amber-100 text-amber-700 text-[10px] font-semibold px-1.5 py-0.5 rounded-full align-middle" title="Member requested cancellation — starts within 12h">
@@ -153,16 +156,16 @@ export default function AllBookingsView({ reservations: initialRes, externalBook
                     </span>
                   )}
                 </td>
-                <td className="px-4 py-2 text-gray-600">{r.rooms?.name}</td>
-                <td className="px-4 py-2 text-gray-600">{(r.rooms as any)?.locations?.name ?? '—'}</td>
+                <td className="px-4 py-2 text-gray-600 truncate">{r.rooms?.name}</td>
+                <td className="px-4 py-2 text-gray-600 truncate">{(r.rooms as any)?.locations?.name ?? '—'}</td>
                 <td className="px-4 py-2 text-gray-600 whitespace-nowrap">
                   {format(new Date(r.start_time), 'MMM d, yyyy')}<br />
                   <span className="text-xs text-gray-400">
                     {format(new Date(r.start_time), 'h:mm a')} – {format(new Date(r.end_time), 'h:mm a')}
                   </span>
                 </td>
-                <td className="px-4 py-2 text-gray-600">{r.profiles?.full_name}</td>
-                <td className="px-4 py-2 text-gray-600">{r.companies?.name}</td>
+                <td className="px-4 py-2 text-gray-600 truncate">{r.profiles?.full_name}</td>
+                <td className="px-4 py-2 text-gray-600 truncate">{r.companies?.name}</td>
                 {showDelete && (
                   <td className="px-4 py-2 w-24">
                     <div className="grid">
@@ -187,7 +190,7 @@ export default function AllBookingsView({ reservations: initialRes, externalBook
               </tr>
             ))}
           </tbody>
-        </table>
+        </AdminTable>
       </Section>
     )
   }
@@ -287,7 +290,7 @@ export default function AllBookingsView({ reservations: initialRes, externalBook
           <Pagination {...paginationProps} />
         </div>
       }>
-        <table className="w-full text-sm">
+        <AdminTable colWidths={['20%', '16%', '12%', '13%', '11%', '14%', '8%', '6%']} minWidth={950}>
           <thead>
             <tr className="bg-gray-50 border-b border-gray-200">
               {['Guest', 'Email', 'Phone', 'Room', 'Location', 'Date & Time', 'Amount', 'Status'].map(h => (
@@ -306,14 +309,14 @@ export default function AllBookingsView({ reservations: initialRes, externalBook
               const amount = hours * (b.rooms?.price_per_hour ?? 0)
               return (
                 <tr key={b.id} className={"border-b border-gray-100 last:border-0 hover:bg-gray-50"}>
-                  <td className="px-4 py-2 font-medium text-gray-900">
+                  <td className="px-4 py-2 font-medium text-gray-900 truncate">
                     {b.external_name}
                     {b.company_name && <span className="text-gray-400 font-normal"> · {b.company_name}</span>}
                   </td>
-                  <td className="px-4 py-2 text-gray-600 text-xs">{b.external_email}</td>
-                  <td className="px-4 py-2 text-gray-600 text-xs">{formatPhone(b.external_phone)}</td>
-                  <td className="px-4 py-2 text-gray-600">{b.rooms?.external_name ?? b.rooms?.name}</td>
-                  <td className="px-4 py-2 text-gray-500 text-xs">{b.rooms?.locations?.name}</td>
+                  <td className="px-4 py-2 text-gray-600 text-xs truncate">{b.external_email}</td>
+                  <td className="px-4 py-2 text-gray-600 text-xs truncate">{formatPhone(b.external_phone)}</td>
+                  <td className="px-4 py-2 text-gray-600 truncate">{b.rooms?.external_name ?? b.rooms?.name}</td>
+                  <td className="px-4 py-2 text-gray-500 text-xs truncate">{b.rooms?.locations?.name}</td>
                   <td className="px-4 py-2 text-gray-700 whitespace-nowrap">
                     {format(start, 'MMM d, yyyy')}
                     <span className="block text-xs text-gray-400">{formatTime(start)} – {formatTime(end)}</span>
@@ -328,7 +331,7 @@ export default function AllBookingsView({ reservations: initialRes, externalBook
               )
             })}
           </tbody>
-        </table>
+        </AdminTable>
       </Section>
     )
   }
@@ -397,16 +400,16 @@ export default function AllBookingsView({ reservations: initialRes, externalBook
             <Pagination {...paginationProps} />
           </div>
         }>
-          <table className="w-full text-sm">
+          <AdminTable colWidths={['9%', '20%', '14%', '11%', '16%', '15%', '15%']} minWidth={950}>
             <thead>
               <tr className="border-b border-gray-100 bg-gray-50">
-                <th className="text-left font-semibold text-gray-600 px-4 py-3">Type</th>
-                <th className="text-left font-semibold text-gray-600 px-4 py-3">Title / Name</th>
-                <th className="text-left font-semibold text-gray-600 px-4 py-3">Room</th>
-                <th className="text-left font-semibold text-gray-600 px-4 py-3">Location</th>
-                <th className="text-left font-semibold text-gray-600 px-4 py-3">Date & Time</th>
-                <th className="text-left font-semibold text-gray-600 px-4 py-3">Booked by</th>
-                <th className="text-left font-semibold text-gray-600 px-4 py-3">Company</th>
+                <Th>Type</Th>
+                <Th>Title / Name</Th>
+                <Th>Room</Th>
+                <Th>Location</Th>
+                <Th>Date & Time</Th>
+                <Th>Booked by</Th>
+                <Th>Company</Th>
               </tr>
             </thead>
             <tbody>
@@ -425,21 +428,21 @@ export default function AllBookingsView({ reservations: initialRes, externalBook
                       {row.type}
                     </span>
                   </td>
-                  <td className="px-4 py-2 font-medium text-gray-900">{row.title}</td>
-                  <td className="px-4 py-2 text-gray-600">{row.room}</td>
-                  <td className="px-4 py-2 text-gray-600">{row.location}</td>
+                  <td className="px-4 py-2 font-medium text-gray-900 truncate">{row.title}</td>
+                  <td className="px-4 py-2 text-gray-600 truncate">{row.room}</td>
+                  <td className="px-4 py-2 text-gray-600 truncate">{row.location}</td>
                   <td className="px-4 py-2 text-gray-600 whitespace-nowrap">
                     {format(row.dateTime, 'MMM d, yyyy')}<br />
                     <span className="text-xs text-gray-400">
                       {format(row.dateTime, 'h:mm a')} – {format(row.endTime, 'h:mm a')}
                     </span>
                   </td>
-                  <td className="px-4 py-2 text-gray-600">{row.bookedBy}</td>
-                  <td className="px-4 py-2 text-gray-600">{row.company}</td>
+                  <td className="px-4 py-2 text-gray-600 truncate">{row.bookedBy}</td>
+                  <td className="px-4 py-2 text-gray-600 truncate">{row.company}</td>
                 </tr>
               ))}
             </tbody>
-          </table>
+          </AdminTable>
         </Section>
       )
     }

@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { Trash2, Pencil } from 'lucide-react'
+import { Trash2, Pencil, Search } from 'lucide-react'
 import toast from 'react-hot-toast'
 import AssignPhotoDialog from './admin/AssignPhotoDialog'
 import { getSeatingOptions } from '@/lib/seating'
@@ -29,12 +29,16 @@ export default function HausSmilesTabs({ groups, defaultLocationId, isAdmin }: P
     groups.find(g => g.key === defaultLocationId)?.key ?? groups[0]?.key
   )
   const [seatingFilter, setSeatingFilter] = useState('')
+  const [search, setSearch] = useState('')
   const [confirmRemove, setConfirmRemove] = useState<string | null>(null)
   const [removing, setRemoving] = useState<string | null>(null)
   const [editingPhoto, setEditingPhoto] = useState<Member | null>(null)
   const active = groups.find(g => g.key === activeKey) ?? groups[0]
+  const q = search.trim().toLowerCase()
   const visibleMembers = active
-    ? (seatingFilter ? active.members.filter(m => m.seating === seatingFilter) : active.members)
+    ? active.members
+        .filter(m => !seatingFilter || m.seating === seatingFilter)
+        .filter(m => !q || m.full_name.toLowerCase().includes(q))
     : []
 
   async function handleRemove(member: Member) {
@@ -62,7 +66,7 @@ export default function HausSmilesTabs({ groups, defaultLocationId, isAdmin }: P
           {groups.map(group => (
             <button
               key={group.key}
-              onClick={() => { setActiveKey(group.key); setSeatingFilter('') }}
+              onClick={() => { setActiveKey(group.key); setSeatingFilter(''); setSearch('') }}
               className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
                 group.key === active.key
                   ? 'border-blue-600 text-blue-600'
@@ -73,14 +77,25 @@ export default function HausSmilesTabs({ groups, defaultLocationId, isAdmin }: P
             </button>
           ))}
         </div>
-        <select
-          value={seatingFilter}
-          onChange={e => setSeatingFilter(e.target.value)}
-          className="mb-2 text-sm border border-gray-300 rounded-lg px-2.5 py-1.5 text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-        >
-          <option value="">All seating</option>
-          {getSeatingOptions(active.name).map(s => <option key={s} value={s}>{s}</option>)}
-        </select>
+        <div className="flex items-center gap-2 mb-2">
+          <div className="relative">
+            <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
+            <input
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Search names..."
+              className="pl-7 pr-2.5 py-1.5 w-40 text-sm border border-gray-300 rounded-lg text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+          <select
+            value={seatingFilter}
+            onChange={e => setSeatingFilter(e.target.value)}
+            className="text-sm border border-gray-300 rounded-lg px-2.5 py-1.5 text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="">All seating</option>
+            {getSeatingOptions(active.name).map(s => <option key={s} value={s}>{s}</option>)}
+          </select>
+        </div>
       </div>
 
       {visibleMembers.length === 0 && (
