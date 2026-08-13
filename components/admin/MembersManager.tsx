@@ -403,28 +403,28 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
 
       {/* TEMPORARY — remove this banner once the uninvited backlog is cleared */}
       {notInvited.length > 0 && (
-        <div className="flex flex-wrap items-center gap-3 bg-green-50 border border-dashed border-green-300 rounded-lg px-3.5 py-2.5">
-          <span className="flex items-center justify-center w-6 h-6 rounded-full bg-green-200 text-green-800 flex-shrink-0">
+        <div className="flex flex-wrap items-center gap-3 bg-amber-50 border border-dashed border-amber-300 rounded-lg px-3.5 py-2.5">
+          <span className="flex items-center justify-center w-6 h-6 rounded-full bg-amber-200 text-amber-800 flex-shrink-0">
             <Send size={12} />
           </span>
           <div className="flex-1 min-w-0">
-            <p className="text-xs font-semibold text-green-900">Temporary — delete this banner once cleared</p>
-            <p className="text-xs text-green-700">{notInvited.length} members have never been invited</p>
+            <p className="text-xs font-semibold text-amber-900">Temporary — delete this banner once cleared</p>
+            <p className="text-xs text-amber-700">{notInvited.length} members have never been invited</p>
           </div>
           <div className="grid flex-shrink-0">
             <div className={`col-start-1 row-start-1 flex items-center gap-2 transition-all duration-150 ${
               confirmInviteAll ? 'opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none'
             }`}>
-              <span className="text-xs text-green-800 font-medium whitespace-nowrap">Send {notInvited.length} invites?</span>
+              <span className="text-xs text-amber-800 font-medium whitespace-nowrap">Send {notInvited.length} invites?</span>
               <button onClick={handleInviteAll}
-                className="text-xs bg-green-600 hover:bg-green-700 text-white font-semibold px-2.5 py-1.5 rounded-md">
+                className="text-xs bg-amber-500 hover:bg-amber-600 text-white font-semibold px-2.5 py-1.5 rounded-md">
                 Yes, send
               </button>
               <button onClick={() => setConfirmInviteAll(false)}
                 className="text-xs text-gray-500 hover:text-gray-700">Cancel</button>
             </div>
             <button onClick={() => setConfirmInviteAll(true)} disabled={invitingAll}
-              className={`col-start-1 row-start-1 flex items-center gap-1.5 text-xs bg-green-600 hover:bg-green-700 text-white font-semibold px-3 py-1.5 rounded-md disabled:opacity-50 transition-all duration-150 whitespace-nowrap ${
+              className={`col-start-1 row-start-1 flex items-center gap-1.5 text-xs bg-amber-500 hover:bg-amber-600 text-white font-semibold px-3 py-1.5 rounded-md disabled:opacity-50 transition-all duration-150 whitespace-nowrap ${
                 confirmInviteAll ? 'opacity-0 scale-95 pointer-events-none' : 'opacity-100 scale-100'
               }`}>
               {invitingAll ? 'Sending…' : `Invite All (${notInvited.length})`}
