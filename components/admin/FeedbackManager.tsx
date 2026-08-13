@@ -66,17 +66,12 @@ export default function FeedbackManager() {
         <p className="text-sm text-gray-500 mt-0.5">{items.length} submission{items.length !== 1 ? 's' : ''} from members</p>
       </div>
 
-      <div className="flex gap-1.5">
+      <select value={filter} onChange={e => setFilter(e.target.value)}
+        className="text-sm border border-gray-300 rounded-lg px-3 py-2 text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
         {categories.map(c => (
-          <button key={c} onClick={() => setFilter(c)}
-            className={cn(
-              'px-3 py-1.5 text-sm font-medium rounded-lg transition-colors',
-              filter === c ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-            )}>
-            {c}
-          </button>
+          <option key={c} value={c}>{c === 'All' ? 'All categories' : c}</option>
         ))}
-      </div>
+      </select>
 
       {loading ? (
         <p className="text-sm text-gray-400">Loading…</p>
