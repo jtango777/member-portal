@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { Reservation } from '@/types'
 import { format } from 'date-fns'
-import { Trash2, MapPin, Clock, Mail, Phone } from 'lucide-react'
+import { Trash2, MapPin, Clock, Mail, Phone, Search } from 'lucide-react'
 import { cn, formatTime } from '@/lib/utils'
 import { Section, Pagination, usePagedList } from '@/components/admin/AdminTable'
 import toast from 'react-hot-toast'
@@ -39,6 +39,20 @@ const STATUS_STYLES: Record<string, string> = {
 type Props = {
   reservations: Reservation[]
   externalBookings: ExternalBooking[]
+}
+
+// Small search box shared by each list — kept per-list (not one global
+// search) since Upcoming and Past are separate contexts an admin searches
+// independently ("did this person already book" vs "did they book before").
+function ListSearch({ value, onChange, placeholder }: { value: string; onChange: (v: string) => void; placeholder?: string }) {
+  return (
+    <div className="relative">
+      <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
+      <input value={value} onChange={e => onChange(e.target.value)}
+        className="pl-7 pr-2.5 py-1.5 w-48 border border-gray-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+        placeholder={placeholder ?? 'Search...'} />
+    </div>
+  )
 }
 
 export default function AllBookingsView({ reservations: initialRes, externalBookings }: Props) {
@@ -94,10 +108,25 @@ export default function AllBookingsView({ reservations: initialRes, externalBook
   ]
 
   // --- Internal table ---
-  function InternalTable({ rows: allRows, showDelete, title, headerExtra }: { rows: Reservation[]; showDelete: boolean; title: string; headerExtra?: React.ReactNode }) {
+  function InternalTable({ rows: sourceRows, showDelete, title, headerExtra }: { rows: Reservation[]; showDelete: boolean; title: string; headerExtra?: React.ReactNode }) {
+    const [search, setSearch] = useState('')
+    const q = search.trim().toLowerCase()
+    const allRows = q ? sourceRows.filter(r =>
+      r.title?.toLowerCase().includes(q) ||
+      r.rooms?.name?.toLowerCase().includes(q) ||
+      (r.rooms as any)?.locations?.name?.toLowerCase().includes(q) ||
+      r.profiles?.full_name?.toLowerCase().includes(q) ||
+      r.companies?.name?.toLowerCase().includes(q)
+    ) : sourceRows
     const { paged: rows, paginationProps } = usePagedList(allRows)
     return (
-      <Section title={`${title} (${allRows.length})`} headerRight={<div className="flex items-center gap-3">{headerExtra}<Pagination {...paginationProps} /></div>}>
+      <Section title={`${title} (${allRows.length})`} headerRight={
+        <div className="flex items-center gap-3">
+          <ListSearch value={search} onChange={setSearch} placeholder="Search bookings..." />
+          {headerExtra}
+          <Pagination {...paginationProps} />
+        </div>
+      }>
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-gray-100 bg-gray-50">
@@ -240,10 +269,24 @@ export default function AllBookingsView({ reservations: initialRes, externalBook
   }
 
   // --- External table ---
-  function ExternalTable({ rows: allRows, title }: { rows: ExternalBooking[]; title: string }) {
+  function ExternalTable({ rows: sourceRows, title }: { rows: ExternalBooking[]; title: string }) {
+    const [search, setSearch] = useState('')
+    const q = search.trim().toLowerCase()
+    const allRows = q ? sourceRows.filter(b =>
+      b.external_name?.toLowerCase().includes(q) ||
+      b.external_email?.toLowerCase().includes(q) ||
+      b.company_name?.toLowerCase().includes(q) ||
+      b.rooms?.name?.toLowerCase().includes(q) ||
+      b.rooms?.locations?.name?.toLowerCase().includes(q)
+    ) : sourceRows
     const { paged: rows, paginationProps } = usePagedList(allRows)
     return (
-      <Section title={`${title} (${allRows.length})`} headerRight={<Pagination {...paginationProps} />}>
+      <Section title={`${title} (${allRows.length})`} headerRight={
+        <div className="flex items-center gap-3">
+          <ListSearch value={search} onChange={setSearch} placeholder="Search bookings..." />
+          <Pagination {...paginationProps} />
+        </div>
+      }>
         <table className="w-full text-sm">
           <thead>
             <tr className="bg-gray-50 border-b border-gray-200">
@@ -336,10 +379,24 @@ export default function AllBookingsView({ reservations: initialRes, externalBook
     const combinedUpcoming = combined.filter(r => r.dateTime >= now)
     const combinedPast = combined.filter(r => r.dateTime < now)
 
-    function CombinedRows({ rows: allRows, title }: { rows: CombinedRow[]; title: string }) {
+    function CombinedRows({ rows: sourceRows, title }: { rows: CombinedRow[]; title: string }) {
+      const [search, setSearch] = useState('')
+      const q = search.trim().toLowerCase()
+      const allRows = q ? sourceRows.filter(row =>
+        row.title.toLowerCase().includes(q) ||
+        row.room.toLowerCase().includes(q) ||
+        row.location.toLowerCase().includes(q) ||
+        row.bookedBy.toLowerCase().includes(q) ||
+        row.company.toLowerCase().includes(q)
+      ) : sourceRows
       const { paged: rows, paginationProps } = usePagedList(allRows)
       return (
-        <Section title={`${title} (${allRows.length})`} headerRight={<Pagination {...paginationProps} />}>
+        <Section title={`${title} (${allRows.length})`} headerRight={
+          <div className="flex items-center gap-3">
+            <ListSearch value={search} onChange={setSearch} placeholder="Search bookings..." />
+            <Pagination {...paginationProps} />
+          </div>
+        }>
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-gray-100 bg-gray-50">

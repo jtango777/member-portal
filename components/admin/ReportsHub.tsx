@@ -60,11 +60,16 @@ function downloadCSV(filename: string, rows: Record<string, unknown>[]) {
 
 // ── Month picker ─────────────────────────────────────────────────────────────
 
-function MonthPicker({ value, onChange }: { value: string; onChange: (v: string) => void }) {
-  // Build last 24 months as options
+function MonthPicker({ value, onChange, earliestMonth }: { value: string; onChange: (v: string) => void; earliestMonth: string | null }) {
+  // Every month from now back to the earliest reservation on file (not a
+  // fixed window) — otherwise this silently drops older months once the
+  // data outlives whatever number was hardcoded here.
   const options: { value: string; label: string }[] = []
   const now = new Date()
-  for (let i = 0; i < 24; i++) {
+  const minMonths = earliestMonth
+    ? (now.getFullYear() - Number(earliestMonth.slice(0, 4))) * 12 + (now.getMonth() - (Number(earliestMonth.slice(5, 7)) - 1)) + 1
+    : 24
+  for (let i = 0; i < Math.max(minMonths, 1); i++) {
     const d = subMonths(now, i)
     options.push({ value: format(d, 'yyyy-MM'), label: format(d, 'MMMM yyyy') })
   }
@@ -447,7 +452,7 @@ function ExternalBookingsTable({ month }: { month: string }) {
 
 // ── Main hub ──────────────────────────────────────────────────────────────────
 
-export default function ReportsHub() {
+export default function ReportsHub({ earliestMonth }: { earliestMonth: string | null }) {
   const [active, setActive]   = useState<ReportType | null>(null)
   const [month, setMonth]     = useState(format(new Date(), 'yyyy-MM'))
 
@@ -498,7 +503,7 @@ export default function ReportsHub() {
         <>
           <div className="flex items-center gap-3">
             <label className="text-sm font-medium text-gray-700">Month</label>
-            <MonthPicker value={month} onChange={setMonth} />
+            <MonthPicker value={month} onChange={setMonth} earliestMonth={earliestMonth} />
           </div>
           {active === 'reservations'      && <ReservationsTable month={month} />}
           {active === 'company-usage'     && <CompanyUsageTable month={month} />}
