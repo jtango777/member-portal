@@ -13,14 +13,25 @@ type Visit = {
   email: string | null
 }
 
-type Summary = {
-  key: string
-  full_name: string | null
-  email: string | null
+type PageSummary = {
   path: string
   visit_count: number
   last_visited_at: string
   visits: Visit[]
+}
+
+// Person-first: one row per member, with their total activity across every
+// page, expandable into a per-page breakdown. The previous version had one
+// row per (person, page) pair, which split a single person's activity
+// across scattered rows — you couldn't see "how engaged is this member"
+// without finding and adding up their rows by hand.
+type PersonSummary = {
+  key: string
+  full_name: string | null
+  email: string | null
+  total_visits: number
+  last_visited_at: string
+  pages: PageSummary[]
 }
 
 const PATH_LABELS: Record<string, string> = {
@@ -39,53 +50,78 @@ export default function PageVisitsManager() {
   const [visits, setVisits] = useState<Visit[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
-  const [expanded, setExpanded] = useState<Set<string>>(new Set())
+  const [expandedPeople, setExpandedPeople] = useState<Set<string>>(new Set())
+  const [expandedPages, setExpandedPages] = useState<Set<string>>(new Set())
 
   const refresh = useCallback(async () => {
     const r = await fetch('/api/admin/reports/page-visits')
     if (r.ok) {
       const data: Visit[] = await r.json()
       setVisits(data)
-      // Default-expand every row so individual page visits are visible right away.
-      setExpanded(new Set(data.map(v => `${v.email ?? 'unknown'}::${v.path}`)))
     }
     setLoading(false)
   }, [])
 
   useEffect(() => { refresh() }, [refresh])
 
-  // Group into one row per person + page, showing how many times they visited
-  const summaries: Summary[] = Object.values(
+  // Group into one row per person, each holding a per-page breakdown
+  const people: PersonSummary[] = Object.values(
     visits.reduce((acc, v) => {
-      const key = `${v.email ?? 'unknown'}::${v.path}`
-      if (!acc[key]) {
-        acc[key] = {
-          key, full_name: v.full_name, email: v.email, path: v.path,
-          visit_count: 0, last_visited_at: v.started_at, visits: [],
+      const personKey = v.email ?? 'unknown'
+      if (!acc[personKey]) {
+        acc[personKey] = {
+          key: personKey, full_name: v.full_name, email: v.email,
+          total_visits: 0, last_visited_at: v.started_at, pages: [],
         }
       }
-      acc[key].visit_count += 1
-      if (new Date(v.started_at) > new Date(acc[key].last_visited_at)) {
-        acc[key].last_visited_at = v.started_at
+      const person = acc[personKey]
+      person.total_visits += 1
+      if (new Date(v.started_at) > new Date(person.last_visited_at)) {
+        person.last_visited_at = v.started_at
       }
-      acc[key].visits.push(v)
+      let page = person.pages.find(p => p.path === v.path)
+      if (!page) {
+        page = { path: v.path, visit_count: 0, last_visited_at: v.started_at, visits: [] }
+        person.pages.push(page)
+      }
+      page.visit_count += 1
+      if (new Date(v.started_at) > new Date(page.last_visited_at)) {
+        page.last_visited_at = v.started_at
+      }
+      page.visits.push(v)
       return acc
-    }, {} as Record<string, Summary>)
-  ).sort((a, b) => b.visit_count - a.visit_count)
+    }, {} as Record<string, PersonSummary>)
+  ).sort((a, b) => b.total_visits - a.total_visits)
 
   const q = search.toLowerCase()
-  const filtered = summaries.filter(s =>
+  const filtered = people.filter(p =>
     !q ||
-    (s.full_name ?? '').toLowerCase().includes(q) ||
-    (s.email ?? '').toLowerCase().includes(q) ||
-    (PATH_LABELS[s.path] ?? s.path).toLowerCase().includes(q)
+    (p.full_name ?? '').toLowerCase().includes(q) ||
+    (p.email ?? '').toLowerCase().includes(q) ||
+    p.pages.some(pg => (PATH_LABELS[pg.path] ?? pg.path).toLowerCase().includes(q))
   )
+
+  function togglePerson(key: string) {
+    setExpandedPeople(prev => {
+      const next = new Set(prev)
+      next.has(key) ? next.delete(key) : next.add(key)
+      return next
+    })
+  }
+
+  function togglePage(key: string) {
+    setExpandedPages(prev => {
+      const next = new Set(prev)
+      next.has(key) ? next.delete(key) : next.add(key)
+      return next
+    })
+  }
 
   return (
     <div className="space-y-5">
       <div>
         <h1 className="text-xl font-bold text-gray-900">Page Activity</h1>
-        <p className="text-sm text-gray-500 mt-0.5">Which pages each member visited, and when. Click a row to collapse it.</p>
+        <p className="text-sm text-gray-500 mt-0.5">How active each member is, and which pages they use. Click a row to expand it.</p>
       </div>
 
       <div className="relative">
@@ -98,55 +134,85 @@ export default function PageVisitsManager() {
       <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
         <table className="w-full text-sm table-fixed">
           <colgroup>
-            <col className="w-[6%]" /><col className="w-[28%]" /><col className="w-[28%]" /><col className="w-[18%]" /><col className="w-[10%]" /><col className="w-[10%]" />
+            <col className="w-[6%]" /><col className="w-[30%]" /><col className="w-[34%]" /><col className="w-[15%]" /><col className="w-[15%]" />
           </colgroup>
           <thead>
             <tr className="border-b border-gray-100 bg-gray-50">
               <th></th>
               <th className="text-left font-semibold text-gray-500 px-4 py-2.5 text-xs uppercase tracking-wide">Name</th>
               <th className="text-left font-semibold text-gray-500 px-4 py-2.5 text-xs uppercase tracking-wide">Email</th>
-              <th className="text-left font-semibold text-gray-500 px-4 py-2.5 text-xs uppercase tracking-wide">Page</th>
-              <th className="text-left font-semibold text-gray-500 px-4 py-2.5 text-xs uppercase tracking-wide">Visits</th>
+              <th className="text-left font-semibold text-gray-500 px-4 py-2.5 text-xs uppercase tracking-wide">Total Visits</th>
               <th className="text-left font-semibold text-gray-500 px-4 py-2.5 text-xs uppercase tracking-wide">Last Visited</th>
             </tr>
           </thead>
           <tbody>
-            {filtered.map(s => (
-              <Fragment key={s.key}>
-                <tr onClick={() => setExpanded(prev => {
-                  const next = new Set(prev)
-                  next.has(s.key) ? next.delete(s.key) : next.add(s.key)
-                  return next
-                })}
+            {filtered.map(p => (
+              <Fragment key={p.key}>
+                <tr onClick={() => togglePerson(p.key)}
                   className="border-b border-gray-100 last:border-0 hover:bg-gray-50 cursor-pointer">
                   <td className="px-2 py-2.5 text-gray-400">
-                    {expanded.has(s.key) ? <ChevronDown size={14} /> : <ChevronRightIcon size={14} />}
+                    {expandedPeople.has(p.key) ? <ChevronDown size={14} /> : <ChevronRightIcon size={14} />}
                   </td>
-                  <td className="px-4 py-2.5 text-gray-900 truncate" title={s.full_name ?? undefined}>{s.full_name ?? '—'}</td>
-                  <td className="px-4 py-2.5 text-gray-600 truncate" title={s.email ?? undefined}>{s.email ?? '—'}</td>
-                  <td className="px-4 py-2.5 text-gray-700 truncate">{PATH_LABELS[s.path] ?? s.path}</td>
-                  <td className="px-4 py-2.5 text-gray-700">{s.visit_count}</td>
-                  <td className="px-4 py-2.5 text-gray-700">{formatShortDate(new Date(s.last_visited_at))}</td>
+                  <td className="px-4 py-2.5 text-gray-900 truncate" title={p.full_name ?? undefined}>{p.full_name ?? '—'}</td>
+                  <td className="px-4 py-2.5 text-gray-600 truncate" title={p.email ?? undefined}>{p.email ?? '—'}</td>
+                  <td className="px-4 py-2.5 text-gray-700 font-medium">{p.total_visits}</td>
+                  <td className="px-4 py-2.5 text-gray-700">{formatShortDate(new Date(p.last_visited_at))}</td>
                 </tr>
-                {expanded.has(s.key) && (
+                {expandedPeople.has(p.key) && (
                   <tr>
-                    <td colSpan={6} className="bg-gray-50 px-4 py-3">
+                    <td colSpan={5} className="bg-gray-50 px-4 py-3">
                       <table className="w-full text-xs">
                         <thead>
                           <tr className="text-gray-500">
-                            <th className="text-left font-medium pb-1.5 pl-6">Visited</th>
-                            <th className="text-left font-medium pb-1.5">Duration</th>
+                            <th></th>
+                            <th className="text-left font-medium pb-1.5 pl-2">Page</th>
+                            <th className="text-left font-medium pb-1.5">Visits</th>
+                            <th className="text-left font-medium pb-1.5">Last Visited</th>
                           </tr>
                         </thead>
                         <tbody>
-                          {s.visits
-                            .sort((a, b) => new Date(b.started_at).getTime() - new Date(a.started_at).getTime())
-                            .map(v => (
-                              <tr key={v.id} className="border-t border-gray-200">
-                                <td className="py-1.5 pl-6 text-gray-700">{formatShortDate(new Date(v.started_at))}</td>
-                                <td className="py-1.5 text-gray-700">{formatDuration(v.duration_seconds)}</td>
-                              </tr>
-                            ))}
+                          {p.pages
+                            .sort((a, b) => b.visit_count - a.visit_count)
+                            .map(pg => {
+                              const pageKey = `${p.key}::${pg.path}`
+                              return (
+                                <Fragment key={pageKey}>
+                                  <tr onClick={() => togglePage(pageKey)}
+                                    className="border-t border-gray-200 hover:bg-gray-100 cursor-pointer">
+                                    <td className="py-1.5 pl-1 text-gray-400 w-5">
+                                      {expandedPages.has(pageKey) ? <ChevronDown size={12} /> : <ChevronRightIcon size={12} />}
+                                    </td>
+                                    <td className="py-1.5 pl-2 text-gray-800 font-medium">{PATH_LABELS[pg.path] ?? pg.path}</td>
+                                    <td className="py-1.5 text-gray-700">{pg.visit_count}</td>
+                                    <td className="py-1.5 text-gray-700">{formatShortDate(new Date(pg.last_visited_at))}</td>
+                                  </tr>
+                                  {expandedPages.has(pageKey) && (
+                                    <tr>
+                                      <td colSpan={4} className="bg-white px-2 py-2">
+                                        <table className="w-full text-xs">
+                                          <thead>
+                                            <tr className="text-gray-400">
+                                              <th className="text-left font-medium pb-1 pl-8">Visited</th>
+                                              <th className="text-left font-medium pb-1">Duration</th>
+                                            </tr>
+                                          </thead>
+                                          <tbody>
+                                            {pg.visits
+                                              .sort((a, b) => new Date(b.started_at).getTime() - new Date(a.started_at).getTime())
+                                              .map(v => (
+                                                <tr key={v.id} className="border-t border-gray-100">
+                                                  <td className="py-1 pl-8 text-gray-600">{formatShortDate(new Date(v.started_at))}</td>
+                                                  <td className="py-1 text-gray-600">{formatDuration(v.duration_seconds)}</td>
+                                                </tr>
+                                              ))}
+                                          </tbody>
+                                        </table>
+                                      </td>
+                                    </tr>
+                                  )}
+                                </Fragment>
+                              )
+                            })}
                         </tbody>
                       </table>
                     </td>
@@ -155,7 +221,7 @@ export default function PageVisitsManager() {
               </Fragment>
             ))}
             {!loading && filtered.length === 0 && (
-              <tr><td colSpan={6} className="px-4 py-6 text-center text-gray-400 text-sm">No page visits recorded yet.</td></tr>
+              <tr><td colSpan={5} className="px-4 py-6 text-center text-gray-400 text-sm">No page visits recorded yet.</td></tr>
             )}
           </tbody>
         </table>
