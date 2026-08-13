@@ -427,7 +427,7 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
               className={`col-start-1 row-start-1 flex items-center gap-1.5 text-xs bg-amber-500 hover:bg-amber-600 text-white font-semibold px-3 py-1.5 rounded-md disabled:opacity-50 transition-all duration-150 whitespace-nowrap ${
                 confirmInviteAll ? 'opacity-0 scale-95 pointer-events-none' : 'opacity-100 scale-100'
               }`}>
-              {invitingAll ? 'Sending…' : `Invite All (${notInvited.length})`}
+              {invitingAll ? 'Sending…' : 'Invite All'}
             </button>
           </div>
         </div>
@@ -621,9 +621,9 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
               </tr>
             </thead>
             <tbody>
-              {pagedActive.map(m => (
-                    <tr key={m.id} id={`member-row-${m.id}`} className="border-b border-gray-100 last:border-0 hover:bg-gray-50">
-                      <td className="px-4 py-3 font-medium text-gray-900 truncate" title={m.full_name ?? undefined}>
+              {pagedActive.map((m, i) => (
+                    <tr key={m.id} id={`member-row-${m.id}`} className={`border-b border-gray-100 last:border-0 hover:bg-blue-50/40 ${i % 2 === 1 ? "bg-gray-50/70" : "bg-white"}`}>
+                      <td className="px-4 py-2 font-medium text-gray-900 truncate" title={m.full_name ?? undefined}>
                         {m.full_name ?? '—'}
                         {m.room_access_requested_at && !m.company_id && !m.individual_hours_allotment && (
                           <span title="Requested room access" className="inline-flex items-center justify-center w-4 h-4 ml-1.5 rounded-full bg-amber-100 text-amber-700 align-middle">
@@ -631,18 +631,18 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
                           </span>
                         )}
                       </td>
-                      <td className="px-4 py-3 text-gray-600 truncate" title={m.email}>{m.email}</td>
-                      <td className="px-4 py-3 text-gray-600 truncate" title={companyOrTypeLabel(m)}>{companyOrTypeLabel(m)}</td>
-                      <td className="px-4 py-3 text-gray-600 truncate text-xs">
+                      <td className="px-4 py-2 text-gray-600 truncate" title={m.email}>{m.email}</td>
+                      <td className="px-4 py-2 text-gray-600 truncate" title={companyOrTypeLabel(m)}>{companyOrTypeLabel(m)}</td>
+                      <td className="px-4 py-2 text-gray-600 truncate text-xs">
                         {m.default_location_id ? (locations.find(l => l.id === m.default_location_id)?.name ?? '—') : <span className="text-gray-400">—</span>}
                       </td>
-                      <td className="px-4 py-3">
+                      <td className="px-4 py-2">
                         {m.is_admin
                           ? <span className="inline-flex items-center gap-1 whitespace-nowrap text-xs font-medium text-blue-700 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-full"><Shield size={10} /> Admin</span>
                           : <span className="text-xs text-gray-400">Member</span>}
                       </td>
-                      <td className="px-4 py-3 text-gray-500 text-xs whitespace-nowrap">{formatShortDate(new Date(m.accepted_at!))}</td>
-                      <td className="px-4 py-3">
+                      <td className="px-4 py-2 text-gray-500 text-xs whitespace-nowrap">{formatShortDate(new Date(m.accepted_at!))}</td>
+                      <td className="px-4 py-2">
                         <div className="flex items-center justify-end gap-0.5">
                           <IconAction
                             icon={DoorOpen}
@@ -713,19 +713,19 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
               </tr>
             </thead>
             <tbody>
-              {pagedPending.map(m => (
-                    <tr key={m.id} className="border-b border-gray-100 last:border-0 hover:bg-gray-50">
-                      <td className="px-4 py-3 font-medium text-gray-900 truncate" title={m.full_name ?? undefined}>
+              {pagedPending.map((m, i) => (
+                    <tr key={m.id} className={`border-b border-gray-100 last:border-0 hover:bg-blue-50/40 ${i % 2 === 1 ? "bg-gray-50/70" : "bg-white"}`}>
+                      <td className="px-4 py-2 font-medium text-gray-900 truncate" title={m.full_name ?? undefined}>
                         {m.full_name ?? <span className="text-gray-400 italic">No name</span>}
                       </td>
-                      <td className="px-4 py-3 text-gray-700 truncate" title={m.email}>{m.email}</td>
-                      <td className="px-4 py-3 text-gray-600 truncate" title={companyOrTypeLabel(m)}>{companyOrTypeLabel(m)}</td>
-                      <td className="px-4 py-3 text-gray-600 truncate text-xs">
+                      <td className="px-4 py-2 text-gray-700 truncate" title={m.email}>{m.email}</td>
+                      <td className="px-4 py-2 text-gray-600 truncate" title={companyOrTypeLabel(m)}>{companyOrTypeLabel(m)}</td>
+                      <td className="px-4 py-2 text-gray-600 truncate text-xs">
                         {m.default_location_id ? (locations.find(l => l.id === m.default_location_id)?.name ?? '—') : <span className="text-gray-400">—</span>}
                       </td>
-                      <td className="px-4 py-3"><StatusBadge m={m} /></td>
-                      <td className="px-4 py-3 text-gray-500 text-xs whitespace-nowrap">{formatShortDate(new Date(m.invited_at))}</td>
-                      <td className="px-4 py-3">
+                      <td className="px-4 py-2"><StatusBadge m={m} /></td>
+                      <td className="px-4 py-2 text-gray-500 text-xs whitespace-nowrap">{formatShortDate(new Date(m.invited_at))}</td>
+                      <td className="px-4 py-2">
                         <div className="flex items-center justify-end gap-0.5">
                           <IconAction
                             icon={DoorOpen}
@@ -758,7 +758,7 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
                             label="Invite"
                             onClick={() => handleResend(m.id)}
                             disabled={resending === m.id}
-                            colorClass="text-blue-500 hover:bg-blue-50"
+                            colorClass="text-amber-500 hover:bg-amber-50"
                           />
                           {confirmRemove === m.id ? (
                             <div className="flex items-center gap-1.5">
