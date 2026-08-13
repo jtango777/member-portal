@@ -424,7 +424,7 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
                 className="text-xs text-gray-500 hover:text-gray-700">Cancel</button>
             </div>
             <button onClick={() => setConfirmInviteAll(true)} disabled={invitingAll}
-              className={`col-start-1 row-start-1 justify-self-start flex items-center gap-1.5 text-xs bg-amber-500 hover:bg-amber-600 text-white font-semibold px-3 py-1.5 rounded-md disabled:opacity-50 transition-all duration-150 whitespace-nowrap ${
+              className={`col-start-1 row-start-1 justify-self-end flex items-center gap-1.5 text-xs bg-amber-500 hover:bg-amber-600 text-white font-semibold px-3 py-1.5 rounded-md disabled:opacity-50 transition-all duration-150 whitespace-nowrap ${
                 confirmInviteAll ? 'opacity-0 scale-95 pointer-events-none' : 'opacity-100 scale-100'
               }`}>
               <Send size={12} /> {invitingAll ? 'Sending…' : 'Invite All'}
