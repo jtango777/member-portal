@@ -11,7 +11,15 @@ import { createClient } from '@/lib/supabase/client'
 
 type Location = { id: string; name: string }
 
-function EmailStep({ onFound }: { onFound: (email: string, defaultLocationId: string | null) => void }) {
+type FoundInvite = {
+  email: string
+  defaultLocationId: string | null
+  firstName: string | null
+  lastName: string | null
+  seating: string | null
+}
+
+function EmailStep({ onFound }: { onFound: (invite: FoundInvite) => void }) {
   const [email, setEmail] = useState('')
   const [checking, setChecking] = useState(false)
   const [notFound, setNotFound] = useState(false)
@@ -28,7 +36,15 @@ function EmailStep({ onFound }: { onFound: (email: string, defaultLocationId: st
       body: JSON.stringify({ email }),
     })
     const data = await res.json()
-    if (data.status === 'ok') onFound(data.email, data.default_location_id ?? null)
+    if (data.status === 'ok') {
+      onFound({
+        email:             data.email,
+        defaultLocationId: data.default_location_id ?? null,
+        firstName:         data.first_name ?? null,
+        lastName:          data.last_name ?? null,
+        seating:           data.seating ?? null,
+      })
+    }
     else if (data.status === 'already_registered') setAlreadyRegistered(true)
     else setNotFound(true)
     setChecking(false)
@@ -68,15 +84,24 @@ function EmailStep({ onFound }: { onFound: (email: string, defaultLocationId: st
   )
 }
 
-function DetailsStep({ email, defaultLocationId }: { email: string; defaultLocationId: string | null }) {
+function DetailsStep({ email, defaultLocationId, defaultFirstName, defaultLastName, defaultSeating }: {
+  email: string
+  defaultLocationId: string | null
+  defaultFirstName: string | null
+  defaultLastName: string | null
+  defaultSeating: string | null
+}) {
   const router = useRouter()
-  const [firstName, setFirstName] = useState('')
-  const [lastName, setLastName]   = useState('')
+  const [firstName, setFirstName] = useState(defaultFirstName ?? '')
+  const [lastName, setLastName]   = useState(defaultLastName ?? '')
   const [password, setPassword]   = useState('')
   const [password2, setPassword2] = useState('')
   const [locationId, setLocationId] = useState(defaultLocationId ?? '')
   const [locations, setLocations] = useState<Location[]>([])
   const [seating, setSeating] = useState('')
+  // Whether the member has picked a seating option themselves yet — once
+  // they have, the location-change effect below should stop overriding it.
+  const [seatingTouched, setSeatingTouched] = useState(false)
   const [loading, setLoading]     = useState(false)
 
   useEffect(() => {
@@ -91,10 +116,23 @@ function DetailsStep({ email, defaultLocationId }: { email: string; defaultLocat
   // Seating options depend on the selected location — keep a valid default
   // selected (instead of a blank "Prefer not to say") whenever the location
   // changes, so the field is never accidentally empty once required.
+  // Prefers whatever the admin already put on file, as long as it's a valid
+  // option for the currently selected location; only falls back to the
+  // first option once the member has actually chosen something themselves.
   useEffect(() => {
+    // Locations haven't loaded yet — wait, rather than computing options
+    // against an empty list. That would only ever resolve to ['Virtual'],
+    // and since 'Virtual' is also valid for every real location, that
+    // premature pick would satisfy the "already valid, keep it" check below
+    // forever and silently block the admin's preset from ever applying.
+    if (locations.length === 0) return
     const opts = getSeatingOptions(locations.find(l => l.id === locationId)?.name)
-    setSeating(prev => opts.includes(prev) ? prev : (opts[0] ?? ''))
-  }, [locationId, locations])
+    setSeating(prev => {
+      if (opts.includes(prev)) return prev
+      if (!seatingTouched && defaultSeating && opts.includes(defaultSeating)) return defaultSeating
+      return opts[0] ?? ''
+    })
+  }, [locationId, locations, seatingTouched, defaultSeating])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -171,7 +209,7 @@ function DetailsStep({ email, defaultLocationId }: { email: string; defaultLocat
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Where do you sit?</label>
           <p className="text-xs text-gray-400 mb-1.5">Shown below your name on Faces.</p>
-          <select required value={seating} onChange={e => setSeating(e.target.value)}
+          <select required value={seating} onChange={e => { setSeating(e.target.value); setSeatingTouched(true) }}
             className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
             {getSeatingOptions(locations.find(l => l.id === locationId)?.name).map(s => <option key={s} value={s}>{s}</option>)}
           </select>
@@ -186,13 +224,7 @@ function DetailsStep({ email, defaultLocationId }: { email: string; defaultLocat
 }
 
 export default function RegisterPage() {
-  const [foundEmail, setFoundEmail] = useState<string | null>(null)
-  const [foundLocationId, setFoundLocationId] = useState<string | null>(null)
-
-  function handleFound(email: string, defaultLocationId: string | null) {
-    setFoundEmail(email)
-    setFoundLocationId(defaultLocationId)
-  }
+  const [invite, setInvite] = useState<FoundInvite | null>(null)
 
   return (
     <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
@@ -202,9 +234,15 @@ export default function RegisterPage() {
           <img src="/brand/bizhaus-logo-white.png" alt="BizHaus" className="h-8 w-auto" />
           <span className="text-lg font-semibold text-white">Portal</span>
         </div>
-        {foundEmail
-          ? <DetailsStep email={foundEmail} defaultLocationId={foundLocationId} />
-          : <EmailStep onFound={handleFound} />}
+        {invite
+          ? <DetailsStep
+              email={invite.email}
+              defaultLocationId={invite.defaultLocationId}
+              defaultFirstName={invite.firstName}
+              defaultLastName={invite.lastName}
+              defaultSeating={invite.seating}
+            />
+          : <EmailStep onFound={setInvite} />}
       </div>
     </div>
   )

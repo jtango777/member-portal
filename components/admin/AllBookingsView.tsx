@@ -95,7 +95,13 @@ export default function AllBookingsView({ reservations: initialRes, externalBook
   }
 
   const upcoming = reservations.filter(r => new Date(r.start_time) >= new Date())
-  const past = reservations.filter(r => new Date(r.start_time) < new Date())
+  // Newest-first — an admin looking at Past is almost always chasing down
+  // something that JUST happened (e.g. a late-cancellation request), not
+  // scrolling for the oldest reservation on record. Ascending order buried
+  // that behind however many months of history came before it.
+  const past = reservations
+    .filter(r => new Date(r.start_time) < new Date())
+    .sort((a, b) => new Date(b.start_time).getTime() - new Date(a.start_time).getTime())
   const filteredExternal = extFilter === 'all'
     ? externalBookings
     : externalBookings.filter(b => b.status === extFilter)
@@ -380,7 +386,9 @@ export default function AllBookingsView({ reservations: initialRes, externalBook
 
     const now = new Date()
     const combinedUpcoming = combined.filter(r => r.dateTime >= now)
-    const combinedPast = combined.filter(r => r.dateTime < now)
+    const combinedPast = combined
+      .filter(r => r.dateTime < now)
+      .sort((a, b) => b.dateTime.getTime() - a.dateTime.getTime())
 
     function CombinedRows({ rows: sourceRows, title }: { rows: CombinedRow[]; title: string }) {
       const [search, setSearch] = useState('')
@@ -519,7 +527,9 @@ export default function AllBookingsView({ reservations: initialRes, externalBook
       {activeTab === 'external' && (() => {
         const now = new Date()
         const extUpcoming = externalBookings.filter(b => new Date(b.start_time) >= now)
-        const extPast = externalBookings.filter(b => new Date(b.start_time) < now)
+        const extPast = externalBookings
+          .filter(b => new Date(b.start_time) < now)
+          .sort((a, b) => new Date(b.start_time).getTime() - new Date(a.start_time).getTime())
         return (
           <div className="space-y-6">
             <ExternalTable rows={extUpcoming} title="Upcoming" />

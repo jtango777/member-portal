@@ -103,7 +103,11 @@ export default function FeedbackManager() {
                           className="flex items-center justify-center w-6 h-6 rounded-md text-gray-400 hover:bg-green-50 hover:text-green-600 transition-colors">
                           <Check size={14} />
                         </button>
-                        <span className="pointer-events-none absolute right-0 bottom-full z-10 mb-1.5 whitespace-nowrap rounded bg-gray-900 px-2 py-1 text-xs text-white opacity-0 transition-opacity group-hover:opacity-100">
+                        {/* Below, not above, the button — the card's overflow-hidden
+                            (used for the resolve fade-out) clips anything positioned
+                            outside its box, which was cutting this off when it tried
+                            to render above. */}
+                        <span className="pointer-events-none absolute right-0 top-full z-10 mt-1.5 whitespace-nowrap rounded bg-gray-900 px-2 py-1 text-xs text-white opacity-0 transition-opacity group-hover:opacity-100">
                           Resolve?
                         </span>
                       </div>

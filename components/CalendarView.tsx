@@ -127,9 +127,18 @@ export default function CalendarView({ locations, profile, company, hourScope, h
     setReservations(resData)
     setLoading(false)
     setTimeout(() => {
-      if (scrollRef.current) {
-        scrollRef.current.scrollTop = 16 * slotHRef.current
-      }
+      const el = scrollRef.current
+      if (!el) return
+      // Center on the current time when looking at today, so the calendar
+      // opens showing what's actually relevant right now instead of always
+      // landing on the same fixed 8am-ish spot regardless of the time of
+      // day. Any other date (past or future) has no "now" to center on, so
+      // it keeps that same sensible default.
+      const now = new Date()
+      const targetSlot = isSameDay(selectedDate, now)
+        ? (now.getHours() + now.getMinutes() / 60) * 2
+        : 16
+      el.scrollTop = targetSlot * slotHRef.current - el.clientHeight / 2
     }, 50)
   }, [selectedLocation, selectedDate])
 
