@@ -185,7 +185,7 @@ export default function RoomsManager({ locations, initialRooms }: Props) {
                 <div className="flex items-center border-b border-gray-100 px-4 py-2.5 bg-gray-50">
                   <span className="flex-1 text-xs font-semibold text-gray-500 uppercase tracking-wide">Room</span>
                   <span className="w-20 text-center text-xs font-semibold text-gray-500 uppercase tracking-wide">Capacity</span>
-                  <span className="w-56" />
+                  <span className="w-64" />
                 </div>
                 {/* Rows */}
                 {locRooms.map(room => (
@@ -212,7 +212,7 @@ export default function RoomsManager({ locations, initialRooms }: Props) {
                         <span className="text-gray-600">{room.capacity}</span>
                       )}
                     </div>
-                    <div className="w-56 flex items-center justify-end gap-2">
+                    <div className="w-64 flex items-center justify-end gap-2">
                       {editing?.id === room.id ? (
                         <>
                           <button onClick={handleSaveEdit} disabled={saving}
@@ -226,13 +226,24 @@ export default function RoomsManager({ locations, initialRooms }: Props) {
                         </>
                       ) : (
                         <>
+                          {/* Internal-visibility toggle — same pill styling as the
+                              external-booking toggle in ExternalRoomsManager, so the
+                              two "hide this room" controls read as one consistent pattern. */}
                           <div className="relative group">
-                            <button onClick={() => handleToggleInternal(room)} disabled={toggling === room.id}
+                            <button
+                              onClick={() => handleToggleInternal(room)}
+                              disabled={toggling === room.id}
                               className={cn(
-                                'flex items-center gap-1 text-xs font-medium disabled:opacity-40',
-                                room.internal_bookable ? 'text-gray-400 hover:text-gray-600' : 'text-amber-600 hover:text-amber-700'
-                              )}>
-                              {room.internal_bookable ? <Eye size={12} /> : <EyeOff size={12} />}
+                                'flex items-center gap-1.5 text-xs font-medium px-2.5 py-1.5 rounded-lg border transition-colors disabled:opacity-40',
+                                room.internal_bookable
+                                  ? 'bg-green-50 text-green-700 border-green-200 hover:bg-green-100'
+                                  : 'bg-gray-50 text-gray-500 border-gray-200 hover:bg-gray-100'
+                              )}
+                            >
+                              {room.internal_bookable
+                                ? <><Eye size={12} /> Visible</>
+                                : <><EyeOff size={12} /> Hidden</>
+                              }
                             </button>
                             <span className="pointer-events-none absolute right-0 bottom-full z-10 mb-1.5 whitespace-nowrap rounded bg-gray-900 px-2 py-1 text-xs text-white opacity-0 shadow-lg transition-opacity group-hover:opacity-100">
                               {room.internal_bookable ? 'Click to hide from internal booking' : 'Click to make visible again'}
