@@ -213,7 +213,7 @@ function CompanyUsageTable({ month }: { month: string }) {
         <table className="w-full text-sm">
           <thead>
             <tr className="bg-gray-50 border-b border-gray-200">
-              {['Company', 'Allotment', 'Hours Used', 'Remaining', 'Bookings'].map(h => (
+              {['Company', 'Usage', 'Remaining', 'Bookings'].map(h => (
                 <th key={h} className="text-left px-4 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wide">{h}</th>
               ))}
             </tr>
@@ -222,11 +222,21 @@ function CompanyUsageTable({ month }: { month: string }) {
             {data.map((r, i) => {
               const over = typeof r.hours_remaining === 'number' && r.hours_remaining === 0 && r.hours_used > 0
               const unlimited = r.monthly_allotment === 9999
+              const pct = unlimited || r.monthly_allotment <= 0 ? 0 : Math.min(100, (r.hours_used / r.monthly_allotment) * 100)
               return (
                 <tr key={r.company_name} className={'border-b border-gray-100 last:border-0'}>
                   <td className="px-4 py-2.5 font-medium text-gray-900">{r.company_name}</td>
-                  <td className="px-4 py-2.5 text-gray-600">{unlimited ? '∞' : `${r.monthly_allotment}h`}</td>
-                  <td className="px-4 py-2.5 text-gray-800 font-medium">{r.hours_used}h</td>
+                  <td className="px-4 py-2.5">
+                    <span className="text-gray-800 font-medium">
+                      {r.hours_used}h {unlimited ? '' : `of ${r.monthly_allotment}h`}
+                    </span>
+                    {!unlimited && (
+                      <div className="w-24 h-1.5 bg-gray-100 rounded-full overflow-hidden mt-1">
+                        <div className={`h-full rounded-full ${over ? 'bg-red-500' : pct >= 80 ? 'bg-amber-500' : 'bg-blue-500'}`}
+                          style={{ width: `${pct}%` }} />
+                      </div>
+                    )}
+                  </td>
                   <td className={`px-4 py-2.5 font-medium ${over ? 'text-red-600' : 'text-green-700'}`}>
                     {unlimited ? '∞' : typeof r.hours_remaining === 'number' ? `${r.hours_remaining}h` : r.hours_remaining}
                   </td>
