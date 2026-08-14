@@ -23,7 +23,7 @@ export async function GET(request: Request) {
     { data: { users: authUsers } },
     { data: reservations },
   ] = await Promise.all([
-    admin.from('permitted_emails').select('email, company_id, companies(id, name)'),
+    admin.from('permitted_emails').select('email, company_id, default_location_id, companies(id, name)'),
     admin.from('profiles').select('id, full_name, company_id, default_location_id'),
     admin.auth.admin.listUsers({ perPage: 1000 }),
     admin.from('reservations')
@@ -79,7 +79,11 @@ export async function GET(request: Request) {
       company_name:      (pe.companies as Record<string, unknown>)?.name ?? '',
       hours_used:          Math.round((usage?.hours ?? 0) * 10) / 10,
       reservation_count:   usage?.count ?? 0,
-      default_location_id: prof?.default_location_id ?? null,
+      // Most members here are still "pending" (added by an admin, no
+      // account yet) — prof is null for those, so their location has to
+      // come from the permitted_emails preset instead of the (nonexistent)
+      // profile. Once they sign up, prof.default_location_id takes over.
+      default_location_id: prof?.default_location_id ?? pe.default_location_id ?? null,
     }
   })
 

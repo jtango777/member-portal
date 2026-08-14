@@ -11,7 +11,7 @@ export default async function TimeUsagePage() {
   const { start, end } = getMonthBounds(now)
 
   const [{ data: companies }, { data: individuals }, { data: allProfiles }] = await Promise.all([
-    supabase.from('companies').select('*').order('name'),
+    supabase.from('companies').select('*').eq('is_active', true).order('name'),
     // Members with their own hour allotment instead of a shared company
     // pool — these never showed up here at all before, since this page
     // only ever iterated companies.
@@ -58,6 +58,7 @@ export default async function TimeUsagePage() {
         monthly_hours_allotment: allotment,
         membership_type_id: null,
         created_at: '',
+        is_active: true,
       },
       hours_used: used,
       hours_remaining: Math.max(0, allotment - used),

@@ -1,8 +1,9 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
+import NextLink from 'next/link'
 import { Company, MembershipType } from '@/types'
-import { Plus, Edit2, Check, X, Settings, Trash2, Search, ChevronDown, ChevronRight, ChevronLeft } from 'lucide-react'
+import { Plus, Edit2, Check, X, Settings, Trash2, Building2, Search, ChevronDown, ChevronRight, ChevronLeft, AlertTriangle } from 'lucide-react'
 import toast from 'react-hot-toast'
 import EditCompanyDialog, { EditableCompany } from '@/components/admin/EditCompanyDialog'
 import { AdminTable, Th } from '@/components/admin/AdminTable'
@@ -34,6 +35,8 @@ export default function CompaniesManager({ companies: initial, membershipTypes: 
   const [newHours,            setNewHours]            = useState('0')
   const [creating,            setCreating]            = useState(false)
   const [editTarget,          setEditTarget]          = useState<EditableCompany | null>(null)
+  const [deleteTarget,        setDeleteTarget]        = useState<Company | null>(null)
+  const [deleting,            setDeleting]            = useState(false)
   // Manage types state
   const [newTypeName,     setNewTypeName]     = useState('')
   const [newTypeHours,    setNewTypeHours]    = useState('')
@@ -77,6 +80,21 @@ export default function CompaniesManager({ companies: initial, membershipTypes: 
   async function refreshTypes() {
     const r = await fetch('/api/admin/membership-types')
     setMembershipTypes(await r.json())
+  }
+
+  async function handleDeleteConfirm() {
+    if (!deleteTarget) return
+    setDeleting(true)
+    const res = await fetch(`/api/admin/companies/${deleteTarget.id}`, { method: 'DELETE' })
+    if (res.ok) {
+      toast.success(`"${deleteTarget.name}" removed`)
+      setDeleteTarget(null)
+      await refreshCompanies()
+    } else {
+      const d = await res.json()
+      toast.error(d.error ?? 'Failed to remove company')
+    }
+    setDeleting(false)
   }
 
   // ── Companies ─────────────────────────────────────────────────────────────
@@ -216,6 +234,10 @@ export default function CompaniesManager({ companies: initial, membershipTypes: 
           <p className="text-sm text-gray-500 mt-0.5">{companies.length} total</p>
         </div>
         <div className="flex items-center gap-2">
+          <NextLink href="/dashboard/admin/companies/inactive"
+            className="flex items-center gap-1.5 text-sm border border-gray-300 hover:bg-gray-50 text-gray-700 font-medium px-3 py-2 rounded-lg transition-colors">
+            <Building2 size={14} /> Show Archived Companies
+          </NextLink>
           <button onClick={() => setShowManageTypes(v => !v)}
             className="flex items-center gap-1.5 text-sm border border-gray-300 hover:bg-gray-50 text-gray-700 font-medium px-3 py-2 rounded-lg transition-colors">
             <Settings size={14} /> Manage Types
@@ -441,11 +463,18 @@ export default function CompaniesManager({ companies: initial, membershipTypes: 
                       <span className="text-gray-700">{c.monthly_hours_allotment}h</span>
                     </td>
                     <td className="px-4 py-1.5">
-                      <button
-                        onClick={() => setEditTarget({ id: c.id, name: c.name, monthly_hours_allotment: c.monthly_hours_allotment })}
-                        className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 font-medium">
-                        <Edit2 size={12} /> Edit
-                      </button>
+                      <div className="flex items-center gap-3">
+                        <button
+                          onClick={() => setEditTarget({ id: c.id, name: c.name, monthly_hours_allotment: c.monthly_hours_allotment })}
+                          className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 font-medium">
+                          <Edit2 size={12} /> Edit
+                        </button>
+                        <button
+                          onClick={() => setDeleteTarget(c)}
+                          className="flex items-center gap-1 text-xs text-red-500 hover:text-red-700 font-medium">
+                          <Trash2 size={12} /> Remove
+                        </button>
+                      </div>
                     </td>
                   </tr>
                   {/* Always mounted — an inner grid-rows transition animates the
@@ -500,6 +529,36 @@ export default function CompaniesManager({ companies: initial, membershipTypes: 
         onOpenChange={v => { if (!v) setEditTarget(null) }}
         onSuccess={refreshCompanies}
       />
+
+      {/* Delete confirmation modal */}
+      {deleteTarget && (
+        <div className="fixed inset-0 bg-black/40 z-40 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm p-6">
+            <div className="flex items-start gap-3 mb-4">
+              <AlertTriangle size={20} className="text-red-500 flex-shrink-0 mt-0.5" />
+              <div>
+                <h3 className="font-semibold text-gray-900">Remove "{deleteTarget.name}"?</h3>
+                {getMembersForCompany(deleteTarget.id).length > 0 ? (
+                  <p className="text-sm text-amber-700 mt-1">
+                    This company has <strong>{getMembersForCompany(deleteTarget.id).length} member{getMembersForCompany(deleteTarget.id).length !== 1 ? 's' : ''}</strong> — they'll keep their company assignment and hour pool, they just won't see it on the active Companies list anymore.
+                  </p>
+                ) : (
+                  <p className="text-sm text-gray-500 mt-1">This company has no members currently assigned.</p>
+                )}
+                <p className="text-sm text-gray-500 mt-1">Past reservations and reports stay intact. You can restore it from Archived Companies any time.</p>
+              </div>
+            </div>
+            <div className="flex gap-2 justify-end">
+              <button onClick={() => setDeleteTarget(null)}
+                className="text-sm text-gray-500 hover:text-gray-700 px-4 py-2">Cancel</button>
+              <button onClick={handleDeleteConfirm} disabled={deleting}
+                className="bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white text-sm font-semibold px-4 py-2 rounded-lg">
+                {deleting ? 'Removing…' : 'Yes, remove'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

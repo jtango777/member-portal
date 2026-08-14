@@ -32,6 +32,7 @@ export type Company = {
   monthly_hours_allotment: number
   membership_type_id: string | null
   created_at: string
+  is_active: boolean
   membership_types?: MembershipType | null
 }
 

@@ -13,8 +13,12 @@ function firstNameLastInitial(fullName: string): string {
   return `${parts[0]} ${parts[parts.length - 1][0]}.`
 }
 
-export default async function HausSmilesMemberPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function HausSmilesMemberPage({ params, searchParams }: {
+  params: Promise<{ id: string }>
+  searchParams: Promise<{ location?: string }>
+}) {
   const { id } = await params
+  const { location } = await searchParams
   const currentProfile = await getAuthedProfile()
   if (!currentProfile) redirect('/login')
   const supabase = await createClient()
@@ -53,7 +57,7 @@ export default async function HausSmilesMemberPage({ params }: { params: Promise
   return (
     <div className="h-full overflow-auto p-6">
       <div className="max-w-sm mx-auto">
-        <Link href="/dashboard/haus-smiles" className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-900 mb-6">
+        <Link href={`/dashboard/haus-smiles${location ? `?location=${location}` : ''}`} className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-900 mb-6">
           <ArrowLeft size={16} /> Back to Faces
         </Link>
         {/* eslint-disable-next-line @next/next/no-img-element */}

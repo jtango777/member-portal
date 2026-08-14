@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { Trash2, Pencil, Search } from 'lucide-react'
 import toast from 'react-hot-toast'
 import AssignPhotoDialog from './admin/AssignPhotoDialog'
@@ -25,8 +25,18 @@ type Props = { groups: Group[]; defaultLocationId?: string | null; isAdmin?: boo
 
 export default function HausSmilesTabs({ groups, defaultLocationId, isAdmin }: Props) {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  // The URL is the source of truth for which location tab is active — a
+  // returning navigation (the "Back to Faces" link, or the browser's own
+  // back button) fully remounts this component, so anything kept only in
+  // local state (the old behavior) was lost and silently replaced by the
+  // viewer's home location every time. Prefer whatever's in the URL, and
+  // only fall back to the home-location default when there isn't one.
+  const urlLocation = searchParams.get('location')
   const [activeKey, setActiveKey] = useState(
-    groups.find(g => g.key === defaultLocationId)?.key ?? groups[0]?.key
+    groups.find(g => g.key === urlLocation)?.key
+      ?? groups.find(g => g.key === defaultLocationId)?.key
+      ?? groups[0]?.key
   )
   const [seatingFilter, setSeatingFilter] = useState('')
   const [search, setSearch] = useState('')
@@ -66,7 +76,10 @@ export default function HausSmilesTabs({ groups, defaultLocationId, isAdmin }: P
           {groups.map(group => (
             <button
               key={group.key}
-              onClick={() => { setActiveKey(group.key); setSeatingFilter(''); setSearch('') }}
+              onClick={() => {
+                setActiveKey(group.key); setSeatingFilter(''); setSearch('')
+                router.replace(`/dashboard/haus-smiles?location=${group.key}`, { scroll: false })
+              }}
               className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
                 group.key === active.key
                   ? 'border-blue-600 text-blue-600'
@@ -136,7 +149,7 @@ export default function HausSmilesTabs({ groups, defaultLocationId, isAdmin }: P
                 </div>
               </>
             )}
-            <Link href={`/dashboard/haus-smiles/${member.id}`} className="text-center block">
+            <Link href={`/dashboard/haus-smiles/${member.id}?location=${active.key}`} className="text-center block">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={member.avatar_url ?? ''}

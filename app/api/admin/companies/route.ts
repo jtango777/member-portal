@@ -9,14 +9,18 @@ async function assertAdmin() {
   return profile?.is_admin ? user : null
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   const user = await assertAdmin()
   if (!user) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+
+  const { searchParams } = new URL(request.url)
+  const status = searchParams.get('status') // 'inactive' — everything else defaults to active
 
   const admin = createAdminClient()
   const { data, error } = await admin
     .from('companies')
     .select('*')
+    .eq('is_active', status === 'inactive' ? false : true)
     .order('name')
   if (error) return NextResponse.json({ error: 'Failed to load companies.' }, { status: 500 })
   return NextResponse.json(data)
