@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
+import { sendFeedbackNotificationEmail } from '@/lib/email'
 
 const CATEGORIES = ['Bug', 'Idea', 'Question', 'Other']
 
@@ -19,5 +20,19 @@ export async function POST(request: Request) {
   })
 
   if (error) return NextResponse.json({ error: 'Failed to submit feedback.' }, { status: 500 })
+
+  try {
+    const { data: profile } = await supabase.from('profiles').select('full_name').eq('id', user.id).single()
+    await sendFeedbackNotificationEmail({
+      name:     profile?.full_name ?? 'A member',
+      email:    user.email ?? '',
+      category,
+      message:  message.trim(),
+    })
+  } catch (err) {
+    console.error('[feedback] notification email failed:', err)
+    // Feedback is already saved — don't fail the request over the email.
+  }
+
   return NextResponse.json({ ok: true })
 }

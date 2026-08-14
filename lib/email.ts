@@ -193,6 +193,25 @@ export async function sendCancellationRequestEmail(
   })
 }
 
+export async function sendFeedbackNotificationEmail(
+  details: { name: string; email: string; category: string; message: string }
+) {
+  await resend.emails.send({
+    from: FROM,
+    to: STAFF_EMAIL,
+    subject: `New feedback (${details.category}): ${details.name}`,
+    html: emailWrapper(`
+      <h2 style="color:#0f172a;margin:0 0 8px;font-size:22px;font-weight:700;">New feedback submitted</h2>
+      <table style="border-collapse:collapse;width:100%;margin-bottom:20px;background:#f8fafc;border-radius:7px;overflow:hidden;">
+        <tr><td style="padding:10px 14px;color:#64748b;font-size:13px;width:110px;">From</td><td style="padding:10px 14px;font-weight:600;color:#0f172a;">${details.name} (${details.email})</td></tr>
+        <tr style="border-top:1px solid #e2e8f0;"><td style="padding:10px 14px;color:#64748b;font-size:13px;">Category</td><td style="padding:10px 14px;color:#1e293b;">${details.category}</td></tr>
+      </table>
+      <p style="color:#475569;line-height:1.6;margin:0 0 24px;white-space:pre-wrap;background:#f8fafc;border-radius:7px;padding:14px;">${details.message}</p>
+      <a href="${APP_URL}/dashboard/admin/feedback" style="display:inline-block;background:#2563eb;color:white;padding:13px 28px;border-radius:7px;text-decoration:none;font-weight:600;font-size:15px;">View Feedback →</a>
+    `),
+  })
+}
+
 export async function sendRoomAccessRequestEmail(details: { name: string; email: string }) {
   await resend.emails.send({
     from: FROM,
