@@ -158,52 +158,54 @@ export default function ExternalRoomsManager({ locations, initialRooms }: Props)
                     </div>
 
                     {/* Edit form */}
-                    {isEditing && (
-                      <div className="space-y-3 bg-gray-50 rounded-lg p-3">
-                        <div className="grid grid-cols-2 gap-3">
+                    <div className={`grid transition-[grid-template-rows] duration-300 ease-in-out ${isEditing ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}>
+                      <div className="overflow-hidden">
+                        <div className="space-y-3 bg-gray-50 rounded-lg p-3">
+                          <div className="grid grid-cols-2 gap-3">
+                            <div>
+                              <label className="block text-xs font-medium text-gray-600 mb-1">External name</label>
+                              <input
+                                value={editing?.external_name ?? ''}
+                                onChange={e => setEditing(v => v ? { ...v, external_name: e.target.value } : v)}
+                                placeholder="e.g. Large"
+                                className="w-full border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-xs font-medium text-gray-600 mb-1">Price per hour ($)</label>
+                              <input
+                                type="number" min="0" step="5"
+                                value={editing?.price_per_hour ?? ''}
+                                onChange={e => setEditing(v => v ? { ...v, price_per_hour: e.target.value } : v)}
+                                placeholder="e.g. 75"
+                                className="w-full border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              />
+                            </div>
+                          </div>
                           <div>
-                            <label className="block text-xs font-medium text-gray-600 mb-1">External name</label>
-                            <input
-                              value={editing.external_name}
-                              onChange={e => setEditing(v => v ? { ...v, external_name: e.target.value } : v)}
-                              placeholder="e.g. Large"
-                              className="w-full border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            <label className="block text-xs font-medium text-gray-600 mb-1">Description</label>
+                            <textarea
+                              value={editing?.description ?? ''}
+                              onChange={e => setEditing(v => v ? { ...v, description: e.target.value } : v)}
+                              rows={3}
+                              placeholder="Describe this room for external customers…"
+                              className="w-full border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
                             />
                           </div>
                           <div>
-                            <label className="block text-xs font-medium text-gray-600 mb-1">Price per hour ($)</label>
+                            <label className="block text-xs font-medium text-gray-600 mb-1">
+                              Features <span className="font-normal text-gray-400">(comma-separated)</span>
+                            </label>
                             <input
-                              type="number" min="0" step="5"
-                              value={editing.price_per_hour}
-                              onChange={e => setEditing(v => v ? { ...v, price_per_hour: e.target.value } : v)}
-                              placeholder="e.g. 75"
+                              value={editing?.features ?? ''}
+                              onChange={e => setEditing(v => v ? { ...v, features: e.target.value } : v)}
+                              placeholder="Projector, Whiteboard, Apple TV, Speakerphone"
                               className="w-full border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                             />
                           </div>
-                        </div>
-                        <div>
-                          <label className="block text-xs font-medium text-gray-600 mb-1">Description</label>
-                          <textarea
-                            value={editing.description}
-                            onChange={e => setEditing(v => v ? { ...v, description: e.target.value } : v)}
-                            rows={3}
-                            placeholder="Describe this room for external customers…"
-                            className="w-full border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-xs font-medium text-gray-600 mb-1">
-                            Features <span className="font-normal text-gray-400">(comma-separated)</span>
-                          </label>
-                          <input
-                            value={editing.features}
-                            onChange={e => setEditing(v => v ? { ...v, features: e.target.value } : v)}
-                            placeholder="Projector, Whiteboard, Apple TV, Speakerphone"
-                            className="w-full border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                          />
                         </div>
                       </div>
-                    )}
+                    </div>
 
                     {/* Summary when not editing */}
                     {!isEditing && room.external_bookable && (

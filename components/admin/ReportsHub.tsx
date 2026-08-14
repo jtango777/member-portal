@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { format, subMonths } from 'date-fns'
-import { FileText, Building2, LayoutGrid, ChevronLeft, Download, Globe } from 'lucide-react'
+import { FileText, Building2, LayoutGrid, ChevronLeft, ChevronRight, Download, Globe } from 'lucide-react'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -185,6 +185,7 @@ function ReservationsTable({ month }: { month: string }) {
 function CompanyUsageTable({ month }: { month: string }) {
   const [rows, setRows]       = useState<CompanyUsageRow[]>([])
   const [loading, setLoading] = useState(true)
+  const [showInactive, setShowInactive] = useState(false)
 
   useEffect(() => {
     setLoading(true)
@@ -261,12 +262,18 @@ function CompanyUsageTable({ month }: { month: string }) {
       </div>
       <Table data={active} />
       {inactive.length > 0 && (
-        <details className="mt-4">
-          <summary className="text-sm text-gray-400 cursor-pointer hover:text-gray-600 select-none">
-            Show {inactive.length} companies with no activity this month
-          </summary>
-          <div className="mt-2"><Table data={inactive} /></div>
-        </details>
+        <div className="mt-4">
+          <button onClick={() => setShowInactive(v => !v)}
+            className="flex items-center gap-1 text-sm text-gray-400 hover:text-gray-600 select-none">
+            <ChevronRight size={14} className={`transition-transform duration-200 ${showInactive ? 'rotate-90' : ''}`} />
+            {showInactive ? 'Hide' : 'Show'} {inactive.length} companies with no activity this month
+          </button>
+          <div className={`grid transition-[grid-template-rows] duration-300 ease-in-out ${showInactive ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}>
+            <div className="overflow-hidden">
+              <div className="mt-2"><Table data={inactive} /></div>
+            </div>
+          </div>
+        </div>
       )}
     </>
   )
