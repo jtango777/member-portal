@@ -26,7 +26,7 @@ export default function ExternalRoomsManager({ locations, initialRooms }: Props)
   const [toggling, setToggling] = useState<string | null>(null)
 
   async function refreshRooms() {
-    const res = await fetch('/api/rooms')
+    const res = await fetch('/api/rooms?includeHidden=true')
     setRooms(await res.json())
   }
 

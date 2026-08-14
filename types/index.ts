@@ -13,6 +13,7 @@ export type Room = {
   external_name: string | null
   price_per_hour: number | null
   external_bookable: boolean
+  internal_bookable: boolean
   description: string | null
   features: string[]
 }

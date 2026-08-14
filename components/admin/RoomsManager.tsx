@@ -2,7 +2,8 @@
 
 import { useState } from 'react'
 import { Location, Room } from '@/types'
-import { Plus, Trash2, Edit2, Check, X, AlertTriangle } from 'lucide-react'
+import { Plus, Trash2, Edit2, Check, X, AlertTriangle, Eye, EyeOff } from 'lucide-react'
+import { cn } from '@/lib/utils'
 import toast from 'react-hot-toast'
 
 type Props = {
@@ -24,10 +25,31 @@ export default function RoomsManager({ locations, initialRooms }: Props) {
   const [deleteTarget, setDeleteTarget] = useState<{ room: Room; upcomingCount: number } | null>(null)
   const [loadingDelete, setLoadingDelete] = useState<string | null>(null)
   const [deleting, setDeleting]   = useState(false)
+  const [toggling, setToggling]   = useState<string | null>(null)
 
   async function refreshRooms() {
-    const res = await fetch('/api/rooms')
+    // includeHidden — this is a management view, it needs to see rooms
+    // hidden from the internal calendar too, or there'd be no way to
+    // find and un-hide them again.
+    const res = await fetch('/api/rooms?includeHidden=true')
     setRooms(await res.json())
+  }
+
+  async function handleToggleInternal(room: Room) {
+    setToggling(room.id)
+    const res = await fetch(`/api/admin/rooms/${room.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ internal_bookable: !room.internal_bookable }),
+    })
+    if (res.ok) {
+      setRooms(prev => prev.map(r => r.id === room.id ? { ...r, internal_bookable: !r.internal_bookable } : r))
+      toast.success(room.internal_bookable ? 'Room hidden from internal booking' : 'Room visible on internal booking again')
+    } else {
+      const data = await res.json()
+      toast.error(data.error ?? 'Failed to update room')
+    }
+    setToggling(null)
   }
 
   async function handleCreate(e: React.FormEvent) {
@@ -163,7 +185,7 @@ export default function RoomsManager({ locations, initialRooms }: Props) {
                 <div className="flex items-center border-b border-gray-100 px-4 py-2.5 bg-gray-50">
                   <span className="flex-1 text-xs font-semibold text-gray-500 uppercase tracking-wide">Room</span>
                   <span className="w-20 text-center text-xs font-semibold text-gray-500 uppercase tracking-wide">Capacity</span>
-                  <span className="w-40" />
+                  <span className="w-56" />
                 </div>
                 {/* Rows */}
                 {locRooms.map(room => (
@@ -173,7 +195,12 @@ export default function RoomsManager({ locations, initialRooms }: Props) {
                         <input value={editing.name} onChange={e => setEditing(v => v ? { ...v, name: e.target.value } : v)}
                           className="border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 w-full max-w-xs" />
                       ) : (
-                        <span className="font-medium text-gray-900">{room.name}</span>
+                        <span className="font-medium text-gray-900">
+                          {room.name}
+                          {!room.internal_bookable && (
+                            <span className="ml-2 text-[10px] font-semibold uppercase tracking-wide text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded">Hidden</span>
+                          )}
+                        </span>
                       )}
                     </div>
                     <div className="w-20 text-center">
@@ -185,7 +212,7 @@ export default function RoomsManager({ locations, initialRooms }: Props) {
                         <span className="text-gray-600">{room.capacity}</span>
                       )}
                     </div>
-                    <div className="w-40 flex items-center justify-end gap-2">
+                    <div className="w-56 flex items-center justify-end gap-2">
                       {editing?.id === room.id ? (
                         <>
                           <button onClick={handleSaveEdit} disabled={saving}
@@ -199,6 +226,18 @@ export default function RoomsManager({ locations, initialRooms }: Props) {
                         </>
                       ) : (
                         <>
+                          <div className="relative group">
+                            <button onClick={() => handleToggleInternal(room)} disabled={toggling === room.id}
+                              className={cn(
+                                'flex items-center gap-1 text-xs font-medium disabled:opacity-40',
+                                room.internal_bookable ? 'text-gray-400 hover:text-gray-600' : 'text-amber-600 hover:text-amber-700'
+                              )}>
+                              {room.internal_bookable ? <Eye size={12} /> : <EyeOff size={12} />}
+                            </button>
+                            <span className="pointer-events-none absolute right-0 bottom-full z-10 mb-1.5 whitespace-nowrap rounded bg-gray-900 px-2 py-1 text-xs text-white opacity-0 shadow-lg transition-opacity group-hover:opacity-100">
+                              {room.internal_bookable ? 'Click to hide from internal booking' : 'Click to make visible again'}
+                            </span>
+                          </div>
                           <button onClick={() => setEditing({ id: room.id, name: room.name, capacity: String(room.capacity) })}
                             className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 font-medium">
                             <Edit2 size={12} /> Edit
