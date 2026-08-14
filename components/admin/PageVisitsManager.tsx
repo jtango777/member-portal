@@ -46,6 +46,19 @@ function formatDuration(seconds: number): string {
   return secs > 0 ? `${mins}m ${secs}s` : `${mins}m`
 }
 
+// Real accordion, not a mount/unmount toggle — the CSS-grid "0fr/1fr" trick
+// animates to an unknown content height (a plain max-height guess would
+// either clip taller content or leave a jump for shorter content). Content
+// stays mounted always; only the grid track (and therefore visible height)
+// animates, clipped by overflow-hidden on the inner wrapper.
+function Accordion({ open, children }: { open: boolean; children: React.ReactNode }) {
+  return (
+    <div className="grid transition-[grid-template-rows] duration-200 ease-in-out" style={{ gridTemplateRows: open ? '1fr' : '0fr' }}>
+      <div className="overflow-hidden">{children}</div>
+    </div>
+  )
+}
+
 export default function PageVisitsManager() {
   const [visits, setVisits] = useState<Visit[]>([])
   const [loading, setLoading] = useState(true)
@@ -146,80 +159,88 @@ export default function PageVisitsManager() {
             </tr>
           </thead>
           <tbody>
-            {filtered.map(p => (
-              <Fragment key={p.key}>
-                <tr onClick={() => togglePerson(p.key)}
-                  className="border-b border-gray-100 last:border-0 hover:bg-gray-50 cursor-pointer">
-                  <td className="px-2 py-2.5 text-gray-400">
-                    {expandedPeople.has(p.key) ? <ChevronDown size={14} /> : <ChevronRightIcon size={14} />}
-                  </td>
-                  <td className="px-4 py-2.5 text-gray-900 truncate" title={p.full_name ?? undefined}>{p.full_name ?? '—'}</td>
-                  <td className="px-4 py-2.5 text-gray-600 truncate" title={p.email ?? undefined}>{p.email ?? '—'}</td>
-                  <td className="px-4 py-2.5 text-gray-700 font-medium">{p.total_visits}</td>
-                  <td className="px-4 py-2.5 text-gray-700">{formatShortDate(new Date(p.last_visited_at))}</td>
-                </tr>
-                {expandedPeople.has(p.key) && (
+            {filtered.map(p => {
+              const personOpen = expandedPeople.has(p.key)
+              return (
+                <Fragment key={p.key}>
+                  <tr onClick={() => togglePerson(p.key)}
+                    className="border-b border-gray-100 last:border-0 hover:bg-gray-50 cursor-pointer">
+                    <td className="px-2 py-2.5 text-gray-400">
+                      <ChevronRightIcon size={14} className={`transition-transform duration-200 ${personOpen ? 'rotate-90' : ''}`} />
+                    </td>
+                    <td className="px-4 py-2.5 text-gray-900 truncate" title={p.full_name ?? undefined}>{p.full_name ?? '—'}</td>
+                    <td className="px-4 py-2.5 text-gray-600 truncate" title={p.email ?? undefined}>{p.email ?? '—'}</td>
+                    <td className="px-4 py-2.5 text-gray-700 font-medium">{p.total_visits}</td>
+                    <td className="px-4 py-2.5 text-gray-700">{formatShortDate(new Date(p.last_visited_at))}</td>
+                  </tr>
                   <tr>
-                    <td colSpan={5} className="bg-gray-50 px-4 py-3">
-                      <table className="w-full text-xs">
-                        <thead>
-                          <tr className="text-gray-500">
-                            <th></th>
-                            <th className="text-left font-medium pb-1.5 pl-2">Page</th>
-                            <th className="text-left font-medium pb-1.5">Visits</th>
-                            <th className="text-left font-medium pb-1.5">Last Visited</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {p.pages
-                            .sort((a, b) => b.visit_count - a.visit_count)
-                            .map(pg => {
-                              const pageKey = `${p.key}::${pg.path}`
-                              return (
-                                <Fragment key={pageKey}>
-                                  <tr onClick={() => togglePage(pageKey)}
-                                    className="border-t border-gray-200 hover:bg-gray-100 cursor-pointer">
-                                    <td className="py-1.5 pl-1 text-gray-400 w-5">
-                                      {expandedPages.has(pageKey) ? <ChevronDown size={12} /> : <ChevronRightIcon size={12} />}
-                                    </td>
-                                    <td className="py-1.5 pl-2 text-gray-800 font-medium">{PATH_LABELS[pg.path] ?? pg.path}</td>
-                                    <td className="py-1.5 text-gray-700">{pg.visit_count}</td>
-                                    <td className="py-1.5 text-gray-700">{formatShortDate(new Date(pg.last_visited_at))}</td>
-                                  </tr>
-                                  {expandedPages.has(pageKey) && (
-                                    <tr>
-                                      <td colSpan={4} className="bg-white px-2 py-2">
-                                        <table className="w-full text-xs">
-                                          <thead>
-                                            <tr className="text-gray-400">
-                                              <th className="text-left font-medium pb-1 pl-8">Visited</th>
-                                              <th className="text-left font-medium pb-1">Duration</th>
-                                            </tr>
-                                          </thead>
-                                          <tbody>
-                                            {pg.visits
-                                              .sort((a, b) => new Date(b.started_at).getTime() - new Date(a.started_at).getTime())
-                                              .map(v => (
-                                                <tr key={v.id} className="border-t border-gray-100">
-                                                  <td className="py-1 pl-8 text-gray-600">{formatShortDate(new Date(v.started_at))}</td>
-                                                  <td className="py-1 text-gray-600">{formatDuration(v.duration_seconds)}</td>
-                                                </tr>
-                                              ))}
-                                          </tbody>
-                                        </table>
-                                      </td>
-                                    </tr>
-                                  )}
-                                </Fragment>
-                              )
-                            })}
-                        </tbody>
-                      </table>
+                    <td colSpan={5} className="p-0">
+                      <Accordion open={personOpen}>
+                        <div className="bg-gray-50 px-4 py-3">
+                          <table className="w-full text-xs">
+                            <thead>
+                              <tr className="text-gray-500">
+                                <th></th>
+                                <th className="text-left font-medium pb-1.5 pl-2">Page</th>
+                                <th className="text-left font-medium pb-1.5">Visits</th>
+                                <th className="text-left font-medium pb-1.5">Last Visited</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {p.pages
+                                .sort((a, b) => b.visit_count - a.visit_count)
+                                .map(pg => {
+                                  const pageKey = `${p.key}::${pg.path}`
+                                  const pageOpen = expandedPages.has(pageKey)
+                                  return (
+                                    <Fragment key={pageKey}>
+                                      <tr onClick={() => togglePage(pageKey)}
+                                        className="border-t border-gray-200 hover:bg-gray-100 cursor-pointer">
+                                        <td className="py-1.5 pl-1 text-gray-400 w-5">
+                                          <ChevronRightIcon size={12} className={`transition-transform duration-200 ${pageOpen ? 'rotate-90' : ''}`} />
+                                        </td>
+                                        <td className="py-1.5 pl-2 text-gray-800 font-medium">{PATH_LABELS[pg.path] ?? pg.path}</td>
+                                        <td className="py-1.5 text-gray-700">{pg.visit_count}</td>
+                                        <td className="py-1.5 text-gray-700">{formatShortDate(new Date(pg.last_visited_at))}</td>
+                                      </tr>
+                                      <tr>
+                                        <td colSpan={4} className="p-0">
+                                          <Accordion open={pageOpen}>
+                                            <div className="bg-white px-2 py-2">
+                                              <table className="w-full text-xs">
+                                                <thead>
+                                                  <tr className="text-gray-400">
+                                                    <th className="text-left font-medium pb-1 pl-8">Visited</th>
+                                                    <th className="text-left font-medium pb-1">Duration</th>
+                                                  </tr>
+                                                </thead>
+                                                <tbody>
+                                                  {pg.visits
+                                                    .sort((a, b) => new Date(b.started_at).getTime() - new Date(a.started_at).getTime())
+                                                    .map(v => (
+                                                      <tr key={v.id} className="border-t border-gray-100">
+                                                        <td className="py-1 pl-8 text-gray-600">{formatShortDate(new Date(v.started_at))}</td>
+                                                        <td className="py-1 text-gray-600">{formatDuration(v.duration_seconds)}</td>
+                                                      </tr>
+                                                    ))}
+                                                </tbody>
+                                              </table>
+                                            </div>
+                                          </Accordion>
+                                        </td>
+                                      </tr>
+                                    </Fragment>
+                                  )
+                                })}
+                            </tbody>
+                          </table>
+                        </div>
+                      </Accordion>
                     </td>
                   </tr>
-                )}
-              </Fragment>
-            ))}
+                </Fragment>
+              )
+            })}
             {!loading && filtered.length === 0 && (
               <tr><td colSpan={5} className="px-4 py-6 text-center text-gray-400 text-sm">No page visits recorded yet.</td></tr>
             )}

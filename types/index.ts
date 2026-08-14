@@ -95,3 +95,14 @@ export type HourSummary = {
   hours_used: number
   hours_remaining: number
 }
+
+// One row per person for the Time Usage "User" view — a company's hours
+// are a shared pool, so there's no per-person allotment/remaining to show
+// here, just what that individual actually booked this month.
+export type PersonUsage = {
+  id: string
+  name: string
+  company_name: string | null
+  hours_used: number
+  reservation_count: number
+}
