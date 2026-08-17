@@ -73,6 +73,11 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
   const [addFirstName, setAddFirstName] = useState('')
   const [addLastName, setAddLastName]   = useState('')
   const [connectToRooms, setConnectToRooms] = useState(false)
+  // On by default — adding someone here almost always means they're a real,
+  // current member, so Pipedrive should reflect that without extra effort.
+  // Still an explicit toggle so it can be turned off for the odd one-off
+  // (e.g. a test account) that shouldn't touch Pipedrive at all.
+  const [markInPipedrive, setMarkInPipedrive] = useState(true)
   const connectToRoomsRef = useAutoScrollIntoView<HTMLDivElement>(connectToRooms)
   // Tracks whether the expand animation has finished — the panel needs
   // overflow-hidden while animating open (so the height transition looks
@@ -177,6 +182,7 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
         default_location_id: addLocationId || null,
         seating: addSeating || null,
         skipEmail,
+        markInPipedrive,
       }),
     })
     const data = await res.json()
@@ -186,6 +192,9 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
       if (skipEmail) toast.success('Member added — no invite sent.')
       else if (data.emailSent) toast.success('Invite sent!')
       else { setLastInviteLink(data.inviteLink); toast.success('Member added — copy the link below to invite them manually.') }
+      if (markInPipedrive && data.pipedriveMatched === false) {
+        toast('No matching contact found in Pipedrive — mark them there manually.', { icon: '⚠️' })
+      }
       setEmail('')
       setAddFirstName('')
       setAddLastName('')
@@ -553,7 +562,7 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
               </label>
             </div>
 
-            <div className="flex gap-4">
+            <div className="flex items-end gap-4">
               <div className="w-72">
                 <label className="block text-xs font-medium text-gray-700 mb-1">Location</label>
                 <select value={addLocationId} onChange={e => { setAddLocationId(e.target.value); setAddSeating('') }}
@@ -572,6 +581,16 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
                   </select>
                 </div>
               )}
+              <label className="flex items-center gap-2 cursor-pointer select-none pb-2.5">
+                <span className="relative inline-flex h-4 w-7 flex-shrink-0 items-center">
+                  <input type="checkbox" checked={markInPipedrive}
+                    onChange={e => setMarkInPipedrive(e.target.checked)}
+                    className="peer sr-only" />
+                  <span className="absolute inset-0 rounded-full bg-gray-300 peer-checked:bg-blue-600 transition-colors duration-200" />
+                  <span className="absolute left-0.5 top-0.5 h-3 w-3 rounded-full bg-white shadow transition-transform duration-200 peer-checked:translate-x-3" />
+                </span>
+                <span className="text-sm text-gray-700">Check current member in Pipedrive?</span>
+              </label>
             </div>
 
             {/* Smoothly expands/collapses via a grid-rows transition instead of mounting/unmounting */}

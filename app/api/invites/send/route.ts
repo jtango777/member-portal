@@ -2,6 +2,7 @@ import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 import { sendInviteEmail } from '@/lib/email'
 import { generateToken } from '@/lib/utils'
+import { markCurrentMemberInPipedrive } from '@/lib/pipedrive'
 
 export async function POST(request: Request) {
   const supabase = await createClient()
@@ -11,7 +12,7 @@ export async function POST(request: Request) {
   const { data: profile } = await supabase.from('profiles').select('is_admin').eq('id', user.id).single()
   if (!profile?.is_admin) return NextResponse.json({ error: 'Admins only' }, { status: 403 })
 
-  const { email, first_name, last_name, company_id, individual_hours_allotment, default_location_id, seating, skipEmail } = await request.json()
+  const { email, first_name, last_name, company_id, individual_hours_allotment, default_location_id, seating, skipEmail, markInPipedrive } = await request.json()
   if (!email) return NextResponse.json({ error: 'Missing fields' }, { status: 400 })
   // Company is optional — only needed when this person will share an hour
   // pool with others. Without one, individual_hours_allotment (if given)
@@ -42,7 +43,15 @@ export async function POST(request: Request) {
       console.error('[invites/send] error:', error.message)
       return NextResponse.json({ error: 'Failed to add member.' }, { status: 500 })
     }
-    return NextResponse.json({ ok: true, emailSent: false, skippedEmail: true })
+
+    let pipedriveMatched: boolean | null = null
+    if (markInPipedrive !== false) {
+      const result = await markCurrentMemberInPipedrive(email)
+      if (!result.ok) console.error('[invites/send] Pipedrive mark failed:', result.error)
+      else pipedriveMatched = result.matched
+    }
+
+    return NextResponse.json({ ok: true, emailSent: false, skippedEmail: true, pipedriveMatched })
   }
 
   const token = generateToken()
@@ -68,5 +77,12 @@ export async function POST(request: Request) {
     // Email failure doesn't block the invite — admin can copy the link manually
   }
 
-  return NextResponse.json({ ok: true, inviteLink, emailSent })
+  let pipedriveMatched: boolean | null = null
+  if (markInPipedrive !== false) {
+    const result = await markCurrentMemberInPipedrive(email)
+    if (!result.ok) console.error('[invites/send] Pipedrive mark failed:', result.error)
+    else pipedriveMatched = result.matched
+  }
+
+  return NextResponse.json({ ok: true, inviteLink, emailSent, pipedriveMatched })
 }
