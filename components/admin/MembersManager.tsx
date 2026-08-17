@@ -582,7 +582,7 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
                   <span className="absolute inset-0 rounded-full bg-gray-300 peer-checked:bg-blue-600 transition-colors duration-200" />
                   <span className="absolute left-0.5 top-0.5 h-3 w-3 rounded-full bg-white shadow transition-transform duration-200 peer-checked:translate-x-3" />
                 </span>
-                <span className="text-sm text-gray-700">Check current member in Pipedrive?</span>
+                <span className="text-sm text-gray-700">Mark in Pipedrive?</span>
               </label>
               <label className="flex items-center gap-2 cursor-pointer select-none">
                 <DoorOpen size={14} className={connectToRooms ? 'text-purple-600' : 'text-gray-300'} />
