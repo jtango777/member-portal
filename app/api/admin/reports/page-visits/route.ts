@@ -20,9 +20,10 @@ export async function GET() {
   const userIds = [...new Set((visits ?? []).map(v => v.user_id))]
   const { data: profiles } = await admin
     .from('profiles')
-    .select('id, full_name')
+    .select('id, full_name, default_location_id')
     .in('id', userIds)
   const idToName = Object.fromEntries((profiles ?? []).map(p => [p.id, p.full_name]))
+  const idToLocation = Object.fromEntries((profiles ?? []).map(p => [p.id, p.default_location_id]))
 
   const { data: { users: authUsers } } = await admin.auth.admin.listUsers({ perPage: 1000 })
   const idToEmail = Object.fromEntries((authUsers ?? []).map(u => [u.id, u.email]))
@@ -34,6 +35,7 @@ export async function GET() {
     duration_seconds: v.duration_seconds,
     full_name: idToName[v.user_id] ?? null,
     email: idToEmail[v.user_id] ?? null,
+    default_location_id: idToLocation[v.user_id] ?? null,
   }))
 
   return NextResponse.json(result)

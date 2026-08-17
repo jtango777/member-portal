@@ -49,6 +49,35 @@ export const tdTruncate = 'px-4 py-3 truncate'
 export const tdNowrap   = 'px-4 py-3 whitespace-nowrap'
 export const tdBase     = 'px-4 py-3'
 
+// Shared row-action button — icon only, grey until hovered (colorClass
+// supplies the hover state, e.g. red for a destructive action), with a
+// tooltip for the label instead of visible text. One pattern for every
+// admin table's Actions column instead of each one inventing its own
+// (text+icon, always-colored, etc.) — that's what made Members and
+// Companies look inconsistent for no real reason.
+export function IconAction({ icon: Icon, label, onClick, disabled, colorClass }: {
+  icon: React.ElementType
+  label: string
+  onClick: () => void
+  disabled?: boolean
+  colorClass: string
+}) {
+  return (
+    <div className="relative group">
+      <button onClick={onClick} disabled={disabled}
+        className={`p-1.5 rounded-md transition-colors disabled:opacity-50 ${colorClass}`}>
+        <Icon size={14} />
+      </button>
+      {/* Above, not below — table wrappers here clip vertical overflow (to
+          kill an unrelated scrollbar bug), which cuts this off whenever it's
+          the last (or only) row. */}
+      <span className="pointer-events-none absolute right-0 bottom-full z-10 mb-1.5 whitespace-nowrap rounded bg-gray-900 px-2 py-1 text-xs text-white opacity-0 transition-opacity group-hover:opacity-100">
+        {label}
+      </span>
+    </div>
+  )
+}
+
 // Shared "list header" shell — title/count on the left, Pagination (or
 // anything else) on the right. Same look every place we show a list, so
 // admin pages read as one system instead of each list inventing its own

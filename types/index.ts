@@ -105,6 +105,7 @@ export type PersonUsage = {
   id: string
   name: string
   company_name: string | null
+  default_location_id: string | null
   hours_used: number
   reservation_count: number
 }

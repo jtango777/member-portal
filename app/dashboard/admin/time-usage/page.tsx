@@ -22,7 +22,7 @@ export default async function TimeUsagePage() {
     // Everyone with some kind of hours pool (company or individual), for
     // the per-person "User" view — a company view alone can't show who
     // within a company actually used the hours.
-    supabase.from('profiles').select('id, full_name, company_id, individual_hours_allotment, companies(name)')
+    supabase.from('profiles').select('id, full_name, company_id, individual_hours_allotment, default_location_id, companies(name)')
       .or('company_id.not.is.null,individual_hours_allotment.not.is.null')
       .order('full_name'),
   ])
@@ -79,6 +79,7 @@ export default async function TimeUsagePage() {
       id: p.id,
       name: p.full_name ?? 'Unknown',
       company_name: companyRel?.name ?? null,
+      default_location_id: p.default_location_id ?? null,
       hours_used: calcHoursUsed(personRes),
       reservation_count: personRes.length,
     }

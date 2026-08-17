@@ -2,8 +2,9 @@
 
 import { useState } from 'react'
 import { Location, Room } from '@/types'
-import { Plus, Trash2, Edit2, Check, X, AlertTriangle, Eye, EyeOff } from 'lucide-react'
+import { Plus, Edit2, Check, X, Eye, EyeOff } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { IconAction } from '@/components/admin/AdminTable'
 import toast from 'react-hot-toast'
 
 type Props = {
@@ -22,9 +23,6 @@ export default function RoomsManager({ locations, initialRooms }: Props) {
   const [creating, setCreating]   = useState(false)
   const [editing, setEditing]     = useState<EditState>(null)
   const [saving, setSaving]       = useState(false)
-  const [deleteTarget, setDeleteTarget] = useState<{ room: Room; upcomingCount: number } | null>(null)
-  const [loadingDelete, setLoadingDelete] = useState<string | null>(null)
-  const [deleting, setDeleting]   = useState(false)
   const [toggling, setToggling]   = useState<string | null>(null)
 
   async function refreshRooms() {
@@ -71,29 +69,6 @@ export default function RoomsManager({ locations, initialRooms }: Props) {
     setCreating(false)
   }
 
-  async function handleDeleteClick(room: Room) {
-    setLoadingDelete(room.id)
-    const res = await fetch(`/api/admin/rooms/${room.id}`)
-    const data = await res.json()
-    setLoadingDelete(null)
-    setDeleteTarget({ room, upcomingCount: data.upcoming_reservations ?? 0 })
-  }
-
-  async function handleDeleteConfirm() {
-    if (!deleteTarget) return
-    setDeleting(true)
-    const res = await fetch(`/api/admin/rooms/${deleteTarget.room.id}`, { method: 'DELETE' })
-    if (res.ok) {
-      toast.success(`"${deleteTarget.room.name}" removed`)
-      setDeleteTarget(null)
-      await refreshRooms()
-    } else {
-      const data = await res.json()
-      toast.error(data.error ?? 'Failed to delete room')
-    }
-    setDeleting(false)
-  }
-
   async function handleSaveEdit() {
     if (!editing) return
     setSaving(true)
@@ -123,7 +98,7 @@ export default function RoomsManager({ locations, initialRooms }: Props) {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-bold text-gray-900">Internal Conference Rooms</h1>
-          <p className="text-sm text-gray-500 mt-0.5">Rooms available to BizHaus members on the internal booking calendar. Add, remove, or edit room names and capacities.</p>
+          <p className="text-sm text-gray-500 mt-0.5">Rooms available to BizHaus members on the internal booking calendar. Add or edit room names and capacities, or hide a room temporarily instead of deleting it.</p>
         </div>
         <button
           onClick={() => setShowForm(v => !v)}
@@ -249,14 +224,12 @@ export default function RoomsManager({ locations, initialRooms }: Props) {
                               {room.internal_bookable ? 'Click to hide from internal booking' : 'Click to make visible again'}
                             </span>
                           </div>
-                          <button onClick={() => setEditing({ id: room.id, name: room.name, capacity: String(room.capacity) })}
-                            className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 font-medium">
-                            <Edit2 size={12} /> Edit
-                          </button>
-                          <button onClick={() => handleDeleteClick(room)} disabled={loadingDelete === room.id}
-                            className="flex items-center gap-1 text-xs text-red-500 hover:text-red-700 font-medium disabled:opacity-40">
-                            <Trash2 size={12} /> {loadingDelete === room.id ? '…' : 'Remove'}
-                          </button>
+                          <IconAction
+                            icon={Edit2}
+                            label="Edit room"
+                            onClick={() => setEditing({ id: room.id, name: room.name, capacity: String(room.capacity) })}
+                            colorClass="text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+                          />
                         </>
                       )}
                     </div>
@@ -267,36 +240,6 @@ export default function RoomsManager({ locations, initialRooms }: Props) {
           </div>
         ))}
       </div>
-
-      {/* Delete confirmation modal */}
-      {deleteTarget && (
-        <div className="fixed inset-0 bg-black/40 z-40 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm p-6">
-            <div className="flex items-start gap-3 mb-4">
-              <AlertTriangle size={20} className="text-red-500 flex-shrink-0 mt-0.5" />
-              <div>
-                <h3 className="font-semibold text-gray-900">Remove "{deleteTarget.room.name}"?</h3>
-                {deleteTarget.upcomingCount > 0 ? (
-                  <p className="text-sm text-red-600 mt-1">
-                    This room has <strong>{deleteTarget.upcomingCount} upcoming reservation{deleteTarget.upcomingCount !== 1 ? 's' : ''}</strong> that will also be deleted.
-                  </p>
-                ) : (
-                  <p className="text-sm text-gray-500 mt-1">This room has no upcoming reservations.</p>
-                )}
-                <p className="text-sm text-gray-500 mt-1">This cannot be undone.</p>
-              </div>
-            </div>
-            <div className="flex gap-2 justify-end">
-              <button onClick={() => setDeleteTarget(null)}
-                className="text-sm text-gray-500 hover:text-gray-700 px-4 py-2">Cancel</button>
-              <button onClick={handleDeleteConfirm} disabled={deleting}
-                className="bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white text-sm font-semibold px-4 py-2 rounded-lg">
-                {deleting ? 'Removing…' : 'Yes, remove'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   )
 }

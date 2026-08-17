@@ -11,6 +11,7 @@ type Visit = {
   duration_seconds: number
   full_name: string | null
   email: string | null
+  default_location_id: string | null
 }
 
 type PageSummary = {
@@ -29,6 +30,7 @@ type PersonSummary = {
   key: string
   full_name: string | null
   email: string | null
+  default_location_id: string | null
   total_visits: number
   last_visited_at: string
   pages: PageSummary[]
@@ -63,6 +65,8 @@ export default function PageVisitsManager() {
   const [visits, setVisits] = useState<Visit[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
+  const [locations, setLocations] = useState<{ id: string; name: string }[]>([])
+  const [locationFilter, setLocationFilter] = useState('')
   const [expandedPeople, setExpandedPeople] = useState<Set<string>>(new Set())
   const [expandedPages, setExpandedPages] = useState<Set<string>>(new Set())
 
@@ -76,6 +80,9 @@ export default function PageVisitsManager() {
   }, [])
 
   useEffect(() => { refresh() }, [refresh])
+  useEffect(() => {
+    fetch('/api/locations').then(r => r.json()).then(setLocations)
+  }, [])
 
   // Group into one row per person, each holding a per-page breakdown
   const people: PersonSummary[] = Object.values(
@@ -83,7 +90,7 @@ export default function PageVisitsManager() {
       const personKey = v.email ?? 'unknown'
       if (!acc[personKey]) {
         acc[personKey] = {
-          key: personKey, full_name: v.full_name, email: v.email,
+          key: personKey, full_name: v.full_name, email: v.email, default_location_id: v.default_location_id,
           total_visits: 0, last_visited_at: v.started_at, pages: [],
         }
       }
@@ -107,12 +114,13 @@ export default function PageVisitsManager() {
   ).sort((a, b) => b.total_visits - a.total_visits)
 
   const q = search.toLowerCase()
-  const filtered = people.filter(p =>
-    !q ||
-    (p.full_name ?? '').toLowerCase().includes(q) ||
-    (p.email ?? '').toLowerCase().includes(q) ||
-    p.pages.some(pg => (PATH_LABELS[pg.path] ?? pg.path).toLowerCase().includes(q))
-  )
+  const filtered = people.filter(p => {
+    if (locationFilter && p.default_location_id !== locationFilter) return false
+    return !q ||
+      (p.full_name ?? '').toLowerCase().includes(q) ||
+      (p.email ?? '').toLowerCase().includes(q) ||
+      p.pages.some(pg => (PATH_LABELS[pg.path] ?? pg.path).toLowerCase().includes(q))
+  })
 
   function togglePerson(key: string) {
     setExpandedPeople(prev => {
@@ -137,11 +145,21 @@ export default function PageVisitsManager() {
         <p className="text-sm text-gray-500 mt-0.5">How active each member is, and which pages they use. Click a row to expand it.</p>
       </div>
 
-      <div className="relative">
-        <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-        <input value={search} onChange={e => setSearch(e.target.value)}
-          className="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-          placeholder="Search by name, email, or page…" />
+      {/* Search + Location filter */}
+      <div className="flex gap-2">
+        <div className="relative flex-1">
+          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+          <input value={search} onChange={e => setSearch(e.target.value)}
+            className="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+            placeholder="Search by name, email, or page…" />
+        </div>
+        {locations.length > 0 && (
+          <select value={locationFilter} onChange={e => setLocationFilter(e.target.value)}
+            className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-700">
+            <option value="">All Locations</option>
+            {locations.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
+          </select>
+        )}
       </div>
 
       <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">

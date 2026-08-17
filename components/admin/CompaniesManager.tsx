@@ -6,7 +6,7 @@ import { Company, MembershipType } from '@/types'
 import { Plus, Edit2, Check, X, Settings, Trash2, Building2, Search, ChevronDown, ChevronRight, ChevronLeft, AlertTriangle } from 'lucide-react'
 import toast from 'react-hot-toast'
 import EditCompanyDialog, { EditableCompany } from '@/components/admin/EditCompanyDialog'
-import { AdminTable, Th } from '@/components/admin/AdminTable'
+import { AdminTable, Th, IconAction } from '@/components/admin/AdminTable'
 
 type MemberUsage = {
   user_id: string | null
@@ -235,7 +235,7 @@ export default function CompaniesManager({ companies: initial, membershipTypes: 
   // ── Render ─────────────────────────────────────────────────────────────────
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
 
       {/* Header */}
       <div className="flex items-center justify-between">
@@ -456,7 +456,7 @@ export default function CompaniesManager({ companies: initial, membershipTypes: 
               <th className="px-2 py-3" />
               <Th>Company</Th>
               <Th>Monthly Hours</Th>
-              <Th>Actions</Th>
+              <Th />
             </tr>
           </thead>
           <tbody>
@@ -481,17 +481,19 @@ export default function CompaniesManager({ companies: initial, membershipTypes: 
                       <span className="text-gray-700">{c.monthly_hours_allotment}h</span>
                     </td>
                     <td className="px-4 py-1.5">
-                      <div className="flex items-center gap-3">
-                        <button
+                      <div className="flex items-center justify-end gap-0.5">
+                        <IconAction
+                          icon={Edit2}
+                          label="Edit company"
                           onClick={() => setEditTarget({ id: c.id, name: c.name, monthly_hours_allotment: c.monthly_hours_allotment, location_id: c.location_id })}
-                          className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 font-medium">
-                          <Edit2 size={12} /> Edit
-                        </button>
-                        <button
+                          colorClass="text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+                        />
+                        <IconAction
+                          icon={Trash2}
+                          label="Archive company"
                           onClick={() => setDeleteTarget(c)}
-                          className="flex items-center gap-1 text-xs text-red-500 hover:text-red-700 font-medium">
-                          <Trash2 size={12} /> Remove
-                        </button>
+                          colorClass="text-gray-400 hover:bg-red-50 hover:text-red-600"
+                        />
                       </div>
                     </td>
                   </tr>

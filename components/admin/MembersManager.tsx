@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import NextLink from 'next/link'
 import { Company, MembershipType } from '@/types'
 import { Plus, Send, Check, Shield, Download, Copy, Link, Search, Edit2, Trash2, X, Camera, Users, DoorOpen, ChevronDown } from 'lucide-react'
@@ -10,31 +10,8 @@ import toast from 'react-hot-toast'
 import AssignPhotoDialog from '@/components/admin/AssignPhotoDialog'
 import CompanyCombobox from '@/components/admin/CompanyCombobox'
 import EditMemberDialog from '@/components/admin/EditMemberDialog'
-import { AdminTable, Th, Section, Pagination } from '@/components/admin/AdminTable'
+import { AdminTable, Th, Section, Pagination, IconAction } from '@/components/admin/AdminTable'
 import { getSeatingOptions } from '@/lib/seating'
-
-function IconAction({ icon: Icon, label, onClick, disabled, colorClass }: {
-  icon: React.ElementType
-  label: string
-  onClick: () => void
-  disabled?: boolean
-  colorClass: string
-}) {
-  return (
-    <div className="relative group">
-      <button onClick={onClick} disabled={disabled}
-        className={`p-1.5 rounded-md transition-colors disabled:opacity-50 ${colorClass}`}>
-        <Icon size={14} />
-      </button>
-      {/* Above, not below — the table wrapper clips vertical overflow (to
-          kill an unrelated scrollbar bug), which cut this off whenever it's
-          the last (or only) row. */}
-      <span className="pointer-events-none absolute right-0 bottom-full z-10 mb-1.5 whitespace-nowrap rounded bg-gray-900 px-2 py-1 text-xs text-white opacity-0 transition-opacity group-hover:opacity-100">
-        {label}
-      </span>
-    </div>
-  )
-}
 
 type MemberRow = {
   id:                    string
@@ -133,26 +110,7 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
   const [notInvitedPage, setNotInvitedPage]           = useState(1)
   const [showAllNotInvited, setShowAllNotInvited]     = useState(false)
   const [notInvitedPageSize, setNotInvitedPageSize]   = useState(10)
-  const notInvitedListRef = useRef<HTMLDivElement>(null)
-  // Whether an in-progress open should scroll once the accordion's CSS
-  // transition actually finishes — read in onTransitionEnd below. A fixed
-  // setTimeout guess drifted out of sync with when the grid-rows animation
-  // (and the newly-shown table's own render) actually settled, undershooting
-  // the scroll target; listening for the real transition end is exact.
-  const scrollOnOpenRef = useRef(false)
-
-  function toggleNotInvited() {
-    scrollOnOpenRef.current = !showNotInvited
-    setShowNotInvited(v => !v)
-  }
-
-  function handleNotInvitedTransitionEnd(e: React.TransitionEvent<HTMLDivElement>) {
-    if (e.target !== e.currentTarget || e.propertyName !== 'grid-template-rows') return
-    if (scrollOnOpenRef.current) {
-      scrollOnOpenRef.current = false
-      notInvitedListRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-    }
-  }
+  const notInvitedListRef = useAutoScrollIntoView<HTMLDivElement>(showNotInvited)
   const [locationSort, setLocationSort]     = useState<'asc' | 'desc' | null>(null)
 
   function toggleLocationSort() {
@@ -817,15 +775,21 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
       {notInvited.length > 0 && (
         <div className="bg-amber-50 border border-dashed border-amber-300 rounded-lg overflow-hidden">
           <div className="flex flex-wrap items-center gap-3 px-3.5 py-2.5">
-            <button onClick={toggleNotInvited} className="flex items-center gap-3 min-w-0 text-left">
+            <button onClick={() => setShowNotInvited(v => !v)} className="flex items-center gap-3 min-w-0 text-left">
               <span className="flex items-center justify-center w-6 h-6 rounded-full bg-amber-200 text-amber-800 flex-shrink-0">
                 <Send size={12} />
               </span>
               <div className="min-w-0">
                 <p className="text-xs font-semibold text-amber-900">Not Invited</p>
-                <p className="text-xs text-amber-700 truncate">{notInvited.length} members have never been invited — click to {showNotInvited ? 'hide' : 'view'}</p>
+                {/* Chevron lives inside this same line, right after the words
+                    it belongs to — not as a separate flex sibling of the
+                    button, which left it stranded whenever the button's own
+                    width didn't hug the text tightly. */}
+                <p className="text-xs text-amber-700 inline-flex items-center gap-1">
+                  <span>{notInvited.length} members have never been invited — click to {showNotInvited ? 'hide' : 'view'}</span>
+                  <ChevronDown size={14} className={`text-amber-700 flex-shrink-0 transition-transform duration-200 ${showNotInvited ? 'rotate-180' : ''}`} />
+                </p>
               </div>
-              <ChevronDown size={14} className={`text-amber-700 flex-shrink-0 transition-transform duration-200 ${showNotInvited ? 'rotate-180' : ''}`} />
             </button>
             <div className="grid flex-shrink-0 ml-auto">
               <div className={`col-start-1 row-start-1 flex items-center gap-2 transition-all duration-150 ${
@@ -848,7 +812,7 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
             </div>
           </div>
 
-          <div onTransitionEnd={handleNotInvitedTransitionEnd} className={`grid transition-[grid-template-rows] duration-300 ease-in-out ${showNotInvited ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}>
+          <div className={`grid transition-[grid-template-rows] duration-300 ease-in-out ${showNotInvited ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}>
             <div className="overflow-hidden">
               <div ref={notInvitedListRef} className="bg-white border-t border-amber-200">
                 <div className="px-3.5 py-2 flex justify-end">

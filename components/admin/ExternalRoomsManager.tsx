@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { Location, Room } from '@/types'
 import { Edit2, Check, X, Globe, EyeOff } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { IconAction } from '@/components/admin/AdminTable'
 import toast from 'react-hot-toast'
 
 type Props = {
@@ -83,7 +84,12 @@ export default function ExternalRoomsManager({ locations, initialRooms }: Props)
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-xl font-bold text-gray-900">External Booking Rooms</h1>
+        <div className="flex items-center gap-2">
+          <h1 className="text-xl font-bold text-gray-900">External Booking Rooms</h1>
+          <span className="inline-flex items-center gap-1 text-xs font-semibold text-green-700 bg-green-50 border border-green-200 px-2 py-0.5 rounded-full">
+            <Globe size={11} /> /book
+          </span>
+        </div>
         <p className="text-sm text-gray-500 mt-0.5">Rooms visible to the public on members.bizhaus.com/book. Toggle rooms on or off, set external-facing names and pricing, and add descriptions for customers.</p>
       </div>
 
@@ -119,12 +125,12 @@ export default function ExternalRoomsManager({ locations, initialRooms }: Props)
                             )}
                           >
                             {room.external_bookable
-                              ? <><Globe size={12} /> Live on /book/</>
+                              ? <><Globe size={12} /> Live on /book</>
                               : <><EyeOff size={12} /> Hidden</>
                             }
                           </button>
                           <span className="pointer-events-none absolute right-0 bottom-full z-10 mb-1.5 whitespace-nowrap rounded bg-gray-900 px-2 py-1 text-xs text-white opacity-0 shadow-lg transition-opacity group-hover:opacity-100">
-                            {room.external_bookable ? 'Click to hide from /book/' : 'Click to make live on /book/'}
+                            {room.external_bookable ? 'Click to hide from /book' : 'Click to make live on /book'}
                           </span>
                         </div>
 
@@ -141,7 +147,9 @@ export default function ExternalRoomsManager({ locations, initialRooms }: Props)
                             </button>
                           </div>
                         ) : (
-                          <button
+                          <IconAction
+                            icon={Edit2}
+                            label="Edit details"
                             onClick={() => setEditing({
                               id:            room.id,
                               external_name: room.external_name ?? '',
@@ -149,10 +157,8 @@ export default function ExternalRoomsManager({ locations, initialRooms }: Props)
                               description:   room.description ?? '',
                               features:      (room.features ?? []).join(', '),
                             })}
-                            className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 font-medium"
-                          >
-                            <Edit2 size={12} /> Edit details
-                          </button>
+                            colorClass="text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+                          />
                         )}
                       </div>
                     </div>
