@@ -128,7 +128,7 @@ export default function ExternalRoomsManager({ locations, initialRooms }: Props)
                               label="Click to hide from /book"
                               onClick={() => handleToggleExternal(room)}
                               disabled={toggling === room.id}
-                              colorClass="text-green-600 hover:bg-green-50"
+                              colorClass="text-green-500 hover:bg-green-50"
                             />
                           </div>
                           <div className={cn(

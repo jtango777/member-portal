@@ -215,7 +215,7 @@ export default function RoomsManager({ locations, initialRooms }: Props) {
                                 label="Click to hide from internal booking"
                                 onClick={() => handleToggleInternal(room)}
                                 disabled={toggling === room.id}
-                                colorClass="text-green-600 hover:bg-green-50"
+                                colorClass="text-green-500 hover:bg-green-50"
                               />
                             </div>
                             <div className={cn(
