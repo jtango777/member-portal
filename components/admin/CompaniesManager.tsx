@@ -485,7 +485,7 @@ export default function CompaniesManager({ companies: initial, membershipTypes: 
                         <IconAction
                           icon={Edit2}
                           label="Edit company"
-                          onClick={() => setEditTarget({ id: c.id, name: c.name, monthly_hours_allotment: c.monthly_hours_allotment, location_id: c.location_id })}
+                          onClick={() => setEditTarget({ id: c.id, name: c.name, monthly_hours_allotment: c.monthly_hours_allotment, location_id: c.location_id, grants_admin: c.grants_admin })}
                           colorClass="text-gray-400 hover:bg-gray-100 hover:text-gray-600"
                         />
                         <IconAction

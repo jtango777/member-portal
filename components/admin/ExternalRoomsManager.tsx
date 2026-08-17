@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { Location, Room } from '@/types'
 import { Edit2, Check, X, Globe, EyeOff } from 'lucide-react'
+import { cn } from '@/lib/utils'
 import { IconAction } from '@/components/admin/AdminTable'
 import toast from 'react-hot-toast'
 
@@ -112,24 +113,32 @@ export default function ExternalRoomsManager({ locations, initialRooms }: Props)
                         <span className="text-xs text-gray-400 ml-2">· {room.capacity} people</span>
                       </div>
                       <div className="flex items-center gap-3">
-                        {/* Live is the normal case — a quiet icon, not a
-                            badge repeated on every row. Hidden is the
-                            exception worth actually noticing, so it keeps
-                            a colored badge. */}
-                        {room.external_bookable ? (
-                          <IconAction
-                            icon={Globe}
-                            label="Click to hide from /book"
-                            onClick={() => handleToggleExternal(room)}
-                            disabled={toggling === room.id}
-                            colorClass="text-gray-400 hover:bg-gray-100 hover:text-gray-600"
-                          />
-                        ) : (
-                          <div className="relative group">
+                        {/* Live is the normal case — a quiet (but lit green)
+                            icon, not a badge repeated on every row. Hidden is
+                            the exception worth actually noticing, so it keeps
+                            a colored badge. Both share one grid cell and
+                            cross-fade instead of hard-swapping. */}
+                        <div className="relative grid">
+                          <div className={cn(
+                            'col-start-1 row-start-1 transition-all duration-150',
+                            room.external_bookable ? 'opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none'
+                          )}>
+                            <IconAction
+                              icon={Globe}
+                              label="Click to hide from /book"
+                              onClick={() => handleToggleExternal(room)}
+                              disabled={toggling === room.id}
+                              colorClass="text-green-600 hover:bg-green-50"
+                            />
+                          </div>
+                          <div className={cn(
+                            'col-start-1 row-start-1 relative group transition-all duration-150',
+                            !room.external_bookable ? 'opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none'
+                          )}>
                             <button
                               onClick={() => handleToggleExternal(room)}
                               disabled={toggling === room.id}
-                              className="flex items-center gap-1.5 text-xs font-medium px-2.5 py-1.5 rounded-lg border bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100 transition-colors"
+                              className="flex items-center gap-1.5 text-xs font-medium px-2.5 py-1.5 rounded-lg border bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100 transition-colors whitespace-nowrap"
                             >
                               <EyeOff size={12} /> Hidden
                             </button>
@@ -137,7 +146,7 @@ export default function ExternalRoomsManager({ locations, initialRooms }: Props)
                               Click to make live on /book
                             </span>
                           </div>
-                        )}
+                        </div>
 
                         {/* Edit / Save / Cancel */}
                         {isEditing ? (
@@ -222,8 +231,10 @@ export default function ExternalRoomsManager({ locations, initialRooms }: Props)
                     {!isEditing && room.external_bookable && (
                       <div className="text-xs text-gray-400 space-y-0.5">
                         {room.external_name && (
-                          <p>External name: <span className="text-gray-600 font-medium">{room.external_name}</span>
-                          {room.price_per_hour != null && <span className="ml-2">${room.price_per_hour}/hr</span>}</p>
+                          <p>External name: <span className="text-gray-600 font-medium">{room.external_name}</span></p>
+                        )}
+                        {room.price_per_hour != null && (
+                          <p>Price: <span className="text-gray-600 font-medium">${room.price_per_hour}/hr</span></p>
                         )}
                         {room.description && <p className="text-gray-500 line-clamp-1">{room.description}</p>}
                         {(room.features ?? []).length > 0 && (

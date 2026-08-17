@@ -10,6 +10,7 @@ export type EditableCompany = {
   name: string
   monthly_hours_allotment: number
   location_id: string | null
+  grants_admin: boolean
 }
 
 type Props = {
@@ -26,6 +27,7 @@ export default function EditCompanyDialog({ company, locations, onOpenChange, on
   const [name, setName]   = useState('')
   const [hours, setHours] = useState('')
   const [locationId, setLocationId] = useState('')
+  const [grantsAdmin, setGrantsAdmin] = useState(false)
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
@@ -33,6 +35,7 @@ export default function EditCompanyDialog({ company, locations, onOpenChange, on
     setName(company.name)
     setHours(String(company.monthly_hours_allotment))
     setLocationId(company.location_id ?? '')
+    setGrantsAdmin(company.grants_admin)
   }, [company])
 
   async function handleSave() {
@@ -45,6 +48,7 @@ export default function EditCompanyDialog({ company, locations, onOpenChange, on
         name:                     name.trim(),
         monthly_hours_allotment:  hours !== '' ? Number(hours) : 0,
         location_id:              locationId || null,
+        grants_admin:             grantsAdmin,
       }),
     })
     if (res.ok) {
@@ -91,6 +95,15 @@ export default function EditCompanyDialog({ company, locations, onOpenChange, on
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
               <p className="text-xs text-gray-400 mt-1">Shared pool for everyone at this company — set this to whatever the office actually holds or was granted, not a formula.</p>
             </div>
+
+            <label className="flex items-start gap-2 border border-amber-200 bg-amber-50 rounded-lg px-3 py-2.5 cursor-pointer">
+              <input type="checkbox" checked={grantsAdmin} onChange={e => setGrantsAdmin(e.target.checked)}
+                className="mt-0.5" />
+              <span className="text-xs text-amber-900">
+                <span className="font-medium">Grant admin automatically</span>
+                <span className="block text-amber-700 mt-0.5">Anyone who registers under this company gets full admin access the moment they sign up. Doesn't affect people already registered.</span>
+              </span>
+            </label>
 
             <div className="flex items-center gap-2 pt-1">
               <button onClick={handleSave} disabled={saving}

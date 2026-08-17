@@ -34,6 +34,7 @@ export type Company = {
   created_at: string
   is_active: boolean
   location_id: string | null
+  grants_admin: boolean
   membership_types?: MembershipType | null
 }
 

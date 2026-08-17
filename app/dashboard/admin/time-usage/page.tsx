@@ -60,6 +60,7 @@ export default async function TimeUsagePage() {
         created_at: '',
         is_active: true,
         location_id: null,
+        grants_admin: false,
       },
       hours_used: used,
       hours_remaining: Math.max(0, allotment - used),

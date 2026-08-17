@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { Location, Room } from '@/types'
 import { Plus, Edit2, Check, X, Eye, EyeOff } from 'lucide-react'
+import { cn } from '@/lib/utils'
 import { IconAction } from '@/components/admin/AdminTable'
 import toast from 'react-hot-toast'
 
@@ -197,24 +198,34 @@ export default function RoomsManager({ locations, initialRooms }: Props) {
                         </>
                       ) : (
                         <>
-                          {/* Visible is the normal case — a quiet icon, not a
-                              badge repeated on every row. Hidden is the
-                              exception worth actually noticing, so it keeps
-                              a colored badge. */}
-                          {room.internal_bookable ? (
-                            <IconAction
-                              icon={Eye}
-                              label="Click to hide from internal booking"
-                              onClick={() => handleToggleInternal(room)}
-                              disabled={toggling === room.id}
-                              colorClass="text-gray-400 hover:bg-gray-100 hover:text-gray-600"
-                            />
-                          ) : (
-                            <div className="relative group">
+                          {/* Visible is the normal case — a quiet (but lit
+                              green, matching the room-access icon pattern
+                              on Members) icon, not a badge repeated on every
+                              row. Hidden is the exception worth actually
+                              noticing, so it keeps a colored badge. Both
+                              share one grid cell and cross-fade instead of
+                              hard-swapping. */}
+                          <div className="relative grid">
+                            <div className={cn(
+                              'col-start-1 row-start-1 transition-all duration-150',
+                              room.internal_bookable ? 'opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none'
+                            )}>
+                              <IconAction
+                                icon={Eye}
+                                label="Click to hide from internal booking"
+                                onClick={() => handleToggleInternal(room)}
+                                disabled={toggling === room.id}
+                                colorClass="text-green-600 hover:bg-green-50"
+                              />
+                            </div>
+                            <div className={cn(
+                              'col-start-1 row-start-1 relative group transition-all duration-150',
+                              !room.internal_bookable ? 'opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none'
+                            )}>
                               <button
                                 onClick={() => handleToggleInternal(room)}
                                 disabled={toggling === room.id}
-                                className="flex items-center gap-1.5 text-xs font-medium px-2.5 py-1.5 rounded-lg border bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100 transition-colors disabled:opacity-40"
+                                className="flex items-center gap-1.5 text-xs font-medium px-2.5 py-1.5 rounded-lg border bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100 transition-colors disabled:opacity-40 whitespace-nowrap"
                               >
                                 <EyeOff size={12} /> Hidden
                               </button>
@@ -222,7 +233,7 @@ export default function RoomsManager({ locations, initialRooms }: Props) {
                                 Click to make visible again
                               </span>
                             </div>
-                          )}
+                          </div>
                           <IconAction
                             icon={Edit2}
                             label="Edit room"
