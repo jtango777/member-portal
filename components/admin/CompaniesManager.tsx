@@ -499,7 +499,7 @@ export default function CompaniesManager({ companies: initial, membershipTypes: 
                       expand/collapse instead of the row hard-mounting/unmounting. */}
                   <tr className="bg-gray-50/70">
                     <td colSpan={4} className="p-0">
-                      <div className={`grid transition-[grid-template-rows] duration-250 ease-in-out ${isExpanded ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}>
+                      <div className={`grid transition-[grid-template-rows] duration-300 ease-in-out ${isExpanded ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}>
                         <div className="overflow-hidden">
                           <div className="px-4 py-3">
                             {loadingUsage ? (

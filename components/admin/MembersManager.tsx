@@ -797,17 +797,17 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
       {notInvited.length > 0 && (
         <div className="bg-amber-50 border border-dashed border-amber-300 rounded-lg overflow-hidden">
           <div className="flex flex-wrap items-center gap-3 px-3.5 py-2.5">
-            <button onClick={() => setShowNotInvited(v => !v)} className="flex items-center gap-3 flex-1 min-w-0 text-left">
+            <button onClick={() => setShowNotInvited(v => !v)} className="flex items-center gap-3 min-w-0 text-left">
               <span className="flex items-center justify-center w-6 h-6 rounded-full bg-amber-200 text-amber-800 flex-shrink-0">
                 <Send size={12} />
               </span>
-              <div className="flex-1 min-w-0">
-                <p className="text-xs font-semibold text-amber-900">Not Yet Invited</p>
-                <p className="text-xs text-amber-700">{notInvited.length} members have never been invited — click to {showNotInvited ? 'hide' : 'view'}</p>
+              <div className="min-w-0">
+                <p className="text-xs font-semibold text-amber-900">Not Invited</p>
+                <p className="text-xs text-amber-700 truncate">{notInvited.length} members have never been invited — click to {showNotInvited ? 'hide' : 'view'}</p>
               </div>
               <ChevronDown size={14} className={`text-amber-700 flex-shrink-0 transition-transform duration-200 ${showNotInvited ? 'rotate-180' : ''}`} />
             </button>
-            <div className="grid flex-shrink-0">
+            <div className="grid flex-shrink-0 ml-auto">
               <div className={`col-start-1 row-start-1 flex items-center gap-2 transition-all duration-150 ${
                 confirmInviteAll ? 'opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none'
               }`}>
@@ -828,7 +828,7 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
             </div>
           </div>
 
-          <div className={`grid transition-[grid-template-rows] duration-250 ease-in-out ${showNotInvited ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}>
+          <div className={`grid transition-[grid-template-rows] duration-300 ease-in-out ${showNotInvited ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}>
             <div className="overflow-hidden">
               <div className="bg-white border-t border-amber-200">
                 <div className="px-3.5 py-2 flex justify-end">

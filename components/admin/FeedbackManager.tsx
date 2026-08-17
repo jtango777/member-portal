@@ -162,7 +162,7 @@ export default function FeedbackManager() {
             const isExpanded = expandedIds.has(item.id)
             return (
               <div key={item.id} className={cn(
-                'grid transition-[grid-template-rows,opacity] duration-250 ease-in-out',
+                'grid transition-[grid-template-rows,opacity] duration-300 ease-in-out',
                 transitioningIds.has(item.id) ? 'grid-rows-[0fr] opacity-0' : 'grid-rows-[1fr] opacity-100'
               )}>
                 <div className="overflow-hidden">
