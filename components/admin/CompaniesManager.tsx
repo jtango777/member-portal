@@ -33,6 +33,7 @@ export default function CompaniesManager({ companies: initial, membershipTypes: 
   const [showManageTypes, setShowManageTypes] = useState(false)
   const [newName,             setNewName]             = useState('')
   const [newHours,            setNewHours]            = useState('0')
+  const [newLocationId,       setNewLocationId]       = useState('')
   const [creating,            setCreating]            = useState(false)
   const [editTarget,          setEditTarget]          = useState<EditableCompany | null>(null)
   const [deleteTarget,        setDeleteTarget]        = useState<Company | null>(null)
@@ -108,11 +109,12 @@ export default function CompaniesManager({ companies: initial, membershipTypes: 
       body: JSON.stringify({
         name: newName,
         monthly_hours_allotment: parseFloat(newHours),
+        location_id: newLocationId || null,
       }),
     })
     if (res.ok) {
       toast.success('Company created')
-      setNewName(''); setNewHours('0'); setShowForm(false)
+      setNewName(''); setNewHours('0'); setNewLocationId(''); setShowForm(false)
       await refreshCompanies()
     } else {
       const d = await res.json()
@@ -204,14 +206,22 @@ export default function CompaniesManager({ companies: initial, membershipTypes: 
   const [pageSize, setPageSize] = useState(10)
   const [showAll, setShowAll]   = useState(false)
 
-  const companiesWithLocation = locationFilter
-    ? new Set(memberUsage.filter(m => m.default_location_id === locationFilter).map(m => m.company_id))
-    : null
+  // Companies without an explicit location fall back to wherever their
+  // members are based, so filtering still works before every company has
+  // been manually assigned one.
+  const derivedLocationByCompany = new Set(
+    locationFilter ? memberUsage.filter(m => m.default_location_id === locationFilter).map(m => m.company_id) : []
+  )
+  function matchesLocationFilter(c: Company): boolean {
+    if (!locationFilter) return true
+    if (c.location_id) return c.location_id === locationFilter
+    return derivedLocationByCompany.has(c.id)
+  }
 
   const filteredCompanies = companies.filter(c => {
     const q = searchQuery.toLowerCase()
     if (q && !c.name.toLowerCase().includes(q)) return false
-    if (companiesWithLocation && !companiesWithLocation.has(c.id)) return false
+    if (!matchesLocationFilter(c)) return false
     if (hoursFilter === 'zero' && c.monthly_hours_allotment) return false
     if (hoursFilter === 'nonzero' && !c.monthly_hours_allotment) return false
     return true
@@ -341,12 +351,20 @@ export default function CompaniesManager({ companies: initial, membershipTypes: 
         <div className="overflow-hidden">
           <form onSubmit={handleCreate} className="bg-white border border-gray-200 rounded-xl p-4 space-y-3">
             <h3 className="font-semibold text-gray-900 text-sm">New Company</h3>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-3 gap-3">
               <div>
                 <label className="block text-xs font-medium text-gray-700 mb-1">Company Name</label>
                 <input required value={newName} onChange={e => setNewName(e.target.value)}
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="Acme Corp" />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Location</label>
+                <select value={newLocationId} onChange={e => setNewLocationId(e.target.value)}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+                  <option value="">Infer from members</option>
+                  {locations.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
+                </select>
               </div>
               <div>
                 <label className="block text-xs font-medium text-gray-700 mb-1">Monthly Hours</label>
@@ -465,7 +483,7 @@ export default function CompaniesManager({ companies: initial, membershipTypes: 
                     <td className="px-4 py-1.5">
                       <div className="flex items-center gap-3">
                         <button
-                          onClick={() => setEditTarget({ id: c.id, name: c.name, monthly_hours_allotment: c.monthly_hours_allotment })}
+                          onClick={() => setEditTarget({ id: c.id, name: c.name, monthly_hours_allotment: c.monthly_hours_allotment, location_id: c.location_id })}
                           className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 font-medium">
                           <Edit2 size={12} /> Edit
                         </button>
@@ -526,6 +544,7 @@ export default function CompaniesManager({ companies: initial, membershipTypes: 
 
       <EditCompanyDialog
         company={editTarget}
+        locations={locations}
         onOpenChange={v => { if (!v) setEditTarget(null) }}
         onSuccess={refreshCompanies}
       />

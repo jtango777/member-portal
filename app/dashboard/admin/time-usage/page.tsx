@@ -59,6 +59,7 @@ export default async function TimeUsagePage() {
         membership_type_id: null,
         created_at: '',
         is_active: true,
+        location_id: null,
       },
       hours_used: used,
       hours_remaining: Math.max(0, allotment - used),

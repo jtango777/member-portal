@@ -33,6 +33,7 @@ export type Company = {
   membership_type_id: string | null
   created_at: string
   is_active: boolean
+  location_id: string | null
   membership_types?: MembershipType | null
 }
 

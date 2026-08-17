@@ -17,6 +17,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   if ('name'                   in body) update.name                   = body.name
   if ('monthly_hours_allotment' in body) update.monthly_hours_allotment = body.monthly_hours_allotment
   if ('is_active'               in body) update.is_active               = body.is_active
+  if ('location_id'             in body) update.location_id             = body.location_id || null
 
   const { data, error } = await admin
     .from('companies')

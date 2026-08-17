@@ -17,7 +17,7 @@ export async function GET() {
     { data: taggedReservations },
   ] = await Promise.all([
     admin.from('permitted_emails').select('*, companies(id, name)').order('invited_at', { ascending: false }),
-    admin.from('profiles').select('id, full_name, first_name, last_name, is_admin, company_id, avatar_url, default_location_id, seating, room_access_requested_at, individual_hours_allotment'),
+    admin.from('profiles').select('id, full_name, first_name, last_name, is_admin, company_id, avatar_url, default_location_id, seating, room_access_requested_at, individual_hours_allotment, created_at'),
     admin.auth.admin.listUsers({ perPage: 1000 }),
     // Every booking with a company on it is a signal for who someone
     // actually belongs to — whether it's tagged to a pending email
@@ -77,7 +77,12 @@ export async function GET() {
       suggested_company_name: suggested?.name ?? null,
       individual_hours_allotment: prof?.individual_hours_allotment ?? (pe as any).individual_hours_allotment ?? null,
       invited_at:   pe.invited_at,
-      accepted_at:  pe.accepted_at,
+      // A real account existing (userId resolved) IS what "accepted" means —
+      // pe.accepted_at can drift from that (e.g. an account created directly,
+      // bypassing this particular permitted_emails row's invite flow, or a
+      // stray duplicate invite added for someone who already had an
+      // account), so a live account always wins over what this one row says.
+      accepted_at:  pe.accepted_at ?? (prof ? ((prof as any).created_at ?? pe.invited_at) : null),
       invite_token: pe.invite_token,
       // from profile, falling back to an admin-set expected name while pending
       user_id:      userId,

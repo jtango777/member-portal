@@ -9,10 +9,12 @@ export type EditableCompany = {
   id: string
   name: string
   monthly_hours_allotment: number
+  location_id: string | null
 }
 
 type Props = {
   company: EditableCompany | null
+  locations: { id: string; name: string }[]
   onOpenChange: (open: boolean) => void
   onSuccess: () => void
 }
@@ -20,15 +22,17 @@ type Props = {
 // Same modal pattern as EditMemberDialog — a real dialog instead of inline
 // row editing, which kept fighting layout shift the same way it did on
 // Members before that moved to a modal too.
-export default function EditCompanyDialog({ company, onOpenChange, onSuccess }: Props) {
+export default function EditCompanyDialog({ company, locations, onOpenChange, onSuccess }: Props) {
   const [name, setName]   = useState('')
   const [hours, setHours] = useState('')
+  const [locationId, setLocationId] = useState('')
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
     if (!company) return
     setName(company.name)
     setHours(String(company.monthly_hours_allotment))
+    setLocationId(company.location_id ?? '')
   }, [company])
 
   async function handleSave() {
@@ -40,6 +44,7 @@ export default function EditCompanyDialog({ company, onOpenChange, onSuccess }: 
       body: JSON.stringify({
         name:                     name.trim(),
         monthly_hours_allotment:  hours !== '' ? Number(hours) : 0,
+        location_id:              locationId || null,
       }),
     })
     if (res.ok) {
@@ -68,6 +73,16 @@ export default function EditCompanyDialog({ company, onOpenChange, onSuccess }: 
               <label className="block text-xs font-medium text-gray-700 mb-1">Company Name</label>
               <input type="text" value={name} onChange={e => setName(e.target.value)}
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">Location</label>
+              <select value={locationId} onChange={e => setLocationId(e.target.value)}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+                <option value="">Not set — infer from members</option>
+                {locations.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
+              </select>
+              <p className="text-xs text-gray-400 mt-1">Which BizHaus this company is under. Leave unset to fall back to wherever its members are based.</p>
             </div>
 
             <div>

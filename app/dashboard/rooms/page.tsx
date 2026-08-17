@@ -38,7 +38,7 @@ export default async function RoomsPage() {
   const hourPool = profile.company_id
     ? (profile.companies ?? null)
     : profile.individual_hours_allotment
-      ? { id: profile.id, name: 'Individual', monthly_hours_allotment: profile.individual_hours_allotment, membership_type_id: null, created_at: '', is_active: true }
+      ? { id: profile.id, name: 'Individual', monthly_hours_allotment: profile.individual_hours_allotment, membership_type_id: null, created_at: '', is_active: true, location_id: null }
       : null
 
   // Calculate hours used for current month (non-admin users)

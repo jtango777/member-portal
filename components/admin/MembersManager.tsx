@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import NextLink from 'next/link'
 import { Company, MembershipType } from '@/types'
-import { Plus, Send, Check, Shield, Download, Copy, Link, Search, Edit2, Trash2, X, Camera, Users, DoorOpen } from 'lucide-react'
+import { Plus, Send, Check, Shield, Download, Copy, Link, Search, Edit2, Trash2, X, Camera, Users, DoorOpen, ChevronDown } from 'lucide-react'
 import { formatShortDate } from '@/lib/utils'
 import { useAutoScrollIntoView } from '@/lib/useAutoScrollIntoView'
 import toast from 'react-hot-toast'
@@ -61,7 +61,10 @@ type MemberRow = {
 
 function companyOrTypeLabel(m: Pick<MemberRow, 'company_name' | 'individual_hours_allotment'>) {
   if (m.company_name) return m.company_name
-  if (m.individual_hours_allotment) return `${m.individual_hours_allotment}h/month (individual)`
+  // Just "Individual" in the table — the actual hour count is one click
+  // away in Edit, no need to cram it into a column that's mostly company
+  // names everywhere else.
+  if (m.individual_hours_allotment) return 'Individual'
   return '—'
 }
 
@@ -123,6 +126,13 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
   const [showAllPending, setShowAllPending] = useState(false)
   const [activePageSize, setActivePageSize]   = useState(10)
   const [pendingPageSize, setPendingPageSize] = useState(10)
+  // "Not Yet Invited" is meant to be a temporary backlog, not an ongoing
+  // section like Active/Invited — collapsed by default, own light-weight
+  // pagination since it can be large right after a big import.
+  const [showNotInvited, setShowNotInvited]           = useState(false)
+  const [notInvitedPage, setNotInvitedPage]           = useState(1)
+  const [showAllNotInvited, setShowAllNotInvited]     = useState(false)
+  const [notInvitedPageSize, setNotInvitedPageSize]   = useState(10)
   const [locationSort, setLocationSort]     = useState<'asc' | 'desc' | null>(null)
 
   function toggleLocationSort() {
@@ -338,11 +348,23 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
   })
 
   const active      = sortByLocation(filtered.filter(m => !!m.accepted_at))
+  // "Invited" — an admin sent them an invite and they haven't finished
+  // signing up yet. This is the ongoing, actionable middle state (new
+  // people land here every time someone's invited going forward), so it
+  // gets a full peer section next to Active.
   const pending     = sortByLocation(
-    filtered.filter(m => !m.accepted_at)
+    filtered.filter(m => !m.accepted_at && !!m.invite_token)
       .sort((a, b) => (a.full_name ?? a.email).localeCompare(b.full_name ?? b.email))
   )
+  // "Not Yet Invited" — never contacted at all. Meant to be a one-time
+  // backlog (today's 483, from before invites were sent out at all), not
+  // an ongoing bucket, so it's a collapsed callout rather than a full
+  // section — see showNotInvited below.
   const notInvited  = members.filter(m => m.is_active !== false && !m.accepted_at && !m.invite_token)
+  const notInvitedFiltered = sortByLocation(
+    filtered.filter(m => !m.accepted_at && !m.invite_token)
+      .sort((a, b) => (a.full_name ?? a.email).localeCompare(b.full_name ?? b.email))
+  )
   // Registered members who hit "Register for Rooms" but still have no
   // company or Room Hours assigned — i.e. their request hasn't been
   // granted yet. Sorted oldest-request-first so the longest wait surfaces.
@@ -369,8 +391,87 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
 
   const activeTotalPages  = Math.max(1, Math.ceil(active.length / activePageSize))
   const pendingTotalPages = Math.max(1, Math.ceil(pending.length / pendingPageSize))
+  const notInvitedTotalPages = Math.max(1, Math.ceil(notInvitedFiltered.length / notInvitedPageSize))
   const pagedActive  = showAllActive  ? active  : active.slice((activePage - 1) * activePageSize, activePage * activePageSize)
   const pagedPending = showAllPending ? pending : pending.slice((pendingPage - 1) * pendingPageSize, pendingPage * pendingPageSize)
+  const pagedNotInvited = showAllNotInvited ? notInvitedFiltered : notInvitedFiltered.slice((notInvitedPage - 1) * notInvitedPageSize, notInvitedPage * notInvitedPageSize)
+
+  // Shared row markup for both the Invited and Not Yet Invited tables —
+  // same columns/actions either way, just a different source list.
+  function renderPendingRow(m: MemberRow) {
+    return (
+      <tr key={m.id} className={"border-b border-gray-100 last:border-0 hover:bg-gray-50"}>
+        <td className="px-4 py-2 font-medium text-gray-900 truncate" title={m.full_name ?? undefined}>
+          {m.full_name ?? <span className="text-gray-400 italic">No name</span>}
+        </td>
+        <td className="px-4 py-2 text-gray-700 truncate" title={m.email}>{m.email}</td>
+        <td className="px-4 py-2 text-gray-600 truncate" title={companyOrTypeLabel(m)}>{companyOrTypeLabel(m)}</td>
+        <td className="px-4 py-2 text-gray-600 truncate text-xs">
+          {m.default_location_id ? (locations.find(l => l.id === m.default_location_id)?.name ?? '—') : <span className="text-gray-400">—</span>}
+        </td>
+        <td className="px-4 py-2"><StatusBadge m={m} /></td>
+        <td className="px-4 py-2 text-gray-500 text-xs whitespace-nowrap">{formatShortDate(new Date(m.invited_at))}</td>
+        <td className="px-4 py-2">
+          <div className="flex items-center justify-end gap-0.5">
+            <IconAction
+              icon={DoorOpen}
+              label={hasRoomAccess(m) ? 'Has room access — click to check' : 'No room access — click to set up before they sign up'}
+              onClick={() => setAccessTarget(m)}
+              colorClass={hasRoomAccess(m) ? 'text-purple-600 hover:bg-purple-50' : 'text-gray-300 hover:bg-gray-100 hover:text-gray-500'}
+            />
+            <IconAction
+              icon={Edit2}
+              label="Edit member"
+              onClick={() => setEditTarget(m)}
+              colorClass="text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+            />
+            <IconAction
+              icon={Camera}
+              label={m.avatar_url ? 'Photo linked' : 'Add picture'}
+              onClick={() => setPhotoTarget({ type: 'pending', id: m.id, name: m.email, hasPhoto: !!m.avatar_url, avatarUrl: m.avatar_url })}
+              colorClass={m.avatar_url ? 'text-green-500 hover:bg-green-50' : 'text-gray-400 hover:bg-gray-100 hover:text-gray-600'}
+            />
+            {m.invite_token?.startsWith('http') && (
+              <IconAction
+                icon={copiedLink === m.id ? Check : Copy}
+                label={copiedLink === m.id ? 'Copied!' : 'Copy invite link'}
+                onClick={() => copyLink(m.invite_token!, m.id)}
+                colorClass="text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+              />
+            )}
+            <IconAction
+              icon={Send}
+              // Amber ("needs attention") only makes sense once someone's
+              // actually been invited and is waiting to finish signing up —
+              // for the never-invited majority, that's just noise (485 amber
+              // icons all "urgent" at once isn't a signal). Neutral until then.
+              label={m.invite_token ? 'Resend invite' : 'Send invite'}
+              onClick={() => handleResend(m.id)}
+              disabled={resending === m.id}
+              colorClass={m.invite_token ? 'text-amber-500 hover:bg-amber-50' : 'text-gray-400 hover:bg-gray-100 hover:text-gray-600'}
+            />
+            {confirmRemove === m.id ? (
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs text-red-700">Archive?</span>
+                <button onClick={() => handleRemove(m.id)} disabled={removing === m.id}
+                  className="text-xs bg-red-600 text-white px-2 py-1 rounded font-medium">
+                  {removing === m.id ? '…' : 'Yes'}
+                </button>
+                <button onClick={() => setConfirmRemove(null)} className="text-xs text-gray-400">No</button>
+              </div>
+            ) : (
+              <IconAction
+                icon={Trash2}
+                label="Archive member"
+                onClick={() => setConfirmRemove(m.id)}
+                colorClass="text-gray-400 hover:bg-red-50 hover:text-red-600"
+              />
+            )}
+          </div>
+        </td>
+      </tr>
+    )
+  }
 
   // ── Render ─────────────────────────────────────────────────────────────────
 
@@ -667,41 +768,11 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
         </Section>
       )}
 
-      {/* TEMPORARY — remove this banner once the uninvited backlog is cleared */}
-      {notInvited.length > 0 && (
-        <div className="flex flex-wrap items-center gap-3 bg-amber-50 border border-dashed border-amber-300 rounded-lg px-3.5 py-2.5">
-          <span className="flex items-center justify-center w-6 h-6 rounded-full bg-amber-200 text-amber-800 flex-shrink-0">
-            <Send size={12} />
-          </span>
-          <div className="flex-1 min-w-0">
-            <p className="text-xs font-semibold text-amber-900">Temporary — delete this banner once cleared</p>
-            <p className="text-xs text-amber-700">{notInvited.length} members have never been invited</p>
-          </div>
-          <div className="grid flex-shrink-0">
-            <div className={`col-start-1 row-start-1 flex items-center gap-2 transition-all duration-150 ${
-              confirmInviteAll ? 'opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none'
-            }`}>
-              <span className="text-xs text-amber-800 font-medium whitespace-nowrap">Send {notInvited.length} invites?</span>
-              <button onClick={handleInviteAll}
-                className="text-xs bg-amber-500 hover:bg-amber-600 text-white font-semibold px-2.5 py-1.5 rounded-md">
-                Yes, send
-              </button>
-              <button onClick={() => setConfirmInviteAll(false)}
-                className="text-xs text-gray-500 hover:text-gray-700">Cancel</button>
-            </div>
-            <button onClick={() => setConfirmInviteAll(true)} disabled={invitingAll}
-              className={`col-start-1 row-start-1 justify-self-end flex items-center gap-1.5 text-xs bg-amber-500 hover:bg-amber-600 text-white font-semibold px-3 py-1.5 rounded-md disabled:opacity-50 transition-all duration-150 whitespace-nowrap ${
-                confirmInviteAll ? 'opacity-0 scale-95 pointer-events-none' : 'opacity-100 scale-100'
-              }`}>
-              <Send size={12} /> {invitingAll ? 'Sending…' : 'Invite All'}
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Pending invites */}
+      {/* Invited — sent an invite, hasn't finished signing up. Ongoing peer
+          section next to Active Members; new people land here every time
+          someone's invited going forward. */}
       {pending.length > 0 && (
-        <Section title={`Pending (${pending.length})`} headerRight={
+        <Section title={`Invited (${pending.length})`} headerRight={
           <Pagination page={pendingPage} totalPages={pendingTotalPages} onPageChange={setPendingPage}
             showAll={showAllPending} onToggleShowAll={() => setShowAllPending(v => !v)}
             pageSize={pendingPageSize} onPageSizeChange={size => { setPendingPageSize(size); setPendingPage(1) }} />
@@ -709,81 +780,76 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
           <AdminTable colWidths={['13%', '24%', '12%', '15%', '8%', '12%', '16%']} minWidth={1000}>
             <thead>
               <tr className="border-b border-gray-100 bg-gray-50">
-                <Th>Name</Th><Th>Email</Th><Th>Company</Th><Th>Location</Th><Th>Status</Th><Th>Added</Th><Th />
+                <Th>Name</Th><Th>Email</Th><Th>Company</Th><Th>Location</Th><Th>Status</Th><Th>Invited</Th><Th />
               </tr>
             </thead>
             <tbody>
-              {pagedPending.map((m, i) => (
-                    <tr key={m.id} className={"border-b border-gray-100 last:border-0 hover:bg-gray-50"}>
-                      <td className="px-4 py-2 font-medium text-gray-900 truncate" title={m.full_name ?? undefined}>
-                        {m.full_name ?? <span className="text-gray-400 italic">No name</span>}
-                      </td>
-                      <td className="px-4 py-2 text-gray-700 truncate" title={m.email}>{m.email}</td>
-                      <td className="px-4 py-2 text-gray-600 truncate" title={companyOrTypeLabel(m)}>{companyOrTypeLabel(m)}</td>
-                      <td className="px-4 py-2 text-gray-600 truncate text-xs">
-                        {m.default_location_id ? (locations.find(l => l.id === m.default_location_id)?.name ?? '—') : <span className="text-gray-400">—</span>}
-                      </td>
-                      <td className="px-4 py-2"><StatusBadge m={m} /></td>
-                      <td className="px-4 py-2 text-gray-500 text-xs whitespace-nowrap">{formatShortDate(new Date(m.invited_at))}</td>
-                      <td className="px-4 py-2">
-                        <div className="flex items-center justify-end gap-0.5">
-                          <IconAction
-                            icon={DoorOpen}
-                            label={hasRoomAccess(m) ? 'Has room access — click to check' : 'No room access — click to set up before they sign up'}
-                            onClick={() => setAccessTarget(m)}
-                            colorClass={hasRoomAccess(m) ? 'text-purple-600 hover:bg-purple-50' : 'text-gray-300 hover:bg-gray-100 hover:text-gray-500'}
-                          />
-                          <IconAction
-                            icon={Edit2}
-                            label="Edit member"
-                            onClick={() => setEditTarget(m)}
-                            colorClass="text-gray-400 hover:bg-gray-100 hover:text-gray-600"
-                          />
-                          <IconAction
-                            icon={Camera}
-                            label={m.avatar_url ? 'Photo linked' : 'Add picture'}
-                            onClick={() => setPhotoTarget({ type: 'pending', id: m.id, name: m.email, hasPhoto: !!m.avatar_url, avatarUrl: m.avatar_url })}
-                            colorClass={m.avatar_url ? 'text-green-500 hover:bg-green-50' : 'text-gray-400 hover:bg-gray-100 hover:text-gray-600'}
-                          />
-                          {m.invite_token?.startsWith('http') && (
-                            <IconAction
-                              icon={copiedLink === m.id ? Check : Copy}
-                              label={copiedLink === m.id ? 'Copied!' : 'Copy invite link'}
-                              onClick={() => copyLink(m.invite_token!, m.id)}
-                              colorClass="text-gray-400 hover:bg-gray-100 hover:text-gray-600"
-                            />
-                          )}
-                          <IconAction
-                            icon={Send}
-                            label="Invite"
-                            onClick={() => handleResend(m.id)}
-                            disabled={resending === m.id}
-                            colorClass="text-amber-500 hover:bg-amber-50"
-                          />
-                          {confirmRemove === m.id ? (
-                            <div className="flex items-center gap-1.5">
-                              <span className="text-xs text-red-700">Archive?</span>
-                              <button onClick={() => handleRemove(m.id)} disabled={removing === m.id}
-                                className="text-xs bg-red-600 text-white px-2 py-1 rounded font-medium">
-                                {removing === m.id ? '…' : 'Yes'}
-                              </button>
-                              <button onClick={() => setConfirmRemove(null)} className="text-xs text-gray-400">No</button>
-                            </div>
-                          ) : (
-                            <IconAction
-                              icon={Trash2}
-                              label="Archive member"
-                              onClick={() => setConfirmRemove(m.id)}
-                              colorClass="text-gray-400 hover:bg-red-50 hover:text-red-600"
-                            />
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-              ))}
+              {pagedPending.map(renderPendingRow)}
             </tbody>
           </AdminTable>
         </Section>
+      )}
+
+      {/* Not Yet Invited — never contacted at all. Meant to be a one-time
+          backlog (the initial batch, before invites existed), not an
+          ongoing bucket — collapsed callout instead of a permanent section,
+          so it stays out of the way once it's actually cleared out. */}
+      {notInvited.length > 0 && (
+        <div className="bg-amber-50 border border-dashed border-amber-300 rounded-lg overflow-hidden">
+          <div className="flex flex-wrap items-center gap-3 px-3.5 py-2.5">
+            <button onClick={() => setShowNotInvited(v => !v)} className="flex items-center gap-3 flex-1 min-w-0 text-left">
+              <span className="flex items-center justify-center w-6 h-6 rounded-full bg-amber-200 text-amber-800 flex-shrink-0">
+                <Send size={12} />
+              </span>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-semibold text-amber-900">Not Yet Invited</p>
+                <p className="text-xs text-amber-700">{notInvited.length} members have never been invited — click to {showNotInvited ? 'hide' : 'view'}</p>
+              </div>
+              <ChevronDown size={14} className={`text-amber-700 flex-shrink-0 transition-transform duration-200 ${showNotInvited ? 'rotate-180' : ''}`} />
+            </button>
+            <div className="grid flex-shrink-0">
+              <div className={`col-start-1 row-start-1 flex items-center gap-2 transition-all duration-150 ${
+                confirmInviteAll ? 'opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none'
+              }`}>
+                <span className="text-xs text-amber-800 font-medium whitespace-nowrap">Send {notInvited.length} invites?</span>
+                <button onClick={handleInviteAll}
+                  className="text-xs bg-amber-500 hover:bg-amber-600 text-white font-semibold px-2.5 py-1.5 rounded-md">
+                  Yes, send
+                </button>
+                <button onClick={() => setConfirmInviteAll(false)}
+                  className="text-xs text-gray-500 hover:text-gray-700">Cancel</button>
+              </div>
+              <button onClick={() => setConfirmInviteAll(true)} disabled={invitingAll}
+                className={`col-start-1 row-start-1 justify-self-end flex items-center gap-1.5 text-xs bg-amber-500 hover:bg-amber-600 text-white font-semibold px-3 py-1.5 rounded-md disabled:opacity-50 transition-all duration-150 whitespace-nowrap ${
+                  confirmInviteAll ? 'opacity-0 scale-95 pointer-events-none' : 'opacity-100 scale-100'
+                }`}>
+                <Send size={12} /> {invitingAll ? 'Sending…' : 'Invite All'}
+              </button>
+            </div>
+          </div>
+
+          <div className={`grid transition-[grid-template-rows] duration-250 ease-in-out ${showNotInvited ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}>
+            <div className="overflow-hidden">
+              <div className="bg-white border-t border-amber-200">
+                <div className="px-3.5 py-2 flex justify-end">
+                  <Pagination page={notInvitedPage} totalPages={notInvitedTotalPages} onPageChange={setNotInvitedPage}
+                    showAll={showAllNotInvited} onToggleShowAll={() => setShowAllNotInvited(v => !v)}
+                    pageSize={notInvitedPageSize} onPageSizeChange={size => { setNotInvitedPageSize(size); setNotInvitedPage(1) }} />
+                </div>
+                <AdminTable colWidths={['13%', '24%', '12%', '15%', '8%', '12%', '16%']} minWidth={1000}>
+                  <thead>
+                    <tr className="border-b border-gray-100 bg-gray-50">
+                      <Th>Name</Th><Th>Email</Th><Th>Company</Th><Th>Location</Th><Th>Status</Th><Th>Added</Th><Th />
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {pagedNotInvited.map(renderPendingRow)}
+                  </tbody>
+                </AdminTable>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
 
       {!loading && filtered.length === 0 && (
