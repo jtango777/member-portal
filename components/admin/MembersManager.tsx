@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import NextLink from 'next/link'
 import { Company, MembershipType } from '@/types'
 import { Plus, Send, Check, Shield, Download, Copy, Link, Search, Edit2, Trash2, X, Camera, Users, DoorOpen, ChevronDown } from 'lucide-react'
@@ -133,6 +133,26 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
   const [notInvitedPage, setNotInvitedPage]           = useState(1)
   const [showAllNotInvited, setShowAllNotInvited]     = useState(false)
   const [notInvitedPageSize, setNotInvitedPageSize]   = useState(10)
+  const notInvitedListRef = useRef<HTMLDivElement>(null)
+  // Whether an in-progress open should scroll once the accordion's CSS
+  // transition actually finishes — read in onTransitionEnd below. A fixed
+  // setTimeout guess drifted out of sync with when the grid-rows animation
+  // (and the newly-shown table's own render) actually settled, undershooting
+  // the scroll target; listening for the real transition end is exact.
+  const scrollOnOpenRef = useRef(false)
+
+  function toggleNotInvited() {
+    scrollOnOpenRef.current = !showNotInvited
+    setShowNotInvited(v => !v)
+  }
+
+  function handleNotInvitedTransitionEnd(e: React.TransitionEvent<HTMLDivElement>) {
+    if (e.target !== e.currentTarget || e.propertyName !== 'grid-template-rows') return
+    if (scrollOnOpenRef.current) {
+      scrollOnOpenRef.current = false
+      notInvitedListRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
+  }
   const [locationSort, setLocationSort]     = useState<'asc' | 'desc' | null>(null)
 
   function toggleLocationSort() {
@@ -797,7 +817,7 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
       {notInvited.length > 0 && (
         <div className="bg-amber-50 border border-dashed border-amber-300 rounded-lg overflow-hidden">
           <div className="flex flex-wrap items-center gap-3 px-3.5 py-2.5">
-            <button onClick={() => setShowNotInvited(v => !v)} className="flex items-center gap-3 min-w-0 text-left">
+            <button onClick={toggleNotInvited} className="flex items-center gap-3 min-w-0 text-left">
               <span className="flex items-center justify-center w-6 h-6 rounded-full bg-amber-200 text-amber-800 flex-shrink-0">
                 <Send size={12} />
               </span>
@@ -828,9 +848,9 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
             </div>
           </div>
 
-          <div className={`grid transition-[grid-template-rows] duration-300 ease-in-out ${showNotInvited ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}>
+          <div onTransitionEnd={handleNotInvitedTransitionEnd} className={`grid transition-[grid-template-rows] duration-300 ease-in-out ${showNotInvited ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}>
             <div className="overflow-hidden">
-              <div className="bg-white border-t border-amber-200">
+              <div ref={notInvitedListRef} className="bg-white border-t border-amber-200">
                 <div className="px-3.5 py-2 flex justify-end">
                   <Pagination page={notInvitedPage} totalPages={notInvitedTotalPages} onPageChange={setNotInvitedPage}
                     showAll={showAllNotInvited} onToggleShowAll={() => setShowAllNotInvited(v => !v)}
