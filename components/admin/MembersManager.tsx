@@ -594,7 +594,7 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
                       if (!checked) { setCompanyId(''); setIndividualHours('') }
                     }}
                     className="peer sr-only" />
-                  <span className="absolute inset-0 rounded-full bg-gray-300 peer-checked:bg-blue-600 transition-colors duration-200" />
+                  <span className="absolute inset-0 rounded-full bg-gray-300 peer-checked:bg-purple-600 transition-colors duration-200" />
                   <span className="absolute left-0.5 top-0.5 h-3 w-3 rounded-full bg-white shadow transition-transform duration-200 peer-checked:translate-x-3" />
                 </span>
                 <span className="text-sm text-gray-700">Connect to Rooms?</span>
