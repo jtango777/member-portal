@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import NextLink from 'next/link'
 import { Company, MembershipType } from '@/types'
-import { Plus, Send, Check, Shield, Download, Copy, Link, Search, Edit2, Trash2, X, Camera, Users, DoorOpen, ChevronDown } from 'lucide-react'
+import { Plus, Send, Check, Shield, Download, Copy, Link, Search, Edit2, Trash2, X, Camera, Users, DoorOpen, ChevronDown, RefreshCw } from 'lucide-react'
 import { formatShortDate } from '@/lib/utils'
 import { useAutoScrollIntoView } from '@/lib/useAutoScrollIntoView'
 import toast from 'react-hot-toast'
@@ -546,20 +546,6 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm transition-shadow focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="member@company.com" />
               </div>
-              <label className="flex items-center gap-2 cursor-pointer select-none pb-2.5">
-                <span className="relative inline-flex h-4 w-7 flex-shrink-0 items-center">
-                  <input type="checkbox" checked={connectToRooms}
-                    onChange={e => {
-                      const checked = e.target.checked
-                      setConnectToRooms(checked)
-                      if (!checked) { setCompanyId(''); setIndividualHours('') }
-                    }}
-                    className="peer sr-only" />
-                  <span className="absolute inset-0 rounded-full bg-gray-300 peer-checked:bg-blue-600 transition-colors duration-200" />
-                  <span className="absolute left-0.5 top-0.5 h-3 w-3 rounded-full bg-white shadow transition-transform duration-200 peer-checked:translate-x-3" />
-                </span>
-                <span className="text-sm text-gray-700">Connect to Rooms?</span>
-              </label>
             </div>
 
             <div className="flex items-end gap-4">
@@ -581,7 +567,14 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
                   </select>
                 </div>
               )}
-              <label className="flex items-center gap-2 cursor-pointer select-none pb-2.5">
+            </div>
+
+            {/* Both toggles grouped together as their own row instead of
+                being bolted onto whichever field row happened to have
+                spare space — reads as one set of "on add" options now. */}
+            <div className="flex items-center gap-6 pt-1">
+              <label className="flex items-center gap-2 cursor-pointer select-none">
+                <RefreshCw size={14} className={markInPipedrive ? 'text-blue-600' : 'text-gray-300'} />
                 <span className="relative inline-flex h-4 w-7 flex-shrink-0 items-center">
                   <input type="checkbox" checked={markInPipedrive}
                     onChange={e => setMarkInPipedrive(e.target.checked)}
@@ -590,6 +583,21 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
                   <span className="absolute left-0.5 top-0.5 h-3 w-3 rounded-full bg-white shadow transition-transform duration-200 peer-checked:translate-x-3" />
                 </span>
                 <span className="text-sm text-gray-700">Check current member in Pipedrive?</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer select-none">
+                <DoorOpen size={14} className={connectToRooms ? 'text-purple-600' : 'text-gray-300'} />
+                <span className="relative inline-flex h-4 w-7 flex-shrink-0 items-center">
+                  <input type="checkbox" checked={connectToRooms}
+                    onChange={e => {
+                      const checked = e.target.checked
+                      setConnectToRooms(checked)
+                      if (!checked) { setCompanyId(''); setIndividualHours('') }
+                    }}
+                    className="peer sr-only" />
+                  <span className="absolute inset-0 rounded-full bg-gray-300 peer-checked:bg-blue-600 transition-colors duration-200" />
+                  <span className="absolute left-0.5 top-0.5 h-3 w-3 rounded-full bg-white shadow transition-transform duration-200 peer-checked:translate-x-3" />
+                </span>
+                <span className="text-sm text-gray-700">Connect to Rooms?</span>
               </label>
             </div>
 
