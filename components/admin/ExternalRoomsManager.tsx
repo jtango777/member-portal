@@ -3,7 +3,6 @@
 import { useState } from 'react'
 import { Location, Room } from '@/types'
 import { Edit2, Check, X, Globe, EyeOff } from 'lucide-react'
-import { cn } from '@/lib/utils'
 import { IconAction } from '@/components/admin/AdminTable'
 import toast from 'react-hot-toast'
 
@@ -113,27 +112,32 @@ export default function ExternalRoomsManager({ locations, initialRooms }: Props)
                         <span className="text-xs text-gray-400 ml-2">· {room.capacity} people</span>
                       </div>
                       <div className="flex items-center gap-3">
-                        {/* External bookable toggle */}
-                        <div className="relative group">
-                          <button
+                        {/* Live is the normal case — a quiet icon, not a
+                            badge repeated on every row. Hidden is the
+                            exception worth actually noticing, so it keeps
+                            a colored badge. */}
+                        {room.external_bookable ? (
+                          <IconAction
+                            icon={Globe}
+                            label="Click to hide from /book"
                             onClick={() => handleToggleExternal(room)}
                             disabled={toggling === room.id}
-                            className={cn(
-                              'flex items-center gap-1.5 text-xs font-medium px-2.5 py-1.5 rounded-lg border transition-colors',
-                              room.external_bookable
-                                ? 'bg-green-50 text-green-700 border-green-200 hover:bg-green-100'
-                                : 'bg-gray-50 text-gray-500 border-gray-200 hover:bg-gray-100'
-                            )}
-                          >
-                            {room.external_bookable
-                              ? <><Globe size={12} /> Live on /book</>
-                              : <><EyeOff size={12} /> Hidden</>
-                            }
-                          </button>
-                          <span className="pointer-events-none absolute right-0 bottom-full z-10 mb-1.5 whitespace-nowrap rounded bg-gray-900 px-2 py-1 text-xs text-white opacity-0 shadow-lg transition-opacity group-hover:opacity-100">
-                            {room.external_bookable ? 'Click to hide from /book' : 'Click to make live on /book'}
-                          </span>
-                        </div>
+                            colorClass="text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+                          />
+                        ) : (
+                          <div className="relative group">
+                            <button
+                              onClick={() => handleToggleExternal(room)}
+                              disabled={toggling === room.id}
+                              className="flex items-center gap-1.5 text-xs font-medium px-2.5 py-1.5 rounded-lg border bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100 transition-colors"
+                            >
+                              <EyeOff size={12} /> Hidden
+                            </button>
+                            <span className="pointer-events-none absolute right-0 bottom-full z-10 mb-1.5 whitespace-nowrap rounded bg-gray-900 px-2 py-1 text-xs text-white opacity-0 shadow-lg transition-opacity group-hover:opacity-100">
+                              Click to make live on /book
+                            </span>
+                          </div>
+                        )}
 
                         {/* Edit / Save / Cancel */}
                         {isEditing ? (

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { Megaphone, Eye, X } from 'lucide-react'
+import { Megaphone, Eye, X, ChevronDown } from 'lucide-react'
 import { formatShortDate } from '@/lib/utils'
 import toast from 'react-hot-toast'
 import AnnouncementPreviewDialog from './AnnouncementPreviewDialog'
@@ -15,6 +15,7 @@ export default function AnnouncementsManager() {
   const [posting, setPosting] = useState(false)
   const [previewOpen, setPreviewOpen] = useState(false)
   const [deactivating, setDeactivating] = useState(false)
+  const [showPast, setShowPast] = useState(false)
 
   const refresh = useCallback(async () => {
     const r = await fetch('/api/admin/announcements')
@@ -110,25 +111,29 @@ export default function AnnouncementsManager() {
       </div>
 
       <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-        <div className="px-4 py-3 border-b border-gray-100 bg-gray-50">
-          <h2 className="text-sm font-semibold text-blue-600">Past</h2>
-        </div>
-        <div>
-          {loading ? (
-            <p className="text-sm text-gray-400 p-4">Loading…</p>
-          ) : history.length === 0 ? (
-            <p className="text-sm text-gray-400 p-4">No past announcements.</p>
-          ) : (
-            history.map(a => (
-              <div key={a.id} className="flex items-start gap-3 px-4 py-3 border-b border-gray-100 last:border-0">
-                <Megaphone size={15} className="text-gray-400 mt-0.5 flex-shrink-0" />
-                <div>
-                  <p className="text-sm text-gray-700">{a.message}</p>
-                  <p className="text-xs text-gray-400 mt-0.5">{formatShortDate(new Date(a.created_at))}</p>
+        <button onClick={() => setShowPast(v => !v)}
+          className="w-full flex items-center justify-between px-4 py-3 border-b border-gray-100 bg-gray-50 text-left">
+          <h2 className="text-sm font-semibold text-blue-600">Past{history.length > 0 ? ` (${history.length})` : ''}</h2>
+          <ChevronDown size={14} className={`text-gray-400 transition-transform duration-200 ${showPast ? 'rotate-180' : ''}`} />
+        </button>
+        <div className={`grid transition-[grid-template-rows] duration-300 ease-in-out ${showPast ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}>
+          <div className="overflow-hidden">
+            {loading ? (
+              <p className="text-sm text-gray-400 p-4">Loading…</p>
+            ) : history.length === 0 ? (
+              <p className="text-sm text-gray-400 p-4">No past announcements.</p>
+            ) : (
+              history.map(a => (
+                <div key={a.id} className="flex items-start gap-3 px-4 py-3 border-b border-gray-100 last:border-0">
+                  <Megaphone size={15} className="text-gray-400 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <p className="text-sm text-gray-700">{a.message}</p>
+                    <p className="text-xs text-gray-400 mt-0.5">{formatShortDate(new Date(a.created_at))}</p>
+                  </div>
                 </div>
-              </div>
-            ))
-          )}
+              ))
+            )}
+          </div>
         </div>
       </div>
 

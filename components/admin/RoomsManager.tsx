@@ -3,7 +3,6 @@
 import { useState } from 'react'
 import { Location, Room } from '@/types'
 import { Plus, Edit2, Check, X, Eye, EyeOff } from 'lucide-react'
-import { cn } from '@/lib/utils'
 import { IconAction } from '@/components/admin/AdminTable'
 import toast from 'react-hot-toast'
 
@@ -159,7 +158,6 @@ export default function RoomsManager({ locations, initialRooms }: Props) {
                 {/* Header */}
                 <div className="flex items-center border-b border-gray-100 px-4 py-2.5 bg-gray-50">
                   <span className="flex-1 text-xs font-semibold text-gray-500 uppercase tracking-wide">Room</span>
-                  <span className="w-20 text-center text-xs font-semibold text-gray-500 uppercase tracking-wide">Capacity</span>
                   <span className="w-64" />
                 </div>
                 {/* Rows */}
@@ -167,24 +165,22 @@ export default function RoomsManager({ locations, initialRooms }: Props) {
                   <div key={room.id} className="flex items-center border-b border-gray-100 last:border-0 hover:bg-gray-50 px-4 py-3">
                     <div className="flex-1">
                       {editing?.id === room.id ? (
-                        <input value={editing.name} onChange={e => setEditing(v => v ? { ...v, name: e.target.value } : v)}
-                          className="border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 w-full max-w-xs" />
+                        <div className="flex items-center gap-2">
+                          <input value={editing.name} onChange={e => setEditing(v => v ? { ...v, name: e.target.value } : v)}
+                            className="border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 w-full max-w-xs" />
+                          <input type="number" min="1" value={editing.capacity}
+                            onChange={e => setEditing(v => v ? { ...v, capacity: e.target.value } : v)}
+                            className="border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 w-16 text-center"
+                            title="Capacity" />
+                        </div>
                       ) : (
                         <span className="font-medium text-gray-900">
                           {room.name}
+                          <span className="text-xs text-gray-400 font-normal ml-2">· {room.capacity} people</span>
                           {!room.internal_bookable && (
                             <span className="ml-2 text-[10px] font-semibold uppercase tracking-wide text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded">Hidden</span>
                           )}
                         </span>
-                      )}
-                    </div>
-                    <div className="w-20 text-center">
-                      {editing?.id === room.id ? (
-                        <input type="number" min="1" value={editing.capacity}
-                          onChange={e => setEditing(v => v ? { ...v, capacity: e.target.value } : v)}
-                          className="border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 w-16 text-center" />
-                      ) : (
-                        <span className="text-gray-600">{room.capacity}</span>
                       )}
                     </div>
                     <div className="w-64 flex items-center justify-end gap-2">
@@ -201,29 +197,32 @@ export default function RoomsManager({ locations, initialRooms }: Props) {
                         </>
                       ) : (
                         <>
-                          {/* Internal-visibility toggle — same pill styling as the
-                              external-booking toggle in ExternalRoomsManager, so the
-                              two "hide this room" controls read as one consistent pattern. */}
-                          <div className="relative group">
-                            <button
+                          {/* Visible is the normal case — a quiet icon, not a
+                              badge repeated on every row. Hidden is the
+                              exception worth actually noticing, so it keeps
+                              a colored badge. */}
+                          {room.internal_bookable ? (
+                            <IconAction
+                              icon={Eye}
+                              label="Click to hide from internal booking"
                               onClick={() => handleToggleInternal(room)}
                               disabled={toggling === room.id}
-                              className={cn(
-                                'flex items-center gap-1.5 text-xs font-medium px-2.5 py-1.5 rounded-lg border transition-colors disabled:opacity-40',
-                                room.internal_bookable
-                                  ? 'bg-green-50 text-green-700 border-green-200 hover:bg-green-100'
-                                  : 'bg-gray-50 text-gray-500 border-gray-200 hover:bg-gray-100'
-                              )}
-                            >
-                              {room.internal_bookable
-                                ? <><Eye size={12} /> Visible</>
-                                : <><EyeOff size={12} /> Hidden</>
-                              }
-                            </button>
-                            <span className="pointer-events-none absolute right-0 bottom-full z-10 mb-1.5 whitespace-nowrap rounded bg-gray-900 px-2 py-1 text-xs text-white opacity-0 shadow-lg transition-opacity group-hover:opacity-100">
-                              {room.internal_bookable ? 'Click to hide from internal booking' : 'Click to make visible again'}
-                            </span>
-                          </div>
+                              colorClass="text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+                            />
+                          ) : (
+                            <div className="relative group">
+                              <button
+                                onClick={() => handleToggleInternal(room)}
+                                disabled={toggling === room.id}
+                                className="flex items-center gap-1.5 text-xs font-medium px-2.5 py-1.5 rounded-lg border bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100 transition-colors disabled:opacity-40"
+                              >
+                                <EyeOff size={12} /> Hidden
+                              </button>
+                              <span className="pointer-events-none absolute right-0 bottom-full z-10 mb-1.5 whitespace-nowrap rounded bg-gray-900 px-2 py-1 text-xs text-white opacity-0 shadow-lg transition-opacity group-hover:opacity-100">
+                                Click to make visible again
+                              </span>
+                            </div>
+                          )}
                           <IconAction
                             icon={Edit2}
                             label="Edit room"
