@@ -18,8 +18,8 @@ export default function DevBanner() {
   if (!isDev) return null
 
   return (
-    <div className="bg-slate-600 text-white text-center text-xs font-bold py-1 px-2 tracking-wide">
-      Staging environment — not live
+    <div className="bg-amber-400 text-amber-900 text-center text-xs font-bold py-1 px-2 tracking-wide">
+      STAGING ENVIRONMENT — not production
     </div>
   )
 }
