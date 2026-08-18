@@ -8,6 +8,7 @@ import { formatShortDate } from '@/lib/utils'
 import { useAutoScrollIntoView } from '@/lib/useAutoScrollIntoView'
 import toast from 'react-hot-toast'
 import AssignPhotoDialog from '@/components/admin/AssignPhotoDialog'
+import ArchiveMemberDialog from '@/components/admin/ArchiveMemberDialog'
 import CompanyCombobox from '@/components/admin/CompanyCombobox'
 import EditMemberDialog from '@/components/admin/EditMemberDialog'
 import { AdminTable, Th, Section, Pagination, IconAction } from '@/components/admin/AdminTable'
@@ -95,8 +96,7 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
   const [resending, setResending]   = useState<string | null>(null)
   const [editTarget, setEditTarget] = useState<MemberRow | null>(null)
   const [accessTarget, setAccessTarget] = useState<MemberRow | null>(null)
-  const [confirmRemove, setConfirmRemove]   = useState<string | null>(null)
-  const [removing, setRemoving]             = useState<string | null>(null)
+  const [archiveTarget, setArchiveTarget]   = useState<{ id: string; name: string } | null>(null)
   const [confirmInviteAll, setConfirmInviteAll] = useState(false)
   const [invitingAll, setInvitingAll]           = useState(false)
   const [photoTarget, setPhotoTarget] = useState<{ type: 'member' | 'pending'; id: string; name: string; hasPhoto: boolean; avatarUrl: string | null } | null>(null)
@@ -263,22 +263,6 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
   }
 
 
-  // ── Remove member ──────────────────────────────────────────────────────────
-
-  async function handleRemove(memberId: string) {
-    setRemoving(memberId)
-    const res = await fetch(`/api/admin/members/${memberId}`, { method: 'DELETE' })
-    if (res.ok) {
-      toast.success('Archived')
-      setConfirmRemove(null)
-      await refresh()
-    } else {
-      const d = await res.json()
-      toast.error(d.error ?? 'Failed')
-    }
-    setRemoving(null)
-  }
-
   // ── Invite all uninvited ───────────────────────────────────────────────────
 
   async function handleInviteAll() {
@@ -437,23 +421,12 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
               disabled={resending === m.id}
               colorClass={m.invite_token ? 'text-amber-500 hover:bg-amber-50' : 'text-gray-400 hover:bg-gray-100 hover:text-gray-600'}
             />
-            {confirmRemove === m.id ? (
-              <div className="flex items-center gap-1.5">
-                <span className="text-xs text-red-700">Archive?</span>
-                <button onClick={() => handleRemove(m.id)} disabled={removing === m.id}
-                  className="text-xs bg-red-600 text-white px-2 py-1 rounded font-medium">
-                  {removing === m.id ? '…' : 'Yes'}
-                </button>
-                <button onClick={() => setConfirmRemove(null)} className="text-xs text-gray-400">No</button>
-              </div>
-            ) : (
-              <IconAction
-                icon={Trash2}
-                label="Archive member"
-                onClick={() => setConfirmRemove(m.id)}
-                colorClass="text-gray-400 hover:bg-red-50 hover:text-red-600"
-              />
-            )}
+            <IconAction
+              icon={Trash2}
+              label="Archive member"
+              onClick={() => setArchiveTarget({ id: m.id, name: m.full_name ?? m.email })}
+              colorClass="text-gray-400 hover:bg-red-50 hover:text-red-600"
+            />
           </div>
         </td>
       </tr>
@@ -747,23 +720,12 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
                               colorClass={m.is_admin ? 'text-blue-500 hover:bg-blue-50' : 'text-gray-300 hover:bg-gray-100 hover:text-gray-500'}
                             />
                           )}
-                          {confirmRemove === m.id ? (
-                            <div className="flex items-center gap-1.5">
-                              <span className="text-xs text-red-700 whitespace-nowrap">Archive?</span>
-                              <button onClick={() => handleRemove(m.id)} disabled={removing === m.id}
-                                className="text-xs bg-red-600 text-white px-2 py-1 rounded font-medium">
-                                {removing === m.id ? '…' : 'Yes'}
-                              </button>
-                              <button onClick={() => setConfirmRemove(null)} className="text-xs text-gray-400">No</button>
-                            </div>
-                          ) : (
-                            <IconAction
-                              icon={Trash2}
-                              label="Archive member"
-                              onClick={() => setConfirmRemove(m.id)}
-                              colorClass="text-gray-400 hover:bg-red-50 hover:text-red-600"
-                            />
-                          )}
+                          <IconAction
+                            icon={Trash2}
+                            label="Archive member"
+                            onClick={() => setArchiveTarget({ id: m.id, name: m.full_name ?? m.email })}
+                            colorClass="text-gray-400 hover:bg-red-50 hover:text-red-600"
+                          />
                         </div>
                       </td>
                     </tr>
@@ -890,6 +852,12 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
         companies={companies}
         membershipTypes={membershipTypes}
         locations={locations}
+      />
+
+      <ArchiveMemberDialog
+        member={archiveTarget}
+        onOpenChange={v => { if (!v) setArchiveTarget(null) }}
+        onSuccess={refresh}
       />
     </div>
   )

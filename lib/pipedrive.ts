@@ -16,7 +16,11 @@ type MarkResult =
   | { ok: true; matched: false } // no Pipedrive contact found for this email — not an error
   | { ok: false; error: string }
 
-export async function markCurrentMemberInPipedrive(email: string): Promise<MarkResult> {
+// Shared by mark/unmark — finds the Pipedrive person id for an email, then
+// sets the Current Member? field to whatever value the caller wants.
+// `fieldValue` of null clears the field back to "(None)" — Pipedrive doesn't
+// have a real "No" option on this field, just "Yes" or unset.
+async function setCurrentMemberField(email: string, fieldValue: number | null): Promise<MarkResult> {
   const token = process.env.PIPEDRIVE_API_TOKEN
   if (!token) return { ok: false, error: 'PIPEDRIVE_API_TOKEN not configured' }
 
@@ -36,7 +40,7 @@ export async function markCurrentMemberInPipedrive(email: string): Promise<MarkR
     const updateRes = await fetch(`${PIPEDRIVE_BASE}/persons/${personId}?api_token=${token}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ [CURRENT_MEMBER_FIELD_KEY]: CURRENT_MEMBER_YES_OPTION_ID }),
+      body: JSON.stringify({ [CURRENT_MEMBER_FIELD_KEY]: fieldValue }),
     })
     const updateData = await updateRes.json()
     if (!updateData.success) return { ok: false, error: updateData.error ?? 'Pipedrive update failed' }
@@ -45,4 +49,14 @@ export async function markCurrentMemberInPipedrive(email: string): Promise<MarkR
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : 'Unknown error' }
   }
+}
+
+export async function markCurrentMemberInPipedrive(email: string): Promise<MarkResult> {
+  return setCurrentMemberField(email, CURRENT_MEMBER_YES_OPTION_ID)
+}
+
+// Clears Current Member? back to "(None)" — used when archiving a member,
+// so Pipedrive doesn't keep showing someone as current after they're gone.
+export async function unmarkCurrentMemberInPipedrive(email: string): Promise<MarkResult> {
+  return setCurrentMemberField(email, null)
 }

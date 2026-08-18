@@ -1,6 +1,7 @@
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 import { sendRoomAccessGrantedEmail } from '@/lib/email'
+import { unmarkCurrentMemberInPipedrive } from '@/lib/pipedrive'
 
 async function assertAdmin() {
   const supabase = await createClient()
@@ -124,10 +125,14 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 
 // Remove member — flags them inactive rather than deleting the record, so
 // they move to the inactive list and can be restored later.
-export async function DELETE(_request: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const caller = await assertAdmin()
   if (!caller) return NextResponse.json({ error: 'Admins only' }, { status: 403 })
+
+  // Body is optional — DELETE calls without one (or a non-JSON body) just
+  // default to leaving Pipedrive untouched, same as omitting the field.
+  const { unmarkInPipedrive } = await request.json().catch(() => ({ unmarkInPipedrive: false }))
 
   const admin = createAdminClient()
 
@@ -157,5 +162,12 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
     return NextResponse.json({ error: 'Failed to remove member.' }, { status: 500 })
   }
 
-  return NextResponse.json({ ok: true })
+  let pipedriveMatched: boolean | null = null
+  if (unmarkInPipedrive) {
+    const result = await unmarkCurrentMemberInPipedrive(pe.email)
+    if (!result.ok) console.error('[admin/members] Pipedrive unmark failed:', result.error)
+    else pipedriveMatched = result.matched
+  }
+
+  return NextResponse.json({ ok: true, pipedriveMatched })
 }
