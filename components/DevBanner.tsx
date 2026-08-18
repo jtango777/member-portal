@@ -7,7 +7,12 @@ export default function DevBanner() {
 
   useEffect(() => {
     const host = window.location.hostname
-    setIsDev(host.includes('devrooms') || host === 'localhost')
+    setIsDev(
+      host.includes('devrooms') ||
+      host === 'localhost' ||
+      host.includes('staging') ||
+      host.includes('member-portal') // temporary — covers the pre-custom-domain staging URL
+    )
   }, [])
 
   if (!isDev) return null
