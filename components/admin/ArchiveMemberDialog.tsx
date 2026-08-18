@@ -51,10 +51,6 @@ export default function ArchiveMemberDialog({ member, onOpenChange, onSuccess }:
               <Dialog.Close className="text-gray-400 hover:text-gray-600"><X size={16} /></Dialog.Close>
             </div>
 
-            <p className="text-sm text-gray-500 mb-4">
-              They'll move to the inactive list and can be restored later — this doesn't permanently delete anything.
-            </p>
-
             <label className="flex items-center gap-2 cursor-pointer select-none mb-6">
               <RefreshCw size={14} className={unmarkInPipedrive ? 'text-blue-600' : 'text-gray-300'} />
               <span className="relative inline-flex h-4 w-7 flex-shrink-0 items-center">
