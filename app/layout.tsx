@@ -3,11 +3,19 @@ import { Toaster } from 'react-hot-toast'
 import DevBanner from '@/components/DevBanner'
 import './globals.css'
 
+// Staging is a separate Vercel deployment with its own NEXT_PUBLIC_APP_URL,
+// so this can be decided at build/server time — no client-side hostname
+// sniffing needed, and no fighting with React's own <title> reconciliation
+// (which silently undoes a client-side document.title = ... on every
+// re-render). Same "staging"/"member-portal" match as DevBanner.tsx.
+const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? ''
+const isStaging = appUrl.includes('staging') || appUrl.includes('member-portal')
+
 export const metadata: Metadata = {
-  title: 'BizHaus Member Portal',
+  title: isStaging ? '[Staging] BizHaus Member Portal' : 'BizHaus Member Portal',
   description: 'BizHaus Member Portal',
   icons: {
-    icon: '/favicon.svg',
+    icon: isStaging ? '/favicon-staging.svg' : '/favicon.svg',
   },
 }
 
