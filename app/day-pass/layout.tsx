@@ -4,6 +4,9 @@ import { isStaging } from '@/lib/isStaging'
 export const metadata: Metadata = {
   title: isStaging ? '[Staging] Reserve a Day Pass — BizHaus' : 'Reserve a Day Pass — BizHaus',
   description: 'Reserve a coworking day pass at a BizHaus location. No membership required.',
+  icons: {
+    icon: '/favicon-green.svg',
+  },
 }
 
 export default function DayPassLayout({ children }: { children: React.ReactNode }) {
@@ -15,7 +18,7 @@ export default function DayPassLayout({ children }: { children: React.ReactNode 
         <span className="ml-4 text-xs font-bold bg-booking-600 text-white px-2.5 py-1 rounded">Day Pass</span>
         <div className="flex-1" />
         <span className="text-sm text-gray-500">
-          Have an account? <a href="/login" className="text-booking-700 font-medium hover:underline">Log in</a>
+          Have an account? <a href="#" className="text-booking-700 font-medium hover:underline">Log in</a>
         </span>
       </header>
       <main className="flex-1">

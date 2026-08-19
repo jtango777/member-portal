@@ -177,14 +177,17 @@ function ReservationFields({ location, setLocation, date, setDate, onContinue }:
                   selected ? 'border-booking-600 ring-2 ring-booking-100 shadow-sm' : 'border-gray-200 hover:border-gray-400 hover:shadow-sm'
                 )}
               >
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-semibold text-gray-900">{loc.name}</span>
+                <div className="flex items-center justify-between mb-2 gap-2">
+                  <span className="text-sm">
+                    <span className="font-semibold text-gray-900">{loc.name}</span>
+                    <span className="text-gray-400 mx-1">·</span>
+                    <span className="text-xs text-gray-500">{loc.phone}</span>
+                  </span>
                   <span className={cn(
                     'h-3.5 w-3.5 rounded-full border-[1.5px] flex-shrink-0',
                     selected ? 'border-booking-600 bg-booking-600 ring-2 ring-inset ring-white' : 'border-gray-300'
                   )} />
                 </div>
-                <div className="text-xs text-gray-500 mb-0.5">{loc.phone}</div>
                 <div className="text-xs text-gray-400">{loc.address}</div>
               </button>
             )
@@ -233,7 +236,7 @@ function DetailsFields({ firstName, setFirstName, lastName, setLastName, email, 
     <>
       <div className="flex items-baseline justify-between mt-3">
         <div className="text-sm text-gray-500">We'll create your BizHaus account at the same time, so you can manage this reservation later.</div>
-        <span className="text-sm text-gray-500 whitespace-nowrap ml-4">Have an account? <a href="/login" className="font-semibold text-booking-600 hover:text-booking-700">Log in</a></span>
+        <span className="text-sm text-gray-500 whitespace-nowrap ml-4">Have an account? <a href="#" className="font-semibold text-booking-600 hover:text-booking-700">Log in</a></span>
       </div>
 
       <div className="flex flex-col gap-4">

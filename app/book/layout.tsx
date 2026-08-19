@@ -4,6 +4,9 @@ import { isStaging } from '@/lib/isStaging'
 export const metadata: Metadata = {
   title: isStaging ? '[Staging] Book a Meeting Room — BizHaus' : 'Book a Meeting Room — BizHaus',
   description: 'Reserve a professional meeting room by the hour at BizHaus. No membership required.',
+  icons: {
+    icon: '/favicon-green.svg',
+  },
 }
 
 export default function BookLayout({ children }: { children: React.ReactNode }) {
