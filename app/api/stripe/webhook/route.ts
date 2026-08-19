@@ -82,6 +82,51 @@ export async function POST(request: Request) {
         }
       }
     }
+
+    // Day passes are inserted already-confirmed by /api/day-pass/request
+    // (it re-verifies payment before writing the row), so there's no status
+    // flip to do here — just the QuickBooks sales receipt.
+    const { data: dayPass } = await admin
+      .from('day_passes')
+      .select('id, customer_id, location_id, date, price_cents')
+      .eq('stripe_payment_intent_id', pi.id)
+      .single()
+
+    if (dayPass) {
+      try {
+        const { data: customer } = await admin
+          .from('booking_customers')
+          .select('first_name, last_name, email')
+          .eq('id', dayPass.customer_id)
+          .single()
+
+        if (customer) {
+          const totalAmount = pi.amount_received / 100
+          const dateLabel = new Date(dayPass.date + 'T12:00:00').toLocaleDateString('en-US', {
+            weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'America/Los_Angeles',
+          })
+
+          console.log('[qb] Creating day pass sales receipt — location:', dayPass.location_id, 'amount:', totalAmount)
+
+          await createSalesReceipt(dayPass.location_id, {
+            guestName: `${customer.first_name} ${customer.last_name}`,
+            email: customer.email,
+            phone: '',
+            roomName: 'Day Pass',
+            date: dateLabel,
+            time: '9:00am – 5:00pm',
+            amount: totalAmount,
+          })
+          console.log('[qb] Day pass sales receipt created successfully')
+        }
+      } catch (err: any) {
+        if (err?.message === 'QB_NEEDS_RECONNECT') {
+          console.warn('[qb] Location needs reconnection — skipping day pass sales receipt')
+        } else {
+          console.error('[qb] Failed to create day pass sales receipt:', err)
+        }
+      }
+    }
   }
 
   if (event.type === 'payment_intent.payment_failed') {
