@@ -9,9 +9,9 @@ import { cn } from '@/lib/utils'
 // Locations are hardcoded here rather than fetched; wire these up to the
 // real `locations` table once this becomes a real booking flow.
 const LOCATIONS = [
-  { name: 'El Segundo', phone: '(310) 870-1730', address: '[street address — El Segundo]' },
-  { name: 'Marina del Rey', phone: '(310) 596-1990', address: '[street address — Marina del Rey]' },
-  { name: 'Costa Mesa', phone: '(949) 800-8660', address: '[street address — Costa Mesa]' },
+  { name: 'El Segundo', phone: '(310) 870-1730', address: '1730 E Holly Ave, El Segundo, CA 90245' },
+  { name: 'Marina del Rey', phone: '(310) 596-1990', address: '4223 Glencoe Ave Ste C215, Marina Del Rey, CA 90292' },
+  { name: 'Costa Mesa', phone: '(949) 800-8660', address: '2942 Century Pl, Costa Mesa, CA 92626' },
 ] as const
 
 const DAY_PASS_PRICE = 30
@@ -367,7 +367,7 @@ function PriceSummary() {
         <div className="px-5 py-4 border-b border-gray-100">
           <div className="text-base font-semibold text-gray-900">Coworking Day Pass</div>
         </div>
-        <div className="px-5 py-4 flex flex-col gap-2.5 border-b border-gray-100">
+        <div className="px-5 py-4 flex flex-col gap-2.5">
           <div className="flex justify-between text-sm text-gray-700">
             <span>${DAY_PASS_PRICE} / day</span>
             <span>${DAY_PASS_PRICE}.00</span>
@@ -376,13 +376,6 @@ function PriceSummary() {
             <span>Total</span>
             <span>${DAY_PASS_PRICE}.00</span>
           </div>
-        </div>
-        <div className="px-5 py-4 flex flex-col gap-2">
-          <div className="flex gap-2">
-            <input placeholder="Promo code" className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-booking-500" />
-            <button className="border border-gray-300 text-gray-700 hover:bg-gray-50 rounded-lg px-4 py-2 text-sm font-medium transition-colors">Apply</button>
-          </div>
-          <div className="text-xs text-gray-400">Promo codes can be applied after logging in.</div>
         </div>
       </div>
     </div>
