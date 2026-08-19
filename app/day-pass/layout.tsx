@@ -1,7 +1,8 @@
 import type { Metadata } from 'next'
+import { isStaging } from '@/lib/isStaging'
 
 export const metadata: Metadata = {
-  title: 'Reserve a Day Pass — BizHaus',
+  title: isStaging ? '[Staging] Reserve a Day Pass — BizHaus' : 'Reserve a Day Pass — BizHaus',
   description: 'Reserve a coworking day pass at a BizHaus location. No membership required.',
 }
 

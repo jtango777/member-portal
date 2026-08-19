@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Calendar, ChevronLeft, Eye, EyeOff, CheckCircle } from 'lucide-react'
+import { Calendar, Eye, EyeOff, CheckCircle, Check } from 'lucide-react'
 import MiniDatePicker from '@/components/MiniDatePicker'
 import { cn } from '@/lib/utils'
 
@@ -16,10 +16,11 @@ const LOCATIONS = [
 
 const DAY_PASS_PRICE = 30
 
-type Step = 1 | 2 | 3 | 4
+type Section = 'reservation' | 'details'
+type Phase = Section | 'confirmation'
 
 export default function DayPassPage() {
-  const [step, setStep] = useState<Step>(1)
+  const [phase, setPhase] = useState<Phase>('reservation')
   const [location, setLocation] = useState<string>('El Segundo')
   const [date, setDate] = useState<string>('2026-08-19')
   const [firstName, setFirstName] = useState('')
@@ -34,68 +35,122 @@ export default function DayPassPage() {
   })
 
   function restart() {
-    setStep(1)
+    setPhase('reservation')
     setLocation('El Segundo')
     setFirstName(''); setLastName(''); setEmail(''); setPassword('')
   }
 
+  if (phase === 'confirmation') {
+    return (
+      <div className="max-w-6xl mx-auto px-6 py-12">
+        <StepConfirmation loc={selectedLocation} formattedDate={formattedDate} onRestart={restart} />
+      </div>
+    )
+  }
+
   return (
     <div className="max-w-6xl mx-auto px-6 py-12">
+      <div>
+        <h1 className="text-3xl font-bold text-gray-900 mb-1.5">Reserve a Day Pass</h1>
+        <p className="text-sm text-gray-500 mb-8">Coworking access, by the day.</p>
+      </div>
 
-      {step > 1 && step < 4 && (
-        <button
-          onClick={() => setStep(s => (s - 1) as Step)}
-          className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700 transition-colors mb-6"
-        >
-          <ChevronLeft size={15} /> Back
-        </button>
-      )}
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 items-start">
+        <div className="lg:col-span-3 min-w-0 flex flex-col gap-3">
 
-      {step < 4 ? (
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 items-start">
-          <div className="lg:col-span-3 min-w-0 flex flex-col gap-8">
+          <AccordionSection
+            number={1}
+            title="Your Reservation"
+            state={phase === 'reservation' ? 'active' : 'complete'}
+            summary={`${selectedLocation.name} · ${formattedDate}`}
+            onEdit={() => setPhase('reservation')}
+          >
+            <ReservationFields
+              location={location} setLocation={setLocation}
+              date={date} setDate={setDate}
+              onContinue={() => setPhase('details')}
+            />
+          </AccordionSection>
 
-            {step === 1 && (
-              <StepLocationDate
-                location={location} setLocation={setLocation}
-                date={date} setDate={setDate}
-                onContinue={() => setStep(2)}
-              />
-            )}
+          <AccordionSection
+            number={2}
+            title="Your Details"
+            state={phase === 'details' ? 'active' : 'upcoming'}
+            summary={null}
+            onEdit={undefined}
+          >
+            <DetailsFields
+              firstName={firstName} setFirstName={setFirstName}
+              lastName={lastName} setLastName={setLastName}
+              email={email} setEmail={setEmail}
+              password={password} setPassword={setPassword}
+              showPassword={showPassword} setShowPassword={setShowPassword}
+              onSubmit={() => setPhase('confirmation')}
+            />
+          </AccordionSection>
 
-            {step === 2 && (
-              <StepReview
-                loc={selectedLocation} formattedDate={formattedDate}
-                onChangeLocation={() => setStep(1)}
-                onChangeDate={() => setStep(1)}
-                onContinue={() => setStep(3)}
-              />
-            )}
-
-            {step === 3 && (
-              <StepDetails
-                firstName={firstName} setFirstName={setFirstName}
-                lastName={lastName} setLastName={setLastName}
-                email={email} setEmail={setEmail}
-                password={password} setPassword={setPassword}
-                showPassword={showPassword} setShowPassword={setShowPassword}
-                onSubmit={() => setStep(4)}
-              />
-            )}
-          </div>
-
-          <div className="lg:col-span-2 sticky top-20">
-            <PriceSummary />
-          </div>
         </div>
-      ) : (
-        <StepConfirmation loc={selectedLocation} formattedDate={formattedDate} onRestart={restart} />
+
+        <div className="lg:col-span-2 sticky top-20">
+          <PriceSummary />
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ── Accordion shell ──────────────────────────────────────────────────────
+//
+// Three visual states per section:
+//  - "upcoming": not reached yet — grayed header only, no content, no click
+//  - "active": the section being worked on — full header + expanded content
+//  - "complete": already finished — collapsed to a summary row + Change link
+
+function AccordionSection({ number, title, state, summary, onEdit, children }: {
+  number: number
+  title: string
+  state: 'upcoming' | 'active' | 'complete'
+  summary: string | null
+  onEdit?: () => void
+  children: React.ReactNode
+}) {
+  return (
+    <div className={cn(
+      'border rounded-xl overflow-hidden transition-colors',
+      state === 'active' ? 'border-blue-600 ring-2 ring-blue-100' : 'border-gray-200'
+    )}>
+      <div className="flex items-center justify-between px-5 py-4">
+        <div className="flex items-center gap-3">
+          <div className={cn(
+            'w-6 h-6 rounded-full flex items-center justify-center text-xs font-semibold flex-shrink-0',
+            state === 'complete' ? 'bg-blue-600 text-white' :
+            state === 'active' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-400'
+          )}>
+            {state === 'complete' ? <Check size={13} /> : number}
+          </div>
+          <div className={cn('text-base font-semibold', state === 'upcoming' ? 'text-gray-400' : 'text-gray-900')}>
+            {title}
+          </div>
+          {state === 'complete' && summary && (
+            <span className="text-sm text-gray-500 ml-1">— {summary}</span>
+          )}
+        </div>
+        {state === 'complete' && onEdit && (
+          <button onClick={onEdit} className="text-sm font-medium text-blue-600 hover:text-blue-700">Change</button>
+        )}
+      </div>
+      {state === 'active' && (
+        <div className="px-5 pb-6 pt-1 border-t border-gray-100 flex flex-col gap-6">
+          {children}
+        </div>
       )}
     </div>
   )
 }
 
-function StepLocationDate({ location, setLocation, date, setDate, onContinue }: {
+// ── Section 1: Reservation ───────────────────────────────────────────────
+
+function ReservationFields({ location, setLocation, date, setDate, onContinue }: {
   location: string; setLocation: (v: string) => void
   date: string; setDate: (v: string) => void
   onContinue: () => void
@@ -103,12 +158,7 @@ function StepLocationDate({ location, setLocation, date, setDate, onContinue }: 
   return (
     <>
       <div>
-        <h1 className="text-3xl font-bold text-gray-900 mb-1.5">Reserve a Day Pass</h1>
-        <p className="text-sm text-gray-500">Choose a location and date to get started.</p>
-      </div>
-
-      <div>
-        <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Location</div>
+        <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3 mt-3">Location</div>
         <div className="grid grid-cols-3 gap-3">
           {LOCATIONS.map(loc => {
             const selected = loc.name === location
@@ -147,52 +197,6 @@ function StepLocationDate({ location, setLocation, date, setDate, onContinue }: 
         <div className="text-xs text-gray-400 mt-2">Day passes are available Monday–Friday, 9:00am–5:00pm.</div>
       </div>
 
-      <button
-        onClick={onContinue}
-        className="self-start bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold py-3 px-7 rounded-lg transition-colors"
-      >
-        Continue
-      </button>
-    </>
-  )
-}
-
-function StepReview({ loc, formattedDate, onChangeLocation, onChangeDate, onContinue }: {
-  loc: typeof LOCATIONS[number]; formattedDate: string
-  onChangeLocation: () => void; onChangeDate: () => void
-  onContinue: () => void
-}) {
-  return (
-    <>
-      <h1 className="text-3xl font-bold text-gray-900">Your Reservation</h1>
-
-      <div>
-        <div className="flex items-baseline justify-between mb-1">
-          <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Date</div>
-          <button onClick={onChangeDate} className="text-sm font-medium text-blue-600 hover:text-blue-700">Change</button>
-        </div>
-        <div className="text-[15px] font-medium text-gray-900">{formattedDate}</div>
-      </div>
-
-      <div>
-        <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Time</div>
-        <div className="text-sm text-gray-500 mb-0.5">You&apos;ll have building access during business hours</div>
-        <div className="text-[15px] font-medium text-gray-900">9:00am – 5:00pm PDT</div>
-      </div>
-
-      <div>
-        <div className="flex items-baseline justify-between mb-1">
-          <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Location</div>
-          <button onClick={onChangeLocation} className="text-sm font-medium text-blue-600 hover:text-blue-700">Change</button>
-        </div>
-        <div className="text-[15px] font-medium text-gray-900 mb-1">{loc.name}</div>
-        <div className="text-sm text-gray-400 leading-relaxed mb-2">{loc.address}</div>
-        <div className="flex gap-4">
-          <a href="#" className="text-sm font-medium text-blue-600 hover:text-blue-700">View Location</a>
-          <a href="#" className="text-sm font-medium text-blue-600 hover:text-blue-700">Get Directions</a>
-        </div>
-      </div>
-
       <div className="bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 text-sm text-amber-800 leading-relaxed">
         Reservations may be canceled for a full refund until 12:00am (midnight) the night before your reservation date.
       </div>
@@ -207,7 +211,9 @@ function StepReview({ loc, formattedDate, onChangeLocation, onChangeDate, onCont
   )
 }
 
-function StepDetails({ firstName, setFirstName, lastName, setLastName, email, setEmail, password, setPassword, showPassword, setShowPassword, onSubmit }: {
+// ── Section 2: Details — matches Industrious's inline account creation ──
+
+function DetailsFields({ firstName, setFirstName, lastName, setLastName, email, setEmail, password, setPassword, showPassword, setShowPassword, onSubmit }: {
   firstName: string; setFirstName: (v: string) => void
   lastName: string; setLastName: (v: string) => void
   email: string; setEmail: (v: string) => void
@@ -219,9 +225,9 @@ function StepDetails({ firstName, setFirstName, lastName, setLastName, email, se
 
   return (
     <>
-      <div className="flex items-baseline justify-between">
-        <h1 className="text-[26px] font-bold text-gray-900">Your details</h1>
-        <span className="text-sm text-gray-500">Have an account? <a href="/login" className="font-semibold text-blue-600 hover:text-blue-700">Log in</a></span>
+      <div className="flex items-baseline justify-between mt-3">
+        <div className="text-sm text-gray-500">We'll create your BizHaus account at the same time, so you can manage this reservation later.</div>
+        <span className="text-sm text-gray-500 whitespace-nowrap ml-4">Have an account? <a href="/login" className="font-semibold text-blue-600 hover:text-blue-700">Log in</a></span>
       </div>
 
       <div className="flex flex-col gap-4">
@@ -351,11 +357,6 @@ function StepConfirmation({ loc, formattedDate, onRestart }: {
 function PriceSummary() {
   return (
     <div className="flex flex-col gap-4">
-      <div className="bg-amber-50 border border-amber-200 rounded-lg px-4 py-3">
-        <div className="text-sm font-semibold text-amber-800 mb-0.5">Flexible cancellation</div>
-        <div className="text-sm text-amber-700 leading-relaxed">Full refund if canceled before midnight the night before your reservation.</div>
-      </div>
-
       <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
         <div className="px-5 py-4 border-b border-gray-100">
           <div className="text-base font-semibold text-gray-900">Coworking Day Pass</div>
