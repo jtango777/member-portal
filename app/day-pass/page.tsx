@@ -327,7 +327,7 @@ function DetailsAndPayment({
     <>
       <div className="flex items-baseline justify-between mt-3">
         <div className="text-sm text-gray-500">We&apos;ll create your BizHaus account at the same time, so you can manage this reservation later.</div>
-        <span className="text-sm text-gray-500 whitespace-nowrap ml-4">Have an account? <a href="#" className="font-semibold text-booking-600 hover:text-booking-700">Log in</a></span>
+        <span className="text-sm text-gray-500 whitespace-nowrap ml-4">Have an account? <a href="/day-pass/login" className="font-semibold text-booking-600 hover:text-booking-700">Log in</a></span>
       </div>
 
       <div className="flex flex-col gap-4">
