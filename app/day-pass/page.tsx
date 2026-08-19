@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Calendar, Eye, EyeOff, CheckCircle, Check } from 'lucide-react'
+import { Calendar, Eye, EyeOff, CheckCircle, Check, ImageOff } from 'lucide-react'
 import MiniDatePicker from '@/components/MiniDatePicker'
 import { cn } from '@/lib/utils'
 
@@ -173,10 +173,15 @@ function ReservationFields({ location, setLocation, date, setDate, onContinue }:
                 key={loc.name}
                 onClick={() => setLocation(loc.name)}
                 className={cn(
-                  'text-left rounded-xl p-4 border transition-colors',
+                  'text-left rounded-xl border overflow-hidden transition-colors',
                   selected ? 'border-booking-600 ring-2 ring-booking-100 shadow-sm' : 'border-gray-200 hover:border-gray-400 hover:shadow-sm'
                 )}
               >
+                <div className="bg-gray-50 aspect-[16/9] flex flex-col items-center justify-center gap-1 text-gray-300">
+                  <ImageOff size={20} />
+                  <span className="text-[11px] font-medium text-gray-400">Photo coming soon</span>
+                </div>
+                <div className="p-4">
                 <div className="flex items-center justify-between mb-2 gap-2">
                   <span className="text-sm">
                     <span className="font-semibold text-gray-900">{loc.name}</span>
@@ -189,6 +194,7 @@ function ReservationFields({ location, setLocation, date, setDate, onContinue }:
                   )} />
                 </div>
                 <div className="text-xs text-gray-400">{loc.address}</div>
+                </div>
               </button>
             )
           })}
