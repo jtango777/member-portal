@@ -77,7 +77,7 @@ export default async function BookPage() {
               <div className="px-5 py-4 border-t border-gray-100">
                 <Link
                   href={`/book/${location.slug}`}
-                  className="block w-full text-center bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium py-2 px-4 rounded-lg transition-colors"
+                  className="block w-full text-center bg-booking-600 hover:bg-booking-700 text-white text-sm font-medium py-2 px-4 rounded-lg transition-colors"
                 >
                   Check Availability →
                 </Link>

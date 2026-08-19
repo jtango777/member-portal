@@ -117,14 +117,14 @@ function AccordionSection({ number, title, state, summary, onEdit, children }: {
   return (
     <div className={cn(
       'border rounded-xl overflow-hidden transition-colors',
-      state === 'active' ? 'border-blue-600 ring-2 ring-blue-100' : 'border-gray-200'
+      state === 'active' ? 'border-booking-600 ring-2 ring-booking-100' : 'border-gray-200'
     )}>
       <div className="flex items-center justify-between px-5 py-4">
         <div className="flex items-center gap-3">
           <div className={cn(
             'w-6 h-6 rounded-full flex items-center justify-center text-xs font-semibold flex-shrink-0',
-            state === 'complete' ? 'bg-blue-600 text-white' :
-            state === 'active' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-400'
+            state === 'complete' ? 'bg-booking-600 text-white' :
+            state === 'active' ? 'bg-booking-600 text-white' : 'bg-gray-100 text-gray-400'
           )}>
             {state === 'complete' ? <Check size={13} /> : number}
           </div>
@@ -136,14 +136,20 @@ function AccordionSection({ number, title, state, summary, onEdit, children }: {
           )}
         </div>
         {state === 'complete' && onEdit && (
-          <button onClick={onEdit} className="text-sm font-medium text-blue-600 hover:text-blue-700">Change</button>
+          <button onClick={onEdit} className="text-sm font-medium text-booking-600 hover:text-booking-700">Change</button>
         )}
       </div>
-      {state === 'active' && (
-        <div className="px-5 pb-6 pt-1 border-t border-gray-100 flex flex-col gap-6">
-          {children}
+      {/* Smoothly expands/collapses via a grid-rows transition instead of
+          mounting/unmounting — same pattern used for Add Member's Connect
+          to Rooms panel, so this reads as a real accordion, not a hard
+          content swap. */}
+      <div className={cn('grid transition-[grid-template-rows] duration-300 ease-in-out', state === 'active' ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]')}>
+        <div className={cn('overflow-hidden transition-opacity duration-200', state === 'active' ? 'opacity-100 delay-100' : 'opacity-0')}>
+          <div className="px-5 pb-6 pt-1 border-t border-gray-100 flex flex-col gap-6">
+            {children}
+          </div>
         </div>
-      )}
+      </div>
     </div>
   )
 }
@@ -168,14 +174,14 @@ function ReservationFields({ location, setLocation, date, setDate, onContinue }:
                 onClick={() => setLocation(loc.name)}
                 className={cn(
                   'text-left rounded-xl p-4 border transition-colors',
-                  selected ? 'border-blue-600 ring-2 ring-blue-100 shadow-sm' : 'border-gray-200 hover:border-gray-400 hover:shadow-sm'
+                  selected ? 'border-booking-600 ring-2 ring-booking-100 shadow-sm' : 'border-gray-200 hover:border-gray-400 hover:shadow-sm'
                 )}
               >
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-sm font-semibold text-gray-900">{loc.name}</span>
                   <span className={cn(
                     'h-3.5 w-3.5 rounded-full border-[1.5px] flex-shrink-0',
-                    selected ? 'border-blue-600 bg-blue-600 ring-2 ring-inset ring-white' : 'border-gray-300'
+                    selected ? 'border-booking-600 bg-booking-600 ring-2 ring-inset ring-white' : 'border-gray-300'
                   )} />
                 </div>
                 <div className="text-xs text-gray-500 mb-0.5">{loc.phone}</div>
@@ -203,7 +209,7 @@ function ReservationFields({ location, setLocation, date, setDate, onContinue }:
 
       <button
         onClick={onContinue}
-        className="self-start bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold py-3 px-7 rounded-lg transition-colors"
+        className="self-start bg-booking-600 hover:bg-booking-700 text-white text-sm font-semibold py-3 px-7 rounded-lg transition-colors"
       >
         Continue
       </button>
@@ -227,7 +233,7 @@ function DetailsFields({ firstName, setFirstName, lastName, setLastName, email, 
     <>
       <div className="flex items-baseline justify-between mt-3">
         <div className="text-sm text-gray-500">We'll create your BizHaus account at the same time, so you can manage this reservation later.</div>
-        <span className="text-sm text-gray-500 whitespace-nowrap ml-4">Have an account? <a href="/login" className="font-semibold text-blue-600 hover:text-blue-700">Log in</a></span>
+        <span className="text-sm text-gray-500 whitespace-nowrap ml-4">Have an account? <a href="/login" className="font-semibold text-booking-600 hover:text-booking-700">Log in</a></span>
       </div>
 
       <div className="flex flex-col gap-4">
@@ -235,18 +241,18 @@ function DetailsFields({ firstName, setFirstName, lastName, setLastName, email, 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1.5">First name*</label>
             <input value={firstName} onChange={e => setFirstName(e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-booking-500" />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1.5">Last name*</label>
             <input value={lastName} onChange={e => setLastName(e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-booking-500" />
           </div>
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1.5">Email*</label>
           <input type="email" value={email} onChange={e => setEmail(e.target.value)}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-booking-500" />
         </div>
       </div>
 
@@ -261,7 +267,7 @@ function DetailsFields({ firstName, setFirstName, lastName, setLastName, email, 
             <input
               type={showPassword ? 'text' : 'password'}
               value={password} onChange={e => setPassword(e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2.5 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2.5 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-booking-500"
             />
             <button type="button" onClick={() => setShowPassword(!showPassword)}
               className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
@@ -273,13 +279,13 @@ function DetailsFields({ firstName, setFirstName, lastName, setLastName, email, 
       </div>
 
       <div className="text-xs text-gray-400 leading-relaxed max-w-[460px]">
-        By clicking Complete Reservation, I agree to the <a href="#" className="text-blue-600 hover:text-blue-700">Website Terms of Service</a> and the <a href="#" className="text-blue-600 hover:text-blue-700">Privacy Policy</a>.
+        By clicking Complete Reservation, I agree to the <a href="#" className="text-booking-600 hover:text-booking-700">Website Terms of Service</a> and the <a href="#" className="text-booking-600 hover:text-booking-700">Privacy Policy</a>.
       </div>
 
       <button
         onClick={onSubmit}
         disabled={!canSubmit}
-        className="self-start bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 disabled:cursor-not-allowed text-white text-sm font-semibold py-3 px-7 rounded-lg transition-colors"
+        className="self-start bg-booking-600 hover:bg-booking-700 disabled:bg-booking-300 disabled:cursor-not-allowed text-white text-sm font-semibold py-3 px-7 rounded-lg transition-colors"
       >
         Complete Reservation
       </button>
@@ -345,7 +351,7 @@ function StepConfirmation({ loc, formattedDate, onRestart }: {
       </div>
 
       <div className="flex gap-4 items-center mt-2">
-        <button onClick={onRestart} className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold py-2.5 px-6 rounded-lg transition-colors">
+        <button onClick={onRestart} className="bg-booking-600 hover:bg-booking-700 text-white text-sm font-semibold py-2.5 px-6 rounded-lg transition-colors">
           Book Another Day Pass
         </button>
         <a href="/" className="text-sm font-medium text-gray-500 hover:text-gray-700">Return to bizhaus.com</a>
@@ -373,7 +379,7 @@ function PriceSummary() {
         </div>
         <div className="px-5 py-4 flex flex-col gap-2">
           <div className="flex gap-2">
-            <input placeholder="Promo code" className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            <input placeholder="Promo code" className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-booking-500" />
             <button className="border border-gray-300 text-gray-700 hover:bg-gray-50 rounded-lg px-4 py-2 text-sm font-medium transition-colors">Apply</button>
           </div>
           <div className="text-xs text-gray-400">Promo codes can be applied after logging in.</div>

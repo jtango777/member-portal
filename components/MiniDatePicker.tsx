@@ -63,7 +63,7 @@ export default function MiniDatePicker({ value, onChange, disabled }: Props) {
         disabled={disabled}
         onClick={handleOpen}
         className={cn(
-          'w-full text-left border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500',
+          'w-full text-left border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white transition-colors focus:outline-none focus:ring-2 focus:ring-booking-500',
           disabled ? 'opacity-40 cursor-not-allowed' : 'hover:border-gray-400 cursor-pointer',
         )}
       >
@@ -116,9 +116,9 @@ export default function MiniDatePicker({ value, onChange, disabled }: Props) {
                     isPast
                       ? 'text-gray-300 cursor-not-allowed'
                       : selectedDate && isSameDay(day, selectedDate)
-                      ? 'bg-blue-600 text-white font-semibold'
+                      ? 'bg-booking-600 text-white font-semibold'
                       : isSameDay(day, today)
-                      ? 'bg-blue-50 text-blue-600 font-semibold'
+                      ? 'bg-booking-50 text-booking-600 font-semibold'
                       : 'hover:bg-gray-100 text-gray-700'
                   )}
                 >

@@ -12,7 +12,7 @@ export default function DayPassLayout({ children }: { children: React.ReactNode 
       <header className="bg-slate-900 h-16 flex items-center flex-shrink-0 px-6">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/brand/bizhaus-logo-white.png" alt="BizHaus" className="h-5 w-auto" />
-        <span className="ml-4 text-xs font-bold bg-blue-600 text-white px-2.5 py-1 rounded">Day Pass</span>
+        <span className="ml-4 text-xs font-bold bg-booking-600 text-white px-2.5 py-1 rounded">Day Pass</span>
         <div className="flex-1" />
         <span className="text-sm text-slate-400">
           Have an account? <a href="/login" className="text-white font-medium hover:underline">Log in</a>

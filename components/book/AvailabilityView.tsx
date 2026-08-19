@@ -190,7 +190,7 @@ export default function AvailabilityView({ location, rooms }: { location: BookLo
               className={cn(
                 'rounded-xl border overflow-hidden cursor-pointer transition-all bg-white',
                 selectedRoom?.id === room.id
-                  ? 'border-blue-600 ring-2 ring-blue-100 shadow-sm'
+                  ? 'border-booking-600 ring-2 ring-booking-100 shadow-sm'
                   : 'border-gray-200 hover:border-gray-400 hover:shadow-sm'
               )}
             >
@@ -349,7 +349,7 @@ export default function AvailabilityView({ location, rooms }: { location: BookLo
                           >
                             <span className={cn(
                               'relative inline-flex h-4 w-7 items-center rounded-full transition-colors',
-                              allDay ? 'bg-blue-600' : 'bg-gray-300'
+                              allDay ? 'bg-booking-600' : 'bg-gray-300'
                             )}>
                               <span className={cn(
                                 'inline-block h-3 w-3 rounded-full bg-white shadow transition-transform',
@@ -368,7 +368,7 @@ export default function AvailabilityView({ location, rooms }: { location: BookLo
                             <select
                               value={selectedStart}
                               onChange={e => { setSelectedStart(e.target.value); setSelectedEnd('') }}
-                              className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                              className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-booking-500 bg-white"
                             >
                               <option value="">Start time</option>
                               {startSlotsWithStatus.map(s => (
@@ -381,7 +381,7 @@ export default function AvailabilityView({ location, rooms }: { location: BookLo
                               value={selectedEnd}
                               onChange={e => setSelectedEnd(e.target.value)}
                               disabled={!selectedStart || endSlotsWithStatus.length === 0}
-                              className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white disabled:opacity-40"
+                              className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-booking-500 bg-white disabled:opacity-40"
                             >
                               <option value="">End time</option>
                               {endSlotsWithStatus.map(s => (
@@ -411,13 +411,13 @@ export default function AvailabilityView({ location, rooms }: { location: BookLo
                     {canContinue ? (
                       <Link
                         href={`/book/request?room=${selectedRoom.id}&date=${selectedDate}&start=${encodeURIComponent(selectedStart)}&end=${encodeURIComponent(selectedEnd)}&location=${location.slug}`}
-                        className="block w-full text-center bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold py-3 rounded-lg transition-colors"
+                        className="block w-full text-center bg-booking-600 hover:bg-booking-700 text-white text-sm font-semibold py-3 rounded-lg transition-colors"
                       >
                         Proceed to Payment →
                       </Link>
                     ) : (
                       <button disabled
-                        className="w-full bg-blue-200 text-white text-sm font-semibold py-3 rounded-lg cursor-not-allowed">
+                        className="w-full bg-booking-200 text-white text-sm font-semibold py-3 rounded-lg cursor-not-allowed">
                         Request Booking →
                       </button>
                     )}

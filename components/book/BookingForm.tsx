@@ -122,13 +122,13 @@ function CheckoutForm({
             <label className="block text-sm font-medium text-gray-700 mb-1.5">Full name <span className="text-red-500">*</span></label>
             <input required value={name} onChange={e => setName(e.target.value)}
               placeholder="Jane Smith"
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-booking-500" />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1.5">Email <span className="text-red-500">*</span></label>
             <input required type="email" value={email} onChange={e => setEmail(e.target.value)}
               placeholder="jane@company.com"
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-booking-500" />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1.5">Phone <span className="text-red-500">*</span></label>
@@ -139,20 +139,20 @@ function CheckoutForm({
                 else setPhone(`(${digits.slice(0,3)}) ${digits.slice(3,6)}-${digits.slice(6)}`)
               }}
               placeholder="(310) 555-0000"
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-booking-500" />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1.5">Company <span className="text-gray-400 font-normal">(optional)</span></label>
             <input value={company} onChange={e => setCompany(e.target.value)}
               placeholder="Acme Inc."
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-booking-500" />
           </div>
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1.5">Notes <span className="text-gray-400 font-normal">(optional)</span></label>
           <textarea value={notes} onChange={e => setNotes(e.target.value)}
             rows={3} placeholder="Anything we should know about your booking…"
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none" />
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-booking-500 resize-none" />
         </div>
       </div>
 
@@ -167,7 +167,7 @@ function CheckoutForm({
       {/* Cancellation policy */}
       <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 text-sm text-gray-600 space-y-3">
         <p><span className="font-semibold text-gray-900">Cancellation policy:</span> Bookings are non-refundable. If you need to cancel, contact us at{' '}
-          <a href="mailto:bookings@bizhaus.com" className="text-blue-600 hover:underline">bookings@bizhaus.com</a>{' '}
+          <a href="mailto:bookings@bizhaus.com" className="text-booking-600 hover:underline">bookings@bizhaus.com</a>{' '}
           to inquire about credit toward a future booking.</p>
         <label className="flex items-start gap-2.5 cursor-pointer">
           <input type="checkbox" checked={agreed} onChange={e => setAgreed(e.target.checked)}
@@ -190,8 +190,8 @@ function CheckoutForm({
         className={cn(
           'w-full py-3.5 rounded-lg text-sm font-semibold transition-colors',
           loading || !agreed || !stripe || !recaptchaToken
-            ? 'bg-blue-300 text-white cursor-not-allowed'
-            : 'bg-blue-600 hover:bg-blue-700 text-white'
+            ? 'bg-booking-300 text-white cursor-not-allowed'
+            : 'bg-booking-600 hover:bg-booking-700 text-white'
         )}
       >
         {loading ? 'Processing…' : `Pay $${estimatedTotal.toFixed(0)}`}
@@ -251,7 +251,7 @@ export default function BookingForm(props: Props) {
             <span className="font-semibold text-gray-900">${estimatedTotal.toFixed(0)}</span>
           </div>
         </div>
-        <Link href="/book" className="inline-flex items-center gap-1.5 text-sm text-blue-600 hover:text-blue-700 font-medium">
+        <Link href="/book" className="inline-flex items-center gap-1.5 text-sm text-booking-600 hover:text-booking-700 font-medium">
           ← Back to all locations
         </Link>
       </div>
@@ -272,21 +272,21 @@ export default function BookingForm(props: Props) {
         <h2 className="font-semibold text-gray-900">Booking summary</h2>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
           <div className="flex items-start gap-2 text-gray-600">
-            <MapPin size={15} className="mt-0.5 shrink-0 text-blue-600" />
+            <MapPin size={15} className="mt-0.5 shrink-0 text-booking-600" />
             <div>
               <p className="font-medium text-gray-900">{roomName}</p>
               <p>{locationName}</p>
             </div>
           </div>
           <div className="flex items-start gap-2 text-gray-600">
-            <Clock size={15} className="mt-0.5 shrink-0 text-blue-600" />
+            <Clock size={15} className="mt-0.5 shrink-0 text-booking-600" />
             <div>
               <p className="font-medium text-gray-900">{startLabel} – {endLabel}</p>
               <p>{formattedDate}</p>
             </div>
           </div>
           <div className="flex items-start gap-2 text-gray-600">
-            <Users size={15} className="mt-0.5 shrink-0 text-blue-600" />
+            <Users size={15} className="mt-0.5 shrink-0 text-booking-600" />
             <div>
               <p className="font-medium text-gray-900">Up to {capacity} people</p>
               <p>${pricePerHour}/hr · {durationHours}h</p>
