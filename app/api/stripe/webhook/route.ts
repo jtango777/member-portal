@@ -106,6 +106,16 @@ export async function POST(request: Request) {
           .eq('id', booking.reservation_id)
       }
     }
+
+    const { data: dayPass } = await admin
+      .from('day_passes')
+      .select('id')
+      .eq('stripe_payment_intent_id', pi.id)
+      .single()
+
+    if (dayPass) {
+      await admin.from('day_passes').update({ status: 'declined' }).eq('id', dayPass.id)
+    }
   }
 
   return NextResponse.json({ received: true })
