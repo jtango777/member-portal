@@ -38,6 +38,36 @@ const BOOKING_GREEN = '#6ec664'
 const LOGO_DATA_URI = 'data:image/png;base64,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'
 
 
+// Location details used by the day-pass letter templates below. Not worth
+// its own table yet — mirrors app/day-pass/page.tsx's DAY_PASS_LOCATIONS.
+const DAY_PASS_LOCATIONS: Record<string, { phone: string; address: string; isMarina?: boolean }> = {
+  'El Segundo': { phone: '(310) 870-1730', address: '1730 E Holly Ave, El Segundo' },
+  'Marina del Rey': { phone: '(310) 596-1990', address: '4223 Glencoe Ave Ste C215, Marina del Rey', isMarina: true },
+  'Costa Mesa': { phone: '(949) 800-8660', address: '2942 Century Pl, Costa Mesa' },
+}
+
+// Letter-style wrapper for the day-pass confirmation email — plainer and
+// more personal than the receipt-style bookingEmailWrapper above, per
+// Caroline's redesign request (Aug 2026): less "automated," more like a
+// real email from the team.
+function letterEmailWrapper(content: string) {
+  return `
+    <div style="font-family:Georgia,'Times New Roman',serif;background:#f1f5f9;padding:40px 16px;">
+      <div style="max-width:560px;margin:0 auto;background:#ffffff;border:1px solid #e5e7eb;border-radius:10px;overflow:hidden;">
+        <div style="padding:28px 40px 20px;border-bottom:1px solid #eef0ee;">
+          <img src="${LOGO_DATA_URI}" alt="BizHaus" style="height:22px;width:auto;" />
+        </div>
+        <div style="padding:36px 40px 40px;">
+          ${content}
+        </div>
+        <div style="background:#fafafa;border-top:1px solid #eef0ee;padding:20px 40px;font-family:${FONT};">
+          <p style="margin:0;font-size:12.5px;color:#94a3a0;">© ${new Date().getFullYear()} BizHaus &middot; <a href="mailto:bookings@bizhaus.com" style="color:#3f7a37;">bookings@bizhaus.com</a></p>
+        </div>
+      </div>
+    </div>
+  `
+}
+
 function bookingEmailWrapper(content: string, badge: string) {
   return `
     <div style="font-family:${FONT};background:#f1f5f9;padding:40px 16px;min-height:100vh;">
@@ -63,7 +93,7 @@ function bookingEmailWrapper(content: string, badge: string) {
 
 export async function sendInviteEmail(to: string, token: string) {
   const link = `${APP_URL}/setup-account?token=${token}`
-  await resend.emails.send({
+  const { error } = await resend.emails.send({
     from: FROM,
     to,
     subject: "You're invited to the BizHaus Member Portal",
@@ -74,13 +104,14 @@ export async function sendInviteEmail(to: string, token: string) {
       <p style="color:#94a3b8;font-size:13px;margin:0;border-top:1px solid #f1f5f9;padding-top:20px;">This link expires in 7 days. If you weren't expecting this, you can safely ignore it.</p>
     `),
   })
+  if (error) console.error('[email] Resend error sending invite email:', error)
 }
 
 export async function sendConfirmationEmail(
   to: string,
   details: { title: string; room: string; location: string; date: string; time: string; booker: string }
 ) {
-  await resend.emails.send({
+  const { error } = await resend.emails.send({
     from: FROM,
     to,
     subject: `Reservation confirmed: ${details.title}`,
@@ -96,6 +127,7 @@ export async function sendConfirmationEmail(
       <p style="color:#94a3b8;font-size:13px;margin:0;border-top:1px solid #f1f5f9;padding-top:20px;">Need to cancel? Log in to BizHaus and cancel from the calendar — at least 24 hours before your reservation.</p>
     `),
   })
+  if (error) console.error('[email] Resend error sending confirmation email:', error)
 }
 
 export async function sendExternalBookingReceipt(
@@ -117,7 +149,7 @@ export async function sendExternalBookingReceipt(
     ? `${(details.cardBrand ?? 'Card').charAt(0).toUpperCase() + (details.cardBrand ?? 'card').slice(1)} ending in ${details.cardLast4}`
     : 'Card on file'
 
-  await resend.emails.send({
+  const { error } = await resend.emails.send({
     from: FROM,
     to,
     subject: `BizHaus Receipt — ${details.room} on ${details.date}`,
@@ -168,6 +200,7 @@ export async function sendExternalBookingReceipt(
       </p>
     `, 'Bookings'),
   })
+  if (error) console.error('[email] Resend error sending external booking receipt:', error)
 }
 
 export async function sendDayPassConfirmation(
@@ -183,67 +216,132 @@ export async function sendDayPassConfirmation(
     paymentDate: string
   }
 ) {
-  const cardLine = details.cardLast4
-    ? `${(details.cardBrand ?? 'Card').charAt(0).toUpperCase() + (details.cardBrand ?? 'card').slice(1)} ending in ${details.cardLast4}`
-    : 'Card on file'
+  const firstName = details.guestName.trim().split(/\s+/)[0] || details.guestName
+  const loc = DAY_PASS_LOCATIONS[details.location]
 
-  await resend.emails.send({
+  const html = loc?.isMarina
+    ? marinaConfirmationEmail(firstName, details)
+    : standardConfirmationEmail(firstName, details, loc)
+
+  const { data, error } = await resend.emails.send({
     from: FROM,
     to,
-    subject: `BizHaus Day Pass Receipt — ${details.location} on ${details.date}`,
-    html: bookingEmailWrapper(`
-      <h2 style="color:#0f172a;margin:0 0 4px;font-size:22px;font-weight:700;">Day Pass Confirmed ✓</h2>
-      <p style="color:#64748b;font-size:13px;margin:0 0 24px;">Confirmation #${details.confirmationNumber}</p>
-
-      <table style="border-collapse:collapse;width:100%;margin-bottom:24px;background:#f8fafc;border-radius:7px;overflow:hidden;">
-        <tr>
-          <td style="padding:10px 14px;color:#64748b;font-size:13px;width:110px;">Guest</td>
-          <td style="padding:10px 14px;font-weight:600;color:#0f172a;">${details.guestName}</td>
-        </tr>
-        <tr style="border-top:1px solid #e2e8f0;">
-          <td style="padding:10px 14px;color:#64748b;font-size:13px;">Location</td>
-          <td style="padding:10px 14px;color:#1e293b;">${details.location}</td>
-        </tr>
-        <tr style="border-top:1px solid #e2e8f0;">
-          <td style="padding:10px 14px;color:#64748b;font-size:13px;">Date</td>
-          <td style="padding:10px 14px;color:#1e293b;">${details.date}</td>
-        </tr>
-        <tr style="border-top:1px solid #e2e8f0;">
-          <td style="padding:10px 14px;color:#64748b;font-size:13px;">Time</td>
-          <td style="padding:10px 14px;color:#1e293b;">9:00am – 5:00pm</td>
-        </tr>
-      </table>
-
-      <h3 style="color:#0f172a;margin:0 0 12px;font-size:15px;font-weight:700;">Payment Receipt</h3>
-      <table style="border-collapse:collapse;width:100%;margin-bottom:24px;background:#f8fafc;border-radius:7px;overflow:hidden;">
-        <tr>
-          <td style="padding:10px 14px;color:#64748b;font-size:13px;width:110px;">Amount</td>
-          <td style="padding:10px 14px;font-weight:700;color:#0f172a;">${details.amountPaid}</td>
-        </tr>
-        <tr style="border-top:1px solid #e2e8f0;">
-          <td style="padding:10px 14px;color:#64748b;font-size:13px;">Paid with</td>
-          <td style="padding:10px 14px;color:#1e293b;">${cardLine}</td>
-        </tr>
-        <tr style="border-top:1px solid #e2e8f0;">
-          <td style="padding:10px 14px;color:#64748b;font-size:13px;">Date</td>
-          <td style="padding:10px 14px;color:#1e293b;">${details.paymentDate}</td>
-        </tr>
-      </table>
-
-      <a href="${APP_URL}/day-pass/account" style="display:inline-block;background:#6ec664;color:white;padding:13px 28px;border-radius:7px;text-decoration:none;font-weight:600;font-size:15px;margin-bottom:24px;">View My Reservations →</a>
-
-      <p style="color:#94a3b8;font-size:13px;margin:0;border-top:1px solid #f1f5f9;padding-top:20px;">
-        <strong style="color:#64748b;">Cancellation policy:</strong> Reservations may be canceled for a full refund until 12:00am (midnight) the night before your reservation date. Contact us at
-        <a href="mailto:hello@bizhaus.com" style="color:#4f9645;text-decoration:none;">hello@bizhaus.com</a>.
-      </p>
-    `, 'Day Pass'),
+    subject: `Your BizHaus Day Pass — ${details.location}, ${details.date}`,
+    html: letterEmailWrapper(html),
   })
+  if (error) {
+    console.error('[email] Resend error sending day pass confirmation:', error)
+  }
+  return { data, error }
+}
+
+function standardConfirmationEmail(
+  firstName: string,
+  details: { confirmationNumber: string; location: string; date: string; amountPaid: string },
+  loc: { phone: string; address: string } | undefined
+) {
+  return `
+    <p style="font-family:${FONT};font-size:15px;color:#3a3f3a;line-height:1.7;margin:0 0 22px;">Hi ${firstName},</p>
+    <p style="font-family:${FONT};font-size:15px;color:#3a3f3a;line-height:1.7;margin:0 0 18px;">
+      Thanks for booking a day pass with BizHaus! We're looking forward to having you at our <strong>${details.location}</strong> location.
+    </p>
+    <p style="font-family:${FONT};font-size:15px;color:#3a3f3a;line-height:1.7;margin:0 0 28px;">
+      We'll be there at <strong>9:00am</strong> to help you get set up when you arrive, just check in with us at the front desk.
+    </p>
+
+    <table style="border-collapse:collapse;width:100%;margin-bottom:28px;font-family:${FONT};">
+      <tr>
+        <td style="padding:9px 0;border-top:1px solid #eef0ee;color:#8b948d;font-size:13px;width:120px;">Location</td>
+        <td style="padding:9px 0;border-top:1px solid #eef0ee;color:#232823;font-size:13.5px;">${loc ? `${details.location}, ${loc.address}` : details.location}</td>
+      </tr>
+      <tr>
+        <td style="padding:9px 0;border-top:1px solid #eef0ee;color:#8b948d;font-size:13px;">Date</td>
+        <td style="padding:9px 0;border-top:1px solid #eef0ee;color:#232823;font-size:13.5px;">${details.date}</td>
+      </tr>
+      <tr>
+        <td style="padding:9px 0;border-top:1px solid #eef0ee;color:#8b948d;font-size:13px;">Time</td>
+        <td style="padding:9px 0;border-top:1px solid #eef0ee;color:#232823;font-size:13.5px;">9:00am &ndash; 5:00pm</td>
+      </tr>
+      <tr>
+        <td style="padding:9px 0;border-top:1px solid #eef0ee;border-bottom:1px solid #eef0ee;color:#8b948d;font-size:13px;">Total paid</td>
+        <td style="padding:9px 0;border-top:1px solid #eef0ee;border-bottom:1px solid #eef0ee;color:#232823;font-size:13.5px;font-weight:bold;">${details.amountPaid}</td>
+      </tr>
+    </table>
+
+    <p style="font-family:${FONT};font-size:15px;color:#3a3f3a;line-height:1.7;margin:0 0 6px;">
+      Reply to this email if you have any questions${loc ? `, or give us a call at ${loc.phone}` : ''}.
+    </p>
+    <p style="font-family:${FONT};font-size:15px;color:#3a3f3a;line-height:1.7;margin:24px 0 0;">
+      See you soon,<br/>The BizHaus Team
+    </p>
+    <p style="font-family:${FONT};font-size:12px;color:#b7bdb6;line-height:1.6;margin:20px 0 0;">
+      Reference #${details.confirmationNumber} if you need to reach us about this booking.
+    </p>
+  `
+}
+
+function marinaConfirmationEmail(
+  firstName: string,
+  details: { confirmationNumber: string; date: string }
+) {
+  const photo = (name: string) => `${APP_URL}/day-pass/${name}`
+  const bullet = (label: string, text: string) => `
+    <tr>
+      <td style="padding:0 0 16px;font-family:${FONT};font-size:14.5px;color:#3a3f3a;line-height:1.65;vertical-align:top;">
+        <span style="color:#3f7a37;font-weight:700;">${label}:</span> ${text}
+      </td>
+    </tr>
+  `
+
+  return `
+    <p style="font-family:${FONT};font-size:15px;color:#3a3f3a;line-height:1.7;margin:0 0 22px;">Hi ${firstName},</p>
+    <p style="font-family:${FONT};font-size:15px;color:#3a3f3a;line-height:1.7;margin:0 0 6px;">
+      We look forward to having you at BizHaus today!
+    </p>
+    <p style="font-family:${FONT};font-size:14px;color:#6b746c;line-height:1.6;margin:0 0 26px;">
+      Our Marina del Rey location is a satellite space, so a team member won't be there until the afternoon. Here's what you need to get in and get set up.
+    </p>
+
+    <table style="border-collapse:collapse;width:100%;margin-bottom:8px;">
+      ${bullet('WiFi Password', 'bizhauswifi')}
+      ${bullet('Building Access', "BizHaus MDR is located at 4223 Glencoe Ave, Suite C215, Marina del Rey. Use code <strong>#6192</strong> to enter the building and Suite C215, it's the same code for both doors.")}
+      ${bullet('Parking', 'Visitor parking out front is limited to 2 hours. Street parking is available nearby, or park in the AMC structure next door.')}
+      ${bullet('Restrooms', 'Down the hallway, keys hang next to each door (pink bear for women, blue bear for men).')}
+      ${bullet('Printers', 'Search for &ldquo;BizHaus Printer&rdquo; on the network. Our policy: please be kind to trees and print only when you have to!')}
+      ${bullet('Kitchen', 'Enjoy the Nespresso and purified water. Just place used cups and dishes in the dishwasher.')}
+    </table>
+
+    <p style="font-family:${FONT};font-size:14.5px;color:#3a3f3a;line-height:1.65;margin:6px 0 10px;">
+      <span style="color:#3f7a37;font-weight:700;">Open desk areas:</span> feel free to set up wherever's comfortable.
+    </p>
+    <table style="width:100%;border-collapse:collapse;margin-bottom:26px;">
+      <tr>
+        <td style="padding:0 4px 0 0;width:33.33%;"><img src="${photo('marina-desk-1.jpg')}" style="width:100%;height:auto;border-radius:8px;display:block;" alt="Open desk area" /></td>
+        <td style="padding:0 4px;width:33.33%;"><img src="${photo('marina-desk-2.jpg')}" style="width:100%;height:auto;border-radius:8px;display:block;" alt="Open desk area" /></td>
+        <td style="padding:0 0 0 4px;width:33.33%;"><img src="${photo('marina-desk-3.jpg')}" style="width:100%;height:auto;border-radius:8px;display:block;" alt="Open desk area" /></td>
+      </tr>
+    </table>
+
+    <table style="border-collapse:collapse;width:100%;margin-bottom:28px;font-family:${FONT};background:#fafbfa;border-radius:8px;">
+      <tr><td style="padding:12px 16px;color:#8b948d;font-size:12.5px;">Date</td><td style="padding:12px 16px;color:#232823;font-size:13px;text-align:right;">${details.date}</td></tr>
+    </table>
+
+    <p style="font-family:${FONT};font-size:15px;color:#3a3f3a;line-height:1.7;margin:0 0 6px;">
+      Reply to this email if you have any questions, or give us a call.
+    </p>
+    <p style="font-family:${FONT};font-size:15px;color:#3a3f3a;line-height:1.7;margin:24px 0 0;">
+      See you soon,<br/>The BizHaus Team
+    </p>
+    <p style="font-family:${FONT};font-size:12px;color:#b7bdb6;line-height:1.6;margin:20px 0 0;">
+      Reference #${details.confirmationNumber} if you need to reach us about this booking.
+    </p>
+  `
 }
 
 export async function sendExternalBookingStaffNotification(
   details: { confirmationNumber: string; guestName: string; guestEmail: string; room: string; location: string; date: string; time: string; amountPaid: string }
 ) {
-  await resend.emails.send({
+  const { error } = await resend.emails.send({
     from: FROM,
     to: STAFF_EMAIL,
     subject: `New room booking: ${details.guestName} — ${details.room}, ${details.location}`,
@@ -275,12 +373,13 @@ export async function sendExternalBookingStaffNotification(
       <a href="${APP_URL}/dashboard/admin/reservations" style="display:inline-block;background:#6ec664;color:white;padding:13px 28px;border-radius:7px;text-decoration:none;font-weight:600;font-size:15px;">View Bookings →</a>
     `, 'Bookings'),
   })
+  if (error) console.error('[email] Resend error sending external booking staff notification:', error)
 }
 
 export async function sendDayPassStaffNotification(
   details: { confirmationNumber: string; guestName: string; guestEmail: string; location: string; date: string; amountPaid: string }
 ) {
-  await resend.emails.send({
+  const { error } = await resend.emails.send({
     from: FROM,
     to: STAFF_EMAIL,
     subject: `New day pass: ${details.guestName} — ${details.location}`,
@@ -308,13 +407,14 @@ export async function sendDayPassStaffNotification(
       <a href="${APP_URL}/dashboard/admin/day-passes" style="display:inline-block;background:#6ec664;color:white;padding:13px 28px;border-radius:7px;text-decoration:none;font-weight:600;font-size:15px;">View Day Passes →</a>
     `, 'Day Pass'),
   })
+  if (error) console.error('[email] Resend error sending day pass staff notification:', error)
 }
 
 export async function sendCancellationEmail(
   to: string,
   details: { title: string; room: string; location: string; date: string; time: string }
 ) {
-  await resend.emails.send({
+  const { error } = await resend.emails.send({
     from: FROM,
     to,
     subject: `Reservation cancelled: ${details.title}`,
@@ -330,10 +430,11 @@ export async function sendCancellationEmail(
       <p style="color:#94a3b8;font-size:13px;margin:0;border-top:1px solid #f1f5f9;padding-top:20px;">Questions? Contact your BizHaus admin.</p>
     `),
   })
+  if (error) console.error('[email] Resend error sending cancellation email:', error)
 }
 
 export async function sendRoomAccessGrantedEmail(to: string, name: string) {
-  await resend.emails.send({
+  const { error } = await resend.emails.send({
     from: FROM,
     to,
     subject: "You're set up to book rooms",
@@ -343,12 +444,13 @@ export async function sendRoomAccessGrantedEmail(to: string, name: string) {
       <a href="${APP_URL}/dashboard/rooms" style="display:inline-block;background:#2563eb;color:white;padding:13px 28px;border-radius:7px;text-decoration:none;font-weight:600;font-size:15px;">Book a Room →</a>
     `),
   })
+  if (error) console.error('[email] Resend error sending room access granted email:', error)
 }
 
 export async function sendCancellationRequestEmail(
   details: { name: string; email: string; title: string; room: string; location: string; date: string; time: string }
 ) {
-  await resend.emails.send({
+  const { error } = await resend.emails.send({
     from: FROM,
     to: STAFF_EMAIL,
     subject: `Cancellation request (within 12h): ${details.title}`,
@@ -365,12 +467,13 @@ export async function sendCancellationRequestEmail(
       <a href="${APP_URL}/dashboard/admin/reservations" style="display:inline-block;background:#2563eb;color:white;padding:13px 28px;border-radius:7px;text-decoration:none;font-weight:600;font-size:15px;">Open Reservations →</a>
     `),
   })
+  if (error) console.error('[email] Resend error sending cancellation request email:', error)
 }
 
 export async function sendFeedbackNotificationEmail(
   details: { name: string; email: string; category: string; message: string }
 ) {
-  await resend.emails.send({
+  const { error } = await resend.emails.send({
     from: FROM,
     to: STAFF_EMAIL,
     subject: `New feedback (${details.category}): ${details.name}`,
@@ -384,10 +487,11 @@ export async function sendFeedbackNotificationEmail(
       <a href="${APP_URL}/dashboard/admin/feedback" style="display:inline-block;background:#2563eb;color:white;padding:13px 28px;border-radius:7px;text-decoration:none;font-weight:600;font-size:15px;">View Feedback →</a>
     `),
   })
+  if (error) console.error('[email] Resend error sending feedback notification email:', error)
 }
 
 export async function sendRoomAccessRequestEmail(details: { name: string; email: string }) {
-  await resend.emails.send({
+  const { error } = await resend.emails.send({
     from: FROM,
     to: STAFF_EMAIL,
     subject: `Room access requested: ${details.name}`,
@@ -401,4 +505,5 @@ export async function sendRoomAccessRequestEmail(details: { name: string; email:
       <a href="${APP_URL}/dashboard/admin/members" style="display:inline-block;background:#2563eb;color:white;padding:13px 28px;border-radius:7px;text-decoration:none;font-weight:600;font-size:15px;">Open Members →</a>
     `),
   })
+  if (error) console.error('[email] Resend error sending room access request email:', error)
 }
