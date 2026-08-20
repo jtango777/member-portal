@@ -94,6 +94,12 @@ function CheckoutForm({
         return
       }
       customerId = accData.customer_id
+
+      // Creating the account via the admin API (server-side) doesn't log
+      // the browser in — sign in explicitly so they're actually
+      // authenticated once this completes, not just left with an account
+      // that exists but no session.
+      await createClient().auth.signInWithPassword({ email, password })
     }
 
     // 1. Confirm payment with Stripe
