@@ -341,6 +341,11 @@ function DetailsAndPayment({
     setGuestName(`${firstName.trim()} ${lastName.trim()}`)
     setGuestEmail(email.trim())
 
+    // Creating the account via the admin API (server-side) doesn't log the
+    // browser in — sign in explicitly so they're actually authenticated,
+    // not just left with an account that exists but no session.
+    await createClient().auth.signInWithPassword({ email, password })
+
     // Now that the account exists, get a payment intent for the fixed
     // day-pass price so the card form below can render.
     const piRes = await fetch('/api/day-pass/create-payment-intent', {

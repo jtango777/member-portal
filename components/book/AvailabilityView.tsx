@@ -79,8 +79,24 @@ function isWeekend(dateStr: string) {
   return d === 0 || d === 6
 }
 
+const PT = 'America/Los_Angeles'
+
+// BizHaus locations are all in Pacific time — "today" and "now" need to be
+// computed in that zone, not the visitor's local one, or someone browsing
+// from the East Coast (or later in the day) could see the wrong date as
+// "today" or have past slots miscalculated.
+function pacificToday(): string {
+  return new Intl.DateTimeFormat('en-CA', { timeZone: PT, year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date())
+}
+function pacificNowMinutes(): number {
+  const parts = new Intl.DateTimeFormat('en-US', { timeZone: PT, hour: '2-digit', minute: '2-digit', hour12: false }).formatToParts(new Date())
+  const h = parseInt(parts.find(p => p.type === 'hour')!.value)
+  const m = parseInt(parts.find(p => p.type === 'minute')!.value)
+  return h * 60 + m
+}
+
 export default function AvailabilityView({ location, rooms }: { location: BookLocation; rooms: BookRoom[] }) {
-  const today = format(new Date(), 'yyyy-MM-dd')
+  const today = pacificToday()
 
   const [carouselIndex, setCarouselIndex] = useState<Record<string, number>>({})
   const [expandedRoom,  setExpandedRoom]  = useState<string | null>(null)
@@ -104,10 +120,12 @@ export default function AvailabilityView({ location, rooms }: { location: BookLo
       .catch(() => setLoadingSlots(false))
   }, [selectedRoom, selectedDate])
 
-  // All start times — blocked ones shown as disabled
+  // All start times — blocked or already-passed (when booking for today)
+  // ones shown as disabled
+  const isToday = selectedDate === today
   const startSlotsWithStatus = START_SLOTS.map(s => ({
     ...s,
-    disabled: blockedSlots.includes(s.value),
+    disabled: blockedSlots.includes(s.value) || (isToday && slotToMinutes(s.value) <= pacificNowMinutes()),
   }))
 
   // All end times after selected start — ones crossing a blocked slot shown as disabled
@@ -339,13 +357,14 @@ export default function AvailabilityView({ location, rooms }: { location: BookLo
                           <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Time</label>
                           <button
                             type="button"
+                            disabled={isToday && pacificNowMinutes() >= slotToMinutes('9:00')}
                             onClick={() => {
                               const next = !allDay
                               setAllDay(next)
                               if (next) { setSelectedStart('9:00'); setSelectedEnd('17:00') }
                               else      { setSelectedStart('');     setSelectedEnd('')      }
                             }}
-                            className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-gray-700"
+                            className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-gray-700 disabled:opacity-40 disabled:cursor-not-allowed"
                           >
                             <span className={cn(
                               'relative inline-flex h-4 w-7 items-center rounded-full transition-colors',
