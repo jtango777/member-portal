@@ -6,7 +6,10 @@ import { loadStripe } from '@stripe/stripe-js'
 import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js'
 import MiniDatePicker from '@/components/MiniDatePicker'
 import Recaptcha, { RecaptchaHandle } from '@/components/Recaptcha'
+import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
+
+type ExistingCustomer = { id: string; first_name: string; last_name: string; email: string }
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!)
 
@@ -36,6 +39,25 @@ export default function DayPassPage() {
   const [guestName, setGuestName] = useState('')
   const [guestEmail, setGuestEmail] = useState('')
   const [confirmationNumber, setConfirmationNumber] = useState('')
+
+  // A customer who's already signed in (e.g. via "+ Reserve another" from
+  // their account page) shouldn't be walked through account creation again
+  // — that only ever fails with "account already exists". Check once on
+  // mount and skip straight to payment for them.
+  const [existingCustomer, setExistingCustomer] = useState<ExistingCustomer | null>(null)
+
+  useEffect(() => {
+    const supabase = createClient()
+    supabase.auth.getUser().then(async ({ data: { user } }) => {
+      if (!user) return
+      const { data: customer } = await supabase
+        .from('booking_customers')
+        .select('id, first_name, last_name, email')
+        .eq('id', user.id)
+        .single()
+      if (customer) setExistingCustomer(customer)
+    })
+  }, [])
 
   const selectedLocation = LOCATIONS.find(l => l.id === locationId) ?? LOCATIONS[0]
   const formattedDate = new Date(date + 'T12:00:00').toLocaleDateString('en-US', {
@@ -100,6 +122,7 @@ export default function DayPassPage() {
               locationId={locationId}
               locationName={selectedLocation.name}
               date={date}
+              existingCustomer={existingCustomer}
               customerId={customerId}
               setCustomerId={setCustomerId}
               clientSecret={clientSecret}
@@ -252,12 +275,13 @@ function ReservationFields({ locationId, setLocationId, date, setDate, onContinu
 // actual Stripe card form appears in the same section.
 
 function DetailsAndPayment({
-  locationId, locationName, date,
+  locationId, locationName, date, existingCustomer,
   customerId, setCustomerId, clientSecret, setClientSecret,
   guestName, setGuestName, guestEmail, setGuestEmail,
   onSuccess,
 }: {
   locationId: string; locationName: string; date: string
+  existingCustomer: ExistingCustomer | null
   customerId: string | null; setCustomerId: (v: string) => void
   clientSecret: string | null; setClientSecret: (v: string) => void
   guestName: string; setGuestName: (v: string) => void
@@ -273,6 +297,28 @@ function DetailsAndPayment({
   const [accountError, setAccountError] = useState<string | null>(null)
 
   const canSubmit = firstName.trim() && lastName.trim() && email.trim() && password.length >= 8
+
+  // Already signed in — skip account creation entirely and go straight to
+  // getting a payment intent for this reservation.
+  useEffect(() => {
+    if (!existingCustomer || customerId) return
+    setCustomerId(existingCustomer.id)
+    setGuestName(`${existingCustomer.first_name} ${existingCustomer.last_name}`)
+    setGuestEmail(existingCustomer.email)
+    fetch('/api/day-pass/create-payment-intent', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ location_id: locationId, date }),
+    })
+      .then(res => res.json())
+      .then(data => setClientSecret(data.clientSecret))
+  }, [existingCustomer, customerId, locationId, date, setCustomerId, setClientSecret, setGuestName, setGuestEmail])
+
+  async function handleSignOut() {
+    const { createClient } = await import('@/lib/supabase/client')
+    await createClient().auth.signOut()
+    window.location.reload()
+  }
 
   async function handleCreateAccount() {
     setCreatingAccount(true)
@@ -310,17 +356,31 @@ function DetailsAndPayment({
   // Payment step — only reachable once the account + payment intent exist.
   if (customerId && clientSecret) {
     return (
-      <Elements stripe={stripePromise} options={{ clientSecret }}>
-        <PaymentStep
-          customerId={customerId}
-          locationId={locationId}
-          date={date}
-          guestName={guestName}
-          guestEmail={guestEmail}
-          onSuccess={onSuccess}
-        />
-      </Elements>
+      <>
+        {existingCustomer && (
+          <div className="flex items-center justify-between text-sm text-gray-500 -mb-2">
+            <span>Booking as <span className="font-medium text-gray-700">{guestName}</span> ({guestEmail})</span>
+            <button onClick={handleSignOut} className="text-gray-400 hover:text-gray-600 underline">Not you? Sign out</button>
+          </div>
+        )}
+        <Elements stripe={stripePromise} options={{ clientSecret }}>
+          <PaymentStep
+            customerId={customerId}
+            locationId={locationId}
+            date={date}
+            guestName={guestName}
+            guestEmail={guestEmail}
+            onSuccess={onSuccess}
+          />
+        </Elements>
+      </>
     )
+  }
+
+  // Signed-in customer, still waiting on the payment intent — don't flash
+  // the account-creation form while that fetch is in flight.
+  if (existingCustomer) {
+    return <div className="text-sm text-gray-400 py-4">Loading payment details…</div>
   }
 
   return (
