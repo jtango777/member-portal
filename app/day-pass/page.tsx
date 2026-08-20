@@ -207,6 +207,8 @@ function ReservationFields({ locationId, setLocationId, date, setDate, onContinu
   date: string; setDate: (v: string) => void
   onContinue: () => void
 }) {
+  const selectedLocation = LOCATIONS.find(l => l.id === locationId) ?? LOCATIONS[0]
+
   return (
     <>
       <div>
@@ -255,7 +257,13 @@ function ReservationFields({ locationId, setLocationId, date, setDate, onContinu
             <MiniDatePicker value={date} onChange={setDate} />
           </div>
         </div>
-        <div className="text-xs text-gray-400 mt-2">Day passes are available Monday–Friday, 9:00am–5:00pm.</div>
+        <div className="text-xs text-gray-400 mt-2">
+          Just pick a date — drop in any time during business hours, 9:00am–5:00pm, for a flat $30. No time slot to reserve.
+        </div>
+        <div className="text-xs text-gray-400 mt-2">
+          Need to arrive earlier or stay later than 9am–5pm? {selectedLocation.phone} or{' '}
+          <a href="mailto:bookings@bizhaus.com" className="underline hover:text-gray-600">bookings@bizhaus.com</a>.
+        </div>
       </div>
 
       <button
