@@ -1,6 +1,6 @@
 import { createAdminClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
-import { sendDayPassConfirmation } from '@/lib/email'
+import { sendDayPassConfirmation, sendDayPassStaffNotification } from '@/lib/email'
 import { rateLimit } from '@/lib/rate-limit'
 import { verifyRecaptcha } from '@/lib/recaptcha'
 import Stripe from 'stripe'
@@ -116,6 +116,25 @@ export async function POST(request: Request) {
     })
   } catch (err) {
     console.error('[email] Failed to send day pass confirmation:', err)
+  }
+
+  // Staff notification — separate try/catch so a failure here never
+  // affects the customer's own confirmation email above.
+  try {
+    const dateLabel = sortedDates.length > 1
+      ? `${sortedDates.length} days: ${sortedDates.map(d => format(new Date(d + 'T12:00:00'), 'EEE, MMM d')).join(', ')}`
+      : format(new Date(sortedDates[0] + 'T12:00:00'), 'EEEE, MMMM d, yyyy')
+
+    await sendDayPassStaffNotification({
+      confirmationNumber,
+      guestName: guest_name.trim(),
+      guestEmail: email.trim().toLowerCase(),
+      location: location.name,
+      date: dateLabel,
+      amountPaid: `$${(pi.amount / 100).toFixed(2)}`,
+    })
+  } catch (err) {
+    console.error('[email] Failed to send day pass staff notification:', err)
   }
 
   return NextResponse.json({ ok: true, day_pass_ids: dayPasses.map(d => d.id), confirmation_number: confirmationNumber }, { status: 201 })

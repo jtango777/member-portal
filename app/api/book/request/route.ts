@@ -1,7 +1,7 @@
 import { createAdminClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 import { getPacificDayBounds } from '@/lib/utils'
-import { sendExternalBookingReceipt } from '@/lib/email'
+import { sendExternalBookingReceipt, sendExternalBookingStaffNotification } from '@/lib/email'
 import { rateLimit } from '@/lib/rate-limit'
 import { verifyRecaptcha } from '@/lib/recaptcha'
 import Stripe from 'stripe'
@@ -149,12 +149,16 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Could not save booking. Please try again.' }, { status: 500 })
   }
 
-  // Send confirmation / receipt email (non-blocking — don't fail the booking if email fails)
-  try {
-    let cardLast4: string | null = null
-    let cardBrand: string | null = null
-    let amountPaid = ''
+  // Shared formatting for both emails below — computed once so a second
+  // Stripe lookup isn't needed for the staff notification. Wrapped in its
+  // own try/catch (same as the emails that use it) so a Stripe hiccup
+  // here still can't fail the booking response — it just means the
+  // emails go out with a blank amount instead of not going out at all.
+  let cardLast4: string | null = null
+  let cardBrand: string | null = null
+  let amountPaid = ''
 
+  try {
     if (stripe_payment_intent_id) {
       const pi = await stripe.paymentIntents.retrieve(stripe_payment_intent_id)
       amountPaid = `$${(pi.amount / 100).toFixed(2)}`
@@ -165,16 +169,22 @@ export async function POST(request: Request) {
         cardBrand = charge.payment_method_details?.card?.brand ?? null
       }
     }
+  } catch (err) {
+    console.error('[email] Failed to look up payment details for confirmation emails:', err)
+  }
 
-    const padTime = (t: string) => t.includes(':') && t.indexOf(':') < 2 ? '0' + t : t
-    const formattedDate = format(new Date(date + 'T12:00:00'), 'EEEE, MMMM d, yyyy')
-    const startLabel = format(new Date(`2000-01-01T${padTime(start)}:00`), 'h:mm a')
-    const endLabel = format(new Date(`2000-01-01T${padTime(end)}:00`), 'h:mm a')
-    const loc = room.location as { name: string } | { name: string }[] | null
-    const locationName = Array.isArray(loc) ? loc[0]?.name ?? '' : loc?.name ?? ''
+  const padTime = (t: string) => t.includes(':') && t.indexOf(':') < 2 ? '0' + t : t
+  const formattedDate = format(new Date(date + 'T12:00:00'), 'EEEE, MMMM d, yyyy')
+  const startLabel = format(new Date(`2000-01-01T${padTime(start)}:00`), 'h:mm a')
+  const endLabel = format(new Date(`2000-01-01T${padTime(end)}:00`), 'h:mm a')
+  const loc = room.location as { name: string } | { name: string }[] | null
+  const locationName = Array.isArray(loc) ? loc[0]?.name ?? '' : loc?.name ?? ''
+  const confirmationNumber = booking.id.slice(0, 8).toUpperCase()
 
+  // Send confirmation / receipt email (non-blocking — don't fail the booking if email fails)
+  try {
     await sendExternalBookingReceipt(email.trim().toLowerCase(), {
-      confirmationNumber: booking.id.slice(0, 8).toUpperCase(),
+      confirmationNumber,
       room: (room.external_name ?? room.name) as string,
       location: locationName,
       date: formattedDate,
@@ -188,6 +198,23 @@ export async function POST(request: Request) {
     console.log('[email] Receipt sent successfully')
   } catch (err) {
     console.error('[email] Failed to send external booking receipt:', err)
+  }
+
+  // Staff notification — separate try/catch so a failure here never
+  // affects the customer's own confirmation email above.
+  try {
+    await sendExternalBookingStaffNotification({
+      confirmationNumber,
+      guestName: name.trim(),
+      guestEmail: email.trim().toLowerCase(),
+      room: (room.external_name ?? room.name) as string,
+      location: locationName,
+      date: formattedDate,
+      time: `${startLabel} – ${endLabel}`,
+      amountPaid,
+    })
+  } catch (err) {
+    console.error('[email] Failed to send external booking staff notification:', err)
   }
 
   return NextResponse.json({ ok: true, booking_id: booking.id }, { status: 201 })

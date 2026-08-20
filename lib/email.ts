@@ -29,6 +29,36 @@ function emailWrapper(content: string) {
   `
 }
 
+// Day pass / external booking emails use the site's real green branding
+// (#6ec664, pulled from bizhaus.com's own CSS) instead of the member
+// portal's dark/blue look — these go to non-members, who never see the
+// member portal at all, so the blue "Member Portal" wrapper read as the
+// wrong product.
+const BOOKING_GREEN = '#6ec664'
+
+function bookingEmailWrapper(content: string, badge: string) {
+  return `
+    <div style="font-family:${FONT};background:#f1f5f9;padding:40px 16px;min-height:100vh;">
+      <div style="max-width:520px;margin:0 auto;">
+        <!-- Header -->
+        <div style="background:#ffffff;border-radius:10px 10px 0 0;padding:24px 32px;border:1px solid #e2e8f0;border-bottom:none;">
+          <span style="color:#0f172a;font-size:20px;font-weight:700;letter-spacing:-0.3px;">BizHaus</span>
+          <span style="background:${BOOKING_GREEN};color:white;font-size:12px;font-weight:700;padding:4px 10px;border-radius:5px;margin-left:10px;">${badge}</span>
+        </div>
+        <!-- Body -->
+        <div style="background:#ffffff;padding:32px;border-radius:0 0 10px 10px;border:1px solid #e2e8f0;border-top:none;">
+          ${content}
+        </div>
+        <!-- Footer -->
+        <p style="text-align:center;color:#94a3b8;font-size:12px;margin-top:20px;">
+          © ${new Date().getFullYear()} BizHaus ·
+          <a href="mailto:bookings@bizhaus.com" style="color:#94a3b8;">bookings@bizhaus.com</a>
+        </p>
+      </div>
+    </div>
+  `
+}
+
 export async function sendInviteEmail(to: string, token: string) {
   const link = `${APP_URL}/setup-account?token=${token}`
   await resend.emails.send({
@@ -89,7 +119,7 @@ export async function sendExternalBookingReceipt(
     from: FROM,
     to,
     subject: `BizHaus Receipt — ${details.room} on ${details.date}`,
-    html: emailWrapper(`
+    html: bookingEmailWrapper(`
       <h2 style="color:#0f172a;margin:0 0 4px;font-size:22px;font-weight:700;">Booking Confirmed ✓</h2>
       <p style="color:#64748b;font-size:13px;margin:0 0 24px;">Confirmation #${details.confirmationNumber}</p>
 
@@ -128,11 +158,13 @@ export async function sendExternalBookingReceipt(
         </tr>
       </table>
 
+      <a href="${APP_URL}/day-pass/account" style="display:inline-block;background:#6ec664;color:white;padding:13px 28px;border-radius:7px;text-decoration:none;font-weight:600;font-size:15px;margin-bottom:24px;">View My Reservations →</a>
+
       <p style="color:#94a3b8;font-size:13px;margin:0;border-top:1px solid #f1f5f9;padding-top:20px;">
         <strong style="color:#64748b;">Cancellation policy:</strong> Bookings are non-refundable. To inquire about credit toward a future booking, contact us at
-        <a href="mailto:hello@bizhaus.com" style="color:#2563eb;text-decoration:none;">hello@bizhaus.com</a>.
+        <a href="mailto:hello@bizhaus.com" style="color:#4f9645;text-decoration:none;">hello@bizhaus.com</a>.
       </p>
-    `),
+    `, 'Bookings'),
   })
 }
 
@@ -157,7 +189,7 @@ export async function sendDayPassConfirmation(
     from: FROM,
     to,
     subject: `BizHaus Day Pass Receipt — ${details.location} on ${details.date}`,
-    html: emailWrapper(`
+    html: bookingEmailWrapper(`
       <h2 style="color:#0f172a;margin:0 0 4px;font-size:22px;font-weight:700;">Day Pass Confirmed ✓</h2>
       <p style="color:#64748b;font-size:13px;margin:0 0 24px;">Confirmation #${details.confirmationNumber}</p>
 
@@ -196,11 +228,83 @@ export async function sendDayPassConfirmation(
         </tr>
       </table>
 
+      <a href="${APP_URL}/day-pass/account" style="display:inline-block;background:#6ec664;color:white;padding:13px 28px;border-radius:7px;text-decoration:none;font-weight:600;font-size:15px;margin-bottom:24px;">View My Reservations →</a>
+
       <p style="color:#94a3b8;font-size:13px;margin:0;border-top:1px solid #f1f5f9;padding-top:20px;">
         <strong style="color:#64748b;">Cancellation policy:</strong> Reservations may be canceled for a full refund until 12:00am (midnight) the night before your reservation date. Contact us at
-        <a href="mailto:hello@bizhaus.com" style="color:#2563eb;text-decoration:none;">hello@bizhaus.com</a>.
+        <a href="mailto:hello@bizhaus.com" style="color:#4f9645;text-decoration:none;">hello@bizhaus.com</a>.
       </p>
-    `),
+    `, 'Day Pass'),
+  })
+}
+
+export async function sendExternalBookingStaffNotification(
+  details: { confirmationNumber: string; guestName: string; guestEmail: string; room: string; location: string; date: string; time: string; amountPaid: string }
+) {
+  await resend.emails.send({
+    from: FROM,
+    to: STAFF_EMAIL,
+    subject: `New room booking: ${details.guestName} — ${details.room}, ${details.location}`,
+    html: bookingEmailWrapper(`
+      <h2 style="color:#0f172a;margin:0 0 4px;font-size:22px;font-weight:700;">New Room Booking</h2>
+      <p style="color:#64748b;font-size:13px;margin:0 0 24px;">Confirmation #${details.confirmationNumber}</p>
+      <table style="border-collapse:collapse;width:100%;margin-bottom:24px;background:#f8fafc;border-radius:7px;overflow:hidden;">
+        <tr>
+          <td style="padding:10px 14px;color:#64748b;font-size:13px;width:110px;">Guest</td>
+          <td style="padding:10px 14px;font-weight:600;color:#0f172a;">${details.guestName} (${details.guestEmail})</td>
+        </tr>
+        <tr style="border-top:1px solid #e2e8f0;">
+          <td style="padding:10px 14px;color:#64748b;font-size:13px;">Room</td>
+          <td style="padding:10px 14px;color:#1e293b;">${details.room} — ${details.location}</td>
+        </tr>
+        <tr style="border-top:1px solid #e2e8f0;">
+          <td style="padding:10px 14px;color:#64748b;font-size:13px;">Date</td>
+          <td style="padding:10px 14px;color:#1e293b;">${details.date}</td>
+        </tr>
+        <tr style="border-top:1px solid #e2e8f0;">
+          <td style="padding:10px 14px;color:#64748b;font-size:13px;">Time</td>
+          <td style="padding:10px 14px;color:#1e293b;">${details.time}</td>
+        </tr>
+        <tr style="border-top:1px solid #e2e8f0;">
+          <td style="padding:10px 14px;color:#64748b;font-size:13px;">Amount paid</td>
+          <td style="padding:10px 14px;font-weight:700;color:#0f172a;">${details.amountPaid}</td>
+        </tr>
+      </table>
+      <a href="${APP_URL}/dashboard/admin/reservations" style="display:inline-block;background:#6ec664;color:white;padding:13px 28px;border-radius:7px;text-decoration:none;font-weight:600;font-size:15px;">View Bookings →</a>
+    `, 'Bookings'),
+  })
+}
+
+export async function sendDayPassStaffNotification(
+  details: { confirmationNumber: string; guestName: string; guestEmail: string; location: string; date: string; amountPaid: string }
+) {
+  await resend.emails.send({
+    from: FROM,
+    to: STAFF_EMAIL,
+    subject: `New day pass: ${details.guestName} — ${details.location}`,
+    html: bookingEmailWrapper(`
+      <h2 style="color:#0f172a;margin:0 0 4px;font-size:22px;font-weight:700;">New Day Pass Booked</h2>
+      <p style="color:#64748b;font-size:13px;margin:0 0 24px;">Confirmation #${details.confirmationNumber}</p>
+      <table style="border-collapse:collapse;width:100%;margin-bottom:24px;background:#f8fafc;border-radius:7px;overflow:hidden;">
+        <tr>
+          <td style="padding:10px 14px;color:#64748b;font-size:13px;width:110px;">Guest</td>
+          <td style="padding:10px 14px;font-weight:600;color:#0f172a;">${details.guestName} (${details.guestEmail})</td>
+        </tr>
+        <tr style="border-top:1px solid #e2e8f0;">
+          <td style="padding:10px 14px;color:#64748b;font-size:13px;">Location</td>
+          <td style="padding:10px 14px;color:#1e293b;">${details.location}</td>
+        </tr>
+        <tr style="border-top:1px solid #e2e8f0;">
+          <td style="padding:10px 14px;color:#64748b;font-size:13px;">Date</td>
+          <td style="padding:10px 14px;color:#1e293b;">${details.date}</td>
+        </tr>
+        <tr style="border-top:1px solid #e2e8f0;">
+          <td style="padding:10px 14px;color:#64748b;font-size:13px;">Amount paid</td>
+          <td style="padding:10px 14px;font-weight:700;color:#0f172a;">${details.amountPaid}</td>
+        </tr>
+      </table>
+      <a href="${APP_URL}/dashboard/admin/day-passes" style="display:inline-block;background:#6ec664;color:white;padding:13px 28px;border-radius:7px;text-decoration:none;font-weight:600;font-size:15px;">View Day Passes →</a>
+    `, 'Day Pass'),
   })
 }
 
