@@ -2,12 +2,9 @@ import { NextResponse } from 'next/server'
 import { rateLimit } from '@/lib/rate-limit'
 import { createBookingCustomerAccount } from '@/lib/bookingAccounts'
 
-// Creates a day-pass customer account — deliberately NOT a member account.
-// Same underlying Supabase Auth mechanics as the member invite flow (see
-// app/api/invites/accept/route.ts), but writes to booking_customers
-// instead of profiles, so this person never shows up as a member or gets
-// member-portal access. Shared with /api/book/create-account — see
-// lib/bookingAccounts.ts.
+// Same shared booking_customers account system as day-pass — see
+// lib/bookingAccounts.ts. /book now requires an account at checkout too
+// (matches the Industrious reference model, decided 2026-08-19).
 export async function POST(request: Request) {
   const ip = request.headers.get('x-forwarded-for') ?? 'unknown'
   if (!rateLimit(ip, 10, 60_000)) {

@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { isStaging } from '@/lib/isStaging'
+import { createClient } from '@/lib/supabase/server'
 
 export const metadata: Metadata = {
   title: isStaging ? '[Staging] Book a Meeting Room — BizHaus' : 'Book a Meeting Room — BizHaus',
@@ -9,13 +10,30 @@ export const metadata: Metadata = {
   },
 }
 
-export default function BookLayout({ children }: { children: React.ReactNode }) {
+export default async function BookLayout({ children }: { children: React.ReactNode }) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  let isBookingCustomer = false
+  if (user) {
+    const { data: customer } = await supabase.from('booking_customers').select('id').eq('id', user.id).single()
+    isBookingCustomer = !!customer
+  }
+
   return (
     <div className="min-h-screen bg-white flex flex-col">
       <header className="bg-white border-b border-gray-200 h-16 flex items-center flex-shrink-0 px-6">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/brand/bizhaus-logo.png" alt="BizHaus" className="h-5 w-auto" />
         <span className="ml-4 text-xs font-bold bg-booking-600 text-white px-2.5 py-1 rounded">Bookings</span>
+        <div className="flex-1" />
+        {isBookingCustomer ? (
+          <a href="/day-pass/account" className="text-sm text-booking-700 font-medium hover:underline">My Bookings</a>
+        ) : (
+          <span className="text-sm text-gray-500">
+            Have an account? <a href="/day-pass/login" className="text-booking-700 font-medium hover:underline">Log in</a>
+          </span>
+        )}
       </header>
       <main className="flex-1">
         {children}
