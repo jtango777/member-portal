@@ -21,8 +21,24 @@ const STATUS_STYLES: Record<DayPass['status'], string> = {
   declined: 'bg-red-50 text-red-700',
 }
 
+// A multi-day purchase creates one day_passes row per day, all sharing one
+// confirmation number — group them back into a single row here so a 3-day
+// purchase reads as one purchase, not three identical-looking rows.
+function groupByConfirmation(dayPasses: DayPass[]) {
+  const groups = new Map<string, DayPass[]>()
+  for (const d of dayPasses) {
+    const key = d.confirmation_number ?? d.id
+    groups.set(key, [...(groups.get(key) ?? []), d])
+  }
+  return [...groups.values()].map(group => {
+    const sorted = [...group].sort((a, b) => a.date.localeCompare(b.date))
+    return { first: sorted[0], dates: sorted.map(d => d.date), totalCents: sorted.reduce((sum, d) => sum + d.price_cents, 0) }
+  }).sort((a, b) => b.first.date.localeCompare(a.first.date))
+}
+
 export default function DayPassesManager({ dayPasses }: { dayPasses: DayPass[] }) {
-  const { paged, paginationProps } = usePagedList(dayPasses, 25)
+  const grouped = groupByConfirmation(dayPasses)
+  const { paged, paginationProps } = usePagedList(grouped, 25)
 
   const confirmedTotal = dayPasses.filter(d => d.status === 'confirmed').length
   const revenue = dayPasses.filter(d => d.status === 'confirmed').reduce((sum, d) => sum + d.price_cents, 0) / 100
@@ -50,10 +66,15 @@ export default function DayPassesManager({ dayPasses }: { dayPasses: DayPass[] }
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
-            {paged.map(d => (
-              <tr key={d.id} className="hover:bg-gray-50">
+            {paged.map(({ first: d, dates, totalCents }) => (
+              <tr key={d.confirmation_number ?? d.id} className="hover:bg-gray-50">
                 <td className={cn(tdNowrap, 'font-mono text-xs text-gray-500')}>{d.confirmation_number ?? '—'}</td>
-                <td className={tdNowrap}>{format(new Date(d.date + 'T12:00:00'), 'MMM d, yyyy')}</td>
+                <td className={tdNowrap}>
+                  {dates.length > 1
+                    ? `${format(new Date(dates[0] + 'T12:00:00'), 'MMM d')} – ${format(new Date(dates[dates.length - 1] + 'T12:00:00'), 'MMM d, yyyy')}`
+                    : format(new Date(dates[0] + 'T12:00:00'), 'MMM d, yyyy')}
+                  {dates.length > 1 && <span className="text-gray-400 ml-1">({dates.length} days)</span>}
+                </td>
                 <td className="px-4 py-3 truncate">
                   {d.booking_customers ? (
                     <>
@@ -63,7 +84,7 @@ export default function DayPassesManager({ dayPasses }: { dayPasses: DayPass[] }
                   ) : <span className="text-gray-400">Deleted account</span>}
                 </td>
                 <td className={tdBase}>{d.locations?.name ?? '—'}</td>
-                <td className={tdNowrap}>${(d.price_cents / 100).toFixed(2)}</td>
+                <td className={tdNowrap}>${(totalCents / 100).toFixed(2)}</td>
                 <td className={tdNowrap}>
                   <span className={cn('inline-flex px-2 py-0.5 rounded-full text-xs font-medium capitalize', STATUS_STYLES[d.status])}>
                     {d.status}

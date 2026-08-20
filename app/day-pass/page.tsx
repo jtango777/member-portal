@@ -1,10 +1,11 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { Calendar, Eye, EyeOff, CheckCircle, Check, ImageOff } from 'lucide-react'
+import { Eye, EyeOff, CheckCircle, Check, ImageOff } from 'lucide-react'
 import { loadStripe } from '@stripe/stripe-js'
 import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js'
-import MiniDatePicker from '@/components/MiniDatePicker'
+import { eachDayOfInterval, getDay, format as formatDate } from 'date-fns'
+import DayPassDatePicker, { DateMode } from '@/components/DayPassDatePicker'
 import Recaptcha, { RecaptchaHandle } from '@/components/Recaptcha'
 import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
@@ -27,10 +28,21 @@ const DAY_PASS_PRICE = 30
 type Section = 'reservation' | 'details'
 type Phase = Section | 'confirmation'
 
+// Weekday (Mon–Fri) dates in [start, end], inclusive — day passes are
+// Monday–Friday only, so a range spanning a weekend just skips those days
+// rather than charging for or reserving them.
+function businessDaysBetween(start: string, end: string): string[] {
+  if (!start) return []
+  const days = eachDayOfInterval({ start: new Date(start + 'T12:00:00'), end: new Date((end || start) + 'T12:00:00') })
+  return days.filter(d => { const day = getDay(d); return day !== 0 && day !== 6 }).map(d => formatDate(d, 'yyyy-MM-dd'))
+}
+
 export default function DayPassPage() {
   const [phase, setPhase] = useState<Phase>('reservation')
   const [locationId, setLocationId] = useState<string>(LOCATIONS[0].id)
-  const [date, setDate] = useState<string>('2026-08-19')
+  const [dateMode, setDateMode] = useState<DateMode>('single')
+  const [startDate, setStartDate] = useState<string>('2026-08-20')
+  const [endDate, setEndDate] = useState<string>('2026-08-20')
 
   // Set once the account is created — the payment step needs this to know
   // who's paying, and the request step needs it to link the reservation.
@@ -60,9 +72,10 @@ export default function DayPassPage() {
   }, [])
 
   const selectedLocation = LOCATIONS.find(l => l.id === locationId) ?? LOCATIONS[0]
-  const formattedDate = new Date(date + 'T12:00:00').toLocaleDateString('en-US', {
-    month: 'short', day: 'numeric', year: 'numeric',
-  })
+  const dates = businessDaysBetween(startDate, endDate)
+  const formattedDateRange = dates.length > 1
+    ? `${formatDate(new Date(dates[0] + 'T12:00:00'), 'MMM d')} – ${formatDate(new Date(dates[dates.length - 1] + 'T12:00:00'), 'MMM d, yyyy')} (${dates.length} days)`
+    : dates[0] ? formatDate(new Date(dates[0] + 'T12:00:00'), 'MMM d, yyyy') : ''
 
   function restart() {
     setPhase('reservation')
@@ -78,7 +91,7 @@ export default function DayPassPage() {
       <div className="max-w-6xl mx-auto px-6 py-12">
         <StepConfirmation
           loc={selectedLocation}
-          formattedDate={formattedDate}
+          dates={dates}
           guestName={guestName}
           confirmationNumber={confirmationNumber}
           onRestart={restart}
@@ -101,12 +114,15 @@ export default function DayPassPage() {
             number={1}
             title="Your Reservation"
             state={phase === 'reservation' ? 'active' : 'complete'}
-            summary={`${selectedLocation.name} · ${formattedDate}`}
+            summary={`${selectedLocation.name} · ${formattedDateRange}`}
             onEdit={() => setPhase('reservation')}
           >
             <ReservationFields
               locationId={locationId} setLocationId={setLocationId}
-              date={date} setDate={setDate}
+              dateMode={dateMode} setDateMode={setDateMode}
+              startDate={startDate} setStartDate={setStartDate}
+              endDate={endDate} setEndDate={setEndDate}
+              dates={dates}
               onContinue={() => setPhase('details')}
             />
           </AccordionSection>
@@ -121,7 +137,7 @@ export default function DayPassPage() {
             <DetailsAndPayment
               locationId={locationId}
               locationName={selectedLocation.name}
-              date={date}
+              dates={dates}
               existingCustomer={existingCustomer}
               customerId={customerId}
               setCustomerId={setCustomerId}
@@ -138,7 +154,7 @@ export default function DayPassPage() {
         </div>
 
         <div className="lg:col-span-2 sticky top-20">
-          <PriceSummary />
+          <PriceSummary days={dates.length} />
         </div>
       </div>
     </div>
@@ -202,9 +218,14 @@ function AccordionSection({ number, title, state, summary, onEdit, children }: {
 
 // ── Section 1: Reservation ───────────────────────────────────────────────
 
-function ReservationFields({ locationId, setLocationId, date, setDate, onContinue }: {
+function ReservationFields({
+  locationId, setLocationId, dateMode, setDateMode, startDate, setStartDate, endDate, setEndDate, dates, onContinue,
+}: {
   locationId: string; setLocationId: (v: string) => void
-  date: string; setDate: (v: string) => void
+  dateMode: DateMode; setDateMode: (v: DateMode) => void
+  startDate: string; setStartDate: (v: string) => void
+  endDate: string; setEndDate: (v: string) => void
+  dates: string[]
   onContinue: () => void
 }) {
   const selectedLocation = LOCATIONS.find(l => l.id === locationId) ?? LOCATIONS[0]
@@ -251,24 +272,45 @@ function ReservationFields({ locationId, setLocationId, date, setDate, onContinu
 
       <div>
         <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Date</div>
-        <div className="w-[280px] flex items-center gap-2.5 border border-gray-300 rounded-lg px-3.5 py-2.5 text-sm">
-          <Calendar size={16} className="text-gray-500 flex-shrink-0" />
-          <div className="flex-1">
-            <MiniDatePicker value={date} onChange={setDate} />
-          </div>
-        </div>
-        <div className="text-xs text-gray-400 mt-2">
-          Just pick a date — drop in any time during business hours, 9:00am–5:00pm, for a flat $30. No time slot to reserve.
-        </div>
-        <div className="text-xs text-gray-400 mt-2">
-          Need to arrive earlier or stay later than 9am–5pm? {selectedLocation.phone} or{' '}
-          <a href="mailto:bookings@bizhaus.com" className="underline hover:text-gray-600">bookings@bizhaus.com</a>.
+        <div className="w-[300px]">
+          <DayPassDatePicker
+            mode={dateMode}
+            onModeChange={setDateMode}
+            start={startDate}
+            end={endDate}
+            onChange={(s, e) => { setStartDate(s); setEndDate(e) }}
+          />
         </div>
       </div>
 
+      {/* Time — broken out as its own section once dates are picked, same
+          idea as Industrious's layout: one line per day so a multi-day
+          range reads clearly instead of being buried in the date field. */}
+      {dates.length > 0 && (
+        <div>
+          <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Time</div>
+          <div className="bg-gray-50 rounded-lg px-3.5 py-3 flex flex-col gap-1.5">
+            {dates.map(d => (
+              <div key={d} className="flex justify-between text-sm">
+                <span className="text-gray-700">{formatDate(new Date(d + 'T12:00:00'), 'EEE, MMM d')}</span>
+                <span className="text-gray-500">9:00am – 5:00pm</span>
+              </div>
+            ))}
+          </div>
+          <div className="text-xs text-gray-400 mt-2">
+            Drop in any time during those hours — flat $30/day, no time slot to reserve.
+          </div>
+          <div className="text-xs text-gray-400 mt-2">
+            Need to arrive earlier or stay later than 9am–5pm? {selectedLocation.phone} or{' '}
+            <a href="mailto:bookings@bizhaus.com" className="underline hover:text-gray-600">bookings@bizhaus.com</a>.
+          </div>
+        </div>
+      )}
+
       <button
         onClick={onContinue}
-        className="self-start bg-booking-600 hover:bg-booking-700 text-white text-sm font-semibold py-3 px-7 rounded-lg transition-colors"
+        disabled={dates.length === 0}
+        className="self-start bg-booking-600 hover:bg-booking-700 disabled:bg-booking-300 disabled:cursor-not-allowed text-white text-sm font-semibold py-3 px-7 rounded-lg transition-colors"
       >
         Continue
       </button>
@@ -283,12 +325,12 @@ function ReservationFields({ locationId, setLocationId, date, setDate, onContinu
 // actual Stripe card form appears in the same section.
 
 function DetailsAndPayment({
-  locationId, locationName, date, existingCustomer,
+  locationId, locationName, dates, existingCustomer,
   customerId, setCustomerId, clientSecret, setClientSecret,
   guestName, setGuestName, guestEmail, setGuestEmail,
   onSuccess,
 }: {
-  locationId: string; locationName: string; date: string
+  locationId: string; locationName: string; dates: string[]
   existingCustomer: ExistingCustomer | null
   customerId: string | null; setCustomerId: (v: string) => void
   clientSecret: string | null; setClientSecret: (v: string) => void
@@ -316,11 +358,11 @@ function DetailsAndPayment({
     fetch('/api/day-pass/create-payment-intent', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ location_id: locationId, date }),
+      body: JSON.stringify({ location_id: locationId, dates }),
     })
       .then(res => res.json())
       .then(data => setClientSecret(data.clientSecret))
-  }, [existingCustomer, customerId, locationId, date, setCustomerId, setClientSecret, setGuestName, setGuestEmail])
+  }, [existingCustomer, customerId, locationId, dates, setCustomerId, setClientSecret, setGuestName, setGuestEmail])
 
   async function handleSignOut() {
     const { createClient } = await import('@/lib/supabase/client')
@@ -354,12 +396,12 @@ function DetailsAndPayment({
     // not just left with an account that exists but no session.
     await createClient().auth.signInWithPassword({ email, password })
 
-    // Now that the account exists, get a payment intent for the fixed
-    // day-pass price so the card form below can render.
+    // Now that the account exists, get a payment intent covering every
+    // day in the range.
     const piRes = await fetch('/api/day-pass/create-payment-intent', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ location_id: locationId, date }),
+      body: JSON.stringify({ location_id: locationId, dates }),
     })
     const piData = await piRes.json()
     setClientSecret(piData.clientSecret)
@@ -391,7 +433,7 @@ function DetailsAndPayment({
           <PaymentStep
             customerId={customerId}
             locationId={locationId}
-            date={date}
+            dates={dates}
             guestName={guestName}
             guestEmail={guestEmail}
             onSuccess={onSuccess}
@@ -477,8 +519,8 @@ function DetailsAndPayment({
 
 // ── Payment sub-step — has access to Stripe hooks via <Elements> ─────────
 
-function PaymentStep({ customerId, locationId, date, guestName, guestEmail, onSuccess }: {
-  customerId: string; locationId: string; date: string
+function PaymentStep({ customerId, locationId, dates, guestName, guestEmail, onSuccess }: {
+  customerId: string; locationId: string; dates: string[]
   guestName: string; guestEmail: string
   onSuccess: (confirmationNumber: string) => void
 }) {
@@ -518,7 +560,7 @@ function PaymentStep({ customerId, locationId, date, guestName, guestEmail, onSu
       body: JSON.stringify({
         customer_id: customerId,
         location_id: locationId,
-        date,
+        dates,
         guest_name: guestName,
         email: guestEmail,
         stripe_payment_intent_id: paymentIntent.id,
@@ -535,6 +577,8 @@ function PaymentStep({ customerId, locationId, date, guestName, guestEmail, onSu
       setLoading(false)
     }
   }
+
+  const total = DAY_PASS_PRICE * dates.length
 
   return (
     <div className="flex flex-col gap-5 mt-3">
@@ -557,17 +601,22 @@ function PaymentStep({ customerId, locationId, date, guestName, guestEmail, onSu
           loading || !stripe || !recaptchaToken ? 'bg-booking-300 cursor-not-allowed' : 'bg-booking-600 hover:bg-booking-700'
         )}
       >
-        {loading ? 'Processing…' : `Pay $${DAY_PASS_PRICE}.00 & Complete Reservation`}
+        {loading ? 'Processing…' : `Pay $${total}.00 & Complete Reservation`}
       </button>
     </div>
   )
 }
 
-function StepConfirmation({ loc, formattedDate, guestName, confirmationNumber, onRestart }: {
-  loc: typeof LOCATIONS[number]; formattedDate: string
+function StepConfirmation({ loc, dates, guestName, confirmationNumber, onRestart }: {
+  loc: typeof LOCATIONS[number]; dates: string[]
   guestName: string; confirmationNumber: string
   onRestart: () => void
 }) {
+  const total = DAY_PASS_PRICE * dates.length
+  const dateRangeLabel = dates.length > 1
+    ? `${dates.length} days (${formatDate(new Date(dates[0] + 'T12:00:00'), 'MMM d')} – ${formatDate(new Date(dates[dates.length - 1] + 'T12:00:00'), 'MMM d, yyyy')})`
+    : dates[0] ? formatDate(new Date(dates[0] + 'T12:00:00'), 'EEEE, MMMM d, yyyy') : ''
+
   return (
     <div className="max-w-lg mx-auto text-center flex flex-col items-center gap-6 py-12">
       <div className="w-14 h-14 rounded-full bg-green-50 flex items-center justify-center">
@@ -576,30 +625,28 @@ function StepConfirmation({ loc, formattedDate, guestName, confirmationNumber, o
 
       <div>
         <div className="text-2xl font-bold text-gray-900 mb-1.5">You&apos;re all set{guestName ? `, ${guestName.split(' ')[0]}` : ''}!</div>
-        <div className="text-sm text-gray-500">Your day pass is reserved for {formattedDate} at {loc.name}.</div>
+        <div className="text-sm text-gray-500">Your day pass{dates.length > 1 ? 'es are' : ' is'} reserved for {dateRangeLabel} at {loc.name}.</div>
       </div>
 
       <div className="w-full bg-white border border-gray-200 rounded-xl shadow-sm text-left overflow-hidden">
         <div className="px-5 py-3.5 border-b border-gray-100 flex justify-between items-baseline">
-          <div className="text-[15px] font-semibold text-gray-900">Coworking Day Pass</div>
+          <div className="text-[15px] font-semibold text-gray-900">Coworking Day Pass{dates.length > 1 ? 'es' : ''}</div>
           <div className="text-xs text-gray-400">#{confirmationNumber}</div>
         </div>
         <div className="px-5 py-4 flex flex-col gap-2.5">
-          <div className="flex justify-between text-sm">
-            <span className="text-gray-500">Date</span>
-            <span className="font-medium text-gray-900">{formattedDate}</span>
-          </div>
-          <div className="flex justify-between text-sm">
-            <span className="text-gray-500">Time</span>
-            <span className="font-medium text-gray-900">9:00am – 5:00pm PDT</span>
-          </div>
+          {dates.map(d => (
+            <div key={d} className="flex justify-between text-sm">
+              <span className="text-gray-500">{formatDate(new Date(d + 'T12:00:00'), 'EEE, MMM d')}</span>
+              <span className="font-medium text-gray-900">9:00am – 5:00pm PDT</span>
+            </div>
+          ))}
           <div className="flex justify-between text-sm">
             <span className="text-gray-500">Location</span>
             <span className="font-medium text-gray-900">{loc.name}</span>
           </div>
           <div className="bg-gray-50 rounded-lg px-3 py-2.5 flex justify-between text-sm font-semibold text-gray-900 mt-1">
             <span>Total paid</span>
-            <span>${DAY_PASS_PRICE}.00</span>
+            <span>${total}.00</span>
           </div>
         </div>
       </div>
@@ -632,7 +679,9 @@ function StepConfirmation({ loc, formattedDate, guestName, confirmationNumber, o
   )
 }
 
-function PriceSummary() {
+function PriceSummary({ days }: { days: number }) {
+  const n = Math.max(days, 1)
+  const total = DAY_PASS_PRICE * n
   return (
     <div className="flex flex-col gap-4">
       <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
@@ -641,12 +690,12 @@ function PriceSummary() {
         </div>
         <div className="px-5 py-4 flex flex-col gap-2.5">
           <div className="flex justify-between text-sm text-gray-700">
-            <span>${DAY_PASS_PRICE} / day</span>
-            <span>${DAY_PASS_PRICE}.00</span>
+            <span>${DAY_PASS_PRICE} / day{days > 1 ? ` × ${days} days` : ''}</span>
+            <span>${total}.00</span>
           </div>
           <div className="bg-gray-50 rounded-lg px-3 py-2.5 flex justify-between text-sm font-semibold text-gray-900">
             <span>Total</span>
-            <span>${DAY_PASS_PRICE}.00</span>
+            <span>${total}.00</span>
           </div>
         </div>
       </div>
