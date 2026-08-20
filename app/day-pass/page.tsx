@@ -644,7 +644,7 @@ function StepConfirmation({ loc, dates, guestName, confirmationNumber, onRestart
             <span className="text-gray-500">Location</span>
             <span className="font-medium text-gray-900">{loc.name}</span>
           </div>
-          <div className="bg-gray-50 rounded-lg px-3 py-2.5 flex justify-between text-sm font-semibold text-gray-900 mt-1">
+          <div className="bg-gray-50 rounded-lg px-3 -mx-3 py-2.5 flex justify-between text-sm font-semibold text-gray-900 mt-1">
             <span>Total paid</span>
             <span>${total}.00</span>
           </div>
@@ -693,7 +693,7 @@ function PriceSummary({ days }: { days: number }) {
             <span>${DAY_PASS_PRICE} / day{days > 1 ? ` × ${days} days` : ''}</span>
             <span>${total}.00</span>
           </div>
-          <div className="bg-gray-50 rounded-lg px-3 py-2.5 flex justify-between text-sm font-semibold text-gray-900">
+          <div className="bg-gray-50 rounded-lg px-3 -mx-3 py-2.5 flex justify-between text-sm font-semibold text-gray-900">
             <span>Total</span>
             <span>${total}.00</span>
           </div>
