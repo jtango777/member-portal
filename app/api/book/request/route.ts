@@ -24,11 +24,15 @@ export async function POST(request: Request) {
   const admin = createAdminClient()
   const body  = await request.json()
 
-  const { room_id, date, start, end, name, email, phone, company_name, notes, stripe_payment_intent_id, recaptcha_token } = body
+  const { room_id, date, start, end, name, email, phone, company_name, notes, customer_id, stripe_payment_intent_id, recaptcha_token } = body
 
-  if (!room_id || !date || !start || !end || !name || !email || !phone) {
+  if (!room_id || !date || !start || !end || !name || !email || !phone || !customer_id) {
     return NextResponse.json({ error: 'Missing required fields.' }, { status: 400 })
   }
+
+  // Confirm the account is real before trusting anything else in the body.
+  const { data: customer } = await admin.from('booking_customers').select('id').eq('id', customer_id).single()
+  if (!customer) return NextResponse.json({ error: 'Account not found.' }, { status: 404 })
 
   if (!(await verifyRecaptcha(recaptcha_token))) {
     return NextResponse.json({ error: 'reCAPTCHA verification failed. Please try again.' }, { status: 400 })
@@ -125,6 +129,7 @@ export async function POST(request: Request) {
     .insert({
       room_id,
       reservation_id:  reservation.id,
+      customer_id,
       external_name:   name.trim(),
       external_email:  email.trim().toLowerCase(),
       external_phone:  phone.trim(),

@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { format } from 'date-fns'
-import { ArrowLeft, CheckCircle, Clock, MapPin, Users } from 'lucide-react'
+import { ArrowLeft, CheckCircle, Clock, MapPin, Users, Eye, EyeOff } from 'lucide-react'
 import { loadStripe } from '@stripe/stripe-js'
 import {
   Elements,
@@ -13,8 +13,11 @@ import {
 } from '@stripe/react-stripe-js'
 import { cn } from '@/lib/utils'
 import Recaptcha, { RecaptchaHandle } from '@/components/Recaptcha'
+import { createClient } from '@/lib/supabase/client'
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!)
+
+type ExistingCustomer = { id: string; first_name: string; last_name: string; email: string }
 
 type Props = {
   roomId:       string
@@ -39,13 +42,16 @@ function slotToMinutes(slot: string): number {
 function CheckoutForm({
   roomId, roomName, locationName, locationSlug,
   capacity, pricePerHour, date, start, end, startLabel, endLabel,
-  estimatedTotal, formattedDate, onSuccess,
-}: Props & { estimatedTotal: number; formattedDate: string; onSuccess: (email: string) => void }) {
+  estimatedTotal, formattedDate, existingCustomer, onSuccess,
+}: Props & { estimatedTotal: number; formattedDate: string; existingCustomer: ExistingCustomer | null; onSuccess: (email: string) => void }) {
   const stripe   = useStripe()
   const elements = useElements()
 
-  const [name,    setName]    = useState('')
+  const [firstName, setFirstName] = useState('')
+  const [lastName,  setLastName]  = useState('')
   const [email,   setEmail]   = useState('')
+  const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
   const [phone,   setPhone]   = useState('')
   const [company, setCompany] = useState('')
   const [notes,   setNotes]   = useState('')
@@ -55,6 +61,11 @@ function CheckoutForm({
   const [recaptchaToken, setRecaptchaToken] = useState<string | null>(null)
   const recaptchaRef = useRef<RecaptchaHandle>(null)
 
+  async function handleSignOut() {
+    await createClient().auth.signOut()
+    window.location.reload()
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!stripe || !elements) return
@@ -63,6 +74,27 @@ function CheckoutForm({
 
     setLoading(true)
     setError(null)
+
+    // 0. Create the account first if this isn't an already-logged-in
+    // customer — /book now requires one, same as day-pass.
+    let customerId = existingCustomer?.id
+    const guestName = existingCustomer ? `${existingCustomer.first_name} ${existingCustomer.last_name}` : `${firstName.trim()} ${lastName.trim()}`
+    const guestEmail = existingCustomer ? existingCustomer.email : email.trim()
+
+    if (!customerId) {
+      const accRes = await fetch('/api/book/create-account', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ first_name: firstName, last_name: lastName, email, password }),
+      })
+      const accData = await accRes.json()
+      if (!accRes.ok) {
+        setError(accData.error ?? 'Something went wrong creating your account.')
+        setLoading(false)
+        return
+      }
+      customerId = accData.customer_id
+    }
 
     // 1. Confirm payment with Stripe
     const { error: stripeError, paymentIntent } = await stripe.confirmPayment({
@@ -89,8 +121,9 @@ function CheckoutForm({
       body:    JSON.stringify({
         room_id:            roomId,
         date, start, end,
-        name:               name.trim(),
-        email:              email.trim(),
+        customer_id:        customerId,
+        name:               guestName,
+        email:              guestEmail,
         phone:              phone.trim(),
         company_name:       company.trim() || null,
         notes:              notes.trim() || null,
@@ -101,7 +134,7 @@ function CheckoutForm({
 
     const data = await res.json()
     if (res.ok) {
-      onSuccess(email.trim())
+      onSuccess(guestEmail)
     } else {
       setError(data.error ?? 'Booking saved but something went wrong. Contact us at bookings@bizhaus.com.')
       // The reCAPTCHA token is single-use — even though booking failed for an
@@ -116,20 +149,43 @@ function CheckoutForm({
     <form onSubmit={handleSubmit} className="space-y-8">
       {/* Your details */}
       <div className="space-y-5">
-        <h2 className="font-semibold text-gray-900 text-lg">Your details</h2>
+        <div className="flex items-baseline justify-between">
+          <h2 className="font-semibold text-gray-900 text-lg">Your details</h2>
+          {!existingCustomer && (
+            <span className="text-sm text-gray-500">Have an account? <a href="/day-pass/login" className="font-semibold text-booking-600 hover:text-booking-700">Log in</a></span>
+          )}
+        </div>
+
+        {existingCustomer && (
+          <div className="flex items-center justify-between text-sm text-gray-500 bg-gray-50 border border-gray-200 rounded-lg px-4 py-3">
+            <span>Booking as <span className="font-medium text-gray-700">{existingCustomer.first_name} {existingCustomer.last_name}</span> ({existingCustomer.email})</span>
+            <button type="button" onClick={handleSignOut} className="text-gray-400 hover:text-gray-600 underline">Not you? Sign out</button>
+          </div>
+        )}
+
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Full name <span className="text-red-500">*</span></label>
-            <input required value={name} onChange={e => setName(e.target.value)}
-              placeholder="Jane Smith"
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-booking-500" />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Email <span className="text-red-500">*</span></label>
-            <input required type="email" value={email} onChange={e => setEmail(e.target.value)}
-              placeholder="jane@company.com"
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-booking-500" />
-          </div>
+          {!existingCustomer && (
+            <>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">First name <span className="text-red-500">*</span></label>
+                <input required value={firstName} onChange={e => setFirstName(e.target.value)}
+                  placeholder="Jane"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-booking-500" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">Last name <span className="text-red-500">*</span></label>
+                <input required value={lastName} onChange={e => setLastName(e.target.value)}
+                  placeholder="Smith"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-booking-500" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">Email <span className="text-red-500">*</span></label>
+                <input required type="email" value={email} onChange={e => setEmail(e.target.value)}
+                  placeholder="jane@company.com"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-booking-500" />
+              </div>
+            </>
+          )}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1.5">Phone <span className="text-red-500">*</span></label>
             <input required type="tel" value={phone} onChange={e => {
@@ -154,6 +210,27 @@ function CheckoutForm({
             rows={3} placeholder="Anything we should know about your booking…"
             className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-booking-500 resize-none" />
         </div>
+
+        {!existingCustomer && (
+          <div className="border-t border-gray-100 pt-5 space-y-3">
+            <div>
+              <h3 className="font-semibold text-gray-900">Create a password</h3>
+              <p className="text-sm text-gray-500">We&apos;ll create your BizHaus account at the same time, so you can view and manage this booking later.</p>
+            </div>
+            <div className="max-w-sm">
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Password <span className="text-red-500">*</span></label>
+              <div className="relative">
+                <input required type={showPassword ? 'text' : 'password'} value={password} onChange={e => setPassword(e.target.value)}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-booking-500" />
+                <button type="button" onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
+              <p className="text-xs text-gray-400 mt-1.5">Must be at least 8 characters.</p>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Payment */}
@@ -186,10 +263,10 @@ function CheckoutForm({
 
       <button
         type="submit"
-        disabled={loading || !agreed || !stripe || !recaptchaToken}
+        disabled={loading || !agreed || !stripe || !recaptchaToken || (!existingCustomer && password.length < 8)}
         className={cn(
           'w-full py-3.5 rounded-lg text-sm font-semibold transition-colors',
-          loading || !agreed || !stripe || !recaptchaToken
+          loading || !agreed || !stripe || !recaptchaToken || (!existingCustomer && password.length < 8)
             ? 'bg-booking-300 text-white cursor-not-allowed'
             : 'bg-booking-600 hover:bg-booking-700 text-white'
         )}
@@ -211,6 +288,7 @@ export default function BookingForm(props: Props) {
   const [clientSecret, setClientSecret] = useState<string | null>(null)
   const [confirmed,    setConfirmed]    = useState(false)
   const [confirmedEmail, setConfirmedEmail] = useState('')
+  const [existingCustomer, setExistingCustomer] = useState<ExistingCustomer | null>(null)
 
   useEffect(() => {
     fetch('/api/book/create-payment-intent', {
@@ -221,6 +299,22 @@ export default function BookingForm(props: Props) {
       .then(r => r.json())
       .then(d => setClientSecret(d.clientSecret))
   }, [roomId, date, start, end])
+
+  // Same shared booking_customers account system as day-pass — if this
+  // visitor is already signed in (e.g. came from day-pass, or booking
+  // again), skip straight past account creation.
+  useEffect(() => {
+    const supabase = createClient()
+    supabase.auth.getUser().then(async ({ data: { user } }) => {
+      if (!user) return
+      const { data: customer } = await supabase
+        .from('booking_customers')
+        .select('id, first_name, last_name, email')
+        .eq('id', user.id)
+        .single()
+      if (customer) setExistingCustomer(customer)
+    })
+  }, [])
 
   // ── Confirmation ────────────────────────────────────────────────────────
   if (confirmed) {
@@ -307,6 +401,7 @@ export default function BookingForm(props: Props) {
             {...props}
             estimatedTotal={estimatedTotal}
             formattedDate={formattedDate}
+            existingCustomer={existingCustomer}
             onSuccess={(email) => { setConfirmed(true); setConfirmedEmail(email) }}
           />
         </Elements>
