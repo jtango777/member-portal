@@ -272,7 +272,7 @@ function ReservationFields({
 
       <div>
         <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Date</div>
-        <div className="w-[300px]">
+        <div className="w-full max-w-[420px]">
           <DayPassDatePicker
             mode={dateMode}
             onModeChange={setDateMode}
