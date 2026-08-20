@@ -38,7 +38,7 @@ type PersonSummary = {
 
 const PATH_LABELS: Record<string, string> = {
   '/dashboard/rooms': 'Rooms',
-  '/dashboard/haus-smiles': 'Faces',
+  '/dashboard/faces': 'Faces',
 }
 
 function formatDuration(seconds: number): string {

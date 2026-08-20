@@ -53,7 +53,7 @@ export default function HausSmilesTabs({ groups, defaultLocationId, isAdmin }: P
 
   async function handleRemove(member: Member) {
     setRemoving(member.id)
-    const res = await fetch(`/api/admin/haus-smiles/${member.id}?source=${member.source}`, { method: 'DELETE' })
+    const res = await fetch(`/api/admin/faces/${member.id}?source=${member.source}`, { method: 'DELETE' })
     if (res.ok) {
       toast.success('Archived')
       router.refresh()
@@ -78,7 +78,7 @@ export default function HausSmilesTabs({ groups, defaultLocationId, isAdmin }: P
               key={group.key}
               onClick={() => {
                 setActiveKey(group.key); setSeatingFilter(''); setSearch('')
-                router.replace(`/dashboard/haus-smiles?location=${group.key}`, { scroll: false })
+                router.replace(`/dashboard/faces?location=${group.key}`, { scroll: false })
               }}
               className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
                 group.key === active.key
@@ -149,7 +149,7 @@ export default function HausSmilesTabs({ groups, defaultLocationId, isAdmin }: P
                 </div>
               </>
             )}
-            <Link href={`/dashboard/haus-smiles/${member.id}?location=${active.key}`} className="text-center block">
+            <Link href={`/dashboard/faces/${member.id}?location=${active.key}`} className="text-center block">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={member.avatar_url ?? ''}
