@@ -82,6 +82,57 @@ export async function POST(request: Request) {
         }
       }
     }
+
+    // Day passes are inserted already-confirmed by /api/day-pass/request
+    // (it re-verifies payment before writing the row), so there's no status
+    // flip to do here — just the QuickBooks sales receipt. A multi-day
+    // purchase shares one payment intent across several rows (one per
+    // day), so this is a list now, not a single row.
+    const { data: dayPasses } = await admin
+      .from('day_passes')
+      .select('id, customer_id, location_id, date, price_cents')
+      .eq('stripe_payment_intent_id', pi.id)
+
+    if (dayPasses && dayPasses.length > 0) {
+      const { data: customer } = await admin
+        .from('booking_customers')
+        .select('first_name, last_name, email')
+        .eq('id', dayPasses[0].customer_id)
+        .single()
+
+      if (customer) {
+        // One QuickBooks line item per day, same per-instance pattern the
+        // rest of this webhook uses — a range just means more calls here.
+        for (const dayPass of dayPasses) {
+          try {
+            const dateLabel = new Date(dayPass.date + 'T12:00:00').toLocaleDateString('en-US', {
+              weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'America/Los_Angeles',
+            })
+            const amount = dayPass.price_cents / 100
+
+            console.log('[qb] Creating day pass sales receipt — location:', dayPass.location_id, 'date:', dayPass.date, 'amount:', amount)
+
+            await createSalesReceipt(dayPass.location_id, {
+              guestName: `${customer.first_name} ${customer.last_name}`,
+              email: customer.email,
+              phone: '',
+              roomName: 'Day Pass',
+              date: dateLabel,
+              time: '9:00am – 5:00pm',
+              amount,
+            })
+            console.log('[qb] Day pass sales receipt created successfully')
+          } catch (err: any) {
+            if (err?.message === 'QB_NEEDS_RECONNECT') {
+              console.warn('[qb] Location needs reconnection — skipping day pass sales receipt')
+              break // same location for every row in the group — no point retrying each one
+            } else {
+              console.error('[qb] Failed to create day pass sales receipt:', err)
+            }
+          }
+        }
+      }
+    }
   }
 
   if (event.type === 'payment_intent.payment_failed') {
@@ -106,6 +157,10 @@ export async function POST(request: Request) {
           .eq('id', booking.reservation_id)
       }
     }
+
+    // A multi-day purchase shares one payment intent across several rows —
+    // decline all of them, not just one.
+    await admin.from('day_passes').update({ status: 'declined' }).eq('stripe_payment_intent_id', pi.id)
   }
 
   return NextResponse.json({ received: true })

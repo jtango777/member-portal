@@ -52,17 +52,34 @@ export default async function DayPassAccountPage() {
       .order('start_time', { ascending: false }),
   ])
 
+  // A multi-day purchase creates one day_passes row per day, all sharing
+  // one confirmation number — group them back into a single line here so
+  // a 3-day purchase reads as one booking, not three.
+  const dayPassGroups = new Map<string, NonNullable<typeof dayPasses>>()
+  for (const pass of dayPasses ?? []) {
+    const key = pass.confirmation_number ?? pass.id
+    dayPassGroups.set(key, [...(dayPassGroups.get(key) ?? []), pass])
+  }
+
   // Day passes and /book room bookings are different shapes — same shared
   // account, so unify them into one list here rather than showing two
   // disconnected sections.
   const bookings: UnifiedBooking[] = [
-    ...(dayPasses ?? []).map(pass => ({
-      id: pass.id,
-      sortKey: pass.date,
-      title: format(new Date(pass.date + 'T12:00:00'), 'EEEE, MMMM d, yyyy'),
-      subtitle: `Day Pass · ${pass.locations?.name ?? 'Unknown location'} · $${(pass.price_cents / 100).toFixed(2)}${pass.confirmation_number ? ` · #${pass.confirmation_number}` : ''}`,
-      status: pass.status as UnifiedBooking['status'],
-    })),
+    ...[...dayPassGroups.values()].map(group => {
+      const sorted = [...group].sort((a, b) => a.date.localeCompare(b.date))
+      const first = sorted[0]
+      const totalCents = sorted.reduce((sum, p) => sum + p.price_cents, 0)
+      const dateLabel = sorted.length > 1
+        ? `${sorted.length} days (${format(new Date(sorted[0].date + 'T12:00:00'), 'MMM d')} – ${format(new Date(sorted[sorted.length - 1].date + 'T12:00:00'), 'MMM d, yyyy')})`
+        : format(new Date(first.date + 'T12:00:00'), 'EEEE, MMMM d, yyyy')
+      return {
+        id: first.confirmation_number ?? first.id,
+        sortKey: first.date,
+        title: dateLabel,
+        subtitle: `Day Pass · ${first.locations?.name ?? 'Unknown location'} · $${(totalCents / 100).toFixed(2)}${first.confirmation_number ? ` · #${first.confirmation_number}` : ''}`,
+        status: first.status as UnifiedBooking['status'],
+      }
+    }),
     ...(roomBookings ?? []).map(b => {
       const room = b.rooms as { name: string; external_name: string | null; locations: { name: string } | null } | null
       return {
