@@ -16,10 +16,10 @@ export default function HausSmilesMemberActions({ id, source, fullName, avatarUr
 
   async function handleRemove() {
     setRemoving(true)
-    const res = await fetch(`/api/admin/haus-smiles/${id}?source=${source}`, { method: 'DELETE' })
+    const res = await fetch(`/api/admin/faces/${id}?source=${source}`, { method: 'DELETE' })
     if (res.ok) {
       toast.success('Archived')
-      router.push('/dashboard/haus-smiles')
+      router.push('/dashboard/faces')
       router.refresh()
     } else {
       const d = await res.json()

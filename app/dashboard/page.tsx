@@ -76,7 +76,7 @@ export default async function PortalHomePage() {
             <ChevronRight size={20} className="text-blue-300 flex-shrink-0 sm:hidden" />
           </Link>
 
-          <Link href="/dashboard/haus-smiles"
+          <Link href="/dashboard/faces"
             className="bg-emerald-50 hover:bg-emerald-100 active:bg-emerald-100 transition-colors rounded-xl p-4 sm:p-8 flex sm:flex-wrap items-center gap-3">
             <Smile size={28} className="text-emerald-700 flex-shrink-0 sm:hidden" />
             <Smile size={32} className="text-emerald-700 hidden sm:block" />

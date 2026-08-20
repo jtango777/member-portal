@@ -8,13 +8,13 @@ export const memberNavItems: NavItem[] = [
   // Indented — it's really a sub-view of Rooms (your own bookings), not a
   // separate top-level section.
   { href: '/dashboard/my-reservations', label: 'My Reservations', icon: CalendarClock, indent: true },
-  { href: '/dashboard/haus-smiles', label: 'Faces', icon: Smile },
+  { href: '/dashboard/faces', label: 'Faces', icon: Smile },
 ]
 
 export const adminNavItems: NavItem[] = [
   { href: '/dashboard', label: 'Overview', icon: LayoutDashboard },
   { href: '/dashboard/rooms', label: 'Rooms', icon: DoorOpen },
-  { href: '/dashboard/haus-smiles', label: 'Faces', icon: Smile },
+  { href: '/dashboard/faces', label: 'Faces', icon: Smile },
 ]
 
 export type NavGroup = { label: string | null; items: NavItem[] }

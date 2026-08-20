@@ -12,7 +12,7 @@ import FeedbackForm from './FeedbackForm'
 const tabs = [
   { href: '/dashboard', label: 'Home', icon: LayoutDashboard },
   { href: '/dashboard/rooms', label: 'Rooms', icon: DoorOpen },
-  { href: '/dashboard/haus-smiles', label: 'Faces', icon: Smile },
+  { href: '/dashboard/faces', label: 'Faces', icon: Smile },
   { href: '/dashboard/my-reservations', label: 'Bookings', icon: CalendarClock },
 ]
 
