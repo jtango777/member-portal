@@ -234,7 +234,7 @@ function ReservationFields({
     <>
       <div>
         <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3 mt-3">Location</div>
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           {LOCATIONS.map(loc => {
             const selected = loc.id === locationId
             return (
