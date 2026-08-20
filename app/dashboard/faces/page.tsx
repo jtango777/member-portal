@@ -54,7 +54,7 @@ export default async function HausSmilesPage() {
 
   return (
     <div className="h-full overflow-auto p-6">
-      <PageVisitTracker path="/dashboard/haus-smiles" />
+      <PageVisitTracker path="/dashboard/faces" />
       <div className="max-w-5xl mx-auto">
         <HausSmilesTabs
           groups={groups}
