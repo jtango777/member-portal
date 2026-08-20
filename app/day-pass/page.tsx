@@ -367,15 +367,26 @@ function DetailsAndPayment({
   }
 
   // Payment step — only reachable once the account + payment intent exist.
+  // Show a confirmed name/email summary here regardless of whether this was
+  // an existing login or a signup that just happened — Industrious does the
+  // same (locks in "Your details" as read-only right above payment) so the
+  // person can see what they're actually booking under before paying.
   if (customerId && clientSecret) {
     return (
       <>
-        {existingCustomer && (
-          <div className="flex items-center justify-between text-sm text-gray-500 -mb-2">
-            <span>Booking as <span className="font-medium text-gray-700">{guestName}</span> ({guestEmail})</span>
-            <button onClick={handleSignOut} className="text-gray-400 hover:text-gray-600 underline">Not you? Sign out</button>
+        <div className="flex items-center justify-between border-t border-gray-100 pt-5 -mb-1">
+          <div className="flex gap-8 text-sm">
+            <div>
+              <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Name</div>
+              <div className="font-medium text-gray-900">{guestName}</div>
+            </div>
+            <div>
+              <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Email</div>
+              <div className="font-medium text-gray-900">{guestEmail}</div>
+            </div>
           </div>
-        )}
+          <button onClick={handleSignOut} className="text-sm text-gray-400 hover:text-gray-600 underline">Not you? Sign out</button>
+        </div>
         <Elements stripe={stripePromise} options={{ clientSecret }}>
           <PaymentStep
             customerId={customerId}
