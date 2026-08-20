@@ -34,7 +34,11 @@ export async function POST(request: Request) {
   })
 
   if (authError) {
-    if (authError.message.includes('already registered')) {
+    // Match on the stable error code, not the message text — Supabase's
+    // actual wording ("...has already been registered") doesn't contain
+    // the substring "already registered", so a text match silently missed
+    // this case and fell through to the generic 500 below.
+    if (authError.code === 'email_exists' || authError.message.includes('already registered')) {
       return NextResponse.json({ error: 'An account with this email already exists. Please log in instead.' }, { status: 409 })
     }
     console.error('[day-pass/create-account] Auth create error:', authError.message)
