@@ -304,7 +304,7 @@ function marinaConfirmationEmail(
 
     <table style="border-collapse:collapse;width:100%;margin-bottom:8px;">
       ${bullet('WiFi Password', 'bizhauswifi')}
-      ${bullet('Building Access', "BizHaus MDR is located at 4223 Glencoe Ave, Suite C215, Marina del Rey. Use code <strong>#6192</strong> to enter the building and Suite C215, it's the same code for both doors.")}
+      ${bullet('Building Access', "BizHaus MDR is located at 4223 Glencoe Ave, Suite C215, Marina del Rey. Your day pass code for today is <strong>#6192</strong>, it's the same code for both the building and Suite C215.")}
       ${bullet('Parking', 'Visitor parking out front is limited to 2 hours. Street parking is available nearby, or park in the AMC structure next door.')}
       ${bullet('Restrooms', 'Down the hallway, keys hang next to each door (pink bear for women, blue bear for men).')}
       ${bullet('Printers', 'Search for &ldquo;BizHaus Printer&rdquo; on the network. Our policy: please be kind to trees and print only when you have to!')}
