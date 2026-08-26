@@ -2,7 +2,7 @@ import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 import { sendInviteEmail } from '@/lib/email'
 import { generateToken } from '@/lib/utils'
-import { markCurrentMemberInPipedrive } from '@/lib/pipedrive'
+import { markCurrentMemberInPipedrive, syncLocationAndSeatingToPipedrive } from '@/lib/pipedrive'
 
 export async function POST(request: Request) {
   const supabase = await createClient()
@@ -27,6 +27,15 @@ export async function POST(request: Request) {
 
   const admin = createAdminClient()
 
+  // Looked up once, used by the Pipedrive sync below in both branches —
+  // the portal stores a location id, but Pipedrive's "Location Desired"
+  // field is keyed by name.
+  let locationName: string | null = null
+  if (locationId) {
+    const { data: location } = await admin.from('locations').select('name').eq('id', locationId).single()
+    locationName = location?.name ?? null
+  }
+
   // "Just add" path — creates the record so the person shows up in Members
   // (and can get a photo linked, etc.) without generating an invite link or
   // sending anything. Same "Not invited" state as a fresh Pipedrive import.
@@ -49,6 +58,9 @@ export async function POST(request: Request) {
       const result = await markCurrentMemberInPipedrive(email)
       if (!result.ok) console.error('[invites/send] Pipedrive mark failed:', result.error)
       else pipedriveMatched = result.matched
+
+      const syncResult = await syncLocationAndSeatingToPipedrive(email, { locationName, seating: seatingValue })
+      if (!syncResult.ok) console.error('[invites/send] Pipedrive location/seating sync failed:', syncResult.error)
     }
 
     return NextResponse.json({ ok: true, emailSent: false, skippedEmail: true, pipedriveMatched })
@@ -82,6 +94,9 @@ export async function POST(request: Request) {
     const result = await markCurrentMemberInPipedrive(email)
     if (!result.ok) console.error('[invites/send] Pipedrive mark failed:', result.error)
     else pipedriveMatched = result.matched
+
+    const syncResult = await syncLocationAndSeatingToPipedrive(email, { locationName, seating: seatingValue })
+    if (!syncResult.ok) console.error('[invites/send] Pipedrive location/seating sync failed:', syncResult.error)
   }
 
   return NextResponse.json({ ok: true, inviteLink, emailSent, pipedriveMatched })
