@@ -15,7 +15,7 @@ export default async function HausSmilesPage() {
     supabase.from('locations').select('*').order('name'),
     supabase
       .from('profiles')
-      .select('id, full_name, avatar_url, default_location_id, seating')
+      .select('id, full_name, avatar_url, default_location_id, seating, linkedin_username')
       .not('avatar_url', 'is', null)
       .eq('is_active', true)
       .order('full_name'),
@@ -34,10 +34,10 @@ export default async function HausSmilesPage() {
   // directory_photos entry, which isn't tied to any invite or account at all.
   const allMembers = [
     ...(profiles ?? []).map(p => ({
-      id: p.id, full_name: p.full_name, avatar_url: p.avatar_url, location_id: p.default_location_id, seating: p.seating, source: 'profile' as const,
+      id: p.id, full_name: p.full_name, avatar_url: p.avatar_url, location_id: p.default_location_id, seating: p.seating, linkedin_username: p.linkedin_username, source: 'profile' as const,
     })),
     ...(pendingWithPhoto ?? []).map(p => ({
-      id: p.id, full_name: p.full_name ?? 'Pending member', avatar_url: p.avatar_url, location_id: p.default_location_id, seating: null, source: 'pending' as const,
+      id: p.id, full_name: p.full_name ?? 'Pending member', avatar_url: p.avatar_url, location_id: p.default_location_id, seating: null, linkedin_username: null, source: 'pending' as const,
     })),
   ]
 

@@ -55,6 +55,7 @@ export type Profile = {
   is_active: boolean
   license_plate: string | null
   seating: string | null
+  linkedin_username: string | null
   room_access_prompted: boolean
   room_access_requested_at: string | null
   dismissed_announcement_id: string | null

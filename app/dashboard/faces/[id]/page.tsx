@@ -2,8 +2,9 @@ import { createClient } from '@/lib/supabase/server'
 import { getAuthedProfile } from '@/lib/supabase/session'
 import { redirect, notFound } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, Linkedin } from 'lucide-react'
 import HausSmilesMemberActions from '@/components/HausSmilesMemberActions'
+import { linkedinUrl } from '@/lib/linkedin'
 
 export const dynamic = 'force-dynamic'
 
@@ -25,7 +26,7 @@ export default async function HausSmilesMemberPage({ params, searchParams }: {
 
   const { data: profileMember } = await supabase
     .from('profiles')
-    .select('id, full_name, avatar_url, seating')
+    .select('id, full_name, avatar_url, seating, linkedin_username')
     .eq('id', id)
     .eq('is_active', true)
     .not('avatar_url', 'is', null)
@@ -60,12 +61,25 @@ export default async function HausSmilesMemberPage({ params, searchParams }: {
         <Link href={`/dashboard/faces${location ? `?location=${location}` : ''}`} className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-900 mb-6">
           <ArrowLeft size={16} /> Back to Faces
         </Link>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={member.avatar_url ?? ''}
-          alt={member.full_name}
-          className="w-full aspect-square object-cover rounded-xl border border-gray-200 mb-4"
-        />
+        <div className="relative mb-4">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={member.avatar_url ?? ''}
+            alt={member.full_name}
+            className="w-full aspect-square object-cover rounded-xl border border-gray-200"
+          />
+          {(member as { linkedin_username?: string | null }).linkedin_username && (
+            <a
+              href={linkedinUrl((member as { linkedin_username?: string | null }).linkedin_username!)}
+              target="_blank"
+              rel="noopener noreferrer"
+              title="LinkedIn"
+              className="absolute bottom-2 right-2 flex items-center justify-center w-7 h-7 rounded-full bg-white border border-gray-200 shadow-sm text-[#0A66C2] hover:scale-110 transition-transform"
+            >
+              <Linkedin size={15} strokeWidth={2.5} />
+            </a>
+          )}
+        </div>
         <p className="text-lg font-semibold text-gray-900 text-center">{firstNameLastInitial(member.full_name)}</p>
         {(member as { seating?: string | null }).seating && (
           <p className="text-sm text-gray-400 text-center">{(member as { seating?: string | null }).seating}</p>

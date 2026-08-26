@@ -8,6 +8,7 @@ import { useRouter } from 'next/navigation'
 import PhotoUploadDialog from '@/components/PhotoUploadDialog'
 import PasswordInput from '@/components/PasswordInput'
 import { getSeatingOptions } from '@/lib/seating'
+import { extractLinkedinUsername } from '@/lib/linkedin'
 
 type Props = {
   profile:   Profile
@@ -29,6 +30,7 @@ export default function SettingsForm({ profile, company, locations, email }: Pro
   const [locationId, setLocationId]       = useState((profile as any).default_location_id ?? '')
   const [licensePlate, setLicensePlate]   = useState(profile.license_plate ?? '')
   const [seating, setSeating]             = useState(profile.seating ?? '')
+  const [linkedinUsername, setLinkedinUsername] = useState(profile.linkedin_username ?? '')
   const [savingProfile, setSavingProfile] = useState(false)
   const [photoDialogOpen, setPhotoDialogOpen] = useState(false)
 
@@ -60,6 +62,7 @@ export default function SettingsForm({ profile, company, locations, email }: Pro
         company_name:        companyName,
         license_plate:       licensePlate,
         seating:             seating || null,
+        linkedin_username:   linkedinUsername || null,
       }),
     })
     if (res.ok) {
@@ -70,6 +73,18 @@ export default function SettingsForm({ profile, company, locations, email }: Pro
       toast.error(d.error ?? 'Failed to save')
     }
     setSavingProfile(false)
+  }
+
+  // Pasting a full LinkedIn URL should still work — collapse it down to
+  // just the username right away, so the field always shows only what
+  // actually gets stored. The "https://linkedin.com/in/" prefix is fixed,
+  // never editable, so there's no way to point this at anything else.
+  function handleLinkedinChange(raw: string) {
+    if (raw.includes('linkedin.com') || raw.includes('://')) {
+      setLinkedinUsername(extractLinkedinUsername(raw) ?? '')
+      return
+    }
+    setLinkedinUsername(raw.replace(/[^a-zA-Z0-9-]/g, ''))
   }
 
   async function handleChangePassword(e: React.FormEvent) {
@@ -185,6 +200,16 @@ export default function SettingsForm({ profile, company, locations, email }: Pro
               placeholder="ABC1234"
               className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
             <p className="text-xs text-gray-400 mt-1">For parking at your location.</p>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">LinkedIn</label>
+            <div className="flex items-center border border-gray-300 rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-blue-500">
+              <span className="pl-3 pr-1 py-2 text-sm text-gray-400 bg-gray-50 select-none whitespace-nowrap">linkedin.com/in/</span>
+              <input value={linkedinUsername} onChange={e => handleLinkedinChange(e.target.value)}
+                placeholder="janesmith"
+                className="w-full min-w-0 px-1 py-2 text-sm focus:outline-none" />
+            </div>
+            <p className="text-xs text-gray-400 mt-1">Shows as a small icon on your Faces photo.</p>
           </div>
           <button type="submit" disabled={savingProfile}
             className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-semibold px-4 py-2 rounded-lg">

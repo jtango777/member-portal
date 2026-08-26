@@ -3,14 +3,16 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { Trash2, Pencil, Search } from 'lucide-react'
+import { Trash2, Pencil, Search, Linkedin } from 'lucide-react'
 import toast from 'react-hot-toast'
 import AssignPhotoDialog from './admin/AssignPhotoDialog'
 import { getSeatingOptions } from '@/lib/seating'
+import { linkedinUrl } from '@/lib/linkedin'
 
 type Member = {
   id: string; full_name: string; avatar_url: string | null; seating?: string | null
   location_name?: string | null
+  linkedin_username?: string | null
   source: 'profile' | 'directory' | 'pending'
 }
 type Group = { key: string; name: string; members: Member[] }
@@ -149,13 +151,35 @@ export default function HausSmilesTabs({ groups, defaultLocationId, isAdmin }: P
                 </div>
               </>
             )}
+            {/* Own relative wrapper just for the photo, separate from the
+                text below — the LinkedIn badge needs to sit in the photo's
+                own corner regardless of how tall the name/seating text
+                ends up, and it can't be nested inside the profile Link
+                below since it's itself a link (out to LinkedIn, not the
+                profile page) — nested <a> tags aren't valid. */}
+            <div className="relative mb-2">
+              <Link href={`/dashboard/faces/${member.id}?location=${active.key}`}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={member.avatar_url ?? ''}
+                  alt={member.full_name}
+                  className="w-full aspect-square object-cover rounded-lg border border-gray-200 block group-hover:opacity-80 transition-opacity"
+                />
+              </Link>
+              {member.linkedin_username && (
+                <a
+                  href={linkedinUrl(member.linkedin_username)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  title="LinkedIn"
+                  onClick={e => e.stopPropagation()}
+                  className="absolute bottom-1 right-1 z-20 flex items-center justify-center w-4 h-4 rounded-full bg-white border border-gray-200 shadow-sm text-[#0A66C2] hover:scale-110 transition-transform"
+                >
+                  <Linkedin size={9} strokeWidth={2.5} />
+                </a>
+              )}
+            </div>
             <Link href={`/dashboard/faces/${member.id}?location=${active.key}`} className="text-center block">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={member.avatar_url ?? ''}
-                alt={member.full_name}
-                className="w-full aspect-square object-cover rounded-lg border border-gray-200 mb-2 group-hover:opacity-80 transition-opacity"
-              />
               <p className="text-sm text-gray-700">{firstNameLastInitial(member.full_name)}</p>
               {member.seating && <p className="text-xs text-gray-400">{member.seating}</p>}
             </Link>

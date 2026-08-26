@@ -1,13 +1,25 @@
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
+import { extractLinkedinUsername } from '@/lib/linkedin'
 
 export async function PATCH(request: Request) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const { first_name, last_name, default_location_id, company_name, license_plate, seating } = await request.json()
+  const { first_name, last_name, default_location_id, company_name, license_plate, seating, linkedin_username } = await request.json()
   const admin = createAdminClient()
+
+  // Never trust the client to have already stripped this down to a bare
+  // username — re-extract it here too, so a direct API call can't sneak an
+  // arbitrary URL into a field the UI only ever shows as "linkedin.com/in/…".
+  let linkedinUsername: string | null = null
+  if (typeof linkedin_username === 'string' && linkedin_username.trim()) {
+    linkedinUsername = extractLinkedinUsername(linkedin_username)
+    if (!linkedinUsername) {
+      return NextResponse.json({ error: 'That doesn\'t look like a valid LinkedIn username.' }, { status: 400 })
+    }
+  }
 
   // Update profile
   const { error: profileErr } = await admin
@@ -19,6 +31,7 @@ export async function PATCH(request: Request) {
       default_location_id: default_location_id ?? null,
       license_plate: license_plate?.trim() || null,
       seating: seating ?? null,
+      linkedin_username: linkedinUsername,
     })
     .eq('id', user.id)
 
