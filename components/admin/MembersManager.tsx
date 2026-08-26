@@ -195,6 +195,13 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
       if (markInPipedrive && data.pipedriveMatched === false) {
         toast('No matching contact found in Pipedrive — mark them there manually.', { icon: '⚠️' })
       }
+      // Prompt for a photo right away, same dialog as the per-row "Add
+      // picture" action — saves a trip back to find them in the list right
+      // after adding them. "Skip for now" in the dialog just closes it.
+      if (data.member_id) {
+        const addedName = [addFirstName.trim(), addLastName.trim()].filter(Boolean).join(' ') || email
+        setPhotoTarget({ type: 'pending', id: data.member_id, name: addedName, hasPhoto: false, avatarUrl: null })
+      }
       setEmail('')
       setAddFirstName('')
       setAddLastName('')

@@ -44,10 +44,10 @@ export async function POST(request: Request) {
     // fills in "now" as a plain timestamp, same as any other insert. It's
     // just bookkeeping; invite_token staying null is what actually marks
     // this person as "not invited" anywhere the UI checks that.
-    const { error } = await admin.from('permitted_emails').upsert(
+    const { data: row, error } = await admin.from('permitted_emails').upsert(
       { email: email.toLowerCase().trim(), first_name: firstName, last_name: lastName, full_name: fullName, company_id: companyId, individual_hours_allotment: individualHours, default_location_id: locationId, seating: seatingValue, invite_token: null, accepted_at: null },
       { onConflict: 'email' }
-    )
+    ).select('id').single()
     if (error) {
       console.error('[invites/send] error:', error.message)
       return NextResponse.json({ error: 'Failed to add member.' }, { status: 500 })
@@ -63,15 +63,15 @@ export async function POST(request: Request) {
       if (!syncResult.ok) console.error('[invites/send] Pipedrive location/seating sync failed:', syncResult.error)
     }
 
-    return NextResponse.json({ ok: true, emailSent: false, skippedEmail: true, pipedriveMatched })
+    return NextResponse.json({ ok: true, emailSent: false, skippedEmail: true, pipedriveMatched, member_id: row.id })
   }
 
   const token = generateToken()
 
-  const { error } = await admin.from('permitted_emails').upsert(
+  const { data: row, error } = await admin.from('permitted_emails').upsert(
     { email: email.toLowerCase().trim(), first_name: firstName, last_name: lastName, full_name: fullName, company_id: companyId, individual_hours_allotment: individualHours, default_location_id: locationId, seating: seatingValue, invite_token: token, invited_at: new Date().toISOString(), accepted_at: null },
     { onConflict: 'email' }
-  )
+  ).select('id').single()
 
   if (error) {
     console.error('[invites/send] error:', error.message)
@@ -99,5 +99,5 @@ export async function POST(request: Request) {
     if (!syncResult.ok) console.error('[invites/send] Pipedrive location/seating sync failed:', syncResult.error)
   }
 
-  return NextResponse.json({ ok: true, inviteLink, emailSent, pipedriveMatched })
+  return NextResponse.json({ ok: true, inviteLink, emailSent, pipedriveMatched, member_id: row.id })
 }
