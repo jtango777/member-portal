@@ -410,6 +410,40 @@ export async function sendDayPassStaffNotification(
   if (error) console.error('[email] Resend error sending day pass staff notification:', error)
 }
 
+export async function sendDayPassCancellationStaffNotification(
+  details: { confirmationNumber: string; guestName: string; guestEmail: string; location: string; date: string; refundAmount: string }
+) {
+  const { error } = await resend.emails.send({
+    from: FROM,
+    to: STAFF_EMAIL,
+    subject: `Day pass cancelled: ${details.guestName} — ${details.location}`,
+    html: bookingEmailWrapper(`
+      <h2 style="color:#0f172a;margin:0 0 4px;font-size:22px;font-weight:700;">Day Pass Cancelled</h2>
+      <p style="color:#64748b;font-size:13px;margin:0 0 24px;">Confirmation #${details.confirmationNumber}</p>
+      <table style="border-collapse:collapse;width:100%;margin-bottom:24px;background:#f8fafc;border-radius:7px;overflow:hidden;">
+        <tr>
+          <td style="padding:10px 14px;color:#64748b;font-size:13px;width:110px;">Guest</td>
+          <td style="padding:10px 14px;font-weight:600;color:#0f172a;">${details.guestName} (${details.guestEmail})</td>
+        </tr>
+        <tr style="border-top:1px solid #e2e8f0;">
+          <td style="padding:10px 14px;color:#64748b;font-size:13px;">Location</td>
+          <td style="padding:10px 14px;color:#1e293b;">${details.location}</td>
+        </tr>
+        <tr style="border-top:1px solid #e2e8f0;">
+          <td style="padding:10px 14px;color:#64748b;font-size:13px;">Date</td>
+          <td style="padding:10px 14px;color:#1e293b;">${details.date}</td>
+        </tr>
+        <tr style="border-top:1px solid #e2e8f0;">
+          <td style="padding:10px 14px;color:#64748b;font-size:13px;">Refunded</td>
+          <td style="padding:10px 14px;font-weight:700;color:#0f172a;">${details.refundAmount}</td>
+        </tr>
+      </table>
+      <a href="${APP_URL}/dashboard/admin/day-passes" style="display:inline-block;background:#6ec664;color:white;padding:13px 28px;border-radius:7px;text-decoration:none;font-weight:600;font-size:15px;">View Day Passes →</a>
+    `, 'Day Pass'),
+  })
+  if (error) console.error('[email] Resend error sending day pass cancellation staff notification:', error)
+}
+
 export async function sendCancellationEmail(
   to: string,
   details: { title: string; room: string; location: string; date: string; time: string }

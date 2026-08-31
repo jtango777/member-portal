@@ -204,6 +204,32 @@ export async function createSalesReceipt(
   return receipt.SalesReceipt
 }
 
+// Voids a sales receipt already created by createSalesReceipt above — used
+// when a day pass gets self-serve cancelled, so QB's books reflect the
+// refund instead of still showing revenue for a day that got cancelled.
+// QB's void operation needs the receipt's current SyncToken, not just its
+// Id, so this fetches the receipt first rather than assuming the token
+// from creation time is still valid.
+export async function voidSalesReceipt(locationId: string, receiptId: string) {
+  const tokens = await getTokens(locationId)
+  if (!tokens) {
+    console.error('[qb] No QB tokens found for location:', locationId)
+    return null
+  }
+
+  const accessToken = await refreshIfNeeded(tokens)
+
+  const current = await qbFetch('GET', `/salesreceipt/${receiptId}`, tokens.realm_id, accessToken)
+  const syncToken = current.SalesReceipt.SyncToken
+
+  const voided = await qbFetch('POST', '/salesreceipt?operation=void', tokens.realm_id, accessToken, {
+    Id: receiptId,
+    SyncToken: syncToken,
+  })
+
+  return voided.SalesReceipt
+}
+
 export async function disconnectQuickBooks(locationId: string) {
   const tokens = await getTokens(locationId)
   if (!tokens) return

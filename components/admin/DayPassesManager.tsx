@@ -8,7 +8,7 @@ type DayPass = {
   id: string
   date: string
   price_cents: number
-  status: 'pending' | 'confirmed' | 'declined'
+  status: 'pending' | 'confirmed' | 'declined' | 'cancelled'
   confirmation_number: string | null
   created_at: string
   booking_customers: { id: string; first_name: string; last_name: string; email: string } | null
@@ -19,6 +19,7 @@ const STATUS_STYLES: Record<DayPass['status'], string> = {
   confirmed: 'bg-green-50 text-green-700',
   pending: 'bg-amber-50 text-amber-700',
   declined: 'bg-red-50 text-red-700',
+  cancelled: 'bg-gray-100 text-gray-500',
 }
 
 // A multi-day purchase creates one day_passes row per day, all sharing one

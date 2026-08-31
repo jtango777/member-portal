@@ -1,17 +1,19 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { format } from 'date-fns'
-import { CheckCircle, Clock, XCircle } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { CheckCircle, Clock, XCircle, Ban } from 'lucide-react'
+import { cn, getPacificDayBounds } from '@/lib/utils'
 import SignOutButton from '@/components/day-pass/SignOutButton'
+import CancelDayPassButton from '@/components/day-pass/CancelDayPassButton'
 
 export const dynamic = 'force-dynamic'
 
-const STATUS_ICON = { confirmed: CheckCircle, pending: Clock, declined: XCircle } as const
+const STATUS_ICON = { confirmed: CheckCircle, pending: Clock, declined: XCircle, cancelled: Ban } as const
 const STATUS_STYLES = {
   confirmed: 'text-green-600 bg-green-50',
   pending: 'text-amber-600 bg-amber-50',
   declined: 'text-red-600 bg-red-50',
+  cancelled: 'text-gray-500 bg-gray-100',
 } as const
 
 type UnifiedBooking = {
@@ -19,7 +21,22 @@ type UnifiedBooking = {
   sortKey: string
   title: string
   subtitle: string
-  status: 'confirmed' | 'pending' | 'declined'
+  status: 'confirmed' | 'pending' | 'declined' | 'cancelled'
+  // Only day passes are self-serve cancellable — conference room bookings
+  // never are (Caroline, 2026-08-31). Present only for day-pass entries
+  // that are still more than 12 hours from their start.
+  cancellableConfirmationNumber?: string
+}
+
+// 12-hour cutoff measured from 9:00am Pacific on the day, matching
+// /api/day-pass/cancel's own check — this only controls whether the
+// button shows, the route re-checks for real before refunding anything.
+function isStillCancellable(dates: string[]): boolean {
+  const now = Date.now()
+  return dates.every(date => {
+    const nineAm = getPacificDayBounds(date).start.getTime() + 9 * 3600000
+    return now < nineAm - 12 * 3600000
+  })
 }
 
 export default async function DayPassAccountPage() {
@@ -72,12 +89,14 @@ export default async function DayPassAccountPage() {
       const dateLabel = sorted.length > 1
         ? `${sorted.length} days (${format(new Date(sorted[0].date + 'T12:00:00'), 'MMM d')} – ${format(new Date(sorted[sorted.length - 1].date + 'T12:00:00'), 'MMM d, yyyy')})`
         : format(new Date(first.date + 'T12:00:00'), 'EEEE, MMMM d, yyyy')
+      const cancellable = first.status === 'confirmed' && first.confirmation_number && isStillCancellable(sorted.map(p => p.date))
       return {
         id: first.confirmation_number ?? first.id,
         sortKey: first.date,
         title: dateLabel,
         subtitle: `Day Pass · ${first.locations?.name ?? 'Unknown location'} · $${(totalCents / 100).toFixed(2)}${first.confirmation_number ? ` · #${first.confirmation_number}` : ''}`,
         status: first.status as UnifiedBooking['status'],
+        cancellableConfirmationNumber: cancellable ? first.confirmation_number! : undefined,
       }
     }),
     ...(roomBookings ?? []).map(b => {
@@ -127,9 +146,14 @@ export default async function DayPassAccountPage() {
                 <div className="font-semibold text-gray-900">{b.title}</div>
                 <div className="text-sm text-gray-500 mt-0.5">{b.subtitle}</div>
               </div>
-              <span className={cn('inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium capitalize flex-shrink-0', STATUS_STYLES[b.status])}>
-                <Icon size={13} /> {b.status}
-              </span>
+              <div className="flex items-center gap-3 flex-shrink-0">
+                {b.cancellableConfirmationNumber && (
+                  <CancelDayPassButton confirmationNumber={b.cancellableConfirmationNumber} />
+                )}
+                <span className={cn('inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium capitalize', STATUS_STYLES[b.status])}>
+                  <Icon size={13} /> {b.status}
+                </span>
+              </div>
             </div>
           )
         })}

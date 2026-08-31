@@ -112,7 +112,7 @@ export async function POST(request: Request) {
 
             console.log('[qb] Creating day pass sales receipt — location:', dayPass.location_id, 'date:', dayPass.date, 'amount:', amount)
 
-            await createSalesReceipt(dayPass.location_id, {
+            const receipt = await createSalesReceipt(dayPass.location_id, {
               guestName: `${customer.first_name} ${customer.last_name}`,
               email: customer.email,
               phone: '',
@@ -121,6 +121,11 @@ export async function POST(request: Request) {
               time: '9:00am – 5:00pm',
               amount,
             })
+            // Stored so a later self-serve cancellation can void this exact
+            // receipt instead of having to search QB for it.
+            if (receipt?.Id) {
+              await admin.from('day_passes').update({ qb_receipt_id: receipt.Id }).eq('id', dayPass.id)
+            }
             console.log('[qb] Day pass sales receipt created successfully')
           } catch (err: any) {
             if (err?.message === 'QB_NEEDS_RECONNECT') {
