@@ -246,6 +246,9 @@ function CheckoutForm({
               <p className="text-xs text-gray-400 mt-1.5">Must be at least 8 characters.</p>
             </div>
             <Recaptcha ref={acctRecaptchaRef} onChange={setAcctRecaptchaToken} />
+            <p className="text-xs text-gray-400 leading-relaxed">
+              By continuing, I agree to the <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-booking-600 hover:text-booking-700">Website Terms of Service</a> and the <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-booking-600 hover:text-booking-700">Privacy Policy</a>.
+            </p>
           </div>
         )}
       </div>

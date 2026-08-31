@@ -531,7 +531,7 @@ function DetailsAndPayment({
       )}
 
       <div className="text-xs text-gray-400 leading-relaxed max-w-[460px]">
-        By clicking Continue, I agree to the <a href="#" className="text-booking-600 hover:text-booking-700">Website Terms of Service</a> and the <a href="#" className="text-booking-600 hover:text-booking-700">Privacy Policy</a>.
+        By clicking Continue, I agree to the <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-booking-600 hover:text-booking-700">Website Terms of Service</a> and the <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-booking-600 hover:text-booking-700">Privacy Policy</a>.
       </div>
 
       <button

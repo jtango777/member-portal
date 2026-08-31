@@ -1,13 +1,30 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect, Suspense } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Eye, EyeOff } from 'lucide-react'
 import toast from 'react-hot-toast'
 
+// `context=day-pass` is threaded through from /forgot-password's
+// redirectTo — see that file for why. Determines where "Update Password"
+// sends someone afterward: a booking customer back to /day-pass/login,
+// a member back to /login.
+//
+// Wrapped in Suspense — useSearchParams() requires it for static
+// prerendering, otherwise the build fails on this page entirely.
 export default function ResetPasswordPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-slate-900" />}>
+      <ResetPasswordForm />
+    </Suspense>
+  )
+}
+
+function ResetPasswordForm() {
   const router  = useRouter()
+  const searchParams = useSearchParams()
+  const isDayPass = searchParams.get('context') === 'day-pass'
   const [password, setPassword]   = useState('')
   const [confirm, setConfirm]     = useState('')
   const [showPass, setShowPass]   = useState(false)
@@ -53,23 +70,25 @@ export default function ResetPasswordPage() {
       setLoading(false)
     } else {
       toast.success('Password updated! Please sign in.')
-      router.push('/login')
+      router.push(isDayPass ? '/day-pass/login' : '/login')
     }
   }
 
   if (!ready) {
     return (
-      <div className="min-h-screen bg-slate-900 flex items-center justify-center">
-        <p className="text-slate-400">Verifying reset link…</p>
+      <div className={`min-h-screen flex items-center justify-center ${isDayPass ? 'bg-gray-50' : 'bg-slate-900'}`}>
+        <p className={isDayPass ? 'text-gray-400' : 'text-slate-400'}>Verifying reset link…</p>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
+    <div className={`min-h-screen flex items-center justify-center p-4 ${isDayPass ? 'bg-gray-50' : 'bg-slate-900'}`}>
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-white tracking-tight">BizHaus <span className="font-medium">Portal</span></h1>
+          <h1 className={`text-3xl font-bold tracking-tight ${isDayPass ? 'text-gray-900' : 'text-white'}`}>
+            BizHaus <span className="font-medium">{isDayPass ? 'Day Pass' : 'Portal'}</span>
+          </h1>
         </div>
         <div className="bg-white rounded-xl shadow-lg p-8">
           <h2 className="text-lg font-semibold text-gray-900 mb-1">Set new password</h2>

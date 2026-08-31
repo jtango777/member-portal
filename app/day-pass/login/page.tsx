@@ -41,7 +41,10 @@ export default function DayPassLoginPage() {
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1.5">Password</label>
+          <div className="flex items-center justify-between mb-1.5">
+            <label className="block text-sm font-medium text-gray-700">Password</label>
+            <a href="/forgot-password?context=day-pass" className="text-xs text-booking-600 hover:text-booking-700 font-medium">Forgot password?</a>
+          </div>
           <PasswordInput value={password} onChange={setPassword} required autoComplete="current-password" />
         </div>
         <button
