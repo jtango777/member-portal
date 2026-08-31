@@ -286,7 +286,7 @@ function CheckoutForm({
         disabled={loading || !agreed || !stripe || !recaptchaToken || (!existingCustomer && (password.length < 8 || !acctRecaptchaToken))}
         className={cn(
           'w-full py-3.5 rounded-lg text-sm font-semibold transition-colors',
-          loading || !agreed || !stripe || !recaptchaToken || (!existingCustomer && password.length < 8)
+          loading || !agreed || !stripe || !recaptchaToken || (!existingCustomer && (password.length < 8 || !acctRecaptchaToken))
             ? 'bg-booking-300 text-white cursor-not-allowed'
             : 'bg-booking-600 hover:bg-booking-700 text-white'
         )}
