@@ -167,7 +167,7 @@ export default function DayPassPage() {
         </div>
 
         <div className="lg:col-span-2 sticky top-20">
-          <PriceSummary days={dates.length} />
+          <PriceSummary days={dates.length} locationName={selectedLocation.name} />
         </div>
       </div>
     </div>
@@ -707,14 +707,14 @@ function StepConfirmation({ loc, dates, guestName, confirmationNumber, onRestart
   )
 }
 
-function PriceSummary({ days }: { days: number }) {
+function PriceSummary({ days, locationName }: { days: number; locationName: string }) {
   const n = Math.max(days, 1)
   const total = DAY_PASS_PRICE * n
   return (
     <div className="flex flex-col gap-4">
       <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
         <div className="px-5 py-4 border-b border-gray-100">
-          <div className="text-base font-semibold text-gray-900">Coworking Day Pass</div>
+          <div className="text-base font-semibold text-gray-900">{locationName} Day Pass</div>
         </div>
         <div className="px-5 py-4 flex flex-col gap-2.5">
           <div className="flex justify-between text-sm text-gray-700">
