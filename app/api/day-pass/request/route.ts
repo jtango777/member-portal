@@ -30,6 +30,15 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Day passes are only available Monday–Friday.' }, { status: 400 })
   }
 
+  // Same guard as /create-payment-intent — this route is the one that
+  // actually writes the confirmed reservation, so it needs its own check
+  // rather than trusting that payment-intent creation already caught it.
+  const todayPacific = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' })
+  const noPastDates = uniqueDates.every(d => d >= todayPacific)
+  if (!noPastDates) {
+    return NextResponse.json({ error: 'One or more selected dates is in the past.' }, { status: 400 })
+  }
+
   if (!(await verifyRecaptcha(recaptcha_token))) {
     return NextResponse.json({ error: 'reCAPTCHA verification failed. Please try again.' }, { status: 400 })
   }

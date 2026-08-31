@@ -48,11 +48,34 @@ function isContiguousRange(sortedDates: string[]): boolean {
   return businessDaysBetween(sortedDates[0], sortedDates[sortedDates.length - 1]).length === sortedDates.length
 }
 
+// The default date the page opens with — today if it's a weekday, else the
+// following Monday. This used to be a hardcoded literal date string, which
+// meant the default silently drifted into the past as real time moved on
+// past it, and nothing stopped someone from completing a purchase for a
+// day that had already happened (caught 2026-08-31 — the calendar UI
+// greys out past days, but the "Continue" button never actually checks
+// the currently-selected date before proceeding).
+function defaultDayPassDate(): string {
+  const day = new Date().getDay()
+  const offset = day === 0 ? 1 : day === 6 ? 2 : 0 // Sun -> Mon, Sat -> Mon
+  const d = new Date()
+  d.setDate(d.getDate() + offset)
+  return formatDate(d, 'yyyy-MM-dd')
+}
+
+// Actual today, not weekend-shifted — used to block "Continue" if a
+// selected date has slipped into the past (e.g. the tab sat open
+// overnight). The server independently re-checks this too — see
+// /api/day-pass/create-payment-intent and /request.
+function todayDateStr(): string {
+  return formatDate(new Date(), 'yyyy-MM-dd')
+}
+
 export default function DayPassPage() {
   const [phase, setPhase] = useState<Phase>('reservation')
   const [locationId, setLocationId] = useState<string>(LOCATIONS[0].id)
   const [dateMode, setDateMode] = useState<DateMode>('single')
-  const [selectedDates, setSelectedDates] = useState<string[]>(['2026-08-20'])
+  const [selectedDates, setSelectedDates] = useState<string[]>(() => [defaultDayPassDate()])
 
   // Set once the account is created — the payment step needs this to know
   // who's paying, and the request step needs it to link the reservation.
@@ -323,7 +346,7 @@ function ReservationFields({
 
       <button
         onClick={onContinue}
-        disabled={dates.length === 0}
+        disabled={dates.length === 0 || dates.some(d => d < todayDateStr())}
         className="self-start bg-booking-600 hover:bg-booking-700 disabled:bg-booking-300 disabled:cursor-not-allowed text-white text-sm font-semibold py-3 px-7 rounded-lg transition-colors"
       >
         Continue

@@ -32,6 +32,18 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Day passes are only available Monday–Friday.' }, { status: 400 })
   }
 
+  // Never trust the client's date list to be in the future either — the
+  // page's default date used to be a hardcoded literal that silently
+  // drifted into the past as real time moved on, and nothing on the
+  // client actually blocked "Continue" from proceeding with a stale
+  // past-date selection (caught 2026-08-31). This is the real guard;
+  // the client-side calendar greying out past days is just UX on top.
+  const todayPacific = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' })
+  const noPastDates = uniqueDates.every((d: string) => d >= todayPacific)
+  if (!noPastDates) {
+    return NextResponse.json({ error: 'One or more selected dates is in the past.' }, { status: 400 })
+  }
+
   const amount = DAY_PASS_PRICE_CENTS * uniqueDates.length
   const sortedDates = uniqueDates.sort()
 
