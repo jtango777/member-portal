@@ -5,15 +5,15 @@ import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay, addMonths,
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { cn, isSameDay } from '@/lib/utils'
 
-export type DateMode = 'single' | 'range'
+export type DateMode = 'single' | 'multiple'
 
 type Props = {
   mode: DateMode
   onModeChange: (mode: DateMode) => void
-  // Single mode uses `start` only; range mode uses both. YYYY-MM-DD.
-  start: string
-  end: string
-  onChange: (start: string, end: string) => void
+  // Single mode holds exactly one date; multiple mode holds any number,
+  // in any combination — not necessarily consecutive. YYYY-MM-DD strings.
+  selected: string[]
+  onChange: (dates: string[]) => void
 }
 
 function isWeekend(d: Date) {
@@ -21,25 +21,32 @@ function isWeekend(d: Date) {
   return day === 0 || day === 6
 }
 
-// Day pass date picker — single day or a consecutive weekday range,
-// weekends always blocked (day passes are Monday–Friday only). Modeled on
-// Industrious's day-pass date picker (tabs for Single day / Multiple days,
-// an explicit "Select dates" confirm step for range mode), but expands
-// inline as an accordion rather than a floating popover — this page
-// already uses that expand/collapse pattern for its outer sections, and a
-// floating calendar was overlapping the Location/Time content below it.
-export default function DayPassDatePicker({ mode, onModeChange, start, end, onChange }: Props) {
+function toDate(s: string) {
+  return new Date(s + 'T12:00:00')
+}
+
+// Day pass date picker — single day or any combination of weekday dates,
+// weekends always blocked (day passes are Monday–Friday only). "Multiple
+// days" is a true multi-select — every click toggles just that one day,
+// there's no forced fill between a first and last pick — Caroline hit
+// this directly (2026-08-31): she wanted the 15th and the 30th with
+// nothing in between, and the old range-only picker couldn't do that.
+// Modeled on Industrious's day-pass date picker (tabs for Single day /
+// Multiple days, an explicit "Select dates" confirm step for multi-select),
+// but expands inline as an accordion rather than a floating popover — this
+// page already uses that expand/collapse pattern for its outer sections,
+// and a floating calendar was overlapping the Location/Time content below it.
+export default function DayPassDatePicker({ mode, onModeChange, selected, onChange }: Props) {
   const [open, setOpen] = useState(false)
-  const [pickerMonth, setPickerMonth] = useState(() => start ? new Date(start + 'T12:00:00') : new Date())
-  // Pending range selection — only committed to `onChange` when "Select
-  // dates" is clicked, so picking a first day doesn't half-apply a range.
-  const [pendingStart, setPendingStart] = useState<string>('')
-  const [pendingEnd, setPendingEnd] = useState<string>('')
+  const [pickerMonth, setPickerMonth] = useState(() => selected[0] ? toDate(selected[0]) : new Date())
+  // Pending selection — only committed to `onChange` when "Select dates"
+  // is clicked (multiple mode), so picking one day doesn't half-apply.
+  const [pending, setPending] = useState<string[]>(selected)
 
   function handleToggle() {
     if (!open) {
-      setPickerMonth(start ? new Date(start + 'T12:00:00') : new Date())
-      setPendingStart(start); setPendingEnd(end)
+      setPickerMonth(selected[0] ? toDate(selected[0]) : new Date())
+      setPending(selected)
     }
     setOpen(v => !v)
   }
@@ -49,40 +56,31 @@ export default function DayPassDatePicker({ mode, onModeChange, start, end, onCh
   function selectDay(day: Date) {
     const value = format(day, 'yyyy-MM-dd')
     if (mode === 'single') {
-      onChange(value, value)
+      onChange([value])
       setOpen(false)
       return
     }
-    // Range: first click sets start, second click sets end (swapping if
-    // clicked out of order), a third click starts a new range.
-    if (!pendingStart || (pendingStart && pendingEnd)) {
-      setPendingStart(value); setPendingEnd('')
-    } else {
-      if (value < pendingStart) { setPendingEnd(pendingStart); setPendingStart(value) }
-      else setPendingEnd(value)
-    }
+    // Multiple: toggle this exact day in or out, independent of anything
+    // else already picked.
+    setPending(prev => prev.includes(value) ? prev.filter(d => d !== value) : [...prev, value].sort())
   }
 
-  function confirmRange() {
-    if (!pendingStart) return
-    onChange(pendingStart, pendingEnd || pendingStart)
+  function confirmSelection() {
+    if (!pending.length) return
+    onChange(pending)
     setOpen(false)
   }
 
-  function clearRange() {
-    setPendingStart(''); setPendingEnd('')
+  function clearSelection() {
+    setPending([])
   }
 
-  const displayStart = start ? new Date(start + 'T12:00:00') : null
-  const displayEnd = end ? new Date(end + 'T12:00:00') : null
-  const label = displayStart
-    ? mode === 'single' || !displayEnd || isSameDay(displayStart, displayEnd)
-      ? format(displayStart, 'MMM d, yyyy')
-      : `${format(displayStart, 'MMM d, yyyy')} to ${format(displayEnd, 'MMM d, yyyy')}`
-    : 'Select date'
-
-  const rangeStart = pendingStart ? new Date(pendingStart + 'T12:00:00') : null
-  const rangeEnd = pendingEnd ? new Date(pendingEnd + 'T12:00:00') : null
+  const sortedSelected = [...selected].sort()
+  const label = sortedSelected.length === 0
+    ? 'Select date'
+    : sortedSelected.length === 1
+    ? format(toDate(sortedSelected[0]), 'MMM d, yyyy')
+    : `${sortedSelected.length} days selected`
 
   return (
     <div className={cn('border rounded-lg transition-colors', open ? 'border-booking-600' : 'border-gray-300')}>
@@ -100,11 +98,11 @@ export default function DayPassDatePicker({ mode, onModeChange, start, end, onCh
           <div className="p-3 border-t border-gray-100">
             {/* Mode tabs */}
             <div className="flex border-b border-gray-100 mb-3">
-              {(['single', 'range'] as const).map(m => (
+              {(['single', 'multiple'] as const).map(m => (
                 <button
                   key={m}
                   type="button"
-                  onClick={() => { onModeChange(m); clearRange() }}
+                  onClick={() => { onModeChange(m); clearSelection() }}
                   className={cn(
                     'flex-1 text-sm font-semibold pb-2 border-b-2 -mb-px transition-colors',
                     mode === m ? 'text-booking-700 border-booking-600' : 'text-gray-400 border-transparent hover:text-gray-600'
@@ -115,7 +113,7 @@ export default function DayPassDatePicker({ mode, onModeChange, start, end, onCh
               ))}
             </div>
             <p className="text-xs text-gray-400 mb-2">
-              {mode === 'single' ? 'Select a single date to reserve' : 'Select a consecutive date range to reserve'}
+              {mode === 'single' ? 'Select a single date to reserve' : 'Select any days you’d like to reserve — they don’t need to be consecutive'}
             </p>
 
             {/* Month navigation */}
@@ -147,10 +145,11 @@ export default function DayPassDatePicker({ mode, onModeChange, start, end, onCh
                 const isPast = isBefore(day, startOfDay(today))
                 const weekend = isWeekend(day)
                 const disabled = isPast || weekend
+                const value = format(day, 'yyyy-MM-dd')
 
-                const isSingleSelected = mode === 'single' && displayStart && isSameDay(day, displayStart)
-                const inPendingRange = mode === 'range' && rangeStart && rangeEnd && day >= rangeStart && day <= rangeEnd
-                const isPendingEdge = mode === 'range' && ((rangeStart && isSameDay(day, rangeStart)) || (rangeEnd && isSameDay(day, rangeEnd)))
+                const isSelected = mode === 'single'
+                  ? selected[0] && isSameDay(day, toDate(selected[0]))
+                  : pending.includes(value)
 
                 return (
                   <button
@@ -159,14 +158,11 @@ export default function DayPassDatePicker({ mode, onModeChange, start, end, onCh
                     disabled={disabled}
                     onClick={() => !disabled && selectDay(day)}
                     className={cn(
-                      'text-center text-xs py-1.5 transition-colors',
-                      isPendingEdge ? 'rounded-md' : inPendingRange ? 'rounded-none' : 'rounded-md',
+                      'text-center text-xs py-1.5 rounded-md transition-colors',
                       disabled
                         ? 'text-gray-300 cursor-not-allowed'
-                        : isSingleSelected || isPendingEdge
+                        : isSelected
                         ? 'bg-booking-600 text-white font-semibold'
-                        : inPendingRange
-                        ? 'bg-booking-100 text-booking-700'
                         : isSameDay(day, today)
                         ? 'bg-booking-50 text-booking-600 font-semibold'
                         : 'hover:bg-gray-100 text-gray-700'
@@ -178,14 +174,14 @@ export default function DayPassDatePicker({ mode, onModeChange, start, end, onCh
               })}
             </div>
 
-            {mode === 'range' && (
+            {mode === 'multiple' && (
               <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-100">
-                <button type="button" onClick={clearRange} className="text-sm font-medium text-booking-600 hover:text-booking-700">
+                <button type="button" onClick={clearSelection} className="text-sm font-medium text-booking-600 hover:text-booking-700">
                   Clear dates
                 </button>
-                <button type="button" onClick={confirmRange} disabled={!pendingStart}
+                <button type="button" onClick={confirmSelection} disabled={!pending.length}
                   className="bg-booking-600 hover:bg-booking-700 disabled:bg-booking-300 disabled:cursor-not-allowed text-white text-sm font-semibold py-2 px-4 rounded-lg transition-colors">
-                  Select dates
+                  {pending.length ? `Select ${pending.length} day${pending.length > 1 ? 's' : ''}` : 'Select dates'}
                 </button>
               </div>
             )}

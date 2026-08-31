@@ -33,21 +33,26 @@ const DAY_PASS_PRICE = 30
 type Section = 'reservation' | 'details'
 type Phase = Section | 'confirmation'
 
-// Weekday (Mon–Fri) dates in [start, end], inclusive — day passes are
-// Monday–Friday only, so a range spanning a weekend just skips those days
-// rather than charging for or reserving them.
+// Weekday (Mon–Fri) dates in [start, end], inclusive — used only to check
+// whether a multi-day selection happens to be one unbroken run, so it can
+// still get the nicer "Aug 15 – Aug 30 (5 days)" label instead of just
+// "5 days selected". Day passes are Monday–Friday only either way.
 function businessDaysBetween(start: string, end: string): string[] {
   if (!start) return []
   const days = eachDayOfInterval({ start: new Date(start + 'T12:00:00'), end: new Date((end || start) + 'T12:00:00') })
   return days.filter(d => { const day = getDay(d); return day !== 0 && day !== 6 }).map(d => formatDate(d, 'yyyy-MM-dd'))
 }
 
+function isContiguousRange(sortedDates: string[]): boolean {
+  if (sortedDates.length < 2) return true
+  return businessDaysBetween(sortedDates[0], sortedDates[sortedDates.length - 1]).length === sortedDates.length
+}
+
 export default function DayPassPage() {
   const [phase, setPhase] = useState<Phase>('reservation')
   const [locationId, setLocationId] = useState<string>(LOCATIONS[0].id)
   const [dateMode, setDateMode] = useState<DateMode>('single')
-  const [startDate, setStartDate] = useState<string>('2026-08-20')
-  const [endDate, setEndDate] = useState<string>('2026-08-20')
+  const [selectedDates, setSelectedDates] = useState<string[]>(['2026-08-20'])
 
   // Set once the account is created — the payment step needs this to know
   // who's paying, and the request step needs it to link the reservation.
@@ -77,10 +82,14 @@ export default function DayPassPage() {
   }, [])
 
   const selectedLocation = LOCATIONS.find(l => l.id === locationId) ?? LOCATIONS[0]
-  const dates = businessDaysBetween(startDate, endDate)
-  const formattedDateRange = dates.length > 1
+  const dates = [...selectedDates].sort()
+  const formattedDateRange = dates.length === 0
+    ? ''
+    : dates.length === 1
+    ? formatDate(new Date(dates[0] + 'T12:00:00'), 'MMM d, yyyy')
+    : isContiguousRange(dates)
     ? `${formatDate(new Date(dates[0] + 'T12:00:00'), 'MMM d')} – ${formatDate(new Date(dates[dates.length - 1] + 'T12:00:00'), 'MMM d, yyyy')} (${dates.length} days)`
-    : dates[0] ? formatDate(new Date(dates[0] + 'T12:00:00'), 'MMM d, yyyy') : ''
+    : `${dates.length} days selected`
 
   function restart() {
     setPhase('reservation')
@@ -125,8 +134,7 @@ export default function DayPassPage() {
             <ReservationFields
               locationId={locationId} setLocationId={setLocationId}
               dateMode={dateMode} setDateMode={setDateMode}
-              startDate={startDate} setStartDate={setStartDate}
-              endDate={endDate} setEndDate={setEndDate}
+              selectedDates={selectedDates} setSelectedDates={setSelectedDates}
               dates={dates}
               onContinue={() => setPhase('details')}
             />
@@ -224,12 +232,11 @@ function AccordionSection({ number, title, state, summary, onEdit, children }: {
 // ── Section 1: Reservation ───────────────────────────────────────────────
 
 function ReservationFields({
-  locationId, setLocationId, dateMode, setDateMode, startDate, setStartDate, endDate, setEndDate, dates, onContinue,
+  locationId, setLocationId, dateMode, setDateMode, selectedDates, setSelectedDates, dates, onContinue,
 }: {
   locationId: string; setLocationId: (v: string) => void
   dateMode: DateMode; setDateMode: (v: DateMode) => void
-  startDate: string; setStartDate: (v: string) => void
-  endDate: string; setEndDate: (v: string) => void
+  selectedDates: string[]; setSelectedDates: (v: string[]) => void
   dates: string[]
   onContinue: () => void
 }) {
@@ -284,9 +291,8 @@ function ReservationFields({
           <DayPassDatePicker
             mode={dateMode}
             onModeChange={setDateMode}
-            start={startDate}
-            end={endDate}
-            onChange={(s, e) => { setStartDate(s); setEndDate(e) }}
+            selected={selectedDates}
+            onChange={setSelectedDates}
           />
         </div>
       </div>
