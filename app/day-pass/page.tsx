@@ -359,8 +359,16 @@ function DetailsAndPayment({
   const [showPassword, setShowPassword] = useState(false)
   const [creatingAccount, setCreatingAccount] = useState(false)
   const [accountError, setAccountError] = useState<string | null>(null)
+  // Its own recaptcha, separate from PaymentStep's — a v2 token is
+  // single-use, so the same one can't verify both account creation and
+  // the booking request. Account creation didn't have any captcha at all
+  // before this (2026-08-31) — someone could hit /api/day-pass/create-account
+  // directly and mass-create accounts with nothing but the IP rate limit
+  // in the way.
+  const [recaptchaToken, setRecaptchaToken] = useState<string | null>(null)
+  const recaptchaRef = useRef<RecaptchaHandle>(null)
 
-  const canSubmit = firstName.trim() && lastName.trim() && email.trim() && password.length >= 8
+  const canSubmit = firstName.trim() && lastName.trim() && email.trim() && password.length >= 8 && !!recaptchaToken
 
   // Already signed in — skip account creation entirely and go straight to
   // getting a payment intent for this reservation.
@@ -391,12 +399,16 @@ function DetailsAndPayment({
     const res = await fetch('/api/day-pass/create-account', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ first_name: firstName, last_name: lastName, email, password }),
+      body: JSON.stringify({ first_name: firstName, last_name: lastName, email, password, recaptcha_token: recaptchaToken }),
     })
     const data = await res.json()
 
     if (!res.ok) {
       setAccountError(data.error ?? 'Something went wrong creating your account.')
+      // A v2 token is single-use — even though this failed for an
+      // unrelated reason, Google may have already consumed it. Reset so a
+      // retry gets a fresh one instead of silently failing on resubmit.
+      recaptchaRef.current?.reset()
       setCreatingAccount(false)
       return
     }
@@ -511,6 +523,8 @@ function DetailsAndPayment({
           <div className="text-xs text-gray-400 mt-2 leading-relaxed">Must contain at least 8 characters, upper and lower case letters, and a symbol.</div>
         </div>
       </div>
+
+      <Recaptcha ref={recaptchaRef} onChange={setRecaptchaToken} />
 
       {accountError && (
         <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-4 py-3">{accountError}</div>

@@ -60,6 +60,14 @@ function CheckoutForm({
   const [error,   setError]   = useState<string | null>(null)
   const [recaptchaToken, setRecaptchaToken] = useState<string | null>(null)
   const recaptchaRef = useRef<RecaptchaHandle>(null)
+  // A separate widget for account creation, only shown for a new signup —
+  // a v2 token is single-use, so the same one can't also verify the
+  // booking request below. Account creation had no captcha at all before
+  // this (2026-08-31) — someone could hit /api/book/create-account
+  // directly and mass-create accounts with nothing but the IP rate limit
+  // in the way.
+  const [acctRecaptchaToken, setAcctRecaptchaToken] = useState<string | null>(null)
+  const acctRecaptchaRef = useRef<RecaptchaHandle>(null)
 
   async function handleSignOut() {
     await createClient().auth.signOut()
@@ -70,6 +78,7 @@ function CheckoutForm({
     e.preventDefault()
     if (!stripe || !elements) return
     if (!agreed) { setError('Please agree to the cancellation policy.'); return }
+    if (!existingCustomer && !acctRecaptchaToken) { setError('Please complete the "I\'m not a robot" check.'); return }
     if (!recaptchaToken) { setError('Please complete the "I\'m not a robot" check.'); return }
 
     setLoading(true)
@@ -85,11 +94,12 @@ function CheckoutForm({
       const accRes = await fetch('/api/book/create-account', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ first_name: firstName, last_name: lastName, email, password }),
+        body: JSON.stringify({ first_name: firstName, last_name: lastName, email, password, recaptcha_token: acctRecaptchaToken }),
       })
       const accData = await accRes.json()
       if (!accRes.ok) {
         setError(accData.error ?? 'Something went wrong creating your account.')
+        acctRecaptchaRef.current?.reset()
         setLoading(false)
         return
       }
@@ -235,6 +245,7 @@ function CheckoutForm({
               </div>
               <p className="text-xs text-gray-400 mt-1.5">Must be at least 8 characters.</p>
             </div>
+            <Recaptcha ref={acctRecaptchaRef} onChange={setAcctRecaptchaToken} />
           </div>
         )}
       </div>
@@ -269,7 +280,7 @@ function CheckoutForm({
 
       <button
         type="submit"
-        disabled={loading || !agreed || !stripe || !recaptchaToken || (!existingCustomer && password.length < 8)}
+        disabled={loading || !agreed || !stripe || !recaptchaToken || (!existingCustomer && (password.length < 8 || !acctRecaptchaToken))}
         className={cn(
           'w-full py-3.5 rounded-lg text-sm font-semibold transition-colors',
           loading || !agreed || !stripe || !recaptchaToken || (!existingCustomer && password.length < 8)
