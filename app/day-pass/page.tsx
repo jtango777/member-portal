@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { Eye, EyeOff, CheckCircle, Check, ImageOff } from 'lucide-react'
+import { Eye, EyeOff, CheckCircle, Check } from 'lucide-react'
 import { loadStripe } from '@stripe/stripe-js'
 import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js'
 import { eachDayOfInterval, getDay, format as formatDate } from 'date-fns'
@@ -17,10 +17,15 @@ const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!
 // Locations are hardcoded here rather than fetched from the `locations`
 // table — the ids match the real rows so the API routes' foreign key
 // checks pass, but wiring this up to a live query is a later cleanup.
+// Photos reuse the same open-space shots /book uses for its own location
+// banners (components/book/AvailabilityView.tsx) — same 3 locations,
+// Caroline confirmed all three are accurate as of 2026-08-31 (Costa
+// Mesa's photo was replaced that day, the old one showed an unrelated
+// outdoor patio rather than the desk area).
 const LOCATIONS = [
-  { id: '11111111-1111-1111-1111-111111111101', name: 'El Segundo', phone: '(310) 870-1730', address: '1730 E Holly Ave, El Segundo, CA 90245' },
-  { id: '11111111-1111-1111-1111-111111111102', name: 'Marina del Rey', phone: '(310) 596-1990', address: '4223 Glencoe Ave Ste C215, Marina Del Rey, CA 90292' },
-  { id: '11111111-1111-1111-1111-111111111103', name: 'Costa Mesa', phone: '(949) 800-8660', address: '2942 Century Pl, Costa Mesa, CA 92626' },
+  { id: '11111111-1111-1111-1111-111111111101', name: 'El Segundo', phone: '(310) 870-1730', address: '1730 E Holly Ave, El Segundo, CA 90245', photo: '/rooms/es-open-space.jpg' },
+  { id: '11111111-1111-1111-1111-111111111102', name: 'Marina del Rey', phone: '(310) 596-1990', address: '4223 Glencoe Ave Ste C215, Marina Del Rey, CA 90292', photo: '/rooms/mdr-open-space.jpg', photoPosition: 'center 70%' },
+  { id: '11111111-1111-1111-1111-111111111103', name: 'Costa Mesa', phone: '(949) 800-8660', address: '2942 Century Pl, Costa Mesa, CA 92626', photo: '/rooms/cm-open-space.jpg' },
 ] as const
 
 const DAY_PASS_PRICE = 30
@@ -246,10 +251,13 @@ function ReservationFields({
                   selected ? 'border-booking-600 ring-2 ring-booking-100 shadow-sm' : 'border-gray-200 hover:border-gray-400 hover:shadow-sm'
                 )}
               >
-                <div className="bg-gray-50 aspect-[16/9] flex flex-col items-center justify-center gap-1 text-gray-300">
-                  <ImageOff size={20} />
-                  <span className="text-[11px] font-medium text-gray-400">Photo coming soon</span>
-                </div>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={loc.photo}
+                  alt={loc.name}
+                  className="w-full aspect-[16/9] object-cover"
+                  style={'photoPosition' in loc ? { objectPosition: loc.photoPosition } : undefined}
+                />
                 <div className="p-4">
                 <div className="flex items-center justify-between mb-2 gap-2">
                   <span className="text-sm">
