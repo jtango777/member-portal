@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { format } from 'date-fns'
 import { CheckCircle, Clock, XCircle, Ban } from 'lucide-react'
 import { cn, getPacificDayBounds } from '@/lib/utils'
+import { LOCATION_PHOTOS } from '@/lib/locationPhotos'
 import SignOutButton from '@/components/day-pass/SignOutButton'
 import CancelDayPassButton from '@/components/day-pass/CancelDayPassButton'
 
@@ -26,6 +27,11 @@ type UnifiedBooking = {
   // never are (Caroline, 2026-08-31). Present only for day-pass entries
   // that are still more than 12 hours from their start.
   cancellableConfirmationNumber?: string
+  // Day pass entries only — a small thumbnail of that location's open desk
+  // space, so the list isn't pure text. Room bookings don't get one (each
+  // is a specific room, not a location, and doesn't have per-room photos
+  // wired up here) — scoped to day-pass rows only for now.
+  photo?: { src: string; position?: string }
 }
 
 // 12-hour cutoff measured from 9:00am Pacific on the day, matching
@@ -97,6 +103,7 @@ export default async function DayPassAccountPage() {
         subtitle: `Day Pass · ${first.locations?.name ?? 'Unknown location'} · $${(totalCents / 100).toFixed(2)}${first.confirmation_number ? ` · #${first.confirmation_number}` : ''}`,
         status: first.status as UnifiedBooking['status'],
         cancellableConfirmationNumber: cancellable ? first.confirmation_number! : undefined,
+        photo: LOCATION_PHOTOS[first.location_id],
       }
     }),
     ...(roomBookings ?? []).map(b => {
@@ -153,9 +160,20 @@ export default async function DayPassAccountPage() {
           const Icon = STATUS_ICON[b.status]
           return (
             <div key={b.id} className="border border-gray-200 rounded-xl px-5 py-4 flex items-center justify-between gap-4">
-              <div>
-                <div className="font-semibold text-gray-900">{b.title}</div>
-                <div className="text-sm text-gray-500 mt-0.5">{b.subtitle}</div>
+              <div className="flex items-center gap-4 min-w-0">
+                {b.photo && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={b.photo.src}
+                    alt=""
+                    className="w-14 h-14 rounded-lg object-cover flex-shrink-0"
+                    style={b.photo.position ? { objectPosition: b.photo.position } : undefined}
+                  />
+                )}
+                <div className="min-w-0">
+                  <div className="font-semibold text-gray-900">{b.title}</div>
+                  <div className="text-sm text-gray-500 mt-0.5">{b.subtitle}</div>
+                </div>
               </div>
               <div className="flex items-center gap-3 flex-shrink-0">
                 {b.cancellableConfirmationNumber && (
