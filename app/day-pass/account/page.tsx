@@ -109,7 +109,18 @@ export default async function DayPassAccountPage() {
         status: b.status as UnifiedBooking['status'],
       }
     }),
-  ].sort((a, b) => b.sortKey.localeCompare(a.sortKey))
+  ]
+
+  // Soonest upcoming first, past bookings pushed to the bottom (most recent
+  // past first) — matches how Industrious lists bookings, rather than the
+  // previous furthest-future-first order.
+  const todayPacific = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' })
+  bookings.sort((a, b) => {
+    const aUpcoming = a.sortKey >= todayPacific
+    const bUpcoming = b.sortKey >= todayPacific
+    if (aUpcoming !== bUpcoming) return aUpcoming ? -1 : 1
+    return aUpcoming ? a.sortKey.localeCompare(b.sortKey) : b.sortKey.localeCompare(a.sortKey)
+  })
 
   return (
     <div className="max-w-3xl mx-auto px-6 py-12">
