@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import { useRouter } from 'next/navigation'
 import { Eye, EyeOff, CheckCircle, Check } from 'lucide-react'
 import { loadStripe } from '@stripe/stripe-js'
 import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js'
@@ -375,6 +376,7 @@ function DetailsAndPayment({
   guestEmail: string; setGuestEmail: (v: string) => void
   onSuccess: (confirmationNumber: string) => void
 }) {
+  const router = useRouter()
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
   const [email, setEmail] = useState('')
@@ -444,6 +446,12 @@ function DetailsAndPayment({
     // browser in — sign in explicitly so they're actually authenticated,
     // not just left with an account that exists but no session.
     await createClient().auth.signInWithPassword({ email, password })
+    // The header showing "Log in" vs "My Reservations" is a server
+    // component (app/day-pass/layout.tsx) that only checks auth once at
+    // the initial page load — this flow never triggers a real navigation,
+    // so it would otherwise never know a session now exists. Refresh
+    // forces that server component to re-render with the fresh session.
+    router.refresh()
 
     // Now that the account exists, get a payment intent covering every
     // day in the range.
