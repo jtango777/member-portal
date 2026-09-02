@@ -4,6 +4,7 @@ import { getPacificDayBounds } from '@/lib/utils'
 import { sendExternalBookingReceipt, sendExternalBookingStaffNotification } from '@/lib/email'
 import { rateLimit } from '@/lib/rate-limit'
 import { verifyRecaptcha } from '@/lib/recaptcha'
+import { createSalesReceipt } from '@/lib/quickbooks'
 import Stripe from 'stripe'
 import { format } from 'date-fns'
 
@@ -180,6 +181,43 @@ export async function POST(request: Request) {
   const loc = room.location as { name: string } | { name: string }[] | null
   const locationName = Array.isArray(loc) ? loc[0]?.name ?? '' : loc?.name ?? ''
   const confirmationNumber = booking.id.slice(0, 8).toUpperCase()
+
+  // Create the QuickBooks sales receipt right here, not in the Stripe
+  // webhook — the webhook fires the instant Stripe confirms payment, often
+  // *before* the inserts above have actually landed, since this route and
+  // the webhook run concurrently with no guaranteed ordering. Creating the
+  // receipt here instead means the row is guaranteed to already exist.
+  // Free rooms (no price_per_hour) never have a payment intent, so nothing
+  // to receipt for those.
+  if (stripe_payment_intent_id) {
+    try {
+      // amountPaid was already looked up just above for the emails — reuse
+      // it rather than a second Stripe call, unless that lookup itself
+      // failed (left it as ''), in which case fetch it directly here.
+      const amountDollars = amountPaid
+        ? Number(amountPaid.replace(/[^0-9.]/g, ''))
+        : (await stripe.paymentIntents.retrieve(stripe_payment_intent_id)).amount / 100
+
+      const receipt = await createSalesReceipt(room.location_id, {
+        guestName: name.trim(),
+        email: email.trim().toLowerCase(),
+        phone: phone.trim(),
+        roomName: (room.external_name ?? room.name) as string,
+        date: formattedDate,
+        time: `${startLabel} – ${endLabel}`,
+        amount: amountDollars,
+      })
+      if (receipt?.Id) {
+        await admin.from('external_bookings').update({ qb_receipt_id: receipt.Id }).eq('id', booking.id)
+      }
+    } catch (err: any) {
+      if (err?.message === 'QB_NEEDS_RECONNECT') {
+        console.warn('[qb] Location needs reconnection — skipping sales receipt')
+      } else {
+        console.error('[qb] Failed to create sales receipt:', err)
+      }
+    }
+  }
 
   // Send confirmation / receipt email (non-blocking — don't fail the booking if email fails)
   try {

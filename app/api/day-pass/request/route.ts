@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server'
 import { sendDayPassConfirmation, sendDayPassStaffNotification } from '@/lib/email'
 import { rateLimit } from '@/lib/rate-limit'
 import { verifyRecaptcha } from '@/lib/recaptcha'
+import { createSalesReceipt } from '@/lib/quickbooks'
 import Stripe from 'stripe'
 import { format, getDay } from 'date-fns'
 import { DAY_PASS_PRICE_CENTS } from '@/app/api/day-pass/create-payment-intent/route'
@@ -96,6 +97,38 @@ export async function POST(request: Request) {
     // a half-booked range behind.
     await admin.from('day_passes').delete().eq('stripe_payment_intent_id', stripe_payment_intent_id)
     return NextResponse.json({ error: 'Could not save reservation. Please try again.' }, { status: 500 })
+  }
+
+  // Create QuickBooks sales receipts right here, not in the Stripe webhook.
+  // The webhook fires the instant Stripe confirms payment — often *before*
+  // the insert above has actually landed, since this route and the webhook
+  // run concurrently with no guaranteed ordering. Creating receipts here
+  // instead means the row is guaranteed to already exist. The webhook keeps
+  // a matching block as a backup, guarded to skip any row that already has
+  // a qb_receipt_id, so nothing gets double-created if both paths run.
+  for (const [i, date] of sortedDates.entries()) {
+    try {
+      const dateLabel = format(new Date(date + 'T12:00:00'), 'EEEE, MMMM d, yyyy')
+      const receipt = await createSalesReceipt(location_id, {
+        guestName: guest_name.trim(),
+        email: email.trim().toLowerCase(),
+        phone: '',
+        roomName: 'Day Pass',
+        date: dateLabel,
+        time: '9:00am – 5:00pm',
+        amount: DAY_PASS_PRICE_CENTS / 100,
+      })
+      if (receipt?.Id) {
+        await admin.from('day_passes').update({ qb_receipt_id: receipt.Id }).eq('id', dayPasses[i].id)
+      }
+    } catch (err: any) {
+      if (err?.message === 'QB_NEEDS_RECONNECT') {
+        console.warn('[qb] Location needs reconnection — skipping day pass sales receipt')
+        break // same location for every row in the group — no point retrying each one
+      } else {
+        console.error('[qb] Failed to create day pass sales receipt:', err)
+      }
+    }
   }
 
   // Send confirmation / receipt email (non-blocking — don't fail the reservation if email fails)

@@ -29,7 +29,7 @@ export async function POST(request: Request) {
 
     const { data: booking } = await admin
       .from('external_bookings')
-      .select('id, status, room_id, external_name, external_email, external_phone, start_time, end_time')
+      .select('id, status, room_id, external_name, external_email, external_phone, start_time, end_time, qb_receipt_id')
       .eq('stripe_payment_intent_id', pi.id)
       .single()
 
@@ -40,8 +40,12 @@ export async function POST(request: Request) {
         .eq('id', booking.id)
     }
 
-    // Create QuickBooks sales receipt
-    if (booking) {
+    // /api/book/request now creates the QuickBooks sales receipt itself
+    // (same reasoning as day passes above — this webhook can fire before
+    // that route's own inserts have landed). This is just a backup for the
+    // rare case that route's own receipt creation didn't run, guarded to
+    // skip if a receipt already exists so nothing double-creates.
+    if (booking && !booking.qb_receipt_id) {
       try {
         const { data: room } = await admin
           .from('rooms')
@@ -63,7 +67,7 @@ export async function POST(request: Request) {
 
           console.log('[qb] Creating sales receipt — location:', room.location_id, 'amount:', totalAmount)
 
-          await createSalesReceipt(room.location_id, {
+          const receipt = await createSalesReceipt(room.location_id, {
             guestName: booking.external_name,
             email: booking.external_email,
             phone: booking.external_phone,
@@ -72,6 +76,9 @@ export async function POST(request: Request) {
             time: `${startLabel} – ${endLabel}`,
             amount: totalAmount,
           })
+          if (receipt?.Id) {
+            await admin.from('external_bookings').update({ qb_receipt_id: receipt.Id }).eq('id', booking.id)
+          }
           console.log('[qb] Sales receipt created successfully')
         }
       } catch (err: any) {
@@ -85,13 +92,17 @@ export async function POST(request: Request) {
 
     // Day passes are inserted already-confirmed by /api/day-pass/request
     // (it re-verifies payment before writing the row), so there's no status
-    // flip to do here — just the QuickBooks sales receipt. A multi-day
-    // purchase shares one payment intent across several rows (one per
-    // day), so this is a list now, not a single row.
+    // flip to do here. /api/day-pass/request also creates the QuickBooks
+    // sales receipt itself now (see comment there) since this webhook can
+    // fire before that insert has landed — this block is just a backup for
+    // the rare case that route's own receipt creation didn't run (e.g. it
+    // errored after the insert but before reaching that code). Guarded to
+    // skip any row that already has a receipt, so nothing double-creates.
     const { data: dayPasses } = await admin
       .from('day_passes')
-      .select('id, customer_id, location_id, date, price_cents')
+      .select('id, customer_id, location_id, date, price_cents, qb_receipt_id')
       .eq('stripe_payment_intent_id', pi.id)
+      .is('qb_receipt_id', null)
 
     if (dayPasses && dayPasses.length > 0) {
       const { data: customer } = await admin
