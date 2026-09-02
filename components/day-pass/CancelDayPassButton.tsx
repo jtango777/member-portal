@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import toast from 'react-hot-toast'
 import { cn } from '@/lib/utils'
@@ -10,17 +10,25 @@ import { cn } from '@/lib/utils'
 // only renders this when the booking is still more than 12 hours out;
 // /api/day-pass/cancel re-checks that for real before refunding anything.
 //
-// Same accordion feel as the rest of the site (DayPassDatePicker, the
-// AccordionSection wrapper on /day-pass) — smoothly grows/shrinks instead
-// of hard-swapping the label. Those use a grid-template-rows trick since
-// they stack vertically; this one sits inline next to the status pill, so
-// it animates max-width instead — grid-template-columns technically does
-// the same thing but max-width is the more broadly reliable way to
-// animate an inline element's width, so using it here on purpose.
+// Single continuously-animated width, not two elements collapsing/expanding
+// in opposite directions at once — that's what made it look jumpy instead of
+// like the accordion feel elsewhere on the site. The two states are stacked
+// absolutely and crossfaded; the wrapper transitions to the exact pixel
+// width of whichever one is showing, measured for real via ref instead of
+// guessed, so it's one smooth motion in any browser.
 export default function CancelDayPassButton({ confirmationNumber }: { confirmationNumber: string }) {
   const router = useRouter()
   const [confirming, setConfirming] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [width, setWidth] = useState<number | undefined>(undefined)
+
+  const collapsedRef = useRef<HTMLDivElement>(null)
+  const expandedRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const el = confirming ? expandedRef.current : collapsedRef.current
+    if (el) setWidth(el.scrollWidth)
+  }, [confirming, loading])
 
   async function handleCancel() {
     setLoading(true)
@@ -41,25 +49,41 @@ export default function CancelDayPassButton({ confirmationNumber }: { confirmati
   }
 
   return (
-    <div className="flex items-center">
-      <div className={cn('overflow-hidden transition-[max-width] duration-300 ease-in-out', confirming ? 'max-w-0' : 'max-w-[70px]')}>
-        <button onClick={() => setConfirming(true)}
-          className="text-sm font-medium text-gray-400 hover:text-red-600 transition-colors whitespace-nowrap">
+    <div
+      className="relative h-5 overflow-hidden transition-[width] duration-300 ease-in-out"
+      style={{ width }}
+    >
+      <div
+        ref={collapsedRef}
+        className={cn(
+          'absolute inset-y-0 left-0 flex items-center whitespace-nowrap transition-opacity duration-200',
+          confirming ? 'pointer-events-none opacity-0' : 'opacity-100 delay-100'
+        )}
+      >
+        <button
+          onClick={() => setConfirming(true)}
+          className="text-sm font-medium text-gray-400 hover:text-red-600 transition-colors"
+        >
           Cancel
         </button>
       </div>
-      <div className={cn('overflow-hidden transition-[max-width] duration-300 ease-in-out', confirming ? 'max-w-[220px]' : 'max-w-0')}>
-        <div className={cn('flex items-center gap-2 text-xs whitespace-nowrap transition-opacity duration-200', confirming ? 'opacity-100 delay-100' : 'opacity-0')}>
-          <span className="text-gray-500">Cancel &amp; refund?</span>
-          <button onClick={handleCancel} disabled={loading}
-            className="font-semibold text-red-600 hover:text-red-700 disabled:opacity-50">
-            {loading ? 'Cancelling…' : 'Yes'}
-          </button>
-          <button onClick={() => setConfirming(false)} disabled={loading}
-            className="font-medium text-gray-400 hover:text-gray-600">
-            No
-          </button>
-        </div>
+      <div
+        ref={expandedRef}
+        className={cn(
+          'absolute inset-y-0 left-0 flex items-center gap-2 whitespace-nowrap text-xs',
+          'transition-opacity duration-200',
+          confirming ? 'opacity-100 delay-100' : 'pointer-events-none opacity-0'
+        )}
+      >
+        <span className="text-gray-500">Cancel &amp; refund?</span>
+        <button onClick={handleCancel} disabled={loading}
+          className="font-semibold text-red-600 hover:text-red-700 disabled:opacity-50">
+          {loading ? 'Cancelling…' : 'Yes'}
+        </button>
+        <button onClick={() => setConfirming(false)} disabled={loading}
+          className="font-medium text-gray-400 hover:text-gray-600">
+          No
+        </button>
       </div>
     </div>
   )
