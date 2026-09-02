@@ -688,6 +688,13 @@ function StepConfirmation({ loc, dates, guestName, confirmationNumber, onRestart
       </div>
 
       <div className="w-full bg-white border border-gray-200 rounded-xl shadow-sm text-left overflow-hidden">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={loc.photo}
+          alt={`${loc.name} open desk space`}
+          className="w-full h-40 object-cover"
+          style={'photoPosition' in loc ? { objectPosition: loc.photoPosition } : undefined}
+        />
         <div className="px-5 py-3.5 border-b border-gray-100 flex justify-between items-baseline">
           <div className="text-[15px] font-semibold text-gray-900">Coworking Day Pass{dates.length > 1 ? 'es' : ''}</div>
           <div className="text-xs text-gray-400">#{confirmationNumber}</div>
@@ -708,6 +715,22 @@ function StepConfirmation({ loc, dates, guestName, confirmationNumber, onRestart
             <span>${total}.00</span>
           </div>
         </div>
+        <a
+          href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(loc.address)}`}
+          target="_blank" rel="noopener noreferrer"
+          className="block border-t border-gray-100"
+        >
+          <iframe
+            src={`https://www.google.com/maps?q=${encodeURIComponent(loc.address)}&output=embed`}
+            className="w-full h-32 pointer-events-none"
+            loading="lazy"
+            title={`Map of ${loc.name}`}
+          />
+          <div className="px-5 py-2.5 text-xs font-medium text-booking-600 flex justify-between items-center">
+            <span>{loc.address}</span>
+            <span className="whitespace-nowrap">Get Directions →</span>
+          </div>
+        </a>
       </div>
 
       <div className="w-full text-left">
