@@ -184,6 +184,9 @@ export async function POST(request: Request) {
     })
   } catch (err) {
     console.error('[email] Failed to send day pass staff notification:', err)
+    await sendSystemAlert('Day pass staff notification email failed', {
+      confirmation_number: confirmationNumber, error: err instanceof Error ? err.message : String(err),
+    })
   }
 
   return NextResponse.json({ ok: true, day_pass_ids: dayPasses.map(d => d.id), confirmation_number: confirmationNumber }, { status: 201 })

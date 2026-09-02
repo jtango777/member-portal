@@ -3,7 +3,7 @@ import { createClient, createAdminClient } from '@/lib/supabase/server'
 import Stripe from 'stripe'
 import { getPacificDayBounds } from '@/lib/utils'
 import { voidSalesReceipt } from '@/lib/quickbooks'
-import { sendDayPassCancellationStaffNotification } from '@/lib/email'
+import { sendDayPassCancellationStaffNotification, sendSystemAlert } from '@/lib/email'
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2025-05-28.basil' })
 
@@ -73,18 +73,27 @@ export async function POST(request: Request) {
     // The refund already went through — this is now a state mismatch that
     // needs a human, not something to fail silently or retry blindly.
     console.error('[day-pass/cancel] Refund succeeded but status update failed:', updateError.message)
+    await sendSystemAlert('Day pass refund succeeded but status update failed', {
+      confirmation_number, customer_id: user.id, error: updateError.message,
+    })
     return NextResponse.json({ error: 'Refund processed, but something went wrong updating your booking. Contact us at hello@bizhaus.com to confirm.' }, { status: 500 })
   }
 
   // Void the QuickBooks receipt for each day — best-effort, one location
   // per group so failures here don't affect the customer at all (refund
-  // already succeeded).
+  // already succeeded). Same silent-failure class as the receipt-creation
+  // bug found 2026-09-02 — without an alert, QB would keep showing revenue
+  // for a day that was actually refunded, with no one aware of the drift.
   for (const r of rows) {
     if (!r.qb_receipt_id) continue
     try {
       await voidSalesReceipt(r.location_id, r.qb_receipt_id)
     } catch (err) {
       console.error('[day-pass/cancel] Failed to void QB receipt:', r.qb_receipt_id, err)
+      await sendSystemAlert('Day pass QB receipt void failed', {
+        confirmation_number, day_pass_id: r.id, qb_receipt_id: r.qb_receipt_id,
+        error: err instanceof Error ? err.message : String(err),
+      })
     }
   }
 

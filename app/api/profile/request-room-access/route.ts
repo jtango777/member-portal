@@ -1,6 +1,6 @@
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
-import { sendRoomAccessRequestEmail } from '@/lib/email'
+import { sendRoomAccessRequestEmail, sendSystemAlert } from '@/lib/email'
 
 export async function POST(request: Request) {
   const supabase = await createClient()
@@ -39,6 +39,9 @@ export async function POST(request: Request) {
       await sendRoomAccessRequestEmail({ name: profile.full_name, email: user.email ?? '' })
     } catch (err) {
       console.error('[profile/request-room-access] email failed:', err)
+      await sendSystemAlert('Room access request email failed', {
+        user_id: user.id, name: profile.full_name, error: err instanceof Error ? err.message : String(err),
+      })
     }
   }
 

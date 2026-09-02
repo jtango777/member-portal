@@ -260,6 +260,9 @@ export async function POST(request: Request) {
     })
   } catch (err) {
     console.error('[email] Failed to send external booking staff notification:', err)
+    await sendSystemAlert('Room booking staff notification email failed', {
+      confirmation_number: confirmationNumber, error: err instanceof Error ? err.message : String(err),
+    })
   }
 
   return NextResponse.json({ ok: true, booking_id: booking.id }, { status: 201 })

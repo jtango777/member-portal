@@ -1,6 +1,6 @@
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
-import { sendCancellationRequestEmail } from '@/lib/email'
+import { sendCancellationRequestEmail, sendSystemAlert } from '@/lib/email'
 import { format } from 'date-fns'
 
 // A member can't self-cancel within 12 hours of the start time (see
@@ -55,6 +55,9 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     })
   } catch (err) {
     console.error('[reservations] cancellation-request email failed:', err)
+    await sendSystemAlert('Reservation cancellation-request email failed', {
+      reservation_id: id, user_id: user.id, error: err instanceof Error ? err.message : String(err),
+    })
   }
 
   return NextResponse.json({ ok: true })
