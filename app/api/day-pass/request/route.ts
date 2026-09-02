@@ -1,6 +1,6 @@
 import { createAdminClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
-import { sendDayPassConfirmation, sendDayPassStaffNotification } from '@/lib/email'
+import { sendDayPassConfirmation, sendDayPassStaffNotification, sendSystemAlert } from '@/lib/email'
 import { rateLimit } from '@/lib/rate-limit'
 import { verifyRecaptcha } from '@/lib/recaptcha'
 import { createSalesReceipt } from '@/lib/quickbooks'
@@ -124,9 +124,16 @@ export async function POST(request: Request) {
     } catch (err: any) {
       if (err?.message === 'QB_NEEDS_RECONNECT') {
         console.warn('[qb] Location needs reconnection — skipping day pass sales receipt')
+        await sendSystemAlert('QuickBooks needs reconnecting', {
+          location_id, confirmation_number: confirmationNumber, date,
+        })
         break // same location for every row in the group — no point retrying each one
       } else {
         console.error('[qb] Failed to create day pass sales receipt:', err)
+        await sendSystemAlert('Day pass QB receipt creation failed', {
+          location_id, confirmation_number: confirmationNumber, date,
+          error: err?.message ?? String(err),
+        })
       }
     }
   }

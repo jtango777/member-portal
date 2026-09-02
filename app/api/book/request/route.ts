@@ -1,7 +1,7 @@
 import { createAdminClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 import { getPacificDayBounds } from '@/lib/utils'
-import { sendExternalBookingReceipt, sendExternalBookingStaffNotification } from '@/lib/email'
+import { sendExternalBookingReceipt, sendExternalBookingStaffNotification, sendSystemAlert } from '@/lib/email'
 import { rateLimit } from '@/lib/rate-limit'
 import { verifyRecaptcha } from '@/lib/recaptcha'
 import { createSalesReceipt } from '@/lib/quickbooks'
@@ -213,8 +213,15 @@ export async function POST(request: Request) {
     } catch (err: any) {
       if (err?.message === 'QB_NEEDS_RECONNECT') {
         console.warn('[qb] Location needs reconnection — skipping sales receipt')
+        await sendSystemAlert('QuickBooks needs reconnecting', {
+          location_id: room.location_id, confirmation_number: confirmationNumber,
+        })
       } else {
         console.error('[qb] Failed to create sales receipt:', err)
+        await sendSystemAlert('Room booking QB receipt creation failed', {
+          location_id: room.location_id, confirmation_number: confirmationNumber,
+          error: err?.message ?? String(err),
+        })
       }
     }
   }

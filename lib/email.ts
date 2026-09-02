@@ -547,3 +547,31 @@ export async function sendRoomAccessRequestEmail(details: { name: string; email:
   })
   if (error) console.error('[email] Resend error sending room access request email:', error)
 }
+
+// Generic alert for a background operation that failed silently before —
+// anything that used to be only a console.error with no one watching Vercel
+// logs. First use: QuickBooks sales receipt creation, which failed for
+// months (a hardcoded account id, then a dead webhook domain, then a race
+// condition — three separate bugs, none of them ever surfaced to a person)
+// before being caught by chance during manual testing 2026-09-02. Deliberately
+// simple/plain-text rather than a branded template — this is an internal
+// ops alert, not a customer-facing email, and needs to stay readable even
+// if this function itself is being called from a half-broken code path.
+export async function sendSystemAlert(subject: string, details: Record<string, unknown> | string) {
+  const body = typeof details === 'string' ? details : JSON.stringify(details, null, 2)
+  const { error } = await resend.emails.send({
+    from: FROM,
+    to: STAFF_EMAIL,
+    subject: `⚠️ BizHaus Alert: ${subject}`,
+    html: `
+      <div style="font-family:${FONT};padding:24px;">
+        <h2 style="color:#b91c1c;margin:0 0 12px;font-size:18px;">${subject}</h2>
+        <pre style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:16px;white-space:pre-wrap;font-size:13px;color:#1e293b;">${body}</pre>
+        <p style="color:#94a3b8;font-size:12px;margin-top:16px;">This is an automated alert — something that used to fail silently now sends this instead. Check Vercel logs for the full stack trace if needed.</p>
+      </div>
+    `,
+  })
+  // Deliberately just console.error here, not recursive alerting — if
+  // Resend itself is down there's nowhere further to escalate to from code.
+  if (error) console.error('[email] Resend error sending system alert (meta, I know):', error)
+}

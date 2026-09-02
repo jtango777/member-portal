@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import Stripe from 'stripe'
 import { createAdminClient } from '@/lib/supabase/server'
 import { createSalesReceipt } from '@/lib/quickbooks'
+import { sendSystemAlert } from '@/lib/email'
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2025-05-28.basil' })
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!
@@ -84,8 +85,15 @@ export async function POST(request: Request) {
       } catch (err: any) {
         if (err?.message === 'QB_NEEDS_RECONNECT') {
           console.warn('[qb] Location needs reconnection — skipping sales receipt')
+          await sendSystemAlert('QuickBooks needs reconnecting', { booking_id: booking.id })
         } else {
           console.error('[qb] Failed to create sales receipt:', err)
+          // This is the backup path — /api/book/request already tried and
+          // presumably also failed (or never ran), so this booking genuinely
+          // has no receipt with nothing left to retry it automatically.
+          await sendSystemAlert('Room booking QB receipt creation failed (backup path also failed)', {
+            booking_id: booking.id, error: err?.message ?? String(err),
+          })
         }
       }
     }
@@ -141,9 +149,17 @@ export async function POST(request: Request) {
           } catch (err: any) {
             if (err?.message === 'QB_NEEDS_RECONNECT') {
               console.warn('[qb] Location needs reconnection — skipping day pass sales receipt')
+              await sendSystemAlert('QuickBooks needs reconnecting', { day_pass_id: dayPass.id })
               break // same location for every row in the group — no point retrying each one
             } else {
               console.error('[qb] Failed to create day pass sales receipt:', err)
+              // This is the backup path — /api/day-pass/request already
+              // tried and presumably also failed (or never ran), so this
+              // day pass genuinely has no receipt with nothing left to
+              // retry it automatically.
+              await sendSystemAlert('Day pass QB receipt creation failed (backup path also failed)', {
+                day_pass_id: dayPass.id, error: err?.message ?? String(err),
+              })
             }
           }
         }
