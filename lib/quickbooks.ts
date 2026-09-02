@@ -113,6 +113,24 @@ async function qbFetch(
   return data
 }
 
+// Every QuickBooks company file has its own chart of accounts with its own
+// ids — there's no universal "account 1". Look up a real Income account by
+// type instead of guessing an id, so this works across every location's
+// separate QB company file, not just whichever one happened to have an
+// account 1 that was actually Income.
+async function findIncomeAccount(realmId: string, accessToken: string) {
+  const query = encodeURIComponent("SELECT * FROM Account WHERE AccountType = 'Income' AND Active = true")
+  const result = await qbFetch('GET', `/query?query=${query}`, realmId, accessToken)
+  const accounts = result.QueryResponse?.Account
+  if (!accounts || accounts.length === 0) {
+    throw new Error('QB_NO_INCOME_ACCOUNT: no active Income account found in this company file')
+  }
+  // Prefer the default "Sales of Product Income" / "Services" style account
+  // QB ships new companies with, but fall back to the first Income account
+  // rather than failing outright.
+  return accounts.find((a: any) => a.Name === 'Services') ?? accounts[0]
+}
+
 async function findOrCreateItem(realmId: string, accessToken: string) {
   const query = encodeURIComponent("SELECT * FROM Item WHERE Name = 'Room Booking'")
   const result = await qbFetch('GET', `/query?query=${query}`, realmId, accessToken)
@@ -121,10 +139,12 @@ async function findOrCreateItem(realmId: string, accessToken: string) {
     return result.QueryResponse.Item[0]
   }
 
+  const incomeAccount = await findIncomeAccount(realmId, accessToken)
+
   const newItem = await qbFetch('POST', '/item', realmId, accessToken, {
     Name: 'Room Booking',
     Type: 'Service',
-    IncomeAccountRef: { value: '1' },
+    IncomeAccountRef: { value: incomeAccount.Id, name: incomeAccount.Name },
   })
 
   return newItem.Item
