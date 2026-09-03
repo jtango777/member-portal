@@ -29,6 +29,7 @@ const ROOM_IMAGES: Record<string, string[]> = {
   'el-segundo:Large':     ['/rooms/es-large.jpg'],
   'el-segundo:Medium +':  ['/rooms/es-medium.jpg'],
   'el-segundo:Medium':    ['/rooms/es-medium-plus.jpg'],
+  'el-segundo:Small':     ['/rooms/es-small.jpg'],
   'marina-del-rey:Small': ['/rooms/mdr-conference-3.jpg', '/rooms/mdr-conference-2.jpg'],
   'costa-mesa:Large':     ['/rooms/cm-large.jpg', '/rooms/cm-large-2.jpg'],
   'costa-mesa:Medium +':  ['/rooms/cm-medium-plus.jpg'],
