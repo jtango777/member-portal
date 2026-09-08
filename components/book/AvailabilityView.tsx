@@ -43,7 +43,7 @@ const ROOM_IMAGES: Record<string, string[]> = {
 const LOCATION_BANNERS: Record<string, { src: string; position?: string }> = {
   'el-segundo':     { src: '/rooms/es-open-space.jpg' },
   'marina-del-rey': { src: '/rooms/mdr-open-space.jpg', position: 'center 70%' },
-  'costa-mesa':     { src: '/rooms/cm-open-space.jpg', position: 'center 75%' },
+  'costa-mesa':     { src: '/rooms/cm-open-space.jpg', position: 'center 55%' },
 }
 
 function slotToMinutes(s: string) {
