@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { Trash2, Pencil, Search, Linkedin } from 'lucide-react'
+import { Trash2, Pencil, Search } from 'lucide-react'
 import toast from 'react-hot-toast'
 import AssignPhotoDialog from './admin/AssignPhotoDialog'
 import { getSeatingOptions } from '@/lib/seating'
@@ -173,9 +173,18 @@ export default function HausSmilesTabs({ groups, defaultLocationId, isAdmin }: P
                   rel="noopener noreferrer"
                   title="LinkedIn"
                   onClick={e => e.stopPropagation()}
-                  className="absolute bottom-1 right-1 z-20 flex items-center justify-center w-4 h-4 rounded-full bg-white border border-gray-200 shadow-sm text-[#0A66C2] hover:scale-110 transition-transform"
+                  className="absolute bottom-1 right-1 z-20 flex items-center justify-center w-4 h-4 rounded-[4px] bg-white border border-gray-200 shadow-sm hover:scale-110 transition-transform"
                 >
-                  <Linkedin size={9} strokeWidth={2.5} />
+                  {/* Matches LinkedIn's actual app-icon mark: white rounded
+                      square outer, blue circle inner with the white "in"
+                      glyph — not just the outline icon on its own. */}
+                  <svg viewBox="0 0 24 24" width={13} height={13}>
+                    <circle cx="12" cy="12" r="11" fill="#0A66C2" />
+                    <path
+                      fill="white"
+                      d="M16.338 16.338h-2.4v-3.756c0-.896-.017-2.048-1.248-2.048-1.25 0-1.44.975-1.44 1.982v3.822h-2.4V9.75h2.304v1.053h.033c.32-.607 1.104-1.248 2.273-1.248 2.43 0 2.878 1.6 2.878 3.68v3.103zM7.494 8.697a1.393 1.393 0 1 1 0-2.786 1.393 1.393 0 0 1 0 2.786zM8.694 16.338H6.294V9.75h2.4v6.588z"
+                    />
+                  </svg>
                 </a>
               )}
             </div>
