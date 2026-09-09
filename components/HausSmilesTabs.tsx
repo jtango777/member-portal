@@ -173,17 +173,15 @@ export default function HausSmilesTabs({ groups, defaultLocationId, isAdmin }: P
                   rel="noopener noreferrer"
                   title="LinkedIn"
                   onClick={e => e.stopPropagation()}
-                  className="absolute bottom-1 right-1 z-20 flex items-center justify-center w-4 h-4 rounded-[4px] bg-white border border-gray-200 shadow-sm hover:scale-110 transition-transform"
+                  className="absolute bottom-1 right-1 z-20 flex items-center justify-center w-5 h-5 rounded-[5px] bg-[#0A66C2] shadow-sm hover:scale-110 transition-transform"
                 >
-                  {/* Matches LinkedIn's actual app-icon mark: white rounded
-                      square outer, blue circle inner with the white "in"
-                      glyph — not just the outline icon on its own. */}
-                  <svg viewBox="0 0 24 24" width={13} height={13}>
-                    <circle cx="12" cy="12" r="11" fill="#0A66C2" />
-                    <path
-                      fill="white"
-                      d="M16.338 16.338h-2.4v-3.756c0-.896-.017-2.048-1.248-2.048-1.25 0-1.44.975-1.44 1.982v3.822h-2.4V9.75h2.304v1.053h.033c.32-.607 1.104-1.248 2.273-1.248 2.43 0 2.878 1.6 2.878 3.68v3.103zM7.494 8.697a1.393 1.393 0 1 1 0-2.786 1.393 1.393 0 0 1 0 2.786zM8.694 16.338H6.294V9.75h2.4v6.588z"
-                    />
+                  {/* LinkedIn's real "in" app icon: solid blue rounded
+                      square, white glyph directly on it — no inner circle.
+                      (Two earlier passes: plain outline icon, then an
+                      overcomplicated circle-in-square version — this is
+                      the actual simple mark.) */}
+                  <svg viewBox="0 0 24 24" width={14} height={14} fill="white">
+                    <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 1 1 0-4.124 2.062 2.062 0 0 1 0 4.124zM7.114 20.452H3.558V9h3.556v11.452z" />
                   </svg>
                 </a>
               )}
