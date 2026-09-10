@@ -249,7 +249,14 @@ export default function ReservationModal({
     : 0
   const canEdit   = isOwn && !isAdmin && !!reservation && hoursUntilStart > 24
   const canCancel = isOwn && !isAdmin && !!reservation && hoursUntilStart > 12
-  const withinCancelPolicy = isOwn && !isAdmin && !!reservation && hoursUntilStart > 0 && hoursUntilStart <= 12
+  // Covers both "starts within 12 hours" AND "already started/passed" —
+  // a same-day reservation used to show nothing at all once its start time
+  // ticked by (caught 2026-09-10: a reservation booked for a few minutes
+  // in the past had no cancel button and no way to reach BizHaus about it,
+  // just a bare "Close"). Bounded to the last 24h so this doesn't show up
+  // on reservations from a while back — those are just history at that
+  // point, nothing to do about them.
+  const withinCancelPolicy = isOwn && !isAdmin && !!reservation && hoursUntilStart <= 12 && hoursUntilStart > -24
   const [cancellationRequested, setCancellationRequested] = useState(!!reservation?.cancellation_requested_at)
   const [requestingCancellation, setRequestingCancellation] = useState(false)
 
@@ -897,7 +904,9 @@ export default function ReservationModal({
                     <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 text-xs text-amber-700">
                       <AlertCircle size={13} className="flex-shrink-0 mt-0.5" />
                       <div>
-                        This reservation starts within 12 hours, so it needs BizHaus team approval to cancel.{' '}
+                        {hoursUntilStart > 0
+                          ? 'This reservation starts within 12 hours, so it needs BizHaus team approval to cancel.'
+                          : 'This reservation has already started, so it needs BizHaus team approval to cancel.'}{' '}
                         <button onClick={handleRequestCancellation} disabled={requestingCancellation}
                           className="font-semibold underline hover:no-underline disabled:opacity-50">
                           {requestingCancellation ? 'Sending…' : 'Request cancellation'}

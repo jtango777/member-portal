@@ -443,18 +443,31 @@ export default function CalendarView({ locations, profile, company, hourScope, h
                     className="relative border-l border-gray-200 min-w-[160px] flex-1"
                     style={{ height: slotH * TOTAL_SLOTS }}
                   >
-                    {/* Slot backgrounds / click targets */}
-                    {Array.from({ length: TOTAL_SLOTS }, (_, i) => (
-                      <div
-                        key={i}
-                        onClick={() => handleSlotClick(room.id, i)}
-                        style={{ top: i * slotH, height: slotH }}
-                        className={cn(
-                          'absolute inset-x-0 cursor-pointer hover:bg-blue-50 transition-colors',
-                          i % 2 === 0 ? 'border-t border-gray-200' : 'border-t border-dashed border-gray-200'
-                        )}
-                      />
-                    ))}
+                    {/* Slot backgrounds / click targets. Members can't book
+                        an already-passed slot on today's date — clicking
+                        used to open a fresh "create" modal for it same as
+                        any other slot, so a member could book (and burn
+                        hours on) a time that had already happened, with no
+                        way to cancel it afterward since it was instantly
+                        "in the past". Admins are exempt (same as the
+                        server-side check) since they may need to log
+                        something after the fact. */}
+                    {Array.from({ length: TOTAL_SLOTS }, (_, i) => {
+                      const isPastSlot = !profile.is_admin && isToday(selectedDate) && isBefore(slotToTime(i), new Date())
+                      return (
+                        <div
+                          key={i}
+                          onClick={() => { if (!isPastSlot) handleSlotClick(room.id, i) }}
+                          style={{ top: i * slotH, height: slotH }}
+                          title={isPastSlot ? "This time has already passed" : undefined}
+                          className={cn(
+                            'absolute inset-x-0 transition-colors',
+                            i % 2 === 0 ? 'border-t border-gray-200' : 'border-t border-dashed border-gray-200',
+                            isPastSlot ? 'bg-gray-50 cursor-not-allowed' : 'cursor-pointer hover:bg-blue-50'
+                          )}
+                        />
+                      )
+                    })}
 
                     {/* Booking cards */}
                     {roomReservations.map(res => {

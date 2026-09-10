@@ -123,6 +123,17 @@ export async function POST(request: Request) {
   const end   = new Date(end_time)
   if (end <= start) return NextResponse.json({ error: 'End time must be after start time' }, { status: 400 })
 
+  // Nothing on the calendar UI stopped a member from clicking an
+  // already-passed slot on today's date and booking it anyway — caught
+  // 2026-09-10 when a test booking for a slot ~55 minutes gone went
+  // through, ate into the month's hour allotment, and then had no cancel
+  // path since it was immediately "in the past". Admins are exempt since
+  // they may legitimately need to log something after the fact (e.g. a
+  // walk-in that started a few minutes ago).
+  if (!profile.is_admin && start.getTime() < Date.now()) {
+    return NextResponse.json({ error: 'That time has already passed — pick an upcoming slot.' }, { status: 400 })
+  }
+
   // Check hour allotment for non-admins — a shared company pool if they
   // have one, otherwise their own individual pool.
   if (!profile.is_admin && (profile.company_id || profile.individual_hours_allotment)) {
