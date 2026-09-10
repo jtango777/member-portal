@@ -9,6 +9,7 @@ import { Reservation, Room, Profile, Company } from '@/types'
 import { cn, buildTimeOptions, parseTimeValue, formatTime, toPacificDate } from '@/lib/utils'
 import { useAutoScrollIntoView } from '@/lib/useAutoScrollIntoView'
 import toast from 'react-hot-toast'
+import CancelReservationDialog from './CancelReservationDialog'
 
 const START_HOUR = 0
 const TIME_OPTIONS = buildTimeOptions()
@@ -836,28 +837,16 @@ export default function ReservationModal({
                   )
                 )}
 
-                {/* Admin delete — regular reservation. Plain text, matching
-                    the Edit/Close buttons it sits next to — an icon here
-                    broke the inline alignment with them. Instant swap, no
-                    width animation (the grid/max-width accordion attempts
-                    kept coming out jumpy no matter how it was tuned). */}
+                {/* Admin delete — regular reservation. A real confirm
+                    dialog, same as the Members admin table's Archive flow —
+                    every inline row-swap version of this kept reading as
+                    jumpy or out of place next to Edit/Close, so this drops
+                    the row entirely instead of chasing a smoother version
+                    of it. */}
                 {isAdmin && mode === 'view' && !editing && !reservation?.is_admin_block && (
-                  confirmDelete ? (
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm text-red-600">Delete?</span>
-                      <button onClick={() => handleDelete('this')} disabled={deleting}
-                        className="text-xs bg-red-600 hover:bg-red-700 text-white px-2 py-1 rounded font-medium disabled:opacity-50">
-                        {deleting ? '…' : 'Yes'}
-                      </button>
-                      <button onClick={() => setConfirmDelete(false)} className="text-sm text-gray-500 hover:text-gray-700">
-                        No
-                      </button>
-                    </div>
-                  ) : (
-                    <button onClick={() => setConfirmDelete(true)} className="text-sm text-red-500 hover:text-red-700">
-                      Delete
-                    </button>
-                  )
+                  <button onClick={() => setConfirmDelete(true)} className="text-sm text-red-500 hover:text-red-700">
+                    Delete
+                  </button>
                 )}
 
                 {/* Within 12h policy — can't self-cancel this close to the
@@ -876,27 +865,20 @@ export default function ReservationModal({
                   </div>
                 )}
 
-                {/* Regular user cancel — plain text like Edit/Close, same
-                    pattern as the admin Delete above. */}
+                {/* Regular user cancel — same confirm dialog as admin
+                    Delete above. */}
                 {canCancel && !editing && (
-                  confirmDelete ? (
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm text-red-600">Cancel?</span>
-                      <button onClick={() => handleDelete('this')} disabled={deleting}
-                        className="text-xs bg-red-600 hover:bg-red-700 text-white px-2 py-1 rounded font-medium disabled:opacity-50">
-                        {deleting ? '…' : 'Yes'}
-                      </button>
-                      <button onClick={() => setConfirmDelete(false)} className="text-sm text-gray-500 hover:text-gray-700">
-                        No
-                      </button>
-                    </div>
-                  ) : (
-                    <button onClick={() => setConfirmDelete(true)} className="text-sm text-red-500 hover:text-red-700">
-                      Cancel
-                    </button>
-                  )
+                  <button onClick={() => setConfirmDelete(true)} className="text-sm text-red-500 hover:text-red-700">
+                    Cancel
+                  </button>
                 )}
               </div>
+
+              <CancelReservationDialog
+                reservation={confirmDelete && reservation ? { id: reservation.id, title: reservation.title } : null}
+                onOpenChange={setConfirmDelete}
+                onSuccess={() => onClose(true)}
+              />
 
               <div className="flex items-center gap-2 ml-auto">
                 {mode === 'view' && !editing ? (

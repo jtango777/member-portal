@@ -39,6 +39,11 @@ function SetupForm() {
           setTokenValid(true)
           setEmail(data.email)
           setInvitedLocationId(data.default_location_id ?? null)
+          // Pre-fill with the name already on file for this invite — no
+          // reason to make someone retype their own name over the
+          // "Jane"/"Smith" placeholders when we already know who they are.
+          if (data.first_name) setFirstName(data.first_name)
+          if (data.last_name) setLastName(data.last_name)
         } else setTokenValid(false)
       })
       .catch(() => setTokenValid(false))
@@ -140,33 +145,37 @@ function SetupForm() {
               placeholder="Smith" />
           </div>
         </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
-          <PasswordInput value={password} onChange={setPassword} required autoComplete="new-password" placeholder="At least 8 characters" />
-          <p className="text-xs text-gray-400 mt-1">{PASSWORD_REQUIREMENTS_TEXT}</p>
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Confirm Password</label>
-          <PasswordInput value={password2} onChange={setPassword2} required autoComplete="new-password" placeholder="Repeat password" />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Default Location</label>
-          <p className="text-xs text-gray-400 mb-1.5">This will be your default location in Rooms.</p>
-          <select required value={locationId} onChange={e => setLocationId(e.target.value)}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-            {locations.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
-          </select>
-        </div>
-        {locationId && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Where do you sit?</label>
-            <p className="text-xs text-gray-400 mb-1.5">Shown below your name on Faces.</p>
-            <select required value={seating} onChange={e => setSeating(e.target.value)}
+            <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+            <PasswordInput value={password} onChange={setPassword} required autoComplete="new-password" placeholder="At least 8 characters" />
+            <p className="text-xs text-gray-400 mt-1">{PASSWORD_REQUIREMENTS_TEXT}</p>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Confirm Password</label>
+            <PasswordInput value={password2} onChange={setPassword2} required autoComplete="new-password" placeholder="Repeat password" />
+          </div>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Default Location</label>
+            <p className="text-xs text-gray-400 mb-1.5">This will be your default location in Rooms.</p>
+            <select required value={locationId} onChange={e => setLocationId(e.target.value)}
               className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-              {getSeatingOptions(locations.find(l => l.id === locationId)?.name).map(s => <option key={s} value={s}>{s}</option>)}
+              {locations.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
             </select>
           </div>
-        )}
+          {locationId && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Where do you sit?</label>
+              <p className="text-xs text-gray-400 mb-1.5">Shown below your name on Faces.</p>
+              <select required value={seating} onChange={e => setSeating(e.target.value)}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                {getSeatingOptions(locations.find(l => l.id === locationId)?.name).map(s => <option key={s} value={s}>{s}</option>)}
+              </select>
+            </div>
+          )}
+        </div>
         <div className="flex justify-center">
           <Recaptcha ref={recaptchaRef} onChange={setRecaptchaToken} />
         </div>
@@ -182,7 +191,11 @@ function SetupForm() {
 export default function SetupAccountPage() {
   return (
     <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
-      <div className="w-full max-w-sm">
+      {/* Narrow on mobile (form fields stay stacked, single column); wider
+          on desktop so the password/confirm and location/seating pairs
+          below can actually sit side by side instead of forcing a scroll
+          on a screen with plenty of horizontal room to spare. */}
+      <div className="w-full max-w-sm md:max-w-xl">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-white tracking-tight">BizHaus <span className="font-medium">Portal</span></h1>
         </div>
