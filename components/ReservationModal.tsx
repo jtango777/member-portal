@@ -811,45 +811,46 @@ export default function ReservationModal({
               <div className="flex items-center gap-2">
 
                 {/* Admin delete — admin block. Trigger(s) and confirm state
-                    sit in a real accordion: each side's grid-template-columns
-                    animates between 0fr/1fr (clipped by overflow-hidden), so
-                    the row actually grows/shrinks in step with the fade
-                    instead of the fade landing on an already-final-width box.
-                    Same pattern below for the regular-reservation delete and
-                    the member's own cancel, so all three cancel/delete
-                    transitions in this footer move the same way. */}
+                    sit in a real accordion: each side's max-width animates
+                    (clipped by overflow-hidden) so the row actually grows/
+                    shrinks in step with the fade, instead of the fade
+                    landing on an already-final-width box. Animating
+                    max-width instead of grid-template-columns deliberately —
+                    Safari doesn't reliably animate grid track sizing, it
+                    just snaps, which is exactly the "shifty, not an
+                    accordion" bug reported live. max-width transitions have
+                    been solid everywhere for years. Same pattern below for
+                    the regular-reservation delete and the member's own
+                    cancel, so all three cancel/delete transitions in this
+                    footer move the same way. */}
                 {isAdmin && mode === 'view' && !editing && reservation?.is_admin_block && (
                   <div className="flex items-center">
-                    <div className={cn('grid transition-[grid-template-columns] duration-200 ease-out',
-                      deleteScope ? 'grid-cols-[0fr]' : 'grid-cols-[1fr]')}>
-                      <div className="overflow-hidden">
-                        <div className="flex items-center gap-3 whitespace-nowrap pr-2">
-                          <button onClick={() => setDeleteScope('this')}
+                    <div className={cn('overflow-hidden transition-[max-width] duration-200 ease-out',
+                      deleteScope ? 'max-w-0' : 'max-w-[220px]')}>
+                      <div className="flex items-center gap-3 whitespace-nowrap pr-2">
+                        <button onClick={() => setDeleteScope('this')}
+                          className="text-xs text-red-500 hover:text-red-700 underline">
+                          Remove this
+                        </button>
+                        {reservation.recurrence_group_id && (
+                          <button onClick={() => setDeleteScope('future')}
                             className="text-xs text-red-500 hover:text-red-700 underline">
-                            Remove this
+                            Remove this + future
                           </button>
-                          {reservation.recurrence_group_id && (
-                            <button onClick={() => setDeleteScope('future')}
-                              className="text-xs text-red-500 hover:text-red-700 underline">
-                              Remove this + future
-                            </button>
-                          )}
-                        </div>
+                        )}
                       </div>
                     </div>
-                    <div className={cn('grid transition-[grid-template-columns] duration-200 ease-out',
-                      deleteScope ? 'grid-cols-[1fr]' : 'grid-cols-[0fr]')}>
-                      <div className="overflow-hidden">
-                        <div className="flex items-center gap-2 whitespace-nowrap pr-2">
-                          <span className="text-xs text-red-600">
-                            {deleteScope === 'future' ? 'Remove this + all future?' : 'Remove this occurrence?'}
-                          </span>
-                          <button onClick={() => handleDelete(deleteScope ?? 'this')} disabled={deleting}
-                            className="text-xs bg-red-600 text-white px-2 py-1 rounded font-medium">
-                            {deleting ? '…' : 'Yes'}
-                          </button>
-                          <button onClick={() => setDeleteScope(null)} className="text-xs text-gray-500">No</button>
-                        </div>
+                    <div className={cn('overflow-hidden transition-[max-width] duration-200 ease-out',
+                      deleteScope ? 'max-w-[280px]' : 'max-w-0')}>
+                      <div className="flex items-center gap-2 whitespace-nowrap pr-2">
+                        <span className="text-xs text-red-600">
+                          {deleteScope === 'future' ? 'Remove this + all future?' : 'Remove this occurrence?'}
+                        </span>
+                        <button onClick={() => handleDelete(deleteScope ?? 'this')} disabled={deleting}
+                          className="text-xs bg-red-600 text-white px-2 py-1 rounded font-medium">
+                          {deleting ? '…' : 'Yes'}
+                        </button>
+                        <button onClick={() => setDeleteScope(null)} className="text-xs text-gray-500">No</button>
                       </div>
                     </div>
                   </div>
@@ -858,26 +859,22 @@ export default function ReservationModal({
                 {/* Admin delete — regular reservation */}
                 {isAdmin && mode === 'view' && !editing && !reservation?.is_admin_block && (
                   <div className="flex items-center">
-                    <div className={cn('grid transition-[grid-template-columns] duration-200 ease-out',
-                      confirmDelete ? 'grid-cols-[0fr]' : 'grid-cols-[1fr]')}>
-                      <div className="overflow-hidden">
-                        <button onClick={() => setConfirmDelete(true)}
-                          className="flex items-center gap-1 text-sm text-red-500 hover:text-red-700 whitespace-nowrap pr-2">
-                          <Trash2 size={14} /> Delete
-                        </button>
-                      </div>
+                    <div className={cn('overflow-hidden transition-[max-width] duration-200 ease-out',
+                      confirmDelete ? 'max-w-0' : 'max-w-[90px]')}>
+                      <button onClick={() => setConfirmDelete(true)}
+                        className="flex items-center gap-1 text-sm text-red-500 hover:text-red-700 whitespace-nowrap pr-2">
+                        <Trash2 size={14} /> Delete
+                      </button>
                     </div>
-                    <div className={cn('grid transition-[grid-template-columns] duration-200 ease-out',
-                      confirmDelete ? 'grid-cols-[1fr]' : 'grid-cols-[0fr]')}>
-                      <div className="overflow-hidden">
-                        <div className="flex items-center gap-2 whitespace-nowrap pr-2">
-                          <span className="text-xs text-red-600">Delete?</span>
-                          <button onClick={() => handleDelete('this')} disabled={deleting}
-                            className="text-xs bg-red-600 text-white px-2 py-1 rounded font-medium">
-                            {deleting ? '…' : 'Yes'}
-                          </button>
-                          <button onClick={() => setConfirmDelete(false)} className="text-xs text-gray-500">No</button>
-                        </div>
+                    <div className={cn('overflow-hidden transition-[max-width] duration-200 ease-out',
+                      confirmDelete ? 'max-w-[160px]' : 'max-w-0')}>
+                      <div className="flex items-center gap-2 whitespace-nowrap pr-2">
+                        <span className="text-xs text-red-600">Delete?</span>
+                        <button onClick={() => handleDelete('this')} disabled={deleting}
+                          className="text-xs bg-red-600 text-white px-2 py-1 rounded font-medium">
+                          {deleting ? '…' : 'Yes'}
+                        </button>
+                        <button onClick={() => setConfirmDelete(false)} className="text-xs text-gray-500">No</button>
                       </div>
                     </div>
                   </div>
@@ -885,65 +882,50 @@ export default function ReservationModal({
 
                 {/* Within 12h policy — can't self-cancel this close to the
                     start time, but can request it and our team handles it.
-                    The plain "Cancel reservation" button used to just
-                    vanish entirely in this window, with only the banner
-                    below explaining why — confusing, since it read as the
-                    action being missing rather than blocked on purpose.
-                    Now it's still there, visibly disabled with a tooltip,
-                    so the "why can't I click this" question is answered
-                    right where someone would reach for it. */}
+                    No plain "Cancel reservation" button in this window at
+                    all (tried a disabled/struck-through version of it, but
+                    that read as more confusing than just having the one
+                    clear action below) — this banner is the only cancel
+                    affordance shown. */}
                 {withinCancelPolicy && !editing && (
-                  <>
-                    <button
-                      disabled
-                      title={`This reservation starts within ${Math.ceil(hoursUntilStart)} hour${Math.ceil(hoursUntilStart) === 1 ? '' : 's'} — unfortunately it's too close to cancel yourself.`}
-                      className="text-sm text-gray-400 line-through decoration-gray-300 cursor-not-allowed"
-                    >
-                      Cancel reservation
-                    </button>
-                    {cancellationRequested ? (
-                      <div className="flex items-start gap-2 bg-green-50 border border-green-200 rounded-lg px-3 py-2 text-xs text-green-700">
-                        <Check size={13} className="flex-shrink-0 mt-0.5" />
-                        Cancellation request sent — our team will take care of it.
+                  cancellationRequested ? (
+                    <div className="flex items-start gap-2 bg-green-50 border border-green-200 rounded-lg px-3 py-2 text-xs text-green-700">
+                      <Check size={13} className="flex-shrink-0 mt-0.5" />
+                      Cancellation request sent — our team will take care of it.
+                    </div>
+                  ) : (
+                    <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 text-xs text-amber-700">
+                      <AlertCircle size={13} className="flex-shrink-0 mt-0.5" />
+                      <div>
+                        This reservation starts within 12 hours, so it needs BizHaus team approval to cancel.{' '}
+                        <button onClick={handleRequestCancellation} disabled={requestingCancellation}
+                          className="font-semibold underline hover:no-underline disabled:opacity-50">
+                          {requestingCancellation ? 'Sending…' : 'Request cancellation'}
+                        </button>
                       </div>
-                    ) : (
-                      <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 text-xs text-amber-700">
-                        <AlertCircle size={13} className="flex-shrink-0 mt-0.5" />
-                        <div>
-                          This reservation starts within 12 hours, so it needs BizHaus team approval to cancel.{' '}
-                          <button onClick={handleRequestCancellation} disabled={requestingCancellation}
-                            className="font-semibold underline hover:no-underline disabled:opacity-50">
-                            {requestingCancellation ? 'Sending…' : 'Request cancellation'}
-                          </button>
-                        </div>
-                      </div>
-                    )}
-                  </>
+                    </div>
+                  )
                 )}
 
                 {/* Regular user cancel */}
                 {canCancel && !editing && (
                   <div className="flex items-center">
-                    <div className={cn('grid transition-[grid-template-columns] duration-200 ease-out',
-                      confirmDelete ? 'grid-cols-[0fr]' : 'grid-cols-[1fr]')}>
-                      <div className="overflow-hidden">
-                        <button onClick={() => setConfirmDelete(true)}
-                          className="text-sm text-red-500 hover:text-red-700 whitespace-nowrap pr-2">
-                          Cancel reservation
-                        </button>
-                      </div>
+                    <div className={cn('overflow-hidden transition-[max-width] duration-200 ease-out',
+                      confirmDelete ? 'max-w-0' : 'max-w-[160px]')}>
+                      <button onClick={() => setConfirmDelete(true)}
+                        className="text-sm text-red-500 hover:text-red-700 whitespace-nowrap pr-2">
+                        Cancel reservation
+                      </button>
                     </div>
-                    <div className={cn('grid transition-[grid-template-columns] duration-200 ease-out',
-                      confirmDelete ? 'grid-cols-[1fr]' : 'grid-cols-[0fr]')}>
-                      <div className="overflow-hidden">
-                        <div className="flex items-center gap-2 whitespace-nowrap pr-2">
-                          <span className="text-xs text-red-600">Cancel reservation?</span>
-                          <button onClick={() => handleDelete('this')} disabled={deleting}
-                            className="text-xs bg-red-600 text-white px-2 py-1 rounded font-medium">
-                            {deleting ? '…' : 'Yes, cancel'}
-                          </button>
-                          <button onClick={() => setConfirmDelete(false)} className="text-xs text-gray-500">No</button>
-                        </div>
+                    <div className={cn('overflow-hidden transition-[max-width] duration-200 ease-out',
+                      confirmDelete ? 'max-w-[280px]' : 'max-w-0')}>
+                      <div className="flex items-center gap-2 whitespace-nowrap pr-2">
+                        <span className="text-xs text-red-600">Cancel reservation?</span>
+                        <button onClick={() => handleDelete('this')} disabled={deleting}
+                          className="text-xs bg-red-600 text-white px-2 py-1 rounded font-medium">
+                          {deleting ? '…' : 'Yes, cancel'}
+                        </button>
+                        <button onClick={() => setConfirmDelete(false)} className="text-xs text-gray-500">No</button>
                       </div>
                     </div>
                   </div>

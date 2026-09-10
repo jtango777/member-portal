@@ -49,6 +49,7 @@ export default function OnboardingOverlays({ hasAvatar, avatarPromptDismissed, a
         open={showAvatarPrompt}
         onOpenChange={open => { if (!open) dismissAvatarPrompt() }}
         onSuccess={() => router.refresh()}
+        offerLinkedin
       />
     </>
   )

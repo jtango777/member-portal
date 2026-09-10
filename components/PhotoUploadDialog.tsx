@@ -7,6 +7,7 @@ import toast from 'react-hot-toast'
 import Cropper, { Area } from 'react-easy-crop'
 import { getCroppedImageBlob } from '@/lib/cropImage'
 import { useNavBottom } from '@/lib/useNavBottom'
+import { extractLinkedinUsername } from '@/lib/linkedin'
 
 type Props = {
   open: boolean
@@ -15,6 +16,11 @@ type Props = {
   title?: string
   description?: string
   currentImageUrl?: string | null
+  // Only the first-time onboarding prompt sets this — offers LinkedIn
+  // alongside the photo since it's the one moment every member is
+  // guaranteed to see, without adding a LinkedIn field to every other
+  // place this dialog gets reused (Settings already has its own).
+  offerLinkedin?: boolean
 }
 
 export default function PhotoUploadDialog({
@@ -22,9 +28,40 @@ export default function PhotoUploadDialog({
   title = 'Add your photo to Faces',
   description = 'Help your community recognize you — add a profile picture.',
   currentImageUrl,
+  offerLinkedin = false,
 }: Props) {
   const [uploading, setUploading] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
+  const [linkedinUsername, setLinkedinUsername] = useState('')
+  const [savingLinkedin, setSavingLinkedin] = useState(false)
+
+  // Same paste-a-full-URL-or-just-type-a-username handling as the Settings
+  // field — the "linkedin.com/in/" prefix is fixed and never editable.
+  function handleLinkedinChange(raw: string) {
+    if (raw.includes('linkedin.com') || raw.includes('://')) {
+      setLinkedinUsername(extractLinkedinUsername(raw) ?? '')
+      return
+    }
+    setLinkedinUsername(raw.replace(/[^a-zA-Z0-9-]/g, ''))
+  }
+
+  // Best-effort, like the avatar-prompt dismissal — if this fails, the
+  // member can still set it later from Settings. Not worth blocking or
+  // erroring the photo flow over.
+  async function saveLinkedinIfNeeded() {
+    if (!offerLinkedin || !linkedinUsername.trim()) return
+    setSavingLinkedin(true)
+    try {
+      await fetch('/api/profile/linkedin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ linkedin_username: linkedinUsername }),
+      })
+    } catch (_) {
+      // best-effort, see above
+    }
+    setSavingLinkedin(false)
+  }
 
   const [imageSrc, setImageSrc] = useState<string | null>(null)
   const [crop, setCrop] = useState({ x: 0, y: 0 })
@@ -53,7 +90,10 @@ export default function PhotoUploadDialog({
       const blob = await getCroppedImageBlob(imageSrc, croppedAreaPixels)
       const formData = new FormData()
       formData.append('file', blob, 'avatar.jpg')
-      const res = await fetch('/api/profile/avatar', { method: 'POST', body: formData })
+      const [res] = await Promise.all([
+        fetch('/api/profile/avatar', { method: 'POST', body: formData }),
+        saveLinkedinIfNeeded(),
+      ])
       if (res.ok) {
         toast.success('Photo saved!')
         onOpenChange(false)
@@ -113,7 +153,7 @@ export default function PhotoUploadDialog({
               </div>
             </div>
           ) : (
-            <div className="space-y-2">
+            <div className="space-y-3">
               <input ref={fileRef} type="file" accept="image/*" onChange={handlePickFile} className="hidden" />
               {currentImageUrl && (
                 <button onClick={() => setImageSrc(currentImageUrl)}
@@ -121,10 +161,24 @@ export default function PhotoUploadDialog({
                   <Crop size={16} /> Recrop Current Photo
                 </button>
               )}
+              {offerLinkedin && (
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">LinkedIn (optional)</label>
+                  <div className="flex items-center border border-gray-300 rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-blue-500">
+                    <span className="pl-3 pr-1 py-2 text-sm text-gray-400 bg-gray-50 select-none whitespace-nowrap">linkedin.com/in/</span>
+                    <input value={linkedinUsername} onChange={e => handleLinkedinChange(e.target.value)}
+                      placeholder="janesmith"
+                      className="w-full min-w-0 px-1 py-2 text-sm focus:outline-none" />
+                  </div>
+                </div>
+              )}
               <div className="flex gap-2">
-                <Dialog.Close className="flex-1 text-sm font-semibold px-4 py-2 rounded-lg border border-gray-300 bg-white text-gray-700 hover:bg-gray-50">
+                <button
+                  onClick={async () => { await saveLinkedinIfNeeded(); onOpenChange(false) }}
+                  disabled={savingLinkedin}
+                  className="flex-1 text-sm font-semibold px-4 py-2 rounded-lg border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 disabled:opacity-50">
                   Skip for now
-                </Dialog.Close>
+                </button>
                 <button onClick={() => fileRef.current?.click()}
                   className="flex-1 flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-4 py-2 rounded-lg">
                   <Upload size={16} /> Choose Photo
