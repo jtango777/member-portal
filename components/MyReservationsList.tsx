@@ -97,7 +97,7 @@ export default function MyReservationsList({ upcoming, past, companyReservations
                 colorClass="text-gray-400 hover:bg-gray-100 hover:text-gray-600"
               />
             )}
-            {canCancelRow && <CancelButton reservationId={r.id} title={r.title} />}
+            {canCancelRow && <CancelButton reservationId={r.id} />}
             {tooSoon && (
               // Same tooltip styling as IconAction's (dark bg, white text)
               // instead of the native browser title tooltip, which looked

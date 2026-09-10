@@ -3,13 +3,13 @@
 import { useState, useEffect, useRef } from 'react'
 import { format, addDays, addMonths } from 'date-fns'
 import * as Dialog from '@radix-ui/react-dialog'
-import { X, Lock, Edit2, Check, AlertCircle, Repeat, Ban, Search } from 'lucide-react'
+import { X, Lock, Edit2, Check, AlertCircle, Repeat, Ban, Search, Trash2 } from 'lucide-react'
+import { IconAction } from '@/components/admin/AdminTable'
 import InlineDatePicker from './InlineDatePicker'
 import { Reservation, Room, Profile, Company } from '@/types'
 import { cn, buildTimeOptions, parseTimeValue, formatTime, toPacificDate } from '@/lib/utils'
 import { useAutoScrollIntoView } from '@/lib/useAutoScrollIntoView'
 import toast from 'react-hot-toast'
-import CancelReservationDialog from './CancelReservationDialog'
 
 const START_HOUR = 0
 const TIME_OPTIONS = buildTimeOptions()
@@ -215,7 +215,6 @@ export default function ReservationModal({
   })
   const [loading, setLoading]           = useState(false)
   const [deleting, setDeleting]         = useState(false)
-  const [confirmDelete, setConfirmDelete] = useState(false)
   const [deleteScope, setDeleteScope]   = useState<'this' | 'future' | null>(null)
   const [adminConflicts, setAdminConflicts]     = useState<ConflictItem[]>([])
   const [removingConflicts, setRemovingConflicts] = useState(false)
@@ -837,16 +836,17 @@ export default function ReservationModal({
                   )
                 )}
 
-                {/* Admin delete — regular reservation. A real confirm
-                    dialog, same as the Members admin table's Archive flow —
-                    every inline row-swap version of this kept reading as
-                    jumpy or out of place next to Edit/Close, so this drops
-                    the row entirely instead of chasing a smoother version
-                    of it. */}
+                {/* Admin delete — regular reservation. Same IconAction
+                    trashcan as My Reservations' Cancel — cancels
+                    immediately on click, no confirm step. */}
                 {isAdmin && mode === 'view' && !editing && !reservation?.is_admin_block && (
-                  <button onClick={() => setConfirmDelete(true)} className="text-sm text-red-500 hover:text-red-700">
-                    Delete
-                  </button>
+                  <IconAction
+                    icon={Trash2}
+                    label="Delete reservation"
+                    onClick={() => handleDelete('this')}
+                    disabled={deleting}
+                    colorClass="text-gray-400 hover:bg-red-50 hover:text-red-600"
+                  />
                 )}
 
                 {/* Within 12h policy — can't self-cancel this close to the
@@ -865,20 +865,18 @@ export default function ReservationModal({
                   </div>
                 )}
 
-                {/* Regular user cancel — same confirm dialog as admin
-                    Delete above. */}
+                {/* Regular user cancel — literally the same IconAction
+                    trashcan as My Reservations' Cancel button. */}
                 {canCancel && !editing && (
-                  <button onClick={() => setConfirmDelete(true)} className="text-sm text-red-500 hover:text-red-700">
-                    Cancel
-                  </button>
+                  <IconAction
+                    icon={Trash2}
+                    label="Cancel reservation"
+                    onClick={() => handleDelete('this')}
+                    disabled={deleting}
+                    colorClass="text-gray-400 hover:bg-red-50 hover:text-red-600"
+                  />
                 )}
               </div>
-
-              <CancelReservationDialog
-                reservation={confirmDelete && reservation ? { id: reservation.id, title: reservation.title } : null}
-                onOpenChange={setConfirmDelete}
-                onSuccess={() => onClose(true)}
-              />
 
               <div className="flex items-center gap-2 ml-auto">
                 {mode === 'view' && !editing ? (
