@@ -10,6 +10,9 @@ type Announcement = { id: string; message: string }
 type Props = {
   avatarUrl: string | null
   avatarPromptDismissed: boolean
+  // True only on the very first dashboard visit after signup (profile.welcomed
+  // is still false — /dashboard flips it on that same visit).
+  isFirstSignIn: boolean
   announcement: Announcement | null
 }
 
@@ -18,12 +21,14 @@ type Props = {
 // prompt waits until it's been dismissed, rather than both popping up at
 // once (which used to overlap and partially cover each other).
 //
-// Shows for everyone who hasn't dismissed it, whether or not they already
-// have a photo — someone with a photo we pre-linked for them (from the
-// directory import) never went through this flow themselves, so it used
-// to skip them entirely and they'd never get a chance to confirm/recrop
-// that photo or add LinkedIn. Caught 2026-09-10.
-export default function OnboardingOverlays({ avatarUrl, avatarPromptDismissed, announcement }: Props) {
+// Gated on first sign-in, not on "has no photo yet". The old !hasAvatar
+// gate skipped anyone whose photo we pre-linked from the directory import,
+// so they never got to confirm it or add LinkedIn. Dropping that gate
+// entirely swung too far the other way — every existing member with a
+// photo (who'd never seen this, so never dismissed it) suddenly got the
+// prompt on their next login. profile.welcomed is the signal that's
+// actually about "is this the initial signup". Caught 2026-09-10.
+export default function OnboardingOverlays({ avatarUrl, avatarPromptDismissed, isFirstSignIn, announcement }: Props) {
   const router = useRouter()
   const [announcementShowing, setAnnouncementShowing] = useState(!!announcement)
   // Dismissed permanently in the DB (persists across logins/devices), but
@@ -31,7 +36,7 @@ export default function OnboardingOverlays({ avatarUrl, avatarPromptDismissed, a
   // waiting on the save + a full page refresh.
   const [dismissed, setDismissed] = useState(avatarPromptDismissed)
 
-  const showAvatarPrompt = !dismissed && !announcementShowing
+  const showAvatarPrompt = isFirstSignIn && !dismissed && !announcementShowing
 
   async function dismissAvatarPrompt() {
     setDismissed(true)

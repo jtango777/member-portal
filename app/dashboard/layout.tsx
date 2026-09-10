@@ -49,6 +49,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
       <Nav profile={profile as Profile} />
       <OnboardingOverlays
         avatarUrl={(profile as Profile).avatar_url}
+        isFirstSignIn={!(profile as Profile).welcomed}
         avatarPromptDismissed={(profile as Profile).avatar_prompt_dismissed}
         announcement={shouldShowAnnouncement && latestAnnouncement ? latestAnnouncement : null}
       />
