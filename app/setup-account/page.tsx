@@ -7,6 +7,7 @@ import PasswordInput from '@/components/PasswordInput'
 import Recaptcha, { RecaptchaHandle } from '@/components/Recaptcha'
 import { createClient } from '@/lib/supabase/client'
 import { getSeatingOptions } from '@/lib/seating'
+import { passwordError, PASSWORD_REQUIREMENTS_TEXT } from '@/lib/password'
 
 type Location = { id: string; name: string }
 
@@ -70,7 +71,8 @@ function SetupForm() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (password !== password2) { toast.error('Passwords do not match'); return }
-    if (password.length < 8)    { toast.error('Password must be at least 8 characters'); return }
+    const pwErr = passwordError(password)
+    if (pwErr) { toast.error(pwErr); return }
     if (!locationId)             { toast.error('Please select a default location'); return }
     if (!seating)                { toast.error('Please select where you sit'); return }
     if (!recaptchaToken)         { toast.error('Please complete the "I\'m not a robot" check'); return }
@@ -141,6 +143,7 @@ function SetupForm() {
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
           <PasswordInput value={password} onChange={setPassword} required autoComplete="new-password" placeholder="At least 8 characters" />
+          <p className="text-xs text-gray-400 mt-1">{PASSWORD_REQUIREMENTS_TEXT}</p>
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Confirm Password</label>

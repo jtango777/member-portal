@@ -1,5 +1,6 @@
 import { createAdminClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
+import { passwordError } from '@/lib/password'
 
 export async function POST(request: Request) {
   const admin = createAdminClient()
@@ -14,8 +15,9 @@ export async function POST(request: Request) {
   if (!name || !email || !password || !companyName) {
     return NextResponse.json({ error: 'Missing fields' }, { status: 400 })
   }
-  if (password.length < 8) {
-    return NextResponse.json({ error: 'Password must be at least 8 characters' }, { status: 400 })
+  const pwErr = passwordError(password)
+  if (pwErr) {
+    return NextResponse.json({ error: pwErr }, { status: 400 })
   }
 
   // Create company

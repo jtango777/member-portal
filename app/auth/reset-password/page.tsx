@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Eye, EyeOff } from 'lucide-react'
 import toast from 'react-hot-toast'
+import { passwordError, PASSWORD_REQUIREMENTS_TEXT } from '@/lib/password'
 
 // `context=day-pass` is threaded through from /forgot-password's
 // redirectTo — see that file for why. Determines where "Update Password"
@@ -61,7 +62,8 @@ function ResetPasswordForm() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (password !== confirm) { toast.error('Passwords do not match'); return }
-    if (password.length < 8)  { toast.error('Password must be at least 8 characters'); return }
+    const pwErr = passwordError(password)
+    if (pwErr) { toast.error(pwErr); return }
     setLoading(true)
     const supabase = createClient()
     const { error } = await supabase.auth.updateUser({ password })
@@ -105,6 +107,7 @@ function ResetPasswordForm() {
                   {showPass ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
               </div>
+              <p className="text-xs text-gray-400 mt-1">{PASSWORD_REQUIREMENTS_TEXT}</p>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Confirm Password</label>

@@ -8,6 +8,7 @@ import PasswordInput from '@/components/PasswordInput'
 import { ArrowLeft } from 'lucide-react'
 import { getSeatingOptions } from '@/lib/seating'
 import { createClient } from '@/lib/supabase/client'
+import { passwordError, PASSWORD_REQUIREMENTS_TEXT } from '@/lib/password'
 
 type Location = { id: string; name: string }
 
@@ -137,7 +138,8 @@ function DetailsStep({ email, defaultLocationId, defaultFirstName, defaultLastNa
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (password !== password2) { toast.error('Passwords do not match'); return }
-    if (password.length < 8)    { toast.error('Password must be at least 8 characters'); return }
+    const pwErr = passwordError(password)
+    if (pwErr) { toast.error(pwErr); return }
     if (!locationId)             { toast.error('Please select a default location'); return }
     if (!seating)                { toast.error('Please select where you sit'); return }
     setLoading(true)
@@ -193,6 +195,7 @@ function DetailsStep({ email, defaultLocationId, defaultFirstName, defaultLastNa
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
           <PasswordInput value={password} onChange={setPassword} required autoComplete="new-password" placeholder="At least 8 characters" />
+          <p className="text-xs text-gray-400 mt-1">{PASSWORD_REQUIREMENTS_TEXT}</p>
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Confirm Password</label>
