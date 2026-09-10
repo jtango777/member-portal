@@ -2,7 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getAuthedProfile } from '@/lib/supabase/session'
 import { redirect, notFound } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Linkedin } from 'lucide-react'
+import { ArrowLeft } from 'lucide-react'
 import HausSmilesMemberActions from '@/components/HausSmilesMemberActions'
 import { linkedinUrl } from '@/lib/linkedin'
 
@@ -74,9 +74,13 @@ export default async function HausSmilesMemberPage({ params, searchParams }: {
               target="_blank"
               rel="noopener noreferrer"
               title="LinkedIn"
-              className="absolute bottom-2 right-2 flex items-center justify-center w-7 h-7 rounded-full bg-white border border-gray-200 shadow-sm text-[#0A66C2] hover:scale-110 transition-transform"
+              className="absolute bottom-2 right-2 flex items-center justify-center w-7 h-7 rounded-[6px] bg-[#0A66C2] shadow-sm hover:scale-110 transition-transform"
             >
-              <Linkedin size={15} strokeWidth={2.5} />
+              {/* Same real "in" mark as the Faces grid badge — this page had
+                  been left on the old outline-icon version. */}
+              <svg viewBox="0 0 24 24" width={19} height={19} fill="white">
+                <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 1 1 0-4.124 2.062 2.062 0 0 1 0 4.124zM7.114 20.452H3.558V9h3.556v11.452z" />
+              </svg>
             </a>
           )}
         </div>

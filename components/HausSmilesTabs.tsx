@@ -125,15 +125,38 @@ export default function HausSmilesTabs({ groups, defaultLocationId, isAdmin }: P
                 <div className={`absolute inset-0 z-10 bg-white/95 rounded-lg border border-red-200 flex flex-col items-center justify-center gap-1.5 p-2 text-center transition-all duration-150 ${
                   confirmRemove === member.id ? 'opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none'
                 }`}>
-                  <p className="text-xs text-red-700 font-medium">Archive photo only?</p>
-                  <div className="flex items-center gap-2">
-                    <button onClick={() => handleRemove(member)} disabled={removing === member.id}
-                      className="text-xs bg-red-600 text-white px-2 py-1 rounded font-medium">
-                      {removing === member.id ? '…' : 'Yes'}
-                    </button>
-                    <button onClick={() => setConfirmRemove(null)} className="text-xs text-gray-500">No</button>
-                  </div>
-                  <p className="text-[10px] leading-tight text-gray-400">Does not archive the user</p>
+                  {/* Wording depends on source — for a real member account
+                      this genuinely archives them (is_active: false, same
+                      as removing them from Members), not just the photo.
+                      The old copy claimed "photo only" unconditionally,
+                      which was flat-out wrong for real members — caught
+                      2026-09-10 right before the mass invite made that the
+                      common case instead of the rare one. */}
+                  {member.source === 'profile' ? (
+                    <>
+                      <p className="text-xs text-red-700 font-medium">Archive {member.full_name.split(' ')[0]}&apos;s account?</p>
+                      <div className="flex items-center gap-2">
+                        <button onClick={() => handleRemove(member)} disabled={removing === member.id}
+                          className="text-xs bg-red-600 text-white px-2 py-1 rounded font-medium">
+                          {removing === member.id ? '…' : 'Yes'}
+                        </button>
+                        <button onClick={() => setConfirmRemove(null)} className="text-xs text-gray-500">No</button>
+                      </div>
+                      <p className="text-[10px] leading-tight text-gray-400">Removes them from all active member lists</p>
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-xs text-red-700 font-medium">Archive photo only?</p>
+                      <div className="flex items-center gap-2">
+                        <button onClick={() => handleRemove(member)} disabled={removing === member.id}
+                          className="text-xs bg-red-600 text-white px-2 py-1 rounded font-medium">
+                          {removing === member.id ? '…' : 'Yes'}
+                        </button>
+                        <button onClick={() => setConfirmRemove(null)} className="text-xs text-gray-500">No</button>
+                      </div>
+                      <p className="text-[10px] leading-tight text-gray-400">Does not archive the user</p>
+                    </>
+                  )}
                 </div>
                 <div className={`absolute top-1.5 right-1.5 z-10 flex gap-1 transition-opacity sm:opacity-0 sm:group-hover:opacity-100 ${
                   confirmRemove === member.id ? 'opacity-0 pointer-events-none' : 'opacity-100'
@@ -173,7 +196,9 @@ export default function HausSmilesTabs({ groups, defaultLocationId, isAdmin }: P
                   rel="noopener noreferrer"
                   title="LinkedIn"
                   onClick={e => e.stopPropagation()}
-                  className="absolute bottom-1 right-1 z-20 flex items-center justify-center w-5 h-5 rounded-[5px] bg-[#0A66C2] shadow-sm hover:scale-110 transition-transform"
+                  className={`absolute bottom-1 right-1 z-20 flex items-center justify-center w-5 h-5 rounded-[5px] bg-[#0A66C2] shadow-sm hover:scale-110 transition-all ${
+                    confirmRemove === member.id ? 'opacity-0 pointer-events-none' : 'opacity-100'
+                  }`}
                 >
                   {/* LinkedIn's real "in" app icon: solid blue rounded
                       square, white glyph directly on it — no inner circle.
