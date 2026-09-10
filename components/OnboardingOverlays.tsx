@@ -8,7 +8,7 @@ import AnnouncementPopup from '@/components/AnnouncementPopup'
 type Announcement = { id: string; message: string }
 
 type Props = {
-  hasAvatar: boolean
+  avatarUrl: string | null
   avatarPromptDismissed: boolean
   announcement: Announcement | null
 }
@@ -17,7 +17,13 @@ type Props = {
 // on top of each other. An announcement (if any) shows first; the avatar
 // prompt waits until it's been dismissed, rather than both popping up at
 // once (which used to overlap and partially cover each other).
-export default function OnboardingOverlays({ hasAvatar, avatarPromptDismissed, announcement }: Props) {
+//
+// Shows for everyone who hasn't dismissed it, whether or not they already
+// have a photo — someone with a photo we pre-linked for them (from the
+// directory import) never went through this flow themselves, so it used
+// to skip them entirely and they'd never get a chance to confirm/recrop
+// that photo or add LinkedIn. Caught 2026-09-10.
+export default function OnboardingOverlays({ avatarUrl, avatarPromptDismissed, announcement }: Props) {
   const router = useRouter()
   const [announcementShowing, setAnnouncementShowing] = useState(!!announcement)
   // Dismissed permanently in the DB (persists across logins/devices), but
@@ -25,7 +31,7 @@ export default function OnboardingOverlays({ hasAvatar, avatarPromptDismissed, a
   // waiting on the save + a full page refresh.
   const [dismissed, setDismissed] = useState(avatarPromptDismissed)
 
-  const showAvatarPrompt = !hasAvatar && !dismissed && !announcementShowing
+  const showAvatarPrompt = !dismissed && !announcementShowing
 
   async function dismissAvatarPrompt() {
     setDismissed(true)
@@ -50,6 +56,11 @@ export default function OnboardingOverlays({ hasAvatar, avatarPromptDismissed, a
         onOpenChange={open => { if (!open) dismissAvatarPrompt() }}
         onSuccess={() => router.refresh()}
         offerLinkedin
+        currentImageUrl={avatarUrl}
+        title={avatarUrl ? 'Change or recrop your photo' : undefined}
+        description={avatarUrl
+          ? 'This is the photo already on file for you — recrop it, swap it, or leave it as-is.'
+          : undefined}
       />
     </>
   )

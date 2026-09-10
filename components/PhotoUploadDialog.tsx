@@ -108,14 +108,18 @@ export default function PhotoUploadDialog({
         toast.success('Photo saved!')
         reset()
         // Onboarding: stay open so they can still add LinkedIn and hit
-        // Submit. Calling onSuccess() here was the actual bug — it's
-        // router.refresh() one level up (OnboardingOverlays), which
-        // re-fetches the server-rendered hasAvatar prop; once that flips
-        // true, the PARENT sets this dialog's open prop to false itself,
-        // closing it from the outside no matter what local state says.
-        // Deferred to Submit/Skip below instead, once this step is truly
-        // done. Everywhere else this dialog is used, saving the photo is
-        // the whole point of opening it, so call it immediately like before.
+        // Submit. Calling onSuccess() here used to be the bug — it's
+        // router.refresh() one level up (OnboardingOverlays), which used
+        // to re-fetch a server-rendered "has a photo" prop that controlled
+        // whether this dialog was even open; once that flipped true, the
+        // PARENT would set this dialog's open prop to false itself,
+        // closing it from the outside no matter what local state said.
+        // That prop is gone now (this prompt shows regardless of whether
+        // someone already has a photo), but still deferring onSuccess() to
+        // Submit/Skip below — the "done" signal should mean the LinkedIn
+        // step is actually finished, not just that a photo exists.
+        // Everywhere else this dialog is used, saving the photo is the
+        // whole point of opening it, so call it immediately like before.
         if (offerLinkedin) setPhotoJustSaved(true)
         else { onSuccess(); onOpenChange(false) }
       } else {

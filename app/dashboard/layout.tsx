@@ -48,7 +48,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
     <div className="flex flex-col h-dvh overflow-hidden">
       <Nav profile={profile as Profile} />
       <OnboardingOverlays
-        hasAvatar={!!(profile as Profile).avatar_url}
+        avatarUrl={(profile as Profile).avatar_url}
         avatarPromptDismissed={(profile as Profile).avatar_prompt_dismissed}
         announcement={shouldShowAnnouncement && latestAnnouncement ? latestAnnouncement : null}
       />
