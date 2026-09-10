@@ -4,11 +4,12 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { format, startOfMonth, subDays } from 'date-fns'
 import Link from 'next/link'
-import { CalendarDays, ChevronRight, Pencil } from 'lucide-react'
+import { CalendarDays, ChevronRight, Edit2 } from 'lucide-react'
 import { cn, toPacificDate } from '@/lib/utils'
 import { Reservation, Room, Profile, Company } from '@/types'
 import ReservationModal from '@/components/ReservationModal'
 import CancelButton from '@/components/CancelButton'
+import { IconAction } from '@/components/admin/AdminTable'
 
 type Props = {
   upcoming: Reservation[]
@@ -89,13 +90,12 @@ export default function MyReservationsList({ upcoming, past, companyReservations
         <td className="px-4 py-3 text-right">
           <div className="flex items-center justify-end gap-3">
             {canEdit && (
-              <button
+              <IconAction
+                icon={Edit2}
+                label="Edit reservation"
                 onClick={() => setEditing(r)}
-                title="Edit reservation"
-                className="text-blue-600 hover:text-blue-800 p-1 rounded hover:bg-blue-50"
-              >
-                <Pencil size={14} />
-              </button>
+                colorClass="text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+              />
             )}
             {canCancelRow && <CancelButton reservationId={r.id} />}
             {tooSoon && (

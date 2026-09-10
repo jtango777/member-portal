@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import toast from 'react-hot-toast'
 import { Trash2 } from 'lucide-react'
+import { IconAction } from '@/components/admin/AdminTable'
 
 export default function CancelButton({ reservationId }: { reservationId: string }) {
   const router = useRouter()
@@ -24,10 +25,9 @@ export default function CancelButton({ reservationId }: { reservationId: string 
     }
   }
 
-  // Trashcan icon, matching the pencil edit icon next to it — instant
-  // swap to a small text confirm, no width animation (tried an animated
-  // accordion here twice and it kept coming out jumpy no matter how it
-  // was tuned, so this drops the animation entirely).
+  // Same IconAction the admin tables use (grey by default, colorClass
+  // supplies the hover color) so this matches the pencil next to it —
+  // instant swap to a small text confirm, no width animation.
   if (confirming) {
     return (
       <div className="flex items-center gap-2 justify-end">
@@ -44,9 +44,11 @@ export default function CancelButton({ reservationId }: { reservationId: string 
   }
 
   return (
-    <button onClick={() => setConfirming(true)} title="Cancel reservation"
-      className="text-red-500 hover:text-red-700 p-1 rounded hover:bg-red-50">
-      <Trash2 size={14} />
-    </button>
+    <IconAction
+      icon={Trash2}
+      label="Cancel reservation"
+      onClick={() => setConfirming(true)}
+      colorClass="text-gray-400 hover:bg-red-50 hover:text-red-600"
+    />
   )
 }
