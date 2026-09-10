@@ -895,25 +895,42 @@ export default function ReservationModal({
                     clear action below) — this banner is the only cancel
                     affordance shown. */}
                 {withinCancelPolicy && !editing && (
-                  cancellationRequested ? (
-                    <div className="flex items-start gap-2 bg-green-50 border border-green-200 rounded-lg px-3 py-2 text-xs text-green-700">
-                      <Check size={13} className="flex-shrink-0 mt-0.5" />
-                      Cancellation request sent — our team will take care of it.
-                    </div>
-                  ) : (
-                    <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 text-xs text-amber-700">
-                      <AlertCircle size={13} className="flex-shrink-0 mt-0.5" />
-                      <div>
-                        {hoursUntilStart > 0
-                          ? 'This reservation starts within 12 hours, so it needs BizHaus team approval to cancel.'
-                          : 'This reservation has already started, so it needs BizHaus team approval to cancel.'}{' '}
-                        <button onClick={handleRequestCancellation} disabled={requestingCancellation}
-                          className="font-semibold underline hover:no-underline disabled:opacity-50">
-                          {requestingCancellation ? 'Sending…' : 'Request cancellation'}
-                        </button>
+                  <div className="space-y-2 w-full">
+                    {/* A disabled button in the same spot the normal Cancel
+                        button would be, instead of just prose — someone
+                        scanning for "how do I cancel this" sees a Cancel
+                        control right where they'd expect one, greyed out
+                        with a tooltip on why, rather than nothing there at
+                        all and an explanation buried in a banner below. */}
+                    <button
+                      disabled
+                      title={hoursUntilStart > 0
+                        ? `This reservation starts within ${Math.ceil(hoursUntilStart)} hour${Math.ceil(hoursUntilStart) === 1 ? '' : 's'} — too close to cancel yourself.`
+                        : "This reservation has already started — too late to cancel yourself."}
+                      className="text-sm text-amber-600 font-medium cursor-not-allowed opacity-70"
+                    >
+                      Cancel reservation
+                    </button>
+                    {cancellationRequested ? (
+                      <div className="flex items-start gap-2 bg-green-50 border border-green-200 rounded-lg px-3 py-2 text-xs text-green-700">
+                        <Check size={13} className="flex-shrink-0 mt-0.5" />
+                        Cancellation request sent — our team will take care of it.
                       </div>
-                    </div>
-                  )
+                    ) : (
+                      <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 text-xs text-amber-700">
+                        <AlertCircle size={13} className="flex-shrink-0 mt-0.5" />
+                        <div>
+                          {hoursUntilStart > 0
+                            ? 'This reservation starts within 12 hours, so it needs BizHaus team approval to cancel.'
+                            : 'This reservation has already started, so it needs BizHaus team approval to cancel.'}{' '}
+                          <button onClick={handleRequestCancellation} disabled={requestingCancellation}
+                            className="font-semibold underline hover:no-underline disabled:opacity-50">
+                            {requestingCancellation ? 'Sending…' : 'Request cancellation'}
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 )}
 
                 {/* Regular user cancel */}
