@@ -34,6 +34,16 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   const shouldShowAnnouncement = !!latestAnnouncement && latestAnnouncement.id !== (profile as Profile).dismissed_announcement_id
 
+  // Same check as the Rooms page's own "not set up for room access yet"
+  // gate — used here to hide the My Reservations nav link for someone in
+  // that state. Caught 2026-09-10: a member with no company and no
+  // individual hours allotment could still see and open My Reservations
+  // from the sidebar, even though Rooms itself shows them a "request
+  // access" page instead of the calendar.
+  const hasRoomAccess = (profile as Profile).is_admin
+    || !!(profile as Profile).company_id
+    || !!(profile as Profile).individual_hours_allotment
+
   return (
     <div className="flex flex-col h-dvh overflow-hidden">
       <Nav profile={profile as Profile} />
@@ -43,12 +53,12 @@ export default async function DashboardLayout({ children }: { children: React.Re
         announcement={shouldShowAnnouncement && latestAnnouncement ? latestAnnouncement : null}
       />
       <div className="flex flex-1 overflow-hidden">
-        <Sidebar isAdmin={(profile as Profile).is_admin} />
+        <Sidebar isAdmin={(profile as Profile).is_admin} hasRoomAccess={hasRoomAccess} />
         <main className="flex-1 overflow-hidden" data-dashboard-main>
           {children}
         </main>
       </div>
-      <MobileTabBar isAdmin={(profile as Profile).is_admin} />
+      <MobileTabBar isAdmin={(profile as Profile).is_admin} hasRoomAccess={hasRoomAccess} />
     </div>
   )
 }

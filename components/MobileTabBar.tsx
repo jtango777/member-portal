@@ -16,10 +16,15 @@ const tabs = [
   { href: '/dashboard/my-reservations', label: 'Bookings', icon: CalendarClock },
 ]
 
-export default function MobileTabBar({ isAdmin }: { isAdmin: boolean }) {
+export default function MobileTabBar({ isAdmin, hasRoomAccess }: { isAdmin: boolean; hasRoomAccess: boolean }) {
   const pathname = usePathname()
   const router = useRouter()
   const [moreOpen, setMoreOpen] = useState(false)
+
+  // Same as the desktop Sidebar — Bookings is meaningless without room
+  // access, but Rooms stays since it shows a "request access" page instead
+  // of the calendar in that case.
+  const visibleTabs = hasRoomAccess ? tabs : tabs.filter(t => t.href !== '/dashboard/my-reservations')
 
   async function signOut() {
     const supabase = createClient()
@@ -28,7 +33,7 @@ export default function MobileTabBar({ isAdmin }: { isAdmin: boolean }) {
     router.refresh()
   }
 
-  const moreActive = moreOpen || (!tabs.some(t => t.href === pathname) && pathname !== '/dashboard')
+  const moreActive = moreOpen || (!visibleTabs.some(t => t.href === pathname) && pathname !== '/dashboard')
 
   return (
     <>
@@ -81,7 +86,7 @@ export default function MobileTabBar({ isAdmin }: { isAdmin: boolean }) {
       )}
 
       <div className="sm:hidden flex-shrink-0 bg-white border-t border-gray-200 flex items-stretch pb-[env(safe-area-inset-bottom)]">
-        {tabs.map(({ href, label, icon: Icon }) => {
+        {visibleTabs.map(({ href, label, icon: Icon }) => {
           const active = pathname === href
           return (
             <Link key={href} href={href}

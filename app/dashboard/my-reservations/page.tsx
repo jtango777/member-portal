@@ -27,6 +27,14 @@ export default async function MyReservationsPage() {
 
   if (!profileData) redirect('/login')
 
+  // Same gate as the Rooms page's own "not set up for room access yet"
+  // check — the sidebar/tab bar already hide this link in that case, but
+  // someone could still hit the URL directly (an old bookmark, a shared
+  // link), so redirect them to the same "request access" screen instead
+  // of showing an empty reservations page.
+  const noRoomAccess = !profileData.is_admin && !profileData.company_id && !profileData.individual_hours_allotment
+  if (noRoomAccess) redirect('/dashboard/rooms')
+
   // Admin client for the historical-email lookup specifically — RLS on
   // permitted_emails can silently starve this under a regular member's
   // session.

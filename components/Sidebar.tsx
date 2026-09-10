@@ -10,7 +10,7 @@ import FeedbackForm from './FeedbackForm'
 
 const STORAGE_KEY = 'sidebar-collapsed'
 
-export default function Sidebar({ isAdmin }: { isAdmin: boolean }) {
+export default function Sidebar({ isAdmin, hasRoomAccess }: { isAdmin: boolean; hasRoomAccess: boolean }) {
   const pathname = usePathname()
   const [collapsed, setCollapsed] = useState(false)
   const [mounted, setMounted] = useState(false)
@@ -54,7 +54,12 @@ export default function Sidebar({ isAdmin }: { isAdmin: boolean }) {
       mounted ? (collapsed ? 'w-16' : 'w-52') : 'w-52'
     )}>
       <div className="flex-1 flex flex-col gap-1 p-3 overflow-y-auto">
-        {(isAdmin ? adminNavItems : memberNavItems).map(item => <NavLink key={item.href} {...item} />)}
+        {(isAdmin ? adminNavItems : memberNavItems)
+          // My Reservations is meaningless without room access — Rooms
+          // itself stays visible either way since it shows a "request
+          // access" page instead of the calendar in that case.
+          .filter(item => hasRoomAccess || item.href !== '/dashboard/my-reservations')
+          .map(item => <NavLink key={item.href} {...item} />)}
         {isAdmin && (
           <>
             <div className="h-px bg-gray-200 mt-2 mx-1" />

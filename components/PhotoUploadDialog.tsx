@@ -2,7 +2,7 @@
 
 import { useRef, useState } from 'react'
 import * as Dialog from '@radix-ui/react-dialog'
-import { X, Upload, Crop } from 'lucide-react'
+import { X, Upload, Crop, Check } from 'lucide-react'
 import toast from 'react-hot-toast'
 import Cropper, { Area } from 'react-easy-crop'
 import { getCroppedImageBlob } from '@/lib/cropImage'
@@ -63,6 +63,11 @@ export default function PhotoUploadDialog({
     setSavingLinkedin(false)
   }
 
+  // Onboarding only: once the photo is saved, stay open on the LinkedIn
+  // step instead of closing — closing right after the photo save used to
+  // skip LinkedIn entirely for anyone who hadn't filled it in yet before
+  // clicking Choose Photo.
+  const [photoJustSaved, setPhotoJustSaved] = useState(false)
   const [imageSrc, setImageSrc] = useState<string | null>(null)
   const [crop, setCrop] = useState({ x: 0, y: 0 })
   const [zoom, setZoom] = useState(1)
@@ -83,6 +88,11 @@ export default function PhotoUploadDialog({
     setZoom(1)
   }
 
+  function resetAll() {
+    reset()
+    setPhotoJustSaved(false)
+  }
+
   async function handleConfirm() {
     if (!imageSrc || !croppedAreaPixels) return
     setUploading(true)
@@ -96,9 +106,14 @@ export default function PhotoUploadDialog({
       ])
       if (res.ok) {
         toast.success('Photo saved!')
-        onOpenChange(false)
         reset()
         onSuccess()
+        // Onboarding: stay open so they can still add LinkedIn and hit
+        // Submit — closing here used to cut that step off entirely.
+        // Everywhere else this dialog is used, saving the photo is the
+        // whole point of opening it, so close like before.
+        if (offerLinkedin) setPhotoJustSaved(true)
+        else onOpenChange(false)
       } else {
         const d = await res.json()
         toast.error(d.error ?? 'Upload failed')
@@ -110,7 +125,7 @@ export default function PhotoUploadDialog({
   }
 
   return (
-    <Dialog.Root open={open} onOpenChange={v => { onOpenChange(v); if (!v) reset() }}>
+    <Dialog.Root open={open} onOpenChange={v => { onOpenChange(v); if (!v) resetAll() }}>
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-x-0 bottom-0 bg-black/40 z-40 transition-opacity duration-200 data-[state=open]:opacity-100 data-[state=closed]:opacity-0" style={{ top: navBottom }} />
         <div className="fixed inset-x-0 bottom-0 z-50 flex items-center justify-center pointer-events-none p-4" style={{ top: navBottom }}>
@@ -154,11 +169,12 @@ export default function PhotoUploadDialog({
             </div>
           ) : offerLinkedin ? (
             // Onboarding layout: Choose Photo stands on its own up top —
-            // it's the primary path (pick a photo, crop, save — LinkedIn
-            // tags along with it via handleConfirm). The bottom row is for
-            // someone who's done here without picking a photo: Submit
-            // saves whatever they typed (LinkedIn) and closes; Skip closes
-            // without saving anything.
+            // saving it used to close the whole dialog immediately,
+            // skipping LinkedIn for anyone who hadn't filled it in yet.
+            // Now it just flips this to a green confirmation and stays
+            // open on the LinkedIn step. The bottom row is for someone
+            // who's done here: Submit saves whatever they typed (LinkedIn)
+            // and closes; Skip closes without saving anything more.
             <div className="space-y-3">
               <input ref={fileRef} type="file" accept="image/*" onChange={handlePickFile} className="hidden" />
               {currentImageUrl && (
@@ -167,9 +183,16 @@ export default function PhotoUploadDialog({
                   <Crop size={16} /> Recrop Current Photo
                 </button>
               )}
+              {photoJustSaved && (
+                <div className="flex items-center gap-2 bg-green-50 border border-green-200 text-green-700 text-sm font-medium px-3 py-2 rounded-lg">
+                  <Check size={16} /> Photo saved!
+                </div>
+              )}
               <button onClick={() => fileRef.current?.click()}
-                className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-4 py-2 rounded-lg">
-                <Upload size={16} /> Choose Photo
+                className={photoJustSaved
+                  ? 'w-full flex items-center justify-center gap-2 border border-gray-300 text-gray-700 hover:bg-gray-50 text-sm font-semibold px-4 py-2 rounded-lg'
+                  : 'w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-4 py-2 rounded-lg'}>
+                <Upload size={16} /> {photoJustSaved ? 'Choose a Different Photo' : 'Choose Photo'}
               </button>
               <div>
                 <label className="block text-xs font-medium text-gray-700 mb-1">LinkedIn</label>
