@@ -195,7 +195,7 @@ export default function PhotoUploadDialog({
                 <Upload size={16} /> {photoJustSaved ? 'Choose a Different Photo' : 'Choose Photo'}
               </button>
               <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">LinkedIn</label>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Add LinkedIn info (optional)</label>
                 <div className="flex items-center border border-gray-300 rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-blue-500">
                   <span className="pl-3 pr-1 py-2 text-sm text-gray-400 bg-gray-50 select-none whitespace-nowrap">linkedin.com/in/</span>
                   <input value={linkedinUsername} onChange={e => handleLinkedinChange(e.target.value)}
