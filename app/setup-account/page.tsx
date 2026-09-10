@@ -27,6 +27,12 @@ function SetupForm() {
   const [email, setEmail]         = useState('')
   const [invitedLocationId, setInvitedLocationId] = useState<string | null>(null)
   const [seating, setSeating] = useState('')
+  // Whatever seating an admin already set on the invite (e.g. "Office -
+  // Main Building") — prefilled below once we have it, same idea as the
+  // name and location. `seatingTouched` stops that prefill from stomping
+  // on a choice the member has already made themselves.
+  const [defaultSeating, setDefaultSeating] = useState<string | null>(null)
+  const [seatingTouched, setSeatingTouched] = useState(false)
   const [recaptchaToken, setRecaptchaToken] = useState<string | null>(null)
   const recaptchaRef = useRef<RecaptchaHandle>(null)
 
@@ -44,6 +50,7 @@ function SetupForm() {
           // "Jane"/"Smith" placeholders when we already know who they are.
           if (data.first_name) setFirstName(data.first_name)
           if (data.last_name) setLastName(data.last_name)
+          if (data.seating) setDefaultSeating(data.seating)
         } else setTokenValid(false)
       })
       .catch(() => setTokenValid(false))
@@ -68,10 +75,25 @@ function SetupForm() {
   // Seating options depend on the selected location — keep a valid default
   // selected (instead of a blank "Prefer not to say") whenever the location
   // changes, so the field is never accidentally empty once required.
+  // Prefers whatever the admin already put on file (defaultSeating), as
+  // long as it's valid for the current location; only falls back to the
+  // first option once the member has actually chosen something themselves.
+  // Waiting on locations to load first matters here specifically — computing
+  // options against an empty list would only ever resolve to ['Virtual'],
+  // and since that's also valid for every real location, that premature
+  // pick would satisfy the "already valid, keep it" check below forever and
+  // silently block the admin's preset from ever applying (caught
+  // 2026-09-10: an invite with seating already set to "Office - Main
+  // Building" still landed on Virtual on the signup form).
   useEffect(() => {
+    if (locations.length === 0) return
     const opts = getSeatingOptions(locations.find(l => l.id === locationId)?.name)
-    setSeating(prev => opts.includes(prev) ? prev : (opts[0] ?? ''))
-  }, [locationId, locations])
+    setSeating(prev => {
+      if (opts.includes(prev)) return prev
+      if (!seatingTouched && defaultSeating && opts.includes(defaultSeating)) return defaultSeating
+      return opts[0] ?? ''
+    })
+  }, [locationId, locations, seatingTouched, defaultSeating])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -160,19 +182,37 @@ function SetupForm() {
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Default Location</label>
             <p className="text-xs text-gray-400 mb-1.5">This will be your default location in Rooms.</p>
-            <select required value={locationId} onChange={e => setLocationId(e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-              {locations.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
-            </select>
+            {/* Disabled with a placeholder while locations are still
+                loading — rendering the real select against an empty
+                locations list briefly showed "Loading..." as if it were the
+                real, selected value, so an admin's preset never appeared to
+                actually take even though it would correct itself a split
+                second later. */}
+            {locations.length === 0 ? (
+              <select disabled className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-400 bg-gray-50">
+                <option>Loading…</option>
+              </select>
+            ) : (
+              <select required value={locationId} onChange={e => setLocationId(e.target.value)}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                {locations.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
+              </select>
+            )}
           </div>
           {locationId && (
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Where do you sit?</label>
               <p className="text-xs text-gray-400 mb-1.5">Shown below your name on Faces.</p>
-              <select required value={seating} onChange={e => setSeating(e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-                {getSeatingOptions(locations.find(l => l.id === locationId)?.name).map(s => <option key={s} value={s}>{s}</option>)}
-              </select>
+              {locations.length === 0 ? (
+                <select disabled className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-400 bg-gray-50">
+                  <option>Loading…</option>
+                </select>
+              ) : (
+                <select required value={seating} onChange={e => { setSeating(e.target.value); setSeatingTouched(true) }}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                  {getSeatingOptions(locations.find(l => l.id === locationId)?.name).map(s => <option key={s} value={s}>{s}</option>)}
+                </select>
+              )}
             </div>
           )}
         </div>

@@ -204,18 +204,37 @@ function DetailsStep({ email, defaultLocationId, defaultFirstName, defaultLastNa
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Default Location</label>
           <p className="text-xs text-gray-400 mb-1.5">This will be your default location in Rooms.</p>
-          <select required value={locationId} onChange={e => setLocationId(e.target.value)}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-            {locations.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
-          </select>
+          {/* Disabled with a placeholder while locations are still loading
+              — rendering the real <select> against an empty locations list
+              used to show "Loading..." as the only option, and once the
+              real list arrived a split second later, the browser had
+              already visually settled on it, so the admin's preset
+              location/seating never appeared to "take" even though the
+              state itself would update correctly right after. */}
+          {locations.length === 0 ? (
+            <select disabled className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-400 bg-gray-50">
+              <option>Loading…</option>
+            </select>
+          ) : (
+            <select required value={locationId} onChange={e => setLocationId(e.target.value)}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+              {locations.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
+            </select>
+          )}
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Where do you sit?</label>
           <p className="text-xs text-gray-400 mb-1.5">Shown below your name on Faces.</p>
-          <select required value={seating} onChange={e => { setSeating(e.target.value); setSeatingTouched(true) }}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-            {getSeatingOptions(locations.find(l => l.id === locationId)?.name).map(s => <option key={s} value={s}>{s}</option>)}
-          </select>
+          {locations.length === 0 ? (
+            <select disabled className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-400 bg-gray-50">
+              <option>Loading…</option>
+            </select>
+          ) : (
+            <select required value={seating} onChange={e => { setSeating(e.target.value); setSeatingTouched(true) }}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+              {getSeatingOptions(locations.find(l => l.id === locationId)?.name).map(s => <option key={s} value={s}>{s}</option>)}
+            </select>
+          )}
         </div>
         <button type="submit" disabled={loading}
           className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-semibold py-2 px-4 rounded-lg transition-colors">
