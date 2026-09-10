@@ -185,23 +185,35 @@ export default function PhotoUploadDialog({
             // and closes; Skip closes without saving anything more.
             <div className="space-y-3">
               <input ref={fileRef} type="file" accept="image/*" onChange={handlePickFile} className="hidden" />
-              {currentImageUrl && (
-                <button onClick={() => setImageSrc(currentImageUrl)}
-                  className="w-full flex items-center justify-center gap-2 border border-gray-300 text-gray-700 hover:bg-gray-50 text-sm font-semibold px-4 py-2 rounded-lg">
-                  <Crop size={16} /> Recrop Current Photo
-                </button>
-              )}
-              {photoJustSaved && (
-                <div className="flex items-center gap-2 bg-green-50 border border-green-200 text-green-700 text-sm font-medium px-3 py-2 rounded-lg">
-                  <Check size={16} /> Photo saved!
+              {currentImageUrl ? (
+                // Already has a photo on file (e.g. pre-linked from the
+                // directory import) — show it directly instead of a plain
+                // text button, so it's obvious there's already something
+                // there before offering to change it.
+                <div className="flex flex-col items-center gap-2">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={currentImageUrl} alt="Your current photo"
+                    className="w-24 h-24 rounded-full object-cover border border-gray-200" />
+                  <button onClick={() => fileRef.current?.click()}
+                    className="text-sm text-blue-600 hover:text-blue-800 font-medium">
+                    Change Photo
+                  </button>
                 </div>
+              ) : (
+                <>
+                  {photoJustSaved && (
+                    <div className="flex items-center gap-2 bg-green-50 border border-green-200 text-green-700 text-sm font-medium px-3 py-2 rounded-lg">
+                      <Check size={16} /> Photo saved!
+                    </div>
+                  )}
+                  <button onClick={() => fileRef.current?.click()}
+                    className={photoJustSaved
+                      ? 'w-full flex items-center justify-center gap-2 border border-gray-300 text-gray-700 hover:bg-gray-50 text-sm font-semibold px-4 py-2 rounded-lg'
+                      : 'w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-4 py-2 rounded-lg'}>
+                    <Upload size={16} /> {photoJustSaved ? 'Choose a Different Photo' : 'Choose Photo'}
+                  </button>
+                </>
               )}
-              <button onClick={() => fileRef.current?.click()}
-                className={photoJustSaved
-                  ? 'w-full flex items-center justify-center gap-2 border border-gray-300 text-gray-700 hover:bg-gray-50 text-sm font-semibold px-4 py-2 rounded-lg'
-                  : 'w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-4 py-2 rounded-lg'}>
-                <Upload size={16} /> {photoJustSaved ? 'Choose a Different Photo' : 'Choose Photo'}
-              </button>
               <div>
                 <label className="block text-xs font-medium text-gray-700 mb-1">Add LinkedIn info (optional)</label>
                 <div className="flex items-center border border-gray-300 rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-blue-500">
