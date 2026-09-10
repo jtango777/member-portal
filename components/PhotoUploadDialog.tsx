@@ -107,13 +107,17 @@ export default function PhotoUploadDialog({
       if (res.ok) {
         toast.success('Photo saved!')
         reset()
-        onSuccess()
         // Onboarding: stay open so they can still add LinkedIn and hit
-        // Submit — closing here used to cut that step off entirely.
-        // Everywhere else this dialog is used, saving the photo is the
-        // whole point of opening it, so close like before.
+        // Submit. Calling onSuccess() here was the actual bug — it's
+        // router.refresh() one level up (OnboardingOverlays), which
+        // re-fetches the server-rendered hasAvatar prop; once that flips
+        // true, the PARENT sets this dialog's open prop to false itself,
+        // closing it from the outside no matter what local state says.
+        // Deferred to Submit/Skip below instead, once this step is truly
+        // done. Everywhere else this dialog is used, saving the photo is
+        // the whole point of opening it, so call it immediately like before.
         if (offerLinkedin) setPhotoJustSaved(true)
-        else onOpenChange(false)
+        else { onSuccess(); onOpenChange(false) }
       } else {
         const d = await res.json()
         toast.error(d.error ?? 'Upload failed')
@@ -204,12 +208,12 @@ export default function PhotoUploadDialog({
                 </div>
               </div>
               <div className="flex gap-2">
-                <button onClick={() => onOpenChange(false)}
+                <button onClick={() => { onSuccess(); onOpenChange(false) }}
                   className="flex-1 text-sm font-semibold px-4 py-2 rounded-lg border border-gray-300 bg-white text-gray-700 hover:bg-gray-50">
                   Skip for now
                 </button>
                 <button
-                  onClick={async () => { await saveLinkedinIfNeeded(); toast.success('Saved!'); onOpenChange(false) }}
+                  onClick={async () => { await saveLinkedinIfNeeded(); toast.success('Saved!'); onSuccess(); onOpenChange(false) }}
                   disabled={savingLinkedin}
                   className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-semibold px-4 py-2 rounded-lg">
                   {savingLinkedin ? 'Saving…' : 'Submit'}
