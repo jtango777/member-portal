@@ -142,7 +142,7 @@ export default function HausSmilesTabs({ groups, defaultLocationId, isAdmin }: P
                         </button>
                         <button onClick={() => setConfirmRemove(null)} className="text-xs text-gray-500">No</button>
                       </div>
-                      <p className="text-[10px] leading-tight text-gray-400">Removes them from all active member lists</p>
+                      <p className="text-[10px] leading-tight text-gray-400">Hides them from Members, Faces &amp; reports — doesn&apos;t revoke their login</p>
                     </>
                   ) : (
                     <>
