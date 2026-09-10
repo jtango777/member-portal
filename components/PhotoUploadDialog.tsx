@@ -68,6 +68,11 @@ export default function PhotoUploadDialog({
   // skip LinkedIn entirely for anyone who hadn't filled it in yet before
   // clicking Choose Photo.
   const [photoJustSaved, setPhotoJustSaved] = useState(false)
+  // Local preview of the photo just uploaded. currentImageUrl is a prop
+  // that only updates on router.refresh(), which is deferred until
+  // Submit/Skip — so without this, the thumbnail kept showing the OLD
+  // pre-linked photo after someone changed it. Caught 2026-09-10.
+  const [savedPreviewUrl, setSavedPreviewUrl] = useState<string | null>(null)
   const [imageSrc, setImageSrc] = useState<string | null>(null)
   const [crop, setCrop] = useState({ x: 0, y: 0 })
   const [zoom, setZoom] = useState(1)
@@ -91,6 +96,8 @@ export default function PhotoUploadDialog({
   function resetAll() {
     reset()
     setPhotoJustSaved(false)
+    if (savedPreviewUrl) URL.revokeObjectURL(savedPreviewUrl)
+    setSavedPreviewUrl(null)
   }
 
   async function handleConfirm() {
@@ -106,6 +113,10 @@ export default function PhotoUploadDialog({
       ])
       if (res.ok) {
         toast.success('Photo saved!')
+        // The cropped blob is exactly what was uploaded, so it's an
+        // accurate preview — no dependency on the API response shape.
+        if (savedPreviewUrl) URL.revokeObjectURL(savedPreviewUrl)
+        setSavedPreviewUrl(URL.createObjectURL(blob))
         reset()
         // Onboarding: stay open so they can still add LinkedIn and hit
         // Submit. Calling onSuccess() here used to be the bug — it's
@@ -185,14 +196,19 @@ export default function PhotoUploadDialog({
             // and closes; Skip closes without saving anything more.
             <div className="space-y-3">
               <input ref={fileRef} type="file" accept="image/*" onChange={handlePickFile} className="hidden" />
-              {currentImageUrl ? (
-                // Already has a photo on file (e.g. pre-linked from the
-                // directory import) — show it directly instead of a plain
-                // text button, so it's obvious there's already something
-                // there before offering to change it.
+              {(savedPreviewUrl ?? currentImageUrl) ? (
+                // There's a photo to show — either one already on file
+                // (pre-linked from the directory import) or the one they
+                // just uploaded. savedPreviewUrl wins so the thumbnail
+                // reflects the change immediately, not the stale prop.
                 <div className="flex flex-col items-center gap-2">
+                  {photoJustSaved && (
+                    <div className="w-full flex items-center gap-2 bg-green-50 border border-green-200 text-green-700 text-sm font-medium px-3 py-2 rounded-lg">
+                      <Check size={16} /> Photo saved!
+                    </div>
+                  )}
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={currentImageUrl} alt="Your current photo"
+                  <img src={savedPreviewUrl ?? currentImageUrl ?? undefined} alt="Your photo"
                     className="w-24 h-24 rounded-full object-cover border border-gray-200" />
                   <button onClick={() => fileRef.current?.click()}
                     className="text-sm text-blue-600 hover:text-blue-800 font-medium">
@@ -200,19 +216,10 @@ export default function PhotoUploadDialog({
                   </button>
                 </div>
               ) : (
-                <>
-                  {photoJustSaved && (
-                    <div className="flex items-center gap-2 bg-green-50 border border-green-200 text-green-700 text-sm font-medium px-3 py-2 rounded-lg">
-                      <Check size={16} /> Photo saved!
-                    </div>
-                  )}
-                  <button onClick={() => fileRef.current?.click()}
-                    className={photoJustSaved
-                      ? 'w-full flex items-center justify-center gap-2 border border-gray-300 text-gray-700 hover:bg-gray-50 text-sm font-semibold px-4 py-2 rounded-lg'
-                      : 'w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-4 py-2 rounded-lg'}>
-                    <Upload size={16} /> {photoJustSaved ? 'Choose a Different Photo' : 'Choose Photo'}
-                  </button>
-                </>
+                <button onClick={() => fileRef.current?.click()}
+                  className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-4 py-2 rounded-lg">
+                  <Upload size={16} /> Choose Photo
+                </button>
               )}
               <div>
                 <label className="block text-xs font-medium text-gray-700 mb-1">Add LinkedIn info (optional)</label>
