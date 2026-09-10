@@ -1,9 +1,20 @@
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
+import { unmarkCurrentMemberInPipedrive } from '@/lib/pipedrive'
 
-// Remove a face from Faces. Directory-only photos are deleted outright
-// (no account attached). Real member accounts are flagged inactive rather
-// than deleted, consistent with how member removal works elsewhere.
+// Remove a face from Faces.
+//
+// Directory-only photos are deleted outright — there's no account or
+// invite attached to those at all, nothing else to archive.
+//
+// Pending invites and real member accounts both get a genuine archive now
+// (is_active: false + Pipedrive unmarked), not just their photo cleared.
+// Before 2026-09-10 this only hid a pending person's photo and left their
+// invite fully intact, and even for real accounts it never actually
+// blocked login — someone archived here could still use the whole portal
+// normally, just invisible to staff. Caught right before the mass invite
+// made "most Faces entries are real accounts" the common case instead of
+// the rare one.
 export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const { searchParams } = new URL(request.url)
@@ -24,10 +35,17 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
   }
 
   if (source === 'pending') {
-    // Only clears the linked photo — doesn't touch the invite itself.
-    const { error } = await admin.from('permitted_emails').update({ avatar_url: null }).eq('id', id)
-    if (error) return NextResponse.json({ error: 'Failed to remove photo.' }, { status: 500 })
-    return NextResponse.json({ ok: true })
+    const { data: pe, error } = await admin.from('permitted_emails').update({ is_active: false }).eq('id', id).select('email').single()
+    if (error) return NextResponse.json({ error: 'Failed to archive invite.' }, { status: 500 })
+
+    let pipedriveMatched: boolean | null = null
+    if (pe?.email) {
+      const result = await unmarkCurrentMemberInPipedrive(pe.email)
+      if (!result.ok) console.error('[admin/faces] Pipedrive unmark failed:', result.error)
+      else pipedriveMatched = result.matched
+    }
+
+    return NextResponse.json({ ok: true, pipedriveMatched })
   }
 
   if (source === 'profile') {
@@ -36,11 +54,15 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
 
     // Also flag permitted_emails so they land on the same archived-members list.
     const { data: { user: authUser } } = await admin.auth.admin.getUserById(id)
+    let pipedriveMatched: boolean | null = null
     if (authUser?.email) {
       await admin.from('permitted_emails').update({ is_active: false }).eq('email', authUser.email)
+      const result = await unmarkCurrentMemberInPipedrive(authUser.email)
+      if (!result.ok) console.error('[admin/faces] Pipedrive unmark failed:', result.error)
+      else pipedriveMatched = result.matched
     }
 
-    return NextResponse.json({ ok: true, id: profile.id })
+    return NextResponse.json({ ok: true, id: profile.id, pipedriveMatched })
   }
 
   return NextResponse.json({ error: 'source must be "profile", "pending", or "directory"' }, { status: 400 })

@@ -29,11 +29,24 @@ export default function HausSmilesMemberActions({ id, source, fullName, avatarUr
     }
   }
 
+  // Matches the real behavior of DELETE /api/admin/faces/[id] per source —
+  // see that route for the full reasoning. Rebuilt 2026-09-10 alongside the
+  // Faces grid's version of this same copy; this page had drifted to a
+  // stale claim ("only removes the photo... use the Members page") that
+  // was never true for pending invites and, worse, wasn't even a complete
+  // picture for real accounts (archiving never blocked login for anyone).
+  const confirmCopy =
+    source === 'directory'
+      ? { question: 'Archive photo only?', detail: 'No account exists to archive — just removes this photo.' }
+      : source === 'pending'
+      ? { question: `Archive ${fullName.split(' ')[0]}'s invite?`, detail: 'Removes them from Members & Pipedrive — their invite link stops working.' }
+      : { question: `Archive ${fullName.split(' ')[0]}'s account?`, detail: 'Blocks their login and removes them from Members, Faces, reports & Pipedrive.' }
+
   if (confirming) {
     return (
       <div className="flex flex-col items-center gap-1.5 mt-4">
         <div className="flex items-center gap-2">
-          <span className="text-sm text-red-700">Archive from Faces?</span>
+          <span className="text-sm text-red-700">{confirmCopy.question}</span>
           <button onClick={handleRemove} disabled={removing}
             className="text-sm bg-red-600 text-white px-3 py-1.5 rounded-lg font-medium">
             {removing ? '…' : 'Yes, archive'}
@@ -41,7 +54,7 @@ export default function HausSmilesMemberActions({ id, source, fullName, avatarUr
           <button onClick={() => setConfirming(false)} className="text-sm text-gray-500">Cancel</button>
         </div>
         <p className="text-xs text-gray-400 text-center max-w-xs">
-          Only removes the photo. To archive the user, use the Members page.
+          {confirmCopy.detail}
         </p>
       </div>
     )

@@ -25,6 +25,13 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   if (!profile) redirect('/auth/signout')
 
+  // Archived members could previously still log in and use the whole
+  // portal normally — is_active only ever hid them from lists/reports, not
+  // access itself. Caught 2026-09-10, right before the mass invite made
+  // this the kind of gap that actually matters. Same signout path as a
+  // missing profile.
+  if (!(profile as Profile).is_active) redirect('/auth/signout')
+
   const shouldShowAnnouncement = !!latestAnnouncement && latestAnnouncement.id !== (profile as Profile).dismissed_announcement_id
 
   return (

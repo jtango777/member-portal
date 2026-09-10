@@ -125,26 +125,17 @@ export default function HausSmilesTabs({ groups, defaultLocationId, isAdmin }: P
                 <div className={`absolute inset-0 z-10 bg-white/95 rounded-lg border border-red-200 flex flex-col items-center justify-center gap-1.5 p-2 text-center transition-all duration-150 ${
                   confirmRemove === member.id ? 'opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none'
                 }`}>
-                  {/* Wording depends on source — for a real member account
-                      this genuinely archives them (is_active: false, same
-                      as removing them from Members), not just the photo.
-                      The old copy claimed "photo only" unconditionally,
-                      which was flat-out wrong for real members — caught
-                      2026-09-10 right before the mass invite made that the
-                      common case instead of the rare one. */}
-                  {member.source === 'profile' ? (
-                    <>
-                      <p className="text-xs text-red-700 font-medium">Archive {member.full_name.split(' ')[0]}&apos;s account?</p>
-                      <div className="flex items-center gap-2">
-                        <button onClick={() => handleRemove(member)} disabled={removing === member.id}
-                          className="text-xs bg-red-600 text-white px-2 py-1 rounded font-medium">
-                          {removing === member.id ? '…' : 'Yes'}
-                        </button>
-                        <button onClick={() => setConfirmRemove(null)} className="text-xs text-gray-500">No</button>
-                      </div>
-                      <p className="text-[10px] leading-tight text-gray-400">Hides them from Members, Faces &amp; reports — doesn&apos;t revoke their login</p>
-                    </>
-                  ) : (
+                  {/* Wording (and real behavior) depends on source. Profile
+                      and pending both do a genuine archive now — is_active:
+                      false, blocked from logging in (profile only, pending
+                      never had login yet), and unmarked in Pipedrive.
+                      Directory-only entries have no account or invite at
+                      all, so there's genuinely nothing but the photo to
+                      remove. Rebuilt 2026-09-10 — the old copy claimed
+                      "photo only" for everyone, and even where that was
+                      true for the DB flag, archiving never actually
+                      blocked login for anyone, real accounts included. */}
+                  {member.source === 'directory' ? (
                     <>
                       <p className="text-xs text-red-700 font-medium">Archive photo only?</p>
                       <div className="flex items-center gap-2">
@@ -154,7 +145,31 @@ export default function HausSmilesTabs({ groups, defaultLocationId, isAdmin }: P
                         </button>
                         <button onClick={() => setConfirmRemove(null)} className="text-xs text-gray-500">No</button>
                       </div>
-                      <p className="text-[10px] leading-tight text-gray-400">Does not archive the user</p>
+                      <p className="text-[10px] leading-tight text-gray-400">No account exists to archive — just removes this photo</p>
+                    </>
+                  ) : member.source === 'pending' ? (
+                    <>
+                      <p className="text-xs text-red-700 font-medium">Archive {member.full_name.split(' ')[0]}&apos;s invite?</p>
+                      <div className="flex items-center gap-2">
+                        <button onClick={() => handleRemove(member)} disabled={removing === member.id}
+                          className="text-xs bg-red-600 text-white px-2 py-1 rounded font-medium">
+                          {removing === member.id ? '…' : 'Yes'}
+                        </button>
+                        <button onClick={() => setConfirmRemove(null)} className="text-xs text-gray-500">No</button>
+                      </div>
+                      <p className="text-[10px] leading-tight text-gray-400">Removes them from Members &amp; Pipedrive — their invite link stops working</p>
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-xs text-red-700 font-medium">Archive {member.full_name.split(' ')[0]}&apos;s account?</p>
+                      <div className="flex items-center gap-2">
+                        <button onClick={() => handleRemove(member)} disabled={removing === member.id}
+                          className="text-xs bg-red-600 text-white px-2 py-1 rounded font-medium">
+                          {removing === member.id ? '…' : 'Yes'}
+                        </button>
+                        <button onClick={() => setConfirmRemove(null)} className="text-xs text-gray-500">No</button>
+                      </div>
+                      <p className="text-[10px] leading-tight text-gray-400">Blocks their login and removes them from Members, Faces, reports &amp; Pipedrive</p>
                     </>
                   )}
                 </div>
