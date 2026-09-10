@@ -60,7 +60,7 @@ export default async function PortalHomePage() {
         </div>
 
         <p className="text-xl font-semibold text-gray-900 mb-6">
-          {isFirstVisit ? 'Welcome' : 'Welcome back'}, {profile.full_name}
+          Welcome, {profile.full_name}
         </p>
 
         <div className="grid grid-cols-1 gap-3 sm:gap-4">

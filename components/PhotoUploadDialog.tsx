@@ -152,6 +152,47 @@ export default function PhotoUploadDialog({
                 </button>
               </div>
             </div>
+          ) : offerLinkedin ? (
+            // Onboarding layout: Choose Photo stands on its own up top —
+            // it's the primary path (pick a photo, crop, save — LinkedIn
+            // tags along with it via handleConfirm). The bottom row is for
+            // someone who's done here without picking a photo: Submit
+            // saves whatever they typed (LinkedIn) and closes; Skip closes
+            // without saving anything.
+            <div className="space-y-3">
+              <input ref={fileRef} type="file" accept="image/*" onChange={handlePickFile} className="hidden" />
+              {currentImageUrl && (
+                <button onClick={() => setImageSrc(currentImageUrl)}
+                  className="w-full flex items-center justify-center gap-2 border border-gray-300 text-gray-700 hover:bg-gray-50 text-sm font-semibold px-4 py-2 rounded-lg">
+                  <Crop size={16} /> Recrop Current Photo
+                </button>
+              )}
+              <button onClick={() => fileRef.current?.click()}
+                className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-4 py-2 rounded-lg">
+                <Upload size={16} /> Choose Photo
+              </button>
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">LinkedIn</label>
+                <div className="flex items-center border border-gray-300 rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-blue-500">
+                  <span className="pl-3 pr-1 py-2 text-sm text-gray-400 bg-gray-50 select-none whitespace-nowrap">linkedin.com/in/</span>
+                  <input value={linkedinUsername} onChange={e => handleLinkedinChange(e.target.value)}
+                    placeholder="janesmith"
+                    className="w-full min-w-0 px-1 py-2 text-sm focus:outline-none" />
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <button onClick={() => onOpenChange(false)}
+                  className="flex-1 text-sm font-semibold px-4 py-2 rounded-lg border border-gray-300 bg-white text-gray-700 hover:bg-gray-50">
+                  Skip for now
+                </button>
+                <button
+                  onClick={async () => { await saveLinkedinIfNeeded(); toast.success('Saved!'); onOpenChange(false) }}
+                  disabled={savingLinkedin}
+                  className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-semibold px-4 py-2 rounded-lg">
+                  {savingLinkedin ? 'Saving…' : 'Submit'}
+                </button>
+              </div>
+            </div>
           ) : (
             <div className="space-y-3">
               <input ref={fileRef} type="file" accept="image/*" onChange={handlePickFile} className="hidden" />
@@ -161,24 +202,10 @@ export default function PhotoUploadDialog({
                   <Crop size={16} /> Recrop Current Photo
                 </button>
               )}
-              {offerLinkedin && (
-                <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1">LinkedIn (optional)</label>
-                  <div className="flex items-center border border-gray-300 rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-blue-500">
-                    <span className="pl-3 pr-1 py-2 text-sm text-gray-400 bg-gray-50 select-none whitespace-nowrap">linkedin.com/in/</span>
-                    <input value={linkedinUsername} onChange={e => handleLinkedinChange(e.target.value)}
-                      placeholder="janesmith"
-                      className="w-full min-w-0 px-1 py-2 text-sm focus:outline-none" />
-                  </div>
-                </div>
-              )}
               <div className="flex gap-2">
-                <button
-                  onClick={async () => { await saveLinkedinIfNeeded(); onOpenChange(false) }}
-                  disabled={savingLinkedin}
-                  className="flex-1 text-sm font-semibold px-4 py-2 rounded-lg border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 disabled:opacity-50">
+                <Dialog.Close className="flex-1 text-sm font-semibold px-4 py-2 rounded-lg border border-gray-300 bg-white text-gray-700 hover:bg-gray-50">
                   Skip for now
-                </button>
+                </Dialog.Close>
                 <button onClick={() => fileRef.current?.click()}
                   className="flex-1 flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-4 py-2 rounded-lg">
                   <Upload size={16} /> Choose Photo

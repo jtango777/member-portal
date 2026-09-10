@@ -99,14 +99,17 @@ export default function MyReservationsList({ upcoming, past, companyReservations
             )}
             {canCancelRow && <CancelButton reservationId={r.id} />}
             {tooSoon && (
-              <span
-                title="Cannot cancel because it's within 12 hours of the start time."
-                className="relative inline-flex items-center justify-center p-1.5 text-gray-300 cursor-not-allowed"
-              >
+              // Same tooltip styling as IconAction's (dark bg, white text)
+              // instead of the native browser title tooltip, which looked
+              // out of place next to it.
+              <span className="relative group inline-flex items-center justify-center p-1.5 text-gray-300 cursor-not-allowed">
                 <Trash2 size={14} />
                 {/* Strikethrough — a disabled trashcan reads clearer at a
                     glance than the old "Within 12h ⓘ" text label did. */}
                 <span className="absolute w-[18px] h-px bg-gray-300 rotate-45 pointer-events-none" />
+                <span className="pointer-events-none absolute right-0 bottom-full z-10 mb-1.5 whitespace-nowrap rounded bg-gray-900 px-2 py-1 text-xs text-white opacity-0 transition-opacity group-hover:opacity-100">
+                  Cannot cancel — within 12 hours of the start time
+                </span>
               </span>
             )}
           </div>
