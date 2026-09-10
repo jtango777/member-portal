@@ -28,6 +28,11 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
 
   const admin = createAdminClient()
 
+  // Matches the Members page dialog's own default — checked unless the
+  // caller explicitly says otherwise, so a request with no body (or a
+  // non-JSON one) still unmarks in Pipedrive by default.
+  const { unmarkInPipedrive = true } = await request.json().catch(() => ({}))
+
   if (source === 'directory') {
     const { error } = await admin.from('directory_photos').delete().eq('id', id)
     if (error) return NextResponse.json({ error: 'Failed to delete photo.' }, { status: 500 })
@@ -39,7 +44,7 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
     if (error) return NextResponse.json({ error: 'Failed to archive invite.' }, { status: 500 })
 
     let pipedriveMatched: boolean | null = null
-    if (pe?.email) {
+    if (pe?.email && unmarkInPipedrive) {
       const result = await unmarkCurrentMemberInPipedrive(pe.email)
       if (!result.ok) console.error('[admin/faces] Pipedrive unmark failed:', result.error)
       else pipedriveMatched = result.matched
@@ -55,11 +60,13 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
     // Also flag permitted_emails so they land on the same archived-members list.
     const { data: { user: authUser } } = await admin.auth.admin.getUserById(id)
     let pipedriveMatched: boolean | null = null
-    if (authUser?.email) {
+    if (authUser?.email && unmarkInPipedrive) {
       await admin.from('permitted_emails').update({ is_active: false }).eq('email', authUser.email)
       const result = await unmarkCurrentMemberInPipedrive(authUser.email)
       if (!result.ok) console.error('[admin/faces] Pipedrive unmark failed:', result.error)
       else pipedriveMatched = result.matched
+    } else if (authUser?.email) {
+      await admin.from('permitted_emails').update({ is_active: false }).eq('email', authUser.email)
     }
 
     return NextResponse.json({ ok: true, id: profile.id, pipedriveMatched })

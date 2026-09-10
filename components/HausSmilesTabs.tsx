@@ -4,8 +4,8 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Trash2, Pencil, Search } from 'lucide-react'
-import toast from 'react-hot-toast'
 import AssignPhotoDialog from './admin/AssignPhotoDialog'
+import ArchiveFaceDialog from './ArchiveFaceDialog'
 import { getSeatingOptions } from '@/lib/seating'
 import { linkedinUrl } from '@/lib/linkedin'
 
@@ -42,8 +42,7 @@ export default function HausSmilesTabs({ groups, defaultLocationId, isAdmin }: P
   )
   const [seatingFilter, setSeatingFilter] = useState('')
   const [search, setSearch] = useState('')
-  const [confirmRemove, setConfirmRemove] = useState<string | null>(null)
-  const [removing, setRemoving] = useState<string | null>(null)
+  const [archiveTarget, setArchiveTarget] = useState<Member | null>(null)
   const [editingPhoto, setEditingPhoto] = useState<Member | null>(null)
   const active = groups.find(g => g.key === activeKey) ?? groups[0]
   const q = search.trim().toLowerCase()
@@ -52,20 +51,6 @@ export default function HausSmilesTabs({ groups, defaultLocationId, isAdmin }: P
         .filter(m => !seatingFilter || m.seating === seatingFilter)
         .filter(m => !q || m.full_name.toLowerCase().includes(q))
     : []
-
-  async function handleRemove(member: Member) {
-    setRemoving(member.id)
-    const res = await fetch(`/api/admin/faces/${member.id}?source=${member.source}`, { method: 'DELETE' })
-    if (res.ok) {
-      toast.success('Archived')
-      router.refresh()
-    } else {
-      const d = await res.json()
-      toast.error(d.error ?? 'Failed to remove')
-    }
-    setConfirmRemove(null)
-    setRemoving(null)
-  }
 
   if (!active) {
     return <p className="text-sm text-gray-500">No photos yet — members will show up here as they add theirs.</p>
@@ -121,73 +106,18 @@ export default function HausSmilesTabs({ groups, defaultLocationId, isAdmin }: P
         {visibleMembers.map(member => (
           <div key={member.id} className="relative group">
             {isAdmin && (
-              <>
-                <div className={`absolute inset-0 z-10 bg-white/95 rounded-lg border border-red-200 flex flex-col items-center justify-center gap-1.5 p-2 text-center transition-all duration-150 ${
-                  confirmRemove === member.id ? 'opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none'
-                }`}>
-                  {/* Wording (and real behavior) depends on source. Profile
-                      and pending both do a genuine archive now — is_active:
-                      false, blocked from logging in (profile only, pending
-                      never had login yet), and unmarked in Pipedrive.
-                      Directory-only entries have no account or invite at
-                      all, so there's genuinely nothing but the photo to
-                      remove. Rebuilt 2026-09-10 — the old copy claimed
-                      "photo only" for everyone, and even where that was
-                      true for the DB flag, archiving never actually
-                      blocked login for anyone, real accounts included. */}
-                  {member.source === 'directory' ? (
-                    <>
-                      <p className="text-xs text-red-700 font-medium">Archive photo only?</p>
-                      <div className="flex items-center gap-2">
-                        <button onClick={() => handleRemove(member)} disabled={removing === member.id}
-                          className="text-xs bg-red-600 text-white px-2 py-1 rounded font-medium">
-                          {removing === member.id ? '…' : 'Yes'}
-                        </button>
-                        <button onClick={() => setConfirmRemove(null)} className="text-xs text-gray-500">No</button>
-                      </div>
-                      <p className="text-[10px] leading-tight text-gray-400">No account exists to archive — just removes this photo</p>
-                    </>
-                  ) : member.source === 'pending' ? (
-                    <>
-                      <p className="text-xs text-red-700 font-medium">Archive {member.full_name.split(' ')[0]}&apos;s invite?</p>
-                      <div className="flex items-center gap-2">
-                        <button onClick={() => handleRemove(member)} disabled={removing === member.id}
-                          className="text-xs bg-red-600 text-white px-2 py-1 rounded font-medium">
-                          {removing === member.id ? '…' : 'Yes'}
-                        </button>
-                        <button onClick={() => setConfirmRemove(null)} className="text-xs text-gray-500">No</button>
-                      </div>
-                      <p className="text-[10px] leading-tight text-gray-400">Removes them from Members &amp; Pipedrive — their invite link stops working</p>
-                    </>
-                  ) : (
-                    <>
-                      <p className="text-xs text-red-700 font-medium">Archive {member.full_name.split(' ')[0]}&apos;s account?</p>
-                      <div className="flex items-center gap-2">
-                        <button onClick={() => handleRemove(member)} disabled={removing === member.id}
-                          className="text-xs bg-red-600 text-white px-2 py-1 rounded font-medium">
-                          {removing === member.id ? '…' : 'Yes'}
-                        </button>
-                        <button onClick={() => setConfirmRemove(null)} className="text-xs text-gray-500">No</button>
-                      </div>
-                      <p className="text-[10px] leading-tight text-gray-400">Blocks their login and removes them from Members, Faces, reports &amp; Pipedrive</p>
-                    </>
-                  )}
-                </div>
-                <div className={`absolute top-1.5 right-1.5 z-10 flex gap-1 transition-opacity sm:opacity-0 sm:group-hover:opacity-100 ${
-                  confirmRemove === member.id ? 'opacity-0 pointer-events-none' : 'opacity-100'
-                }`}>
-                  <button onClick={() => setEditingPhoto(member)}
-                    title="Change photo"
-                    className="p-1 rounded-md bg-white/90 border border-gray-200 text-gray-400 hover:text-blue-700 hover:bg-white">
-                    <Pencil size={13} />
-                  </button>
-                  <button onClick={() => setConfirmRemove(member.id)}
-                    title="Archive from Faces"
-                    className="p-1 rounded-md bg-white/90 border border-gray-200 text-gray-400 hover:text-red-700 hover:bg-white">
-                    <Trash2 size={13} />
-                  </button>
-                </div>
-              </>
+              <div className="absolute top-1.5 right-1.5 z-10 flex gap-1 transition-opacity sm:opacity-0 sm:group-hover:opacity-100">
+                <button onClick={() => setEditingPhoto(member)}
+                  title="Change photo"
+                  className="p-1 rounded-md bg-white/90 border border-gray-200 text-gray-400 hover:text-blue-700 hover:bg-white">
+                  <Pencil size={13} />
+                </button>
+                <button onClick={() => setArchiveTarget(member)}
+                  title="Archive from Faces"
+                  className="p-1 rounded-md bg-white/90 border border-gray-200 text-gray-400 hover:text-red-700 hover:bg-white">
+                  <Trash2 size={13} />
+                </button>
+              </div>
             )}
             {/* Own relative wrapper just for the photo, separate from the
                 text below — the LinkedIn badge needs to sit in the photo's
@@ -211,9 +141,7 @@ export default function HausSmilesTabs({ groups, defaultLocationId, isAdmin }: P
                   rel="noopener noreferrer"
                   title="LinkedIn"
                   onClick={e => e.stopPropagation()}
-                  className={`absolute bottom-1 right-1 z-20 flex items-center justify-center w-5 h-5 rounded-[5px] bg-[#0A66C2] shadow-sm hover:scale-110 transition-all ${
-                    confirmRemove === member.id ? 'opacity-0 pointer-events-none' : 'opacity-100'
-                  }`}
+                  className="absolute bottom-1 right-1 z-20 flex items-center justify-center w-5 h-5 rounded-[5px] bg-[#0A66C2] shadow-sm hover:scale-110 transition-transform"
                 >
                   {/* LinkedIn's real "in" app icon: solid blue rounded
                       square, white glyph directly on it — no inner circle.
@@ -246,6 +174,12 @@ export default function HausSmilesTabs({ groups, defaultLocationId, isAdmin }: P
           avatarUrl={editingPhoto.avatar_url}
         />
       )}
+
+      <ArchiveFaceDialog
+        face={archiveTarget ? { id: archiveTarget.id, source: archiveTarget.source, name: archiveTarget.full_name.split(' ')[0] } : null}
+        onOpenChange={v => { if (!v) setArchiveTarget(null) }}
+        onSuccess={() => { setArchiveTarget(null); router.refresh() }}
+      />
     </div>
   )
 }
