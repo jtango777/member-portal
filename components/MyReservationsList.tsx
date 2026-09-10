@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { format, startOfMonth, subDays } from 'date-fns'
 import Link from 'next/link'
-import { CalendarDays, ChevronRight } from 'lucide-react'
+import { CalendarDays, ChevronRight, Pencil } from 'lucide-react'
 import { cn, toPacificDate } from '@/lib/utils'
 import { Reservation, Room, Profile, Company } from '@/types'
 import ReservationModal from '@/components/ReservationModal'
@@ -62,8 +62,15 @@ export default function MyReservationsList({ upcoming, past, companyReservations
     const start      = toPacificDate(new Date(r.start_time))
     const end        = toPacificDate(new Date(r.end_time))
     const hoursUntil = (new Date(r.start_time).getTime() - Date.now()) / 3600000
-    const canEdit    = hoursUntil > 24
-    const tooSoon    = hoursUntil > 0 && hoursUntil <= 24
+    // Edit and cancel are different policies (24h vs 12h) — this row used
+    // to gate the Cancel button on canEdit too, so it hid self-cancel for
+    // the whole 12-24h window even though that window is still fine to
+    // self-cancel in (ReservationModal's canCancel agrees: >12h). Caught
+    // 2026-09-10 when "Within 24h" showed for a reservation that could
+    // still be cancelled.
+    const canEdit      = hoursUntil > 24
+    const canCancelRow = hoursUntil > 12
+    const tooSoon       = hoursUntil > 0 && hoursUntil <= 12
 
     return (
       <tr className="border-b border-gray-100 last:border-0 hover:bg-gray-50">
@@ -84,18 +91,19 @@ export default function MyReservationsList({ upcoming, past, companyReservations
             {canEdit && (
               <button
                 onClick={() => setEditing(r)}
-                className="text-xs text-blue-600 hover:text-blue-800 font-medium"
+                title="Edit reservation"
+                className="text-blue-600 hover:text-blue-800 p-1 rounded hover:bg-blue-50"
               >
-                Edit
+                <Pencil size={14} />
               </button>
             )}
-            {canEdit && <CancelButton reservationId={r.id} />}
+            {canCancelRow && <CancelButton reservationId={r.id} />}
             {tooSoon && (
               <span
-                title="Can't edit or cancel within 24 hours. Contact your admin for help."
+                title="Can't cancel within 12 hours. Contact your admin for help."
                 className="text-xs text-gray-400 cursor-help"
               >
-                Within 24h ⓘ
+                Within 12h ⓘ
               </span>
             )}
           </div>
@@ -274,6 +282,7 @@ export default function MyReservationsList({ upcoming, past, companyReservations
           profile={profile}
           company={company}
           hoursUsed={hoursUsed}
+          startInEditMode
           onClose={handleClose}
         />
       )}
