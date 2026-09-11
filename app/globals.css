@@ -14,12 +14,18 @@
      trashcan icon showed this native black popup with no visible text in
      it (its actual label is just "Cancel"/"Copy" etc, easy to misread as
      a mystery blank box), confusing since there was nothing to select in
-     the first place. Scoped to buttons/roles, not all text, so copying
-     genuine content (an email address, a name) still works normally.
+     the first place. -webkit-touch-callout only exists on touch WebKit
+     browsers to begin with (no-op on desktop), but user-select: none
+     would also block normal mouse-drag text selection on desktop, which
+     isn't wanted — scoped to (pointer: coarse) so it's touch-only.
      Caught 2026-09-11. */
   button, [role="button"] {
     -webkit-touch-callout: none;
-    user-select: none;
+  }
+  @media (pointer: coarse) {
+    button, [role="button"] {
+      user-select: none;
+    }
   }
 }
 
