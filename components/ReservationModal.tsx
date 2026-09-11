@@ -857,7 +857,7 @@ export default function ReservationModal({
                     type="button"
                     onClick={() => handleDelete('this')}
                     disabled={deleting}
-                    className="flex items-center gap-1.5 text-sm font-semibold text-white bg-red-600 hover:bg-red-700 disabled:opacity-50 px-3 py-1.5 rounded-lg"
+                    className="flex items-center gap-1.5 text-sm font-semibold text-red-700 bg-red-100 border border-red-300 hover:bg-red-200 disabled:opacity-50 px-3 py-1.5 rounded-lg"
                   >
                     <Trash2 size={14} /> {deleting ? 'Removing…' : 'Remove'}
                   </button>
@@ -890,7 +890,7 @@ export default function ReservationModal({
                     type="button"
                     onClick={() => handleDelete('this')}
                     disabled={deleting}
-                    className="flex items-center gap-1.5 text-sm font-semibold text-white bg-red-600 hover:bg-red-700 disabled:opacity-50 px-3 py-1.5 rounded-lg"
+                    className="flex items-center gap-1.5 text-sm font-semibold text-red-700 bg-red-100 border border-red-300 hover:bg-red-200 disabled:opacity-50 px-3 py-1.5 rounded-lg"
                   >
                     <Trash2 size={14} /> {deleting ? 'Removing…' : 'Remove'}
                   </button>
