@@ -406,14 +406,16 @@ export default function CalendarView({ locations, profile, company, hourScope, h
       {/* ── Main content ── */}
       <div className="flex flex-col flex-1 min-w-0">
 
-        {/* Top bar. flex-wrap + shortened hours-remaining copy on mobile —
-            the row never wrapped before, and "X hours remaining for
-            September 2026" at full length forced the row wider than a
-            phone screen, pushing Make a Reservation off the right edge
-            entirely instead of just wrapping to a second line.
-            Caught 2026-09-11. */}
-        <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 border-b border-gray-200 flex-shrink-0">
-          <div className="flex items-center gap-2">
+        {/* Top bar — separate desktop/mobile layouts, not just wrapping
+            the same row. Desktop keeps Location and the hours pill side by
+            side (there's room). Mobile merges them into one pill (Location
+            left, hours right) and puts Make a Reservation on its own
+            full-width row below — the wrapped version was better than the
+            original overflow, but the button still landed on a lonely
+            second line at an awkward width. Caught 2026-09-11. */}
+        <div className="border-b border-gray-200 flex-shrink-0">
+          {/* Desktop */}
+          <div className="hidden lg:flex items-center justify-between gap-2 px-4 py-3">
             <div className="flex items-center gap-1.5 bg-blue-100 border border-blue-300 rounded-lg px-3 py-1.5">
               <span className="text-sm font-medium text-gray-500">Location:</span>
               <select
@@ -429,41 +431,68 @@ export default function CalendarView({ locations, profile, company, hourScope, h
                 ))}
               </select>
             </div>
+
+            <div className="flex items-center gap-3">
+              {/* Row-height zoom — drag to fit more (or less) of the day
+                  on screen at once. */}
+              <div className="flex items-center gap-1.5 text-gray-400" title="Zoom the calendar rows">
+                <ZoomOut size={14} />
+                <input
+                  type="range"
+                  min={MIN_SLOT_H}
+                  max={MAX_SLOT_H}
+                  step={4}
+                  value={slotH}
+                  onChange={e => handleSlotHChange(Number(e.target.value))}
+                  className="w-24 accent-blue-600 cursor-pointer"
+                  aria-label="Calendar row height"
+                />
+                <ZoomIn size={14} />
+              </div>
+
+              {company && !profile.is_admin && hoursRemaining !== null && (
+                <div className="flex items-center gap-1.5 text-sm bg-blue-100 border border-blue-300 rounded-lg px-3 py-1.5 whitespace-nowrap">
+                  <Clock size={14} className="text-blue-700 flex-shrink-0" />
+                  <span className={cn('font-semibold', hoursRemaining <= 0 ? 'text-red-600' : 'text-blue-800')}>
+                    {hoursRemaining.toFixed(1)} hours
+                  </span>
+                  <span className="text-blue-700">remaining for {format(selectedDate, 'MMMM yyyy')}</span>
+                </div>
+              )}
+            </div>
           </div>
 
-          <div className="flex items-center gap-2 sm:gap-3 flex-wrap justify-end">
-            {/* Row-height zoom — laptop/desktop only, drag to fit more (or
-                less) of the day on screen at once. */}
-            <div className="hidden lg:flex items-center gap-1.5 text-gray-400" title="Zoom the calendar rows">
-              <ZoomOut size={14} />
-              <input
-                type="range"
-                min={MIN_SLOT_H}
-                max={MAX_SLOT_H}
-                step={4}
-                value={slotH}
-                onChange={e => handleSlotHChange(Number(e.target.value))}
-                className="w-24 accent-blue-600 cursor-pointer"
-                aria-label="Calendar row height"
-              />
-              <ZoomIn size={14} />
-            </div>
-
-            {company && !profile.is_admin && hoursRemaining !== null && (
-              <div className="flex items-center gap-1.5 text-sm bg-blue-100 border border-blue-300 rounded-lg px-3 py-1.5 whitespace-nowrap">
-                <Clock size={14} className="text-blue-700 flex-shrink-0" />
-                <span className={cn('font-semibold', hoursRemaining <= 0 ? 'text-red-600' : 'text-blue-800')}>
-                  {hoursRemaining.toFixed(1)}h
-                </span>
-                <span className="hidden sm:inline text-blue-700">remaining for {format(selectedDate, 'MMMM yyyy')}</span>
-                <span className="sm:hidden text-blue-700">left this month</span>
+          {/* Mobile */}
+          <div className="flex lg:hidden flex-col gap-2 px-4 py-3">
+            <div className="flex items-center justify-between gap-2 bg-blue-100 border border-blue-300 rounded-lg px-3 py-2">
+              <div className="flex items-center gap-1.5 min-w-0">
+                <span className="text-sm font-medium text-gray-500 flex-shrink-0">Location:</span>
+                <select
+                  value={selectedLocation.id}
+                  onChange={e => {
+                    const loc = locations.find(l => l.id === e.target.value)
+                    if (loc) setSelectedLocation(loc)
+                  }}
+                  className="text-sm font-semibold text-blue-700 bg-transparent focus:outline-none cursor-pointer min-w-0"
+                >
+                  {locations.map(loc => (
+                    <option key={loc.id} value={loc.id}>{loc.name}</option>
+                  ))}
+                </select>
               </div>
-            )}
-
-            {/* Mobile-only Make a Reservation button */}
+              {company && !profile.is_admin && hoursRemaining !== null && (
+                <div className="flex items-center gap-1 text-sm flex-shrink-0 whitespace-nowrap">
+                  <Clock size={14} className="text-blue-700 flex-shrink-0" />
+                  <span className={cn('font-semibold', hoursRemaining <= 0 ? 'text-red-600' : 'text-blue-800')}>
+                    {hoursRemaining.toFixed(1)}h
+                  </span>
+                  <span className="text-blue-700">left</span>
+                </div>
+              )}
+            </div>
             <button
               onClick={() => setModal({ mode: 'create', roomId: rooms[0]?.id ?? '', startSlot: 18 })}
-              className="flex lg:hidden items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors"
+              className="w-full flex items-center justify-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold py-2.5 rounded-lg transition-colors"
             >
               <Plus size={16} />
               <span>Make a Reservation</span>
