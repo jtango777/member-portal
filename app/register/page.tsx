@@ -1,10 +1,11 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import toast from 'react-hot-toast'
 import PasswordInput from '@/components/PasswordInput'
+import Recaptcha, { RecaptchaHandle } from '@/components/Recaptcha'
 import { ArrowLeft } from 'lucide-react'
 import { getSeatingOptions } from '@/lib/seating'
 import { createClient } from '@/lib/supabase/client'
@@ -102,6 +103,13 @@ function DetailsStep({ email, defaultLocationId, defaultFirstName, defaultLastNa
   const [locations, setLocations] = useState<Location[]>([])
   const [seating, setSeating] = useState('')
   const [loading, setLoading]     = useState(false)
+  // Missing entirely from this flow until now — /setup-account (the
+  // invite-link path) has always required this, but this self-serve
+  // "look up my email" path was built separately and never got it added.
+  // Nothing else here rate-limits or bot-checks account creation. Caught
+  // 2026-09-11 during an audit prompted by the room-access bug.
+  const [recaptchaToken, setRecaptchaToken] = useState<string | null>(null)
+  const recaptchaRef = useRef<RecaptchaHandle>(null)
 
   useEffect(() => {
     fetch('/api/locations')
@@ -136,15 +144,19 @@ function DetailsStep({ email, defaultLocationId, defaultFirstName, defaultLastNa
     if (pwErr) { toast.error(pwErr); return }
     if (!locationId)             { toast.error('Please select a default location'); return }
     if (!seating)                { toast.error('Please select where you sit'); return }
+    if (!recaptchaToken)         { toast.error('Please complete the "I\'m not a robot" check'); return }
     setLoading(true)
     const res = await fetch('/api/invites/accept-by-email', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, first_name: firstName.trim(), last_name: lastName.trim(), password, default_location_id: locationId, seating: seating || null }),
+      body: JSON.stringify({ email, first_name: firstName.trim(), last_name: lastName.trim(), password, default_location_id: locationId, seating: seating || null, recaptcha_token: recaptchaToken }),
     })
     const data = await res.json()
     if (!res.ok) {
       toast.error(data.error ?? 'Something went wrong')
+      // Single-use token — reset so a retry gets a fresh one instead of
+      // silently failing on resubmit, same as /setup-account.
+      recaptchaRef.current?.reset()
       setLoading(false)
     } else {
       // Account was just created server-side (via the service role), so the
@@ -237,7 +249,10 @@ function DetailsStep({ email, defaultLocationId, defaultFirstName, defaultLastNa
             </select>
           )}
         </div>
-        <button type="submit" disabled={loading}
+        <div className="flex justify-center">
+          <Recaptcha ref={recaptchaRef} onChange={setRecaptchaToken} />
+        </div>
+        <button type="submit" disabled={loading || !recaptchaToken}
           className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-semibold py-2 px-4 rounded-lg transition-colors">
           {loading ? 'Creating account…' : 'Create Account'}
         </button>

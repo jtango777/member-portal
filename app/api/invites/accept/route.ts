@@ -54,6 +54,20 @@ export async function POST(request: Request) {
   // to no company at all.
   const companyId = invite.company_id ?? await suggestCompanyForEmail(admin, invite.email, userId)
 
+  // A handful of companies (BizHaus Admin/Staff) are flagged to grant admin
+  // automatically on signup — an explicit per-company switch rather than
+  // inferring it from the company's name. This route (the invite-link
+  // path, used for basically every real invite) never checked this at
+  // all — only the separate email-lookup signup route did — so a new
+  // BizHaus staff member invited the normal way never actually got admin
+  // automatically, only if someone remembered to flip it by hand
+  // afterward. Caught 2026-09-11, same audit as the room-access bug.
+  let grantsAdmin = false
+  if (companyId) {
+    const { data: company } = await admin.from('companies').select('grants_admin').eq('id', companyId).single()
+    grantsAdmin = company?.grants_admin ?? false
+  }
+
   // Create profile
   await admin.from('profiles').insert({
     id:                  userId,
@@ -62,7 +76,7 @@ export async function POST(request: Request) {
     first_name:          first_name.trim(),
     last_name:           last_name.trim(),
     full_name:           `${first_name.trim()} ${last_name.trim()}`.trim(),
-    is_admin:            false,
+    is_admin:            grantsAdmin,
     default_location_id: default_location_id ?? invite.default_location_id ?? null,
     avatar_url:          invite.avatar_url ?? null,
     seating:             seating ?? invite.seating ?? null,

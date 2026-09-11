@@ -2,12 +2,20 @@ import { createAdminClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 import { suggestCompanyForEmail } from '@/lib/suggestCompany'
 import { passwordError } from '@/lib/password'
+import { verifyRecaptcha } from '@/lib/recaptcha'
 
 export async function POST(request: Request) {
-  const { email, first_name, last_name, password, default_location_id, seating } = await request.json()
+  const { email, first_name, last_name, password, default_location_id, seating, recaptcha_token } = await request.json()
 
   if (!email || !first_name || !last_name || !password) {
     return NextResponse.json({ error: 'Missing fields' }, { status: 400 })
+  }
+  // This route creates a real account from just an email address, with
+  // nothing else rate-limiting or bot-checking it — /api/invites/accept
+  // (the invite-link path) has always required this; this one was built
+  // separately and never got it added. Caught 2026-09-11.
+  if (!(await verifyRecaptcha(recaptcha_token))) {
+    return NextResponse.json({ error: 'reCAPTCHA verification failed. Please try again.' }, { status: 400 })
   }
   const pwErr = passwordError(password)
   if (pwErr) {
