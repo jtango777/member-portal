@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
 import toast from 'react-hot-toast'
 import PasswordInput from '@/components/PasswordInput'
+import { Info } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 export default function LoginPage() {
@@ -20,6 +21,12 @@ function LoginForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const next = searchParams.get('next')
+  // Someone re-clicking an old invite email link — the token's already
+  // used or no longer active, but rather than dead-end them on an
+  // "invalid link" page, /setup-account sends them here with this notice.
+  // Most of the time they already have an account and just don't know the
+  // portal's URL, so let them log in right here instead. Caught 2026-09-11.
+  const showInviteUsedNotice = searchParams.get('notice') === 'invite-used'
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
@@ -61,6 +68,12 @@ function LoginForm() {
           <img src="/brand/bizhaus-logo-white.png" alt="BizHaus" className="h-8 w-auto" />
           <span className="text-xs font-bold bg-blue-600 text-white px-2.5 py-1 rounded">Member Portal</span>
         </div>
+        {showInviteUsedNotice && (
+          <div className="flex items-start gap-2 bg-blue-50 border border-blue-200 rounded-lg px-3.5 py-2.5 mb-4 text-sm text-blue-800">
+            <Info size={15} className="flex-shrink-0 mt-0.5" />
+            <span>That invite link has already been used. If you've already set up your account, just sign in below.</span>
+          </div>
+        )}
         <div className="bg-white rounded-xl shadow-lg p-8">
           <h2 className="text-lg font-semibold text-gray-900 mb-6">Sign in to your account</h2>
           <form onSubmit={handleSubmit} className="space-y-4">

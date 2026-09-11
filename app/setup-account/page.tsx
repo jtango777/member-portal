@@ -50,9 +50,21 @@ function SetupForm() {
           if (data.first_name) setFirstName(data.first_name)
           if (data.last_name) setLastName(data.last_name)
           if (data.seating) setDefaultSeating(data.seating)
-        } else setTokenValid(false)
+        } else {
+          // People re-click an old invite email as their way of getting
+          // back to the portal, not knowing the actual URL — so a dead
+          // "this link is invalid" page was a wall for someone who
+          // actually already has an account. Send them to login instead,
+          // with a notice explaining why they landed there. Caught
+          // 2026-09-11.
+          setTokenValid(false)
+          router.replace('/login?notice=invite-used')
+        }
       })
-      .catch(() => setTokenValid(false))
+      .catch(() => {
+        setTokenValid(false)
+        router.replace('/login?notice=invite-used')
+      })
 
     // Fetch locations for the dropdown
     fetch('/api/locations')
@@ -135,12 +147,8 @@ function SetupForm() {
   }
 
   if (!tokenValid) {
-    return (
-      <div className="text-center">
-        <p className="text-red-400 font-medium">This invite link is invalid or has already been used.</p>
-        <p className="text-slate-400 text-sm mt-2">Contact your admin to receive a new invite.</p>
-      </div>
-    )
+    // Brief flash before the redirect above lands — not a dead end.
+    return <div className="text-center text-slate-400">Taking you to sign in…</div>
   }
 
   return (
