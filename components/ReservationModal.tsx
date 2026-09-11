@@ -4,7 +4,6 @@ import { useState, useEffect, useRef } from 'react'
 import { format, addDays, addMonths } from 'date-fns'
 import * as Dialog from '@radix-ui/react-dialog'
 import { X, Lock, Edit2, Check, AlertCircle, Repeat, Ban, Search, Trash2 } from 'lucide-react'
-import { IconAction } from '@/components/admin/AdminTable'
 import InlineDatePicker from './InlineDatePicker'
 import { Reservation, Room, Profile, Company } from '@/types'
 import { cn, buildTimeOptions, parseTimeValue, formatTime, toPacificDate } from '@/lib/utils'
@@ -846,18 +845,22 @@ export default function ReservationModal({
                   )
                 )}
 
-                {/* Admin delete — regular reservation. Same IconAction
-                    trashcan as My Reservations' Cancel — cancels
-                    immediately on click, no confirm step. Also shown while
-                    editing, same reasoning as the admin-block case above. */}
+                {/* Admin delete — regular reservation. Cancels immediately
+                    on click, no confirm step. Also shown while editing,
+                    same reasoning as the admin-block case above. Labeled
+                    with visible text, not just an icon + hover tooltip —
+                    an icon-only trashcan here (unlike in a dense admin
+                    table row) read as unclear/easy to miss. Caught
+                    2026-09-11. */}
                 {isAdmin && mode === 'view' && !reservation?.is_admin_block && (
-                  <IconAction
-                    icon={Trash2}
-                    label="Delete reservation"
+                  <button
+                    type="button"
                     onClick={() => handleDelete('this')}
                     disabled={deleting}
-                    colorClass="text-gray-400 hover:bg-red-50 hover:text-red-600"
-                  />
+                    className="flex items-center gap-1.5 text-sm font-semibold text-white bg-red-600 hover:bg-red-700 disabled:opacity-50 px-3 py-1.5 rounded-lg"
+                  >
+                    <Trash2 size={14} /> {deleting ? 'Removing…' : 'Remove'}
+                  </button>
                 )}
 
                 {/* Within 12h policy — can't self-cancel this close to the
@@ -876,20 +879,21 @@ export default function ReservationModal({
                   </div>
                 )}
 
-                {/* Regular user cancel — literally the same IconAction
-                    trashcan as My Reservations' Cancel button. Also shown
-                    while editing (not just the read-only details view) —
-                    people expect to find Cancel from inside the edit form
-                    they're already looking at, not just a screen before it.
-                    Caught 2026-09-11. */}
+                {/* Regular user cancel. Also shown while editing (not just
+                    the read-only details view) — people expect to find
+                    Cancel from inside the edit form they're already
+                    looking at, not just a screen before it. Solid red
+                    button with visible text, not an icon + hover tooltip
+                    — hard to miss on purpose. Caught 2026-09-11. */}
                 {canCancel && (
-                  <IconAction
-                    icon={Trash2}
-                    label="Cancel reservation"
+                  <button
+                    type="button"
                     onClick={() => handleDelete('this')}
                     disabled={deleting}
-                    colorClass="text-gray-400 hover:bg-red-50 hover:text-red-600"
-                  />
+                    className="flex items-center gap-1.5 text-sm font-semibold text-white bg-red-600 hover:bg-red-700 disabled:opacity-50 px-3 py-1.5 rounded-lg"
+                  >
+                    <Trash2 size={14} /> {deleting ? 'Removing…' : 'Remove'}
+                  </button>
                 )}
               </div>
 
