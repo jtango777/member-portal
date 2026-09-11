@@ -36,21 +36,27 @@
 }
 
 @layer utilities {
-  /* Staging banner — Portal-game orange/blue swirl instead of a flat
-     yellow bar, so staging reads as unmistakably "not production" at a
-     glance rather than just a generic warning-yellow strip. */
-  .portal-stripes {
-    background: repeating-linear-gradient(
-      135deg,
-      #ff6a00 0px, #ff6a00 16px,
-      #0a84ff 16px, #0a84ff 32px
-    );
-    background-size: 200% 200%;
-    animation: portal-swirl 6s linear infinite;
+  /* Staging banner — a dark cosmic nebula swirl (navy → blue → purple →
+     pink, with tiny white sparkle flecks) instead of a flat yellow bar,
+     so staging reads as unmistakably "not production" at a glance
+     instead of a generic warning-yellow strip. No image file — a
+     gradient + a repeating dot pattern, both slowly drifting. */
+  .portal-nebula {
+    background-image:
+      radial-gradient(1px 1px at 10% 20%, rgba(255,255,255,0.9) 0, transparent 60%),
+      radial-gradient(1px 1px at 30% 70%, rgba(255,255,255,0.7) 0, transparent 60%),
+      radial-gradient(1.5px 1.5px at 50% 30%, rgba(255,255,255,0.9) 0, transparent 60%),
+      radial-gradient(1px 1px at 70% 60%, rgba(255,255,255,0.6) 0, transparent 60%),
+      radial-gradient(1.5px 1.5px at 90% 25%, rgba(255,255,255,0.8) 0, transparent 60%),
+      radial-gradient(1px 1px at 15% 80%, rgba(255,255,255,0.6) 0, transparent 60%),
+      linear-gradient(115deg, #0b1030 0%, #1d3a8f 20%, #3b2f8f 40%, #7c3fae 55%, #c23fa0 68%, #2a3f9f 85%, #0b1030 100%);
+    background-size: 220px 60px, 220px 60px, 220px 60px, 220px 60px, 220px 60px, 220px 60px, 260% 260%;
+    animation: nebula-drift 14s ease-in-out infinite;
   }
-  @keyframes portal-swirl {
-    from { background-position: 0 0; }
-    to   { background-position: 90px 90px; }
+  @keyframes nebula-drift {
+    0%   { background-position: 0 0, 0 0, 0 0, 0 0, 0 0, 0 0, 0% 50%; }
+    50%  { background-position: 40px 10px, 40px 10px, 40px 10px, 40px 10px, 40px 10px, 40px 10px, 100% 50%; }
+    100% { background-position: 0 0, 0 0, 0 0, 0 0, 0 0, 0 0, 0% 50%; }
   }
 
   .scrollbar-thin {

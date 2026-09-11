@@ -14,11 +14,15 @@ export async function POST() {
   const admin = createAdminClient()
 
   // Find everyone who has never been invited (no token, not yet accepted)
+  // — and is still active. Without the is_active check, an archived
+  // pending invite (never accepted, so it still matches "no token, not
+  // accepted") would get swept up and invited too. Caught 2026-09-11.
   const { data: uninvited, error } = await admin
     .from('permitted_emails')
     .select('id, email, company_id')
     .is('accepted_at', null)
     .is('invite_token', null)
+    .eq('is_active', true)
 
   if (error) {
     console.error('[invites/send-all] error:', error.message)

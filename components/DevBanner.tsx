@@ -18,7 +18,7 @@ export default function DevBanner() {
   if (!isDev) return null
 
   return (
-    <div className="portal-stripes text-center text-xs font-bold py-1.5 px-2 tracking-wide">
+    <div className="portal-nebula text-center text-xs font-bold py-1.5 px-2 tracking-wide">
       <span className="bg-black/60 text-white px-2 py-0.5 rounded">
         STAGING ENVIRONMENT — not production
       </span>
