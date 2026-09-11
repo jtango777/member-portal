@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import * as Dialog from '@radix-ui/react-dialog'
-import { X, ChevronDown } from 'lucide-react'
+import { X, ChevronRight } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { Company, MembershipType } from '@/types'
 import { getSeatingOptions } from '@/lib/seating'
@@ -247,13 +247,18 @@ export default function EditMemberDialog({ member, onOpenChange, onSuccess, comp
                 compete with the fields that are. */}
             {!compact && member?.user_id && !member?.is_admin && (
               <div className="border-t border-gray-200 pt-3">
-                {/* Chevron after the label, matching every other
-                    disclosure toggle in the admin views (Past
-                    announcements, "members never invited") — not before it. */}
+                {/* Matches ReportsHub's "show inactive companies" toggle —
+                    the closer structural match (a plain prose-style
+                    disclosure, not a table row like PageVisitsManager/
+                    CompaniesManager/FeedbackManager use, but those, plus
+                    ReportsHub, are the majority pattern in this app:
+                    ChevronRight rotating 90° before the label, not
+                    ChevronDown after it like Announcements/Members' banners
+                    do. Checked all of them, went with the majority. */}
                 <button type="button" onClick={() => setShowPasswordReset(v => !v)}
                   className="flex items-center gap-1 text-sm font-medium text-gray-700 hover:text-gray-900">
+                  <ChevronRight size={14} className={`text-gray-400 transition-transform duration-200 ${showPasswordReset ? 'rotate-90' : ''}`} />
                   Reset password?
-                  <ChevronDown size={14} className={`text-gray-400 transition-transform duration-200 ${showPasswordReset ? 'rotate-180' : ''}`} />
                 </button>
                 {/* Same grid-template-rows accordion used elsewhere in
                     ReservationModal (recurring block, owner dropdown) —
