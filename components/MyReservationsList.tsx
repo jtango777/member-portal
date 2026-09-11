@@ -59,7 +59,10 @@ export default function MyReservationsList({ upcoming, past, companyReservations
     )
   }
 
-  function ReservationRow({ r }: { r: any }) {
+  // Shared by both the desktop row and mobile card below — plain
+  // function, not a component, so it's cheap to call from both without
+  // any hook-ordering concerns.
+  function reservationRowData(r: any) {
     const start      = toPacificDate(new Date(r.start_time))
     const end        = toPacificDate(new Date(r.end_time))
     const hoursUntil = (new Date(r.start_time).getTime() - Date.now()) / 3600000
@@ -69,7 +72,43 @@ export default function MyReservationsList({ upcoming, past, companyReservations
     const canEdit      = hoursUntil > 12
     const canCancelRow = hoursUntil > 12
     const tooSoon       = hoursUntil > 0 && hoursUntil <= 12
+    return { start, end, canEdit, canCancelRow, tooSoon }
+  }
 
+  function ReservationActions({ r, canEdit, canCancelRow, tooSoon }: {
+    r: any; canEdit: boolean; canCancelRow: boolean; tooSoon: boolean
+  }) {
+    return (
+      <div className="flex items-center gap-3">
+        {canEdit && (
+          <IconAction
+            icon={Edit2}
+            label="Edit reservation"
+            onClick={() => setEditing(r)}
+            colorClass="text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+          />
+        )}
+        {canCancelRow && <CancelButton reservationId={r.id} />}
+        {tooSoon && (
+          // Same tooltip styling as IconAction's (dark bg, white text)
+          // instead of the native browser title tooltip, which looked
+          // out of place next to it.
+          <span className="relative group inline-flex items-center justify-center p-1.5 text-gray-300 cursor-not-allowed">
+            <Trash2 size={14} />
+            {/* Strikethrough — a disabled trashcan reads clearer at a
+                glance than the old "Within 12h ⓘ" text label did. */}
+            <span className="absolute w-[18px] h-px bg-gray-300 rotate-45 pointer-events-none" />
+            <span className="pointer-events-none absolute right-0 bottom-full z-10 mb-1.5 whitespace-nowrap rounded bg-gray-900 px-2 py-1 text-xs text-white opacity-0 transition-opacity group-hover:opacity-100">
+              Cannot cancel — within 12 hours of the start time
+            </span>
+          </span>
+        )}
+      </div>
+    )
+  }
+
+  function ReservationRow({ r }: { r: any }) {
+    const { start, end, canEdit, canCancelRow, tooSoon } = reservationRowData(r)
     return (
       <tr className="border-b border-gray-100 last:border-0 hover:bg-gray-50">
         <td className="px-4 py-3 font-medium text-gray-900">{r.title}</td>
@@ -85,33 +124,33 @@ export default function MyReservationsList({ upcoming, past, companyReservations
           {((end.getTime() - start.getTime()) / 3600000).toFixed(1)}h
         </td>
         <td className="px-4 py-3 text-right">
-          <div className="flex items-center justify-end gap-3">
-            {canEdit && (
-              <IconAction
-                icon={Edit2}
-                label="Edit reservation"
-                onClick={() => setEditing(r)}
-                colorClass="text-gray-400 hover:bg-gray-100 hover:text-gray-600"
-              />
-            )}
-            {canCancelRow && <CancelButton reservationId={r.id} />}
-            {tooSoon && (
-              // Same tooltip styling as IconAction's (dark bg, white text)
-              // instead of the native browser title tooltip, which looked
-              // out of place next to it.
-              <span className="relative group inline-flex items-center justify-center p-1.5 text-gray-300 cursor-not-allowed">
-                <Trash2 size={14} />
-                {/* Strikethrough — a disabled trashcan reads clearer at a
-                    glance than the old "Within 12h ⓘ" text label did. */}
-                <span className="absolute w-[18px] h-px bg-gray-300 rotate-45 pointer-events-none" />
-                <span className="pointer-events-none absolute right-0 bottom-full z-10 mb-1.5 whitespace-nowrap rounded bg-gray-900 px-2 py-1 text-xs text-white opacity-0 transition-opacity group-hover:opacity-100">
-                  Cannot cancel — within 12 hours of the start time
-                </span>
-              </span>
-            )}
+          <div className="flex justify-end">
+            <ReservationActions r={r} canEdit={canEdit} canCancelRow={canCancelRow} tooSoon={tooSoon} />
           </div>
         </td>
       </tr>
+    )
+  }
+
+  // The table's fixed columns didn't fit a phone screen (its wrapper
+  // clips overflow instead of scrolling it), so mobile gets a proper
+  // stacked card instead of a squeezed/clipped table. Caught 2026-09-11.
+  function ReservationCard({ r }: { r: any }) {
+    const { start, end, canEdit, canCancelRow, tooSoon } = reservationRowData(r)
+    return (
+      <div className="px-4 py-3 border-b border-gray-100 last:border-0">
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0">
+            <p className="font-medium text-gray-900 truncate">{r.title}</p>
+            <p className="text-xs text-gray-500 mt-0.5">{r.rooms?.name} · {r.rooms?.locations?.name}</p>
+          </div>
+          <ReservationActions r={r} canEdit={canEdit} canCancelRow={canCancelRow} tooSoon={tooSoon} />
+        </div>
+        <p className="text-sm text-gray-700 mt-2">
+          {format(start, 'MMM d, yyyy')} · {format(start, 'h:mm a')} – {format(end, 'h:mm a')}
+          <span className="text-gray-400"> ({((end.getTime() - start.getTime()) / 3600000).toFixed(1)}h)</span>
+        </p>
+      </div>
     )
   }
 
@@ -119,7 +158,7 @@ export default function MyReservationsList({ upcoming, past, companyReservations
     if (rows.length === 0) return null
     return (
       <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-        <table className="w-full text-sm">
+        <table className="w-full text-sm hidden md:table">
           <thead>
             <tr className="bg-gray-50 border-b border-gray-200">
               {['Title', 'Room', 'Location', 'Date & Time', 'Duration', ''].map(h => (
@@ -131,6 +170,9 @@ export default function MyReservationsList({ upcoming, past, companyReservations
             {rows.map(r => <ReservationRow key={r.id} r={r} />)}
           </tbody>
         </table>
+        <div className="md:hidden">
+          {rows.map(r => <ReservationCard key={r.id} r={r} />)}
+        </div>
       </div>
     )
   }
@@ -164,29 +206,60 @@ export default function MyReservationsList({ upcoming, past, companyReservations
       )
     }
 
+    // Same fixed-columns-don't-fit-a-phone problem as the personal table
+    // above (worse here — up to 7 columns for an admin) — a stacked card
+    // instead of a table below md.
+    function TeamCard({ r }: { r: any }) {
+      const start = toPacificDate(new Date(r.start_time))
+      const end = toPacificDate(new Date(r.end_time))
+      return (
+        <div className="px-4 py-3 border-b border-gray-100 last:border-0">
+          <p className="font-medium text-gray-900 truncate">{r.title}</p>
+          <p className="text-xs text-gray-500 mt-0.5">
+            {r.profiles?.full_name ?? 'Unknown'}
+            {profile.is_admin && r.companies?.name ? ` · ${r.companies.name}` : ''}
+          </p>
+          <p className="text-xs text-gray-500 mt-0.5">{r.rooms?.name} · {r.rooms?.locations?.name}</p>
+          <p className="text-sm text-gray-700 mt-2">
+            {format(start, 'MMM d, yyyy')} · {format(start, 'h:mm a')} – {format(end, 'h:mm a')}
+            <span className="text-gray-400"> ({((end.getTime() - start.getTime()) / 3600000).toFixed(1)}h)</span>
+          </p>
+        </div>
+      )
+    }
+
     const headers = profile.is_admin
       ? ['Title', 'Booked By', 'Company', 'Room', 'Location', 'Date & Time', 'Duration']
       : ['Title', 'Booked By', 'Room', 'Location', 'Date & Time', 'Duration']
+
+    function TeamRows({ rows }: { rows: any[] }) {
+      return (
+        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+          <table className="w-full text-sm hidden md:table">
+            <thead>
+              <tr className="bg-gray-50 border-b border-gray-200">
+                {headers.map(h => (
+                  <th key={h} className="text-left px-4 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wide">{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map(r => <TeamRow key={r.id} r={r} />)}
+            </tbody>
+          </table>
+          <div className="md:hidden">
+            {rows.map(r => <TeamCard key={r.id} r={r} />)}
+          </div>
+        </div>
+      )
+    }
 
     return (
       <div className="space-y-4">
         {upcomingTeam.length > 0 && (
           <div>
             <h3 className="text-xs font-medium text-blue-600 mb-1.5">Upcoming ({upcomingTeam.length})</h3>
-            <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="bg-gray-50 border-b border-gray-200">
-                    {headers.map(h => (
-                      <th key={h} className="text-left px-4 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wide">{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {upcomingTeam.map(r => <TeamRow key={r.id} r={r} />)}
-                </tbody>
-              </table>
-            </div>
+            <TeamRows rows={upcomingTeam} />
           </div>
         )}
         {pastTeam.length > 0 && (() => {
@@ -197,20 +270,7 @@ export default function MyReservationsList({ upcoming, past, companyReservations
                 <h3 className="text-sm font-medium text-blue-600">Past ({filteredPast.length})</h3>
               </div>
               {filteredPast.length > 0 ? (
-                <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="bg-gray-50 border-b border-gray-200">
-                        {headers.map(h => (
-                          <th key={h} className="text-left px-4 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wide">{h}</th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {filteredPast.map(r => <TeamRow key={r.id} r={r} />)}
-                    </tbody>
-                  </table>
-                </div>
+                <TeamRows rows={filteredPast} />
               ) : (
                 <p className="text-sm text-gray-400 py-4">No reservations in this period.</p>
               )}

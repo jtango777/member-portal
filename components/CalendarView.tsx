@@ -47,6 +47,11 @@ export default function CalendarView({ locations, profile, company, hourScope, h
   const [selectedDate, setSelectedDate]         = useState<Date>(new Date())
   const [rooms, setRooms]                       = useState<Room[]>([])
   const [reservations, setReservations]         = useState<Reservation[]>([])
+  // Mobile only — desktop always shows the day grid, navigated via the
+  // sidebar's mini calendar. Phones/portrait tablets had no date nav at
+  // all before this (the sidebar is lg:only), so mobile gets its own
+  // Google-Calendar-style month view that taps through to a day.
+  const [mobileView, setMobileView]             = useState<'month' | 'day'>('month')
   const [allMonthReservations, setAllMonthReservations] = useState<Reservation[]>([])
   const [usedHours, setUsedHours]               = useState(hoursUsed)
   const [loading, setLoading]                   = useState(false)
@@ -104,6 +109,55 @@ export default function CalendarView({ locations, profile, company, hourScope, h
     pendingCenterRef.current = null
   }, [slotH])
 
+  // Pinch-to-zoom on the day grid (mobile) — reuses the same slotH the
+  // desktop drag-slider drives, so it's one zoom mechanism either way.
+  // Native listeners with { passive: false } because a two-finger pinch
+  // needs preventDefault() (to stop the page itself from zooming), and
+  // React's synthetic touch handlers can't reliably get a non-passive
+  // listener registered in time. Single-finger scrolling is left alone —
+  // preventDefault only fires when a second touch is actually down.
+  const pinchStartDistRef  = useRef<number | null>(null)
+  const pinchStartSlotHRef = useRef(DEFAULT_SLOT_H)
+
+  useEffect(() => {
+    const el = scrollRef.current
+    if (!el) return
+
+    function distance(touches: TouchList) {
+      const [a, b] = [touches[0], touches[1]]
+      return Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY)
+    }
+
+    function onTouchStart(e: TouchEvent) {
+      if (e.touches.length !== 2) return
+      pinchStartDistRef.current = distance(e.touches)
+      pinchStartSlotHRef.current = slotHRef.current
+    }
+
+    function onTouchMove(e: TouchEvent) {
+      if (e.touches.length !== 2 || pinchStartDistRef.current == null) return
+      e.preventDefault()
+      const ratio = distance(e.touches) / pinchStartDistRef.current
+      const next = Math.min(MAX_SLOT_H, Math.max(MIN_SLOT_H, Math.round(pinchStartSlotHRef.current * ratio)))
+      handleSlotHChange(next)
+    }
+
+    function onTouchEnd(e: TouchEvent) {
+      if (e.touches.length < 2) pinchStartDistRef.current = null
+    }
+
+    el.addEventListener('touchstart', onTouchStart, { passive: true })
+    el.addEventListener('touchmove', onTouchMove, { passive: false })
+    el.addEventListener('touchend', onTouchEnd, { passive: true })
+    el.addEventListener('touchcancel', onTouchEnd, { passive: true })
+    return () => {
+      el.removeEventListener('touchstart', onTouchStart)
+      el.removeEventListener('touchmove', onTouchMove)
+      el.removeEventListener('touchend', onTouchEnd)
+      el.removeEventListener('touchcancel', onTouchEnd)
+    }
+  }, [])
+
   // Close date picker when clicking outside
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -143,6 +197,21 @@ export default function CalendarView({ locations, profile, company, hourScope, h
   }, [selectedLocation, selectedDate])
 
   useEffect(() => { fetchData() }, [fetchData])
+
+  // Feeds the mobile month view's per-day booking bars. Fetched by month
+  // (not just the currently selected day) so every cell in the grid can
+  // show what's booked, not just the one day the desktop view cares about.
+  useEffect(() => {
+    const monthStr = format(pickerMonth, 'yyyy-MM')
+    fetch(`/api/reservations?locationId=${selectedLocation.id}&month=${monthStr}`)
+      .then(r => r.json())
+      .then(setAllMonthReservations)
+      .catch(() => setAllMonthReservations([]))
+  }, [selectedLocation, pickerMonth])
+
+  function getReservationsForDay(day: Date) {
+    return allMonthReservations.filter(r => isSameDay(toPacificDate(new Date(r.start_time)), day))
+  }
 
   // Fetch members list for admin booking on behalf
   useEffect(() => {
@@ -256,6 +325,57 @@ export default function CalendarView({ locations, profile, company, hourScope, h
 
   const hoursRemaining = company ? company.monthly_hours_allotment - usedHours : null
 
+  // Shared between the desktop sidebar and the mobile date popover — was
+  // only ever built once, inline in the sidebar, which is hidden below
+  // `lg`. That left phones and portrait tablets with no way to change the
+  // day at all (caught 2026-09-11).
+  function MiniCalendar() {
+    return (
+      <div>
+        <div className="flex items-center justify-between mb-2">
+          <button onClick={() => setPickerMonth(m => subMonths(m, 1))} className="p-1 hover:bg-gray-100 rounded transition-colors">
+            <ChevronLeft size={14} />
+          </button>
+          <span className="text-sm font-semibold text-gray-900">{format(pickerMonth, 'MMMM yyyy')}</span>
+          <button onClick={() => setPickerMonth(m => addMonths(m, 1))} className="p-1 hover:bg-gray-100 rounded transition-colors">
+            <ChevronRight size={14} />
+          </button>
+        </div>
+        <div className="grid grid-cols-7 mb-1">
+          {['S','M','T','W','T','F','S'].map((d, i) => (
+            <div key={i} className="text-center text-xs text-gray-400 font-medium py-1">{d}</div>
+          ))}
+        </div>
+        <div className="grid grid-cols-7 gap-0.5">
+          {Array.from({ length: getDay(startOfMonth(pickerMonth)) }).map((_, i) => (
+            <div key={`pad-${i}`} />
+          ))}
+          {eachDayOfInterval({ start: startOfMonth(pickerMonth), end: endOfMonth(pickerMonth) }).map(day => {
+            const isPast = isBefore(day, startOfDay(new Date())) && !isToday(day)
+            return (
+              <button
+                key={day.toISOString()}
+                onClick={() => setSelectedDate(day)}
+                className={cn(
+                  'text-center text-xs py-1.5 rounded-md transition-colors',
+                  isSameDay(day, selectedDate)
+                    ? 'bg-blue-600 text-white font-semibold'
+                    : isToday(day)
+                    ? 'bg-blue-50 text-blue-600 font-semibold'
+                    : isPast
+                    ? 'text-gray-400 hover:bg-gray-100'
+                    : 'hover:bg-gray-100 text-gray-700'
+                )}
+              >
+                {format(day, 'd')}
+              </button>
+            )
+          })}
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="flex h-full bg-white">
       {/* ── Left sidebar ── */}
@@ -270,48 +390,7 @@ export default function CalendarView({ locations, profile, company, hourScope, h
         </div>
 
         {/* Mini calendar */}
-        <div>
-          <div className="flex items-center justify-between mb-2">
-            <button onClick={() => setPickerMonth(m => subMonths(m, 1))} className="p-1 hover:bg-gray-100 rounded transition-colors">
-              <ChevronLeft size={14} />
-            </button>
-            <span className="text-sm font-semibold text-gray-900">{format(pickerMonth, 'MMMM yyyy')}</span>
-            <button onClick={() => setPickerMonth(m => addMonths(m, 1))} className="p-1 hover:bg-gray-100 rounded transition-colors">
-              <ChevronRight size={14} />
-            </button>
-          </div>
-          <div className="grid grid-cols-7 mb-1">
-            {['S','M','T','W','T','F','S'].map((d, i) => (
-              <div key={i} className="text-center text-xs text-gray-400 font-medium py-1">{d}</div>
-            ))}
-          </div>
-          <div className="grid grid-cols-7 gap-0.5">
-            {Array.from({ length: getDay(startOfMonth(pickerMonth)) }).map((_, i) => (
-              <div key={`pad-${i}`} />
-            ))}
-            {eachDayOfInterval({ start: startOfMonth(pickerMonth), end: endOfMonth(pickerMonth) }).map(day => {
-              const isPast = isBefore(day, startOfDay(new Date())) && !isToday(day)
-              return (
-                <button
-                  key={day.toISOString()}
-                  onClick={() => setSelectedDate(day)}
-                  className={cn(
-                    'text-center text-xs py-1.5 rounded-md transition-colors',
-                    isSameDay(day, selectedDate)
-                      ? 'bg-blue-600 text-white font-semibold'
-                      : isToday(day)
-                      ? 'bg-blue-50 text-blue-600 font-semibold'
-                      : isPast
-                      ? 'text-gray-400 hover:bg-gray-100'
-                      : 'hover:bg-gray-100 text-gray-700'
-                  )}
-                >
-                  {format(day, 'd')}
-                </button>
-              )
-            })}
-          </div>
-        </div>
+        <MiniCalendar />
 
         {/* Make a Reservation button */}
         <button
@@ -386,8 +465,105 @@ export default function CalendarView({ locations, profile, company, hourScope, h
           </div>
         </div>
 
-        {/* Calendar grid */}
-      <div ref={scrollRef} className="flex-1 overflow-auto scrollbar-thin">
+        {/* Mobile date nav — month view browses by month; day view (after
+            tapping a date) browses by day and can hop back to the month.
+            Desktop doesn't need this row at all, it has the sidebar. */}
+        <div className="flex lg:hidden items-center justify-between px-4 py-2 border-b border-gray-200 flex-shrink-0">
+          {mobileView === 'day' ? (
+            <>
+              <button onClick={() => setMobileView('month')}
+                className="flex items-center gap-1 text-sm font-medium text-gray-600 hover:text-gray-900">
+                <ChevronLeft size={16} /> Month
+              </button>
+              <div className="flex items-center gap-2">
+                <button onClick={() => setSelectedDate(d => subDays(d, 1))} className="p-1 hover:bg-gray-100 rounded">
+                  <ChevronLeft size={16} />
+                </button>
+                <span className="text-sm font-semibold text-gray-900 min-w-[7.5rem] text-center">
+                  {format(selectedDate, 'EEE, MMM d')}
+                </span>
+                <button onClick={() => setSelectedDate(d => addDays(d, 1))} className="p-1 hover:bg-gray-100 rounded">
+                  <ChevronRight size={16} />
+                </button>
+              </div>
+              {!isToday(selectedDate) ? (
+                <button onClick={() => setSelectedDate(new Date())} className="text-xs text-blue-600 font-medium">Today</button>
+              ) : <span className="w-10" />}
+            </>
+          ) : (
+            <>
+              <button onClick={() => setPickerMonth(m => subMonths(m, 1))} className="p-1 hover:bg-gray-100 rounded">
+                <ChevronLeft size={16} />
+              </button>
+              <span className="text-sm font-semibold text-gray-900">{format(pickerMonth, 'MMMM yyyy')}</span>
+              <button onClick={() => setPickerMonth(m => addMonths(m, 1))} className="p-1 hover:bg-gray-100 rounded">
+                <ChevronRight size={16} />
+              </button>
+            </>
+          )}
+        </div>
+
+        {/* Mobile month view — Google-Calendar-style: each cell shows up to
+            3 small colored bars (truncated title, same own/block/other
+            coloring the day grid below uses) and a "+N more" overflow.
+            Tapping a day jumps into the day view for that date. */}
+        {mobileView === 'month' && (
+          <div className="lg:hidden flex-1 overflow-auto">
+            <div className="grid grid-cols-7 border-b border-gray-200">
+              {['S','M','T','W','T','F','S'].map((d, i) => (
+                <div key={i} className="text-center text-xs text-gray-400 font-medium py-1.5">{d}</div>
+              ))}
+            </div>
+            <div className="grid grid-cols-7">
+              {Array.from({ length: getDay(startOfMonth(pickerMonth)) }).map((_, i) => (
+                <div key={`pad-${i}`} className="border-r border-b border-gray-100 min-h-[76px]" />
+              ))}
+              {eachDayOfInterval({ start: startOfMonth(pickerMonth), end: endOfMonth(pickerMonth) }).map(day => {
+                const dayReservations = getReservationsForDay(day)
+                const shown = dayReservations.slice(0, 3)
+                const overflow = dayReservations.length - shown.length
+                return (
+                  <button
+                    key={day.toISOString()}
+                    onClick={() => { setSelectedDate(day); setMobileView('day') }}
+                    className="border-r border-b border-gray-100 min-h-[76px] p-1 flex flex-col items-stretch text-left"
+                  >
+                    <span className={cn(
+                      'text-xs font-medium w-5 h-5 flex items-center justify-center rounded-full mb-0.5 self-start',
+                      isSameDay(day, selectedDate) ? 'bg-blue-600 text-white' : isToday(day) ? 'text-blue-600' : 'text-gray-700'
+                    )}>
+                      {format(day, 'd')}
+                    </span>
+                    <div className="flex flex-col gap-0.5 min-w-0">
+                      {shown.map(res => {
+                        const isOwn = res.user_id === profile.id || (!!profile.company_id && res.company_id === profile.company_id)
+                        const isBlock = res.is_admin_block
+                        return (
+                          <div key={res.id} className={cn(
+                            'text-[10px] leading-tight px-1 py-[1px] rounded truncate',
+                            isBlock ? 'bg-slate-200 text-slate-700' : isOwn ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700'
+                          )}>
+                            {res.title}
+                          </div>
+                        )
+                      })}
+                      {overflow > 0 && (
+                        <div className="text-[10px] text-gray-400 px-1">+{overflow} more</div>
+                      )}
+                    </div>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Calendar grid (day view) — always shown on desktop; on mobile
+            only once a day's been tapped from the month view above. */}
+      <div ref={scrollRef} className={cn(
+        mobileView === 'day' ? 'block' : 'hidden',
+        'lg:block flex-1 overflow-auto scrollbar-thin'
+      )}>
         {loading ? (
           <div className="flex items-center justify-center h-full text-gray-400 text-sm">Loading…</div>
         ) : (

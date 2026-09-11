@@ -56,17 +56,32 @@ export default function HausSmilesTabs({ groups, defaultLocationId, isAdmin }: P
     return <p className="text-sm text-gray-500">No photos yet — members will show up here as they add theirs.</p>
   }
 
+  function selectLocation(key: string) {
+    setActiveKey(key); setSeatingFilter(''); setSearch('')
+    router.replace(`/dashboard/faces?location=${key}`, { scroll: false })
+  }
+
   return (
     <div>
-      <div className="flex items-center justify-between border-b border-gray-200 mb-6">
-        <div className="flex gap-2">
+      <div className="flex flex-col gap-2 border-b border-gray-200 mb-6 pb-2 md:flex-row md:items-center md:justify-between md:pb-0">
+        {/* Location tabs on desktop; a compact dropdown on mobile — the
+            tab row (plus the search box's fixed width) didn't fit a phone
+            screen, so the whole header quietly overflowed sideways
+            instead of wrapping, leaving dead space on the right and
+            forcing a horizontal scroll to reach the seating filter.
+            Caught 2026-09-11. */}
+        <select
+          value={active.key}
+          onChange={e => selectLocation(e.target.value)}
+          className="md:hidden text-sm font-medium border border-gray-300 rounded-lg px-2.5 py-1.5 text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        >
+          {groups.map(group => <option key={group.key} value={group.key}>{group.name}</option>)}
+        </select>
+        <div className="hidden md:flex gap-2">
           {groups.map(group => (
             <button
               key={group.key}
-              onClick={() => {
-                setActiveKey(group.key); setSeatingFilter(''); setSearch('')
-                router.replace(`/dashboard/faces?location=${group.key}`, { scroll: false })
-              }}
+              onClick={() => selectLocation(group.key)}
               className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
                 group.key === active.key
                   ? 'border-blue-600 text-blue-600'
@@ -77,20 +92,20 @@ export default function HausSmilesTabs({ groups, defaultLocationId, isAdmin }: P
             </button>
           ))}
         </div>
-        <div className="flex items-center gap-2 mb-2">
-          <div className="relative">
+        <div className="flex items-center gap-2 md:mb-2">
+          <div className="relative flex-1 min-w-0 md:flex-none">
             <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
             <input
               value={search}
               onChange={e => setSearch(e.target.value)}
               placeholder="Search names..."
-              className="pl-7 pr-2.5 py-1.5 w-40 text-sm border border-gray-300 rounded-lg text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="pl-7 pr-2.5 py-1.5 w-full md:w-40 text-sm border border-gray-300 rounded-lg text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
           <select
             value={seatingFilter}
             onChange={e => setSeatingFilter(e.target.value)}
-            className="text-sm border border-gray-300 rounded-lg px-2.5 py-1.5 text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="flex-shrink-0 text-sm border border-gray-300 rounded-lg px-2.5 py-1.5 text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             <option value="">All seating</option>
             {getSeatingOptions(active.name).map(s => <option key={s} value={s}>{s}</option>)}

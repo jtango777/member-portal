@@ -1,6 +1,6 @@
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
-import { calcHoursUsed, getMonthBounds, getPacificDayBounds } from '@/lib/utils'
+import { calcHoursUsed, getMonthBounds, getPacificDayBounds, getPacificMonthBounds } from '@/lib/utils'
 import { sendConfirmationEmail } from '@/lib/email'
 import { getOrCreateGuestUserId } from '@/lib/guestAccount'
 import { resolveHistoricalBookings } from '@/lib/resolveHistoricalBookings'
@@ -10,6 +10,7 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
   const locationId = searchParams.get('locationId')
   const date       = searchParams.get('date') // YYYY-MM-DD
+  const month      = searchParams.get('month') // YYYY-MM — used by the mobile month view
 
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -23,6 +24,9 @@ export async function GET(request: Request) {
   if (date) {
     const { start, end } = getPacificDayBounds(date)
     query = query.gte('start_time', start.toISOString()).lte('start_time', end.toISOString())
+  } else if (month) {
+    const { start, end } = getPacificMonthBounds(month)
+    query = query.gte('start_time', start).lte('start_time', end)
   }
 
   if (locationId) {
