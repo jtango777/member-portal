@@ -195,7 +195,7 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
       else if (data.emailSent) toast.success('Invite sent!')
       else { setLastInviteLink(data.inviteLink); toast.success('Member added — copy the link below to invite them manually.') }
       if (markInPipedrive && data.pipedriveMatched === false) {
-        toast('No matching contact found in Pipedrive — mark them there manually.', { icon: '⚠️' })
+        toast('No matching contact found in Pipedrive — mark them there manually.', { icon: '⚠️', id: 'pipedrive-no-match-toast' })
       }
       // Prompt for a photo right away, same dialog as the per-row "Add
       // picture" action — saves a trip back to find them in the list right

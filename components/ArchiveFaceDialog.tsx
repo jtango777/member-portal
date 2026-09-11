@@ -60,7 +60,7 @@ export default function ArchiveFaceDialog({ face, onOpenChange, onSuccess }: Pro
       const data = await res.json()
       toast.success('Archived')
       if (showPipedriveToggle && unmarkInPipedrive && data.pipedriveMatched === false) {
-        toast('No matching contact found in Pipedrive — unmark them there manually.', { icon: '⚠️' })
+        toast('No matching contact found in Pipedrive — unmark them there manually.', { icon: '⚠️', id: 'pipedrive-no-match-toast' })
       }
       onOpenChange(false)
       onSuccess()

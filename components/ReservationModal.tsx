@@ -300,7 +300,7 @@ export default function ReservationModal({
     const isBookingPastDate = bookingDateStr < todayStr
     if (!reservation && isBookingPastDate && !pastWarningConfirmed) {
       setPastWarningConfirmed(true)
-      toast('This time is in the past. Click Save again to confirm.', { icon: '⚠️' })
+      toast('This time is in the past. Click Save again to confirm.', { icon: '⚠️', id: 'past-date-confirm-toast' })
       return
     }
     if (!title.trim()) { toast.error('Please enter a title'); return }

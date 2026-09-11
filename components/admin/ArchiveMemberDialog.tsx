@@ -27,7 +27,7 @@ export default function ArchiveMemberDialog({ member, onOpenChange, onSuccess }:
       const data = await res.json()
       toast.success('Archived')
       if (unmarkInPipedrive && data.pipedriveMatched === false) {
-        toast('No matching contact found in Pipedrive — unmark them there manually.', { icon: '⚠️' })
+        toast('No matching contact found in Pipedrive — unmark them there manually.', { icon: '⚠️', id: 'pipedrive-no-match-toast' })
       }
       onOpenChange(false)
       onSuccess()
