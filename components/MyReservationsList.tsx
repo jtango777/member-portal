@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { format, startOfMonth, subDays } from 'date-fns'
 import Link from 'next/link'
 import { CalendarDays, ChevronRight, Edit2, Trash2 } from 'lucide-react'
+import toast from 'react-hot-toast'
 import { cn, toPacificDate } from '@/lib/utils'
 import { Reservation, Room, Profile, Company } from '@/types'
 import ReservationModal from '@/components/ReservationModal'
@@ -90,10 +91,17 @@ export default function MyReservationsList({ upcoming, past, companyReservations
         )}
         {canCancelRow && <CancelButton reservationId={r.id} />}
         {tooSoon && (
-          // Same tooltip styling as IconAction's (dark bg, white text)
-          // instead of the native browser title tooltip, which looked
-          // out of place next to it.
-          <span className="relative group inline-flex items-center justify-center p-1.5 text-gray-300 cursor-not-allowed">
+          // The hover tooltip (dark bg, white text, matching IconAction's)
+          // still works for a mouse, but touch has no hover — tapping just
+          // showed the tooltip's dark box with the text clipped off by the
+          // card list's rounded-corner container, unreadable. onClick adds
+          // a toast as a touch-reliable fallback that can't be clipped.
+          // Caught 2026-09-11.
+          <button
+            type="button"
+            onClick={() => toast('Cannot cancel — within 12 hours of the start time', { icon: '🚫' })}
+            className="relative group inline-flex items-center justify-center p-1.5 text-gray-300"
+          >
             <Trash2 size={14} />
             {/* Strikethrough — a disabled trashcan reads clearer at a
                 glance than the old "Within 12h ⓘ" text label did. */}
@@ -101,7 +109,7 @@ export default function MyReservationsList({ upcoming, past, companyReservations
             <span className="pointer-events-none absolute right-0 bottom-full z-10 mb-1.5 whitespace-nowrap rounded bg-gray-900 px-2 py-1 text-xs text-white opacity-0 transition-opacity group-hover:opacity-100">
               Cannot cancel — within 12 hours of the start time
             </span>
-          </span>
+          </button>
         )}
       </div>
     )
