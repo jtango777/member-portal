@@ -1,4 +1,4 @@
-import { createClient, createAdminClient } from '@/lib/supabase/server'
+import { createClient } from '@/lib/supabase/server'
 import { getAuthedProfile } from '@/lib/supabase/session'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
@@ -14,13 +14,6 @@ export default async function PortalHomePage() {
   const profile = await getAuthedProfile()
   if (!profile) redirect('/login')
   const supabase = await createClient()
-
-  // Only ever true the very first time — flip it right away so every visit
-  // after this one gets "Welcome back" instead.
-  const isFirstVisit = !profile.welcomed
-  if (isFirstVisit) {
-    await createAdminClient().from('profiles').update({ welcomed: true }).eq('id', profile.id)
-  }
 
   // Only ever shows people formally linked to someone on the Members page —
   // a real registered profile, or a pending invite with a linked photo —

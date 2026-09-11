@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { getAuthedUser, getAuthedProfile } from '@/lib/supabase/session'
 import Nav from '@/components/Nav'
 import Sidebar from '@/components/Sidebar'
@@ -32,6 +32,20 @@ export default async function DashboardLayout({ children }: { children: React.Re
   // missing profile.
   if (!(profile as Profile).is_active) redirect('/auth/signout')
 
+  // Reading AND flipping profile.welcomed both happen right here, in one
+  // place — moved out of app/dashboard/page.tsx, which used to do its own
+  // separate read-then-write of the same field. Layout and page fetch
+  // their own profile independently in Next.js (no shared cache), so on
+  // the very first dashboard visit after signup there was a race: if
+  // page.tsx's write landed before this component's own read resolved,
+  // isFirstSignIn read back false on the actual first visit, and the
+  // onboarding photo/LinkedIn prompt silently never showed. Caught
+  // 2026-09-11 (jomobile tester's fresh signup never saw the prompt).
+  const isFirstSignIn = !(profile as Profile).welcomed
+  if (isFirstSignIn) {
+    await createAdminClient().from('profiles').update({ welcomed: true }).eq('id', (profile as Profile).id)
+  }
+
   const shouldShowAnnouncement = !!latestAnnouncement && latestAnnouncement.id !== (profile as Profile).dismissed_announcement_id
 
   // Same check as the Rooms page's own "not set up for room access yet"
@@ -49,7 +63,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
       <Nav profile={profile as Profile} />
       <OnboardingOverlays
         avatarUrl={(profile as Profile).avatar_url}
-        isFirstSignIn={!(profile as Profile).welcomed}
+        isFirstSignIn={isFirstSignIn}
         avatarPromptDismissed={(profile as Profile).avatar_prompt_dismissed}
         announcement={shouldShowAnnouncement && latestAnnouncement ? latestAnnouncement : null}
       />
