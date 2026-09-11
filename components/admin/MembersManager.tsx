@@ -668,7 +668,7 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
             showAll={showAllActive} onToggleShowAll={() => setShowAllActive(v => !v)}
             pageSize={activePageSize} onPageSizeChange={size => { setActivePageSize(size); setActivePage(1) }} />
         }>
-          <AdminTable colWidths={['13%', '24%', '12%', '15%', '8%', '12%', '16%']} minWidth={1000}>
+          <AdminTable colWidths={['17%', '22%', '12%', '15%', '7%', '11%', '16%']} minWidth={1000}>
             <thead>
               <tr className="border-b border-gray-100 bg-gray-50">
                 <Th>Name</Th><Th>Email</Th><Th>Company</Th><Th sortDir={locationSort} onClick={toggleLocationSort}>Location</Th><Th>Admin</Th><Th>Joined</Th><Th />
@@ -751,7 +751,7 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
             showAll={showAllPending} onToggleShowAll={() => setShowAllPending(v => !v)}
             pageSize={pendingPageSize} onPageSizeChange={size => { setPendingPageSize(size); setPendingPage(1) }} />
         }>
-          <AdminTable colWidths={['13%', '24%', '12%', '15%', '8%', '12%', '16%']} minWidth={1000}>
+          <AdminTable colWidths={['17%', '22%', '12%', '15%', '7%', '11%', '16%']} minWidth={1000}>
             <thead>
               <tr className="border-b border-gray-100 bg-gray-50">
                 <Th>Name</Th><Th>Email</Th><Th>Company</Th><Th>Location</Th><Th>Status</Th><Th>Invited</Th><Th />
@@ -816,7 +816,7 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
                     showAll={showAllNotInvited} onToggleShowAll={() => setShowAllNotInvited(v => !v)}
                     pageSize={notInvitedPageSize} onPageSizeChange={size => { setNotInvitedPageSize(size); setNotInvitedPage(1) }} />
                 </div>
-                <AdminTable colWidths={['13%', '24%', '12%', '15%', '8%', '12%', '16%']} minWidth={1000}>
+                <AdminTable colWidths={['17%', '22%', '12%', '15%', '7%', '11%', '16%']} minWidth={1000}>
                   <thead>
                     <tr className="border-b border-gray-100 bg-gray-50">
                       <Th>Name</Th><Th>Email</Th><Th>Company</Th><Th>Location</Th><Th>Status</Th><Th>Added</Th><Th />
