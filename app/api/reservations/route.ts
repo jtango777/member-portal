@@ -67,8 +67,13 @@ export async function POST(request: Request) {
 
   // A company gives a shared pool; individual_hours_allotment (set directly
   // when there's no company) gives a personal one. Neither means the
-  // account isn't set up for room access yet.
-  if (!profile.is_admin && !profile.company_id && !profile.individual_hours_allotment) {
+  // account isn't set up for room access yet. A company only counts if it
+  // actually has hours — several import scripts fell back to inventing a
+  // placeholder company named after the person, with 0 hours, whenever no
+  // real organization was on file, which used to satisfy this check with
+  // nothing actually bookable behind it. Caught 2026-09-11.
+  const hasCompanyAccess = !!profile.company_id && (profile.companies?.monthly_hours_allotment ?? 0) > 0
+  if (!profile.is_admin && !hasCompanyAccess && !profile.individual_hours_allotment) {
     return NextResponse.json({ error: 'Your account is not set up for room access. Contact your admin.' }, { status: 403 })
   }
 

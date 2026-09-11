@@ -31,8 +31,10 @@ export default async function MyReservationsPage() {
   // check — the sidebar/tab bar already hide this link in that case, but
   // someone could still hit the URL directly (an old bookmark, a shared
   // link), so redirect them to the same "request access" screen instead
-  // of showing an empty reservations page.
-  const noRoomAccess = !profileData.is_admin && !profileData.company_id && !profileData.individual_hours_allotment
+  // of showing an empty reservations page. A company only counts if it
+  // actually has hours (see Rooms page for why — caught 2026-09-11).
+  const hasCompanyAccess = !!profileData.company_id && (profileData.companies?.monthly_hours_allotment ?? 0) > 0
+  const noRoomAccess = !profileData.is_admin && !hasCompanyAccess && !profileData.individual_hours_allotment
   if (noRoomAccess) redirect('/dashboard/rooms')
 
   // Admin client for the historical-email lookup specifically — RLS on

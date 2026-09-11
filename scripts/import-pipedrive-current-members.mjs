@@ -142,19 +142,31 @@ async function main() {
     seenThisRun.add(email)
 
     const name = row['Name']?.trim()
-    const orgName = row['Organization']?.trim() || name  // fallback: person's own name, same as original getaroom import
-    if (!orgName) { skippedNoEmail++; continue }
+    // No real organization on file — leave company_id null instead of
+    // inventing a placeholder company named after the person (the old
+    // "fallback: person's own name, same as original getaroom import"
+    // behavior). That placeholder always got created with 0 hours, but
+    // the app's room-access check only ever looked for "is any company
+    // attached" — so everyone who came through this fallback got full
+    // room access with nothing actually bookable behind it. Caught
+    // 2026-09-11 (Andy Watkins, Antonio Del Toro; 235 people total across
+    // every import that copied this pattern). No company here now just
+    // means no room access yet, same as anyone else not connected.
+    const orgName = row['Organization']?.trim() || null
 
-    let companyId = companyIdByName.get(orgName.toLowerCase())
-    if (!companyId) {
-      if (DRY_RUN) {
-        companyId = `dry-${orgName}`
-        companyIdByName.set(orgName.toLowerCase(), companyId)
-      } else {
-        const { data, error } = await db.from('companies').insert({ name: orgName, monthly_hours_allotment: 0 }).select('id').single()
-        if (error) { console.error(`  ✗ company "${orgName}": ${error.message}`); failed++; continue }
-        companyId = data.id
-        companyIdByName.set(orgName.toLowerCase(), companyId)
+    let companyId = null
+    if (orgName) {
+      companyId = companyIdByName.get(orgName.toLowerCase())
+      if (!companyId) {
+        if (DRY_RUN) {
+          companyId = `dry-${orgName}`
+          companyIdByName.set(orgName.toLowerCase(), companyId)
+        } else {
+          const { data, error } = await db.from('companies').insert({ name: orgName, monthly_hours_allotment: 0 }).select('id').single()
+          if (error) { console.error(`  ✗ company "${orgName}": ${error.message}`); failed++; continue }
+          companyId = data.id
+          companyIdByName.set(orgName.toLowerCase(), companyId)
+        }
       }
     }
 
@@ -165,7 +177,7 @@ async function main() {
     const fullName = (name && name.toLowerCase() !== email) ? name : null
 
     if (DRY_RUN) {
-      console.log(`  [dry] ${email}  |  ${fullName ?? '(no name)'}  |  ${orgName}  |  ${locRaw || '(no location)'}`)
+      console.log(`  [dry] ${email}  |  ${fullName ?? '(no name)'}  |  ${orgName ?? '(no org — no room access)'}  |  ${locRaw || '(no location)'}`)
       added++
       continue
     }

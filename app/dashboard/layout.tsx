@@ -54,8 +54,18 @@ export default async function DashboardLayout({ children }: { children: React.Re
   // individual hours allotment could still see and open My Reservations
   // from the sidebar, even though Rooms itself shows them a "request
   // access" page instead of the calendar.
+  //
+  // Having a company_id used to be enough on its own — but several import
+  // scripts (going back to the original July 27 Pipedrive import) had a
+  // fallback that invented a placeholder "company" named after the person
+  // themselves, with 0 monthly hours, whenever no real organization was on
+  // file. That still counted as "has a company" here, so anyone who
+  // happened through that path got full room access with nothing they
+  // could actually book. Caught 2026-09-11 (Andy Watkins, Antonio Del
+  // Toro). Now a company only counts if it actually has hours to give.
+  const hasCompanyAccess = !!(profile as Profile).company_id && ((profile as Profile).companies?.monthly_hours_allotment ?? 0) > 0
   const hasRoomAccess = (profile as Profile).is_admin
-    || !!(profile as Profile).company_id
+    || hasCompanyAccess
     || !!(profile as Profile).individual_hours_allotment
 
   return (

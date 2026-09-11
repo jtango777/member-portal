@@ -13,10 +13,14 @@ export default async function RoomsPage() {
   if (!profile) redirect('/login')
   const supabase = await createClient()
 
-  // Access requires either a company (shared pool) or individual hours
-  // assigned directly — a bare account with neither isn't set up for room
-  // access yet.
-  const noAccess = !profile.is_admin && !profile.company_id && !profile.individual_hours_allotment
+  // Access requires either a company with an actual hour pool (not just
+  // any company_id — several import scripts fell back to inventing a
+  // placeholder company named after the person, with 0 hours, whenever no
+  // real organization was on file, which used to count as "has a company"
+  // here; caught 2026-09-11) or individual hours assigned directly. A bare
+  // account with neither isn't set up for room access yet.
+  const hasCompanyAccess = !!profile.company_id && (profile.companies?.monthly_hours_allotment ?? 0) > 0
+  const noAccess = !profile.is_admin && !hasCompanyAccess && !profile.individual_hours_allotment
 
   if (noAccess) {
     return (

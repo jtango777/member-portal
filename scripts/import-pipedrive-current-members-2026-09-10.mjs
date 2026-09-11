@@ -77,24 +77,37 @@ async function main() {
     if (existingEmails.has(email) || seenThisRun.has(email)) { skippedExisting++; continue }
     seenThisRun.add(email)
 
-    const orgName = row.org?.trim() || row.name?.trim()
-    let companyId = companyIdByName.get(orgName.toLowerCase())
-    if (!companyId) {
-      if (DRY_RUN) {
-        companyId = `dry-${orgName}`
-        companyIdByName.set(orgName.toLowerCase(), companyId)
-      } else {
-        const { data, error } = await db.from('companies').insert({ name: orgName, monthly_hours_allotment: 0 }).select('id').single()
-        if (error) { console.error(`  ✗ company "${orgName}": ${error.message}`); failed++; continue }
-        companyId = data.id
-        companyIdByName.set(orgName.toLowerCase(), companyId)
+    // No real organization on file — leave company_id null instead of
+    // inventing a placeholder company named after the person (the old
+    // `row.org?.trim() || row.name?.trim()` fallback). That placeholder
+    // always got created with 0 hours, but the app's room-access check
+    // only ever looked for "is any company attached" — so everyone who
+    // came through this fallback got full room access with nothing
+    // actually bookable behind it. Caught 2026-09-11 (Andy Watkins,
+    // Antonio Del Toro; 235 people total across every import that copied
+    // this same pattern). No company here now just means no room access
+    // yet, same as anyone else not connected.
+    const orgName = row.org?.trim() || null
+    let companyId = null
+    if (orgName) {
+      companyId = companyIdByName.get(orgName.toLowerCase())
+      if (!companyId) {
+        if (DRY_RUN) {
+          companyId = `dry-${orgName}`
+          companyIdByName.set(orgName.toLowerCase(), companyId)
+        } else {
+          const { data, error } = await db.from('companies').insert({ name: orgName, monthly_hours_allotment: 0 }).select('id').single()
+          if (error) { console.error(`  ✗ company "${orgName}": ${error.message}`); failed++; continue }
+          companyId = data.id
+          companyIdByName.set(orgName.toLowerCase(), companyId)
+        }
       }
     }
 
     const fullName = (row.name && row.name.toLowerCase() !== email) ? row.name : null
 
     if (DRY_RUN) {
-      console.log(`  [dry] ${email}  |  ${fullName ?? '(no name)'}  |  ${orgName}  |  ${row.portalLocationId ?? '(no location)'}`)
+      console.log(`  [dry] ${email}  |  ${fullName ?? '(no name)'}  |  ${orgName ?? '(no org — no room access)'}  |  ${row.portalLocationId ?? '(no location)'}`)
       added++
       continue
     }
