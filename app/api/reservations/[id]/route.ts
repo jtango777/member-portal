@@ -32,10 +32,12 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     if (reservation.user_id !== user.id) {
       return NextResponse.json({ error: 'You can only edit your own reservations.' }, { status: 403 })
     }
-    // Must be more than 24 hours away
+    // Must be more than 12 hours away — same window as cancel (decided
+    // 2026-09-10; was 24h, which cancel + re-book trivially bypassed).
+    // Mirrors canEdit in ReservationModal and MyReservationsList.
     const hoursUntil = (new Date(reservation.start_time).getTime() - Date.now()) / 3600000
-    if (hoursUntil < 24) {
-      return NextResponse.json({ error: 'Reservations cannot be edited within 24 hours of the start time. Please contact an admin.' }, { status: 403 })
+    if (hoursUntil < 12) {
+      return NextResponse.json({ error: 'Reservations cannot be edited within 12 hours of the start time. Please contact an admin.' }, { status: 403 })
     }
   }
 

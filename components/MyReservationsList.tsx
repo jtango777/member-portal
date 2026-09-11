@@ -63,13 +63,10 @@ export default function MyReservationsList({ upcoming, past, companyReservations
     const start      = toPacificDate(new Date(r.start_time))
     const end        = toPacificDate(new Date(r.end_time))
     const hoursUntil = (new Date(r.start_time).getTime() - Date.now()) / 3600000
-    // Edit and cancel are different policies (24h vs 12h) — this row used
-    // to gate the Cancel button on canEdit too, so it hid self-cancel for
-    // the whole 12-24h window even though that window is still fine to
-    // self-cancel in (ReservationModal's canCancel agrees: >12h). Caught
-    // 2026-09-10 when "Within 24h" showed for a reservation that could
-    // still be cancelled.
-    const canEdit      = hoursUntil > 24
+    // Edit and cancel share one 12h window (decided 2026-09-10 — edit used
+    // to be 24h, which was trivially bypassed by cancel + re-book). Same
+    // thresholds as ReservationModal and the PATCH route.
+    const canEdit      = hoursUntil > 12
     const canCancelRow = hoursUntil > 12
     const tooSoon       = hoursUntil > 0 && hoursUntil <= 12
 

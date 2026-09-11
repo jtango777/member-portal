@@ -52,7 +52,7 @@ export default function EmailPreviewPage() {
               <tr style={{ borderTop: '1px solid #e2e8f0' }}><td style={{ padding: '10px 14px', color: '#64748b', fontSize: 13 }}>Booked by</td><td style={{ padding: '10px 14px', color: '#1e293b' }}>Caroline Smith</td></tr>
             </tbody>
           </table>
-          <p style={{ color: '#94a3b8', fontSize: 13, margin: 0, borderTop: '1px solid #f1f5f9', paddingTop: 20 }}>Need to cancel? Log in to BizHaus and cancel from the calendar — at least 24 hours before your reservation.</p>
+          <p style={{ color: '#94a3b8', fontSize: 13, margin: 0, borderTop: '1px solid #f1f5f9', paddingTop: 20 }}>Need to cancel? Log in to BizHaus and cancel from the calendar — at least 12 hours before your reservation.</p>
         </EmailWrapper>
 
         <p style={{ fontSize: 11, color: '#94a3b8', margin: '40px 0 8px', textTransform: 'uppercase', letterSpacing: 1, fontWeight: 600 }}>Preview — Cancellation</p>

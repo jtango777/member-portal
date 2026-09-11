@@ -252,7 +252,12 @@ export default function ReservationModal({
   const hoursUntilStart = reservation
     ? (new Date(reservation.start_time).getTime() - Date.now()) / 3600000
     : 0
-  const canEdit   = isOwn && !isAdmin && !!reservation && hoursUntilStart > 24
+  // Edit and cancel share the same 12h window (decided 2026-09-10). Edit
+  // used to be 24h while cancel was 12h, which was incoherent — inside
+  // the 12-24h band someone could cancel and re-book a different slot,
+  // which is an edit in all but name. Mirrored server-side in the PATCH
+  // route and in MyReservationsList.
+  const canEdit   = isOwn && !isAdmin && !!reservation && hoursUntilStart > 12
   const canCancel = isOwn && !isAdmin && !!reservation && hoursUntilStart > 12
   // Covers both "starts within 12 hours" AND "already started/passed" —
   // a same-day reservation used to show nothing at all once its start time

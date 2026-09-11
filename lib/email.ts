@@ -130,7 +130,7 @@ export async function sendConfirmationEmail(
         <tr style="border-top:1px solid #e2e8f0;"><td style="padding:10px 14px;color:#64748b;font-size:13px;">Time</td><td style="padding:10px 14px;color:#1e293b;">${details.time}</td></tr>
         <tr style="border-top:1px solid #e2e8f0;"><td style="padding:10px 14px;color:#64748b;font-size:13px;">Booked by</td><td style="padding:10px 14px;color:#1e293b;">${details.booker}</td></tr>
       </table>
-      <p style="color:#94a3b8;font-size:13px;margin:0;border-top:1px solid #f1f5f9;padding-top:20px;">Need to cancel? Log in to BizHaus and cancel from the calendar — at least 24 hours before your reservation.</p>
+      <p style="color:#94a3b8;font-size:13px;margin:0;border-top:1px solid #f1f5f9;padding-top:20px;">Need to cancel? Log in to BizHaus and cancel from the calendar — at least 12 hours before your reservation.</p>
     `),
   })
   if (error) console.error('[email] Resend error sending confirmation email:', error)

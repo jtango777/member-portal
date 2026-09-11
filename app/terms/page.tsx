@@ -22,8 +22,8 @@ export default function TermsPage() {
 
       <h2 className="text-xl font-semibold text-gray-900 mt-10 mb-4">Reservations and cancellations</h2>
       <ul className="list-disc pl-6 space-y-2 mb-6">
-        <li>Members may cancel or edit reservations up to 24 hours before the start time.</li>
-        <li>Reservations within 24 hours of the start time cannot be modified by members. Contact an administrator for assistance.</li>
+        <li>Members may cancel or edit reservations up to 12 hours before the start time.</li>
+        <li>Reservations within 12 hours of the start time cannot be modified by members. Contact an administrator for assistance.</li>
         <li>External bookings cannot be cancelled through the platform. Contact us to discuss rescheduling to a future booking.</li>
       </ul>
 
