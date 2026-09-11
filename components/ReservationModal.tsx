@@ -812,8 +812,13 @@ export default function ReservationModal({
               <div className="flex items-center gap-2">
 
                 {/* Admin delete — admin block. Plain text, instant swap —
-                    same pattern as the other two cancel/delete spots below. */}
-                {isAdmin && mode === 'view' && !editing && reservation?.is_admin_block && (
+                    same pattern as the other two cancel/delete spots below.
+                    Shown in the edit form too, not just the read-only
+                    details view — a member reported thinking she couldn't
+                    delete at all because the only delete option lived on a
+                    screen she'd already clicked past into Edit. Caught
+                    2026-09-11. */}
+                {isAdmin && mode === 'view' && reservation?.is_admin_block && (
                   deleteScope ? (
                     <div className="flex items-center gap-2">
                       <span className="text-sm text-red-600">
@@ -843,8 +848,9 @@ export default function ReservationModal({
 
                 {/* Admin delete — regular reservation. Same IconAction
                     trashcan as My Reservations' Cancel — cancels
-                    immediately on click, no confirm step. */}
-                {isAdmin && mode === 'view' && !editing && !reservation?.is_admin_block && (
+                    immediately on click, no confirm step. Also shown while
+                    editing, same reasoning as the admin-block case above. */}
+                {isAdmin && mode === 'view' && !reservation?.is_admin_block && (
                   <IconAction
                     icon={Trash2}
                     label="Delete reservation"
@@ -871,8 +877,12 @@ export default function ReservationModal({
                 )}
 
                 {/* Regular user cancel — literally the same IconAction
-                    trashcan as My Reservations' Cancel button. */}
-                {canCancel && !editing && (
+                    trashcan as My Reservations' Cancel button. Also shown
+                    while editing (not just the read-only details view) —
+                    people expect to find Cancel from inside the edit form
+                    they're already looking at, not just a screen before it.
+                    Caught 2026-09-11. */}
+                {canCancel && (
                   <IconAction
                     icon={Trash2}
                     label="Cancel reservation"
