@@ -9,6 +9,7 @@ import { ArrowLeft } from 'lucide-react'
 import { getSeatingOptions } from '@/lib/seating'
 import { createClient } from '@/lib/supabase/client'
 import { passwordError, PASSWORD_REQUIREMENTS_TEXT } from '@/lib/password'
+import { JUST_SIGNED_UP_KEY } from '@/lib/utils'
 
 type Location = { id: string; name: string }
 
@@ -165,6 +166,7 @@ function DetailsStep({ email, defaultLocationId, defaultFirstName, defaultLastNa
         return
       }
       toast.success('Account created!')
+      try { sessionStorage.setItem(JUST_SIGNED_UP_KEY, '1') } catch (_) {}
       router.push('/dashboard')
       router.refresh()
     }

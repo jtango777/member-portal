@@ -1,9 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import PhotoUploadDialog from '@/components/PhotoUploadDialog'
 import AnnouncementPopup from '@/components/AnnouncementPopup'
+import { JUST_SIGNED_UP_KEY } from '@/lib/utils'
 
 type Announcement = { id: string; message: string }
 
@@ -35,8 +36,26 @@ export default function OnboardingOverlays({ avatarUrl, avatarPromptDismissed, i
   // tracked in local state too so the dialog closes immediately without
   // waiting on the save + a full page refresh.
   const [dismissed, setDismissed] = useState(avatarPromptDismissed)
+  // Belt-and-suspenders alongside isFirstSignIn (server-computed from
+  // profile.welcomed, which can race or already be true for a
+  // pre-imported member): the signup pages set this the instant an
+  // account is actually created, so it can't be wrong about whether this
+  // is a first-time signup. Read once in an effect (not a lazy useState
+  // initializer — sessionStorage isn't available during the server render,
+  // and reading it there would mismatch the client's hydration pass) and
+  // cleared immediately so a normal refresh/relogin afterward doesn't
+  // keep re-triggering it.
+  const [justSignedUp, setJustSignedUp] = useState(false)
+  useEffect(() => {
+    try {
+      if (sessionStorage.getItem(JUST_SIGNED_UP_KEY) === '1') {
+        sessionStorage.removeItem(JUST_SIGNED_UP_KEY)
+        setJustSignedUp(true)
+      }
+    } catch (_) {}
+  }, [])
 
-  const showAvatarPrompt = isFirstSignIn && !dismissed && !announcementShowing
+  const showAvatarPrompt = (isFirstSignIn || justSignedUp) && !dismissed && !announcementShowing
 
   async function dismissAvatarPrompt() {
     setDismissed(true)

@@ -8,6 +8,7 @@ import Recaptcha, { RecaptchaHandle } from '@/components/Recaptcha'
 import { createClient } from '@/lib/supabase/client'
 import { getSeatingOptions } from '@/lib/seating'
 import { passwordError, PASSWORD_REQUIREMENTS_TEXT } from '@/lib/password'
+import { JUST_SIGNED_UP_KEY } from '@/lib/utils'
 
 type Location = { id: string; name: string }
 
@@ -130,6 +131,7 @@ function SetupForm() {
         return
       }
       toast.success('Account created!')
+      try { sessionStorage.setItem(JUST_SIGNED_UP_KEY, '1') } catch (_) {}
       router.push('/dashboard')
       router.refresh()
     }

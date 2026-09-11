@@ -136,3 +136,14 @@ export function parseFuzzyDate(input: string): Date | null {
 
   return null
 }
+
+// Forces the photo/LinkedIn onboarding prompt to show once, right after
+// signup — set at the exact moment we know for certain this is a brand
+// new account (both /register and /setup-account do this right before
+// redirecting to /dashboard), and read once by OnboardingOverlays.
+// This exists alongside (not instead of) the server-side profile.welcomed
+// check: welcomed can race or already be true for a pre-imported member,
+// but this flag can't — it's set by the signup flow itself, not inferred
+// from DB state. Caught 2026-09-11 after two separate welcomed-flag fixes
+// still weren't reliable enough for every case.
+export const JUST_SIGNED_UP_KEY = 'bizhaus_just_signed_up'
