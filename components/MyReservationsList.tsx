@@ -99,7 +99,7 @@ export default function MyReservationsList({ upcoming, past, companyReservations
           // Caught 2026-09-11.
           <button
             type="button"
-            onClick={() => toast('Cannot cancel — within 12 hours of the start time', { icon: '🚫' })}
+            onClick={() => toast('Cannot cancel — within 12 hours of the start time', { icon: '🚫', id: 'within-12h-toast', duration: 3000 })}
             className="relative group inline-flex items-center justify-center p-1.5 text-gray-300"
           >
             <Trash2 size={14} />
