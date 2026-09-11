@@ -6,6 +6,7 @@ import { X, ChevronDown } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { Company, MembershipType } from '@/types'
 import { getSeatingOptions } from '@/lib/seating'
+import { cn } from '@/lib/utils'
 import CompanyCombobox from '@/components/admin/CompanyCombobox'
 import PasswordInput from '@/components/PasswordInput'
 import { PASSWORD_REQUIREMENTS_TEXT } from '@/lib/password'
@@ -246,13 +247,23 @@ export default function EditMemberDialog({ member, onOpenChange, onSuccess, comp
                 compete with the fields that are. */}
             {!compact && member?.user_id && !member?.is_admin && (
               <div className="border-t border-gray-200 pt-3">
+                {/* Chevron after the label, matching every other
+                    disclosure toggle in the admin views (Past
+                    announcements, "members never invited") — not before it. */}
                 <button type="button" onClick={() => setShowPasswordReset(v => !v)}
                   className="flex items-center gap-1 text-sm font-medium text-gray-700 hover:text-gray-900">
-                  <ChevronDown size={14} className={`transition-transform ${showPasswordReset ? 'rotate-180' : ''}`} />
                   Reset password?
+                  <ChevronDown size={14} className={`text-gray-400 transition-transform duration-200 ${showPasswordReset ? 'rotate-180' : ''}`} />
                 </button>
-                {showPasswordReset && (
-                  <div className="mt-2">
+                {/* Same grid-template-rows accordion used elsewhere in
+                    ReservationModal (recurring block, owner dropdown) —
+                    a real height animation instead of the field just
+                    popping in. */}
+                <div className={cn(
+                  'grid transition-[grid-template-rows,opacity] duration-200 ease-out',
+                  showPasswordReset ? 'grid-rows-[1fr] opacity-100 mt-2' : 'grid-rows-[0fr] opacity-0'
+                )}>
+                  <div className="overflow-hidden">
                     <div className="flex items-center gap-2">
                       <div className="flex-1">
                         <PasswordInput value={newPassword} onChange={setNewPassword} autoComplete="new-password" placeholder="New password" />
@@ -264,7 +275,7 @@ export default function EditMemberDialog({ member, onOpenChange, onSuccess, comp
                     </div>
                     <p className="text-xs text-gray-400 mt-1">{PASSWORD_REQUIREMENTS_TEXT} Replaces it immediately — tell them the new one.</p>
                   </div>
-                )}
+                </div>
               </div>
             )}
 
