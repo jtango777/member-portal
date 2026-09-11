@@ -81,10 +81,13 @@ export default function OnboardingOverlays({ avatarUrl, avatarPromptDismissed, i
         onSuccess={() => router.refresh()}
         offerLinkedin
         currentImageUrl={avatarUrl}
-        title={avatarUrl ? 'Change or recrop your photo' : undefined}
+        // Both cases mention LinkedIn now, not just photo — this is the
+        // one prompt offering both, and the old copy for the pre-linked
+        // case only ever talked about the picture.
+        title={avatarUrl ? 'Confirm your photo, add LinkedIn' : 'Add your photo to Faces'}
         description={avatarUrl
-          ? 'This is the photo already on file for you — recrop it, swap it, or leave it as-is.'
-          : undefined}
+          ? 'This is the photo already on file for you — recrop it, swap it, or leave it as-is. You can also add your LinkedIn below.'
+          : 'Help your community recognize you — add a profile picture and your LinkedIn (optional).'}
       />
     </>
   )
