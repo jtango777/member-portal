@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { format, subMonths } from 'date-fns'
-import { FileText, Building2, LayoutGrid, ChevronLeft, ChevronRight, Download, Globe, CreditCard } from 'lucide-react'
+import { FileText, Building2, LayoutGrid, ChevronLeft, ChevronRight, Download, Globe, CreditCard, Car } from 'lucide-react'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -41,7 +41,13 @@ type DayPassRow = {
   locations: { name: string } | null
 }
 
-type ReportType = 'reservations' | 'company-usage' | 'room-utilization' | 'external-bookings' | 'day-passes'
+type LicensePlateRow = {
+  full_name: string | null
+  license_plate: string | null
+  companies: { name: string } | null
+}
+
+type ReportType = 'reservations' | 'company-usage' | 'room-utilization' | 'external-bookings' | 'day-passes' | 'license-plates'
 
 // ── CSV helper ────────────────────────────────────────────────────────────────
 
@@ -120,6 +126,12 @@ const REPORTS = [
     title:       'Day Passes',
     description: 'Revenue and pass details for the selected month, by location.',
     icon:        CreditCard,
+  },
+  {
+    id:          'license-plates' as ReportType,
+    title:       'License Plates',
+    description: 'Every active member and the license plate on file for them — a current snapshot, not tied to a specific month.',
+    icon:        Car,
   },
 ]
 
@@ -579,6 +591,64 @@ function DayPassesTable({ month }: { month: string }) {
   )
 }
 
+function LicensePlatesTable() {
+  const [rows, setRows]       = useState<LicensePlateRow[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    setLoading(true)
+    fetch('/api/admin/reports/license-plates')
+      .then(r => r.json()).then(d => { setRows(d); setLoading(false) })
+  }, [])
+
+  function exportCSV() {
+    downloadCSV('license-plates.csv', rows.map(r => ({
+      Name:           r.full_name ?? '',
+      Company:        r.companies?.name ?? '',
+      'License Plate': r.license_plate ?? '',
+    })))
+  }
+
+  if (loading) return <div className="py-16 text-center text-gray-400 text-sm">Loading…</div>
+  if (!rows.length) return <div className="py-16 text-center text-gray-400 text-sm">No active members yet.</div>
+
+  const withPlate = rows.filter(r => r.license_plate)
+
+  return (
+    <>
+      <div className="flex items-center justify-between mb-3">
+        <p className="text-sm text-gray-500">{withPlate.length} of {rows.length} members have a plate on file</p>
+        <button onClick={exportCSV}
+          className="flex items-center gap-1.5 text-sm text-blue-600 hover:text-blue-800 font-medium">
+          <Download size={14} /> Export CSV
+        </button>
+      </div>
+      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="bg-gray-50 border-b border-gray-200">
+              {['Name', 'Company', 'License Plate'].map(h => (
+                <th key={h} className="text-left px-4 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wide">{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((r, i) => (
+              <tr key={i} className="border-b border-gray-100 last:border-0">
+                <td className="px-4 py-2.5 font-medium text-gray-900">{r.full_name ?? '—'}</td>
+                <td className="px-4 py-2.5 text-gray-600">{r.companies?.name ?? ''}</td>
+                <td className={`px-4 py-2.5 font-mono ${r.license_plate ? 'text-gray-900' : 'text-gray-300'}`}>
+                  {r.license_plate ?? 'None on file'}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </>
+  )
+}
+
 // ── Main hub ──────────────────────────────────────────────────────────────────
 
 export default function ReportsHub({ earliestMonth }: { earliestMonth: string | null }) {
@@ -630,15 +700,20 @@ export default function ReportsHub({ earliestMonth }: { earliestMonth: string | 
       {/* Active report */}
       {active && (
         <>
-          <div className="flex items-center gap-3">
-            <label className="text-sm font-medium text-gray-700">Month</label>
-            <MonthPicker value={month} onChange={setMonth} earliestMonth={earliestMonth} />
-          </div>
+          {/* License Plates isn't month-scoped — it's a current snapshot,
+              not a time series, so the month picker doesn't apply to it. */}
+          {active !== 'license-plates' && (
+            <div className="flex items-center gap-3">
+              <label className="text-sm font-medium text-gray-700">Month</label>
+              <MonthPicker value={month} onChange={setMonth} earliestMonth={earliestMonth} />
+            </div>
+          )}
           {active === 'reservations'      && <ReservationsTable month={month} />}
           {active === 'company-usage'     && <CompanyUsageTable month={month} />}
           {active === 'room-utilization'  && <RoomUtilTable month={month} />}
           {active === 'external-bookings' && <ExternalBookingsTable month={month} />}
           {active === 'day-passes'        && <DayPassesTable month={month} />}
+          {active === 'license-plates'    && <LicensePlatesTable />}
         </>
       )}
     </div>
