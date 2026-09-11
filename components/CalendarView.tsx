@@ -406,8 +406,13 @@ export default function CalendarView({ locations, profile, company, hourScope, h
       {/* ── Main content ── */}
       <div className="flex flex-col flex-1 min-w-0">
 
-        {/* Top bar */}
-        <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 flex-shrink-0">
+        {/* Top bar. flex-wrap + shortened hours-remaining copy on mobile —
+            the row never wrapped before, and "X hours remaining for
+            September 2026" at full length forced the row wider than a
+            phone screen, pushing Make a Reservation off the right edge
+            entirely instead of just wrapping to a second line.
+            Caught 2026-09-11. */}
+        <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 border-b border-gray-200 flex-shrink-0">
           <div className="flex items-center gap-2">
             <div className="flex items-center gap-1.5 bg-blue-100 border border-blue-300 rounded-lg px-3 py-1.5">
               <span className="text-sm font-medium text-gray-500">Location:</span>
@@ -426,7 +431,7 @@ export default function CalendarView({ locations, profile, company, hourScope, h
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3 flex-wrap justify-end">
             {/* Row-height zoom — laptop/desktop only, drag to fit more (or
                 less) of the day on screen at once. */}
             <div className="hidden lg:flex items-center gap-1.5 text-gray-400" title="Zoom the calendar rows">
@@ -445,12 +450,13 @@ export default function CalendarView({ locations, profile, company, hourScope, h
             </div>
 
             {company && !profile.is_admin && hoursRemaining !== null && (
-              <div className="flex items-center gap-1.5 text-sm bg-blue-100 border border-blue-300 rounded-lg px-3 py-1.5">
-                <Clock size={14} className="text-blue-700" />
+              <div className="flex items-center gap-1.5 text-sm bg-blue-100 border border-blue-300 rounded-lg px-3 py-1.5 whitespace-nowrap">
+                <Clock size={14} className="text-blue-700 flex-shrink-0" />
                 <span className={cn('font-semibold', hoursRemaining <= 0 ? 'text-red-600' : 'text-blue-800')}>
-                  {hoursRemaining.toFixed(1)} hours
+                  {hoursRemaining.toFixed(1)}h
                 </span>
-                <span className="text-blue-700">remaining for {format(selectedDate, 'MMMM yyyy')}</span>
+                <span className="hidden sm:inline text-blue-700">remaining for {format(selectedDate, 'MMMM yyyy')}</span>
+                <span className="sm:hidden text-blue-700">left this month</span>
               </div>
             )}
 
