@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import * as Dialog from '@radix-ui/react-dialog'
-import { X } from 'lucide-react'
+import { X, ChevronDown } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { Company, MembershipType } from '@/types'
 import { getSeatingOptions } from '@/lib/seating'
@@ -71,6 +71,7 @@ export default function EditMemberDialog({ member, onOpenChange, onSuccess, comp
   const [saving, setSaving]         = useState(false)
   const [newPassword, setNewPassword] = useState('')
   const [settingPassword, setSettingPassword] = useState(false)
+  const [showPasswordReset, setShowPasswordReset] = useState(false)
 
   useEffect(() => {
     if (!member) return
@@ -93,6 +94,7 @@ export default function EditMemberDialog({ member, onOpenChange, onSuccess, comp
     setLocationId(member.default_location_id ?? '')
     setSeating(member.seating ?? '')
     setNewPassword('')
+    setShowPasswordReset(false)
   }, [member])
 
   async function handleSave() {
@@ -234,24 +236,35 @@ export default function EditMemberDialog({ member, onOpenChange, onSuccess, comp
               </div>
             )}
 
-            {/* Set password — only for a regular member with a real
+            {/* Reset password — only for a regular member with a real
                 account, never another admin. An admin resetting another
                 admin's password (including their own, through this route)
                 is off the table entirely, not just hidden; the API
-                enforces the same check server-side. */}
+                enforces the same check server-side. Collapsed by default
+                behind a disclosure toggle — this isn't something you'd
+                reach for on every edit, so it shouldn't sit open and
+                compete with the fields that are. */}
             {!compact && member?.user_id && !member?.is_admin && (
-              <div className="border-t border-gray-200 pt-4">
-                <label className="block text-xs font-medium text-gray-700 mb-1">Set password</label>
-                <div className="flex items-center gap-2">
-                  <div className="flex-1">
-                    <PasswordInput value={newPassword} onChange={setNewPassword} autoComplete="new-password" placeholder="Leave blank to not change" />
+              <div className="border-t border-gray-200 pt-3">
+                <button type="button" onClick={() => setShowPasswordReset(v => !v)}
+                  className="flex items-center gap-1 text-sm font-medium text-gray-700 hover:text-gray-900">
+                  <ChevronDown size={14} className={`transition-transform ${showPasswordReset ? 'rotate-180' : ''}`} />
+                  Reset password?
+                </button>
+                {showPasswordReset && (
+                  <div className="mt-2">
+                    <div className="flex items-center gap-2">
+                      <div className="flex-1">
+                        <PasswordInput value={newPassword} onChange={setNewPassword} autoComplete="new-password" placeholder="New password" />
+                      </div>
+                      <button onClick={handleSetPassword} disabled={settingPassword || !newPassword}
+                        className="flex-shrink-0 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-semibold px-3 py-2 rounded-lg">
+                        {settingPassword ? 'Saving…' : 'Save'}
+                      </button>
+                    </div>
+                    <p className="text-xs text-gray-400 mt-1">{PASSWORD_REQUIREMENTS_TEXT} Replaces it immediately — tell them the new one.</p>
                   </div>
-                  <button onClick={handleSetPassword} disabled={settingPassword || !newPassword}
-                    className="flex-shrink-0 bg-amber-600 hover:bg-amber-700 disabled:opacity-50 text-white text-sm font-semibold px-3 py-2 rounded-lg">
-                    {settingPassword ? 'Saving…' : 'Set'}
-                  </button>
-                </div>
-                <p className="text-xs text-gray-400 mt-1">{PASSWORD_REQUIREMENTS_TEXT} Replaces it immediately — tell them the new one.</p>
+                )}
               </div>
             )}
 
