@@ -29,11 +29,9 @@ function SetupForm() {
   const [invitedLocationId, setInvitedLocationId] = useState<string | null>(null)
   const [seating, setSeating] = useState('')
   // Whatever seating an admin already set on the invite (e.g. "Office -
-  // Main Building") — prefilled below once we have it, same idea as the
-  // name and location. `seatingTouched` stops that prefill from stomping
-  // on a choice the member has already made themselves.
+  // Main Building") — shown as a hint below the field, not auto-selected
+  // (see the effect below for why).
   const [defaultSeating, setDefaultSeating] = useState<string | null>(null)
-  const [seatingTouched, setSeatingTouched] = useState(false)
   const [recaptchaToken, setRecaptchaToken] = useState<string | null>(null)
   const recaptchaRef = useRef<RecaptchaHandle>(null)
 
@@ -73,28 +71,23 @@ function SetupForm() {
     if (invitedLocationId) setLocationId(invitedLocationId)
   }, [invitedLocationId])
 
-  // Seating options depend on the selected location — keep a valid default
-  // selected (instead of a blank "Prefer not to say") whenever the location
-  // changes, so the field is never accidentally empty once required.
-  // Prefers whatever the admin already put on file (defaultSeating), as
-  // long as it's valid for the current location; only falls back to the
-  // first option once the member has actually chosen something themselves.
-  // Waiting on locations to load first matters here specifically — computing
-  // options against an empty list would only ever resolve to ['Virtual'],
-  // and since that's also valid for every real location, that premature
-  // pick would satisfy the "already valid, keep it" check below forever and
-  // silently block the admin's preset from ever applying (caught
-  // 2026-09-10: an invite with seating already set to "Office - Main
-  // Building" still landed on Virtual on the signup form).
+  // Seating options depend on the selected location — but this no longer
+  // auto-picks anything, including the admin's own preset (defaultSeating).
+  // That auto-fill (added 2026-09-10) meant someone could finish signup
+  // without ever actually looking at this field, silently locking in
+  // whatever an admin happened to type when adding them — caught
+  // 2026-09-11 when a member's Faces card showed a seating spot she'd
+  // never chosen. Only job left here: if the location changes and the
+  // seating value picked so far no longer belongs to the new location's
+  // options, clear it back to blank rather than leave a stale/invalid
+  // value selected. defaultSeating is still fetched and shown as a hint
+  // below the field so the admin's preset isn't lost information — the
+  // member just has to actually pick it (or something else) themselves.
   useEffect(() => {
     if (locations.length === 0) return
     const opts = getSeatingOptions(locations.find(l => l.id === locationId)?.name)
-    setSeating(prev => {
-      if (opts.includes(prev)) return prev
-      if (!seatingTouched && defaultSeating && opts.includes(defaultSeating)) return defaultSeating
-      return opts[0] ?? ''
-    })
-  }, [locationId, locations, seatingTouched, defaultSeating])
+    setSeating(prev => (opts.includes(prev) ? prev : ''))
+  }, [locationId, locations])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -204,14 +197,20 @@ function SetupForm() {
           {locationId && (
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Where do you sit?</label>
-              <p className="text-xs text-gray-400 mb-1.5">Shown below your name on Faces.</p>
+              <p className="text-xs text-gray-400 mb-1.5">
+                Shown below your name on Faces.
+                {defaultSeating && defaultSeating !== seating && (
+                  <> Your admin has this on file as <strong className="font-medium text-gray-500">{defaultSeating}</strong> — pick it below if that's still right.</>
+                )}
+              </p>
               {locations.length === 0 ? (
                 <select disabled className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-400 bg-gray-50">
                   <option>Loading…</option>
                 </select>
               ) : (
-                <select required value={seating} onChange={e => { setSeating(e.target.value); setSeatingTouched(true) }}
+                <select required value={seating} onChange={e => setSeating(e.target.value)}
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                  <option value="" disabled>Select where you sit…</option>
                   {getSeatingOptions(locations.find(l => l.id === locationId)?.name).map(s => <option key={s} value={s}>{s}</option>)}
                 </select>
               )}
