@@ -13,20 +13,17 @@ export default async function HausSmilesPage() {
 
   const [{ data: locations }, { data: profiles }, { data: pendingWithPhoto }] = await Promise.all([
     supabase.from('locations').select('*').order('name'),
-    (() => {
-      // hidden_from_faces lets a profile stay active and functional (e.g.
-      // an admin's own test account) without showing up on Faces for
-      // regular members — admins still see it, since they're the ones
-      // who'd need to find/manage it. Not filtered at all for an admin
-      // viewer.
-      let q = supabase
-        .from('profiles')
-        .select('id, full_name, avatar_url, default_location_id, seating, linkedin_username')
-        .not('avatar_url', 'is', null)
-        .eq('is_active', true)
-      if (!currentProfile.is_admin) q = q.eq('hidden_from_faces', false)
-      return q.order('full_name')
-    })(),
+    // hidden_from_faces lets a profile stay active and functional (e.g. an
+    // admin's own test account) without showing up on Faces at all —
+    // hidden for everyone, admins included (2026-09-11: confirmed this
+    // isn't an admin-visible exception, just fully off Faces).
+    supabase
+      .from('profiles')
+      .select('id, full_name, avatar_url, default_location_id, seating, linkedin_username')
+      .not('avatar_url', 'is', null)
+      .eq('is_active', true)
+      .eq('hidden_from_faces', false)
+      .order('full_name'),
     supabase
       .from('permitted_emails')
       .select('id, full_name, avatar_url, default_location_id')
