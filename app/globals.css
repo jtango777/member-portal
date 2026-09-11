@@ -9,6 +9,18 @@
   body {
     @apply bg-gray-50 text-gray-900;
   }
+  /* Stops iOS Safari's long-press "Copy / Look Up" popup on buttons and
+     icon actions — an accidental tap-and-hold on something like the
+     trashcan icon showed this native black popup with no visible text in
+     it (its actual label is just "Cancel"/"Copy" etc, easy to misread as
+     a mystery blank box), confusing since there was nothing to select in
+     the first place. Scoped to buttons/roles, not all text, so copying
+     genuine content (an email address, a name) still works normally.
+     Caught 2026-09-11. */
+  button, [role="button"] {
+    -webkit-touch-callout: none;
+    user-select: none;
+  }
 }
 
 @layer utilities {
