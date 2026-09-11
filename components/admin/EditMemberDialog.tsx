@@ -7,6 +7,8 @@ import toast from 'react-hot-toast'
 import { Company, MembershipType } from '@/types'
 import { getSeatingOptions } from '@/lib/seating'
 import CompanyCombobox from '@/components/admin/CompanyCombobox'
+import PasswordInput from '@/components/PasswordInput'
+import { PASSWORD_REQUIREMENTS_TEXT } from '@/lib/password'
 
 export type EditableMember = {
   id: string
@@ -20,6 +22,11 @@ export type EditableMember = {
   individual_hours_allotment: number | null
   default_location_id: string | null
   seating: string | null
+  // Both optional — the compact (room-access-only) view is opened from a
+  // row shape that doesn't carry them, and the Set Password section below
+  // only ever needs them in the full Edit Member view anyway.
+  user_id?: string | null
+  is_admin?: boolean
 }
 
 type Props = {
@@ -62,6 +69,8 @@ export default function EditMemberDialog({ member, onOpenChange, onSuccess, comp
   const [locationId, setLocationId] = useState('')
   const [seating, setSeating]       = useState('')
   const [saving, setSaving]         = useState(false)
+  const [newPassword, setNewPassword] = useState('')
+  const [settingPassword, setSettingPassword] = useState(false)
 
   useEffect(() => {
     if (!member) return
@@ -83,6 +92,7 @@ export default function EditMemberDialog({ member, onOpenChange, onSuccess, comp
     setIndividualHours(member.individual_hours_allotment != null ? String(member.individual_hours_allotment) : '')
     setLocationId(member.default_location_id ?? '')
     setSeating(member.seating ?? '')
+    setNewPassword('')
   }, [member])
 
   async function handleSave() {
@@ -111,6 +121,24 @@ export default function EditMemberDialog({ member, onOpenChange, onSuccess, comp
       toast.error(d.error ?? 'Failed')
     }
     setSaving(false)
+  }
+
+  async function handleSetPassword() {
+    if (!member?.user_id) return
+    setSettingPassword(true)
+    const res = await fetch('/api/admin/members/set-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user_id: member.user_id, password: newPassword }),
+    })
+    if (res.ok) {
+      toast.success('Password set')
+      setNewPassword('')
+    } else {
+      const d = await res.json()
+      toast.error(d.error ?? 'Failed to set password')
+    }
+    setSettingPassword(false)
   }
 
   return (
@@ -203,6 +231,27 @@ export default function EditMemberDialog({ member, onOpenChange, onSuccess, comp
                   <option value="">No seating set</option>
                   {getSeatingOptions(locations.find(l => l.id === locationId)?.name).map(s => <option key={s} value={s}>{s}</option>)}
                 </select>
+              </div>
+            )}
+
+            {/* Set password — only for a regular member with a real
+                account, never another admin. An admin resetting another
+                admin's password (including their own, through this route)
+                is off the table entirely, not just hidden; the API
+                enforces the same check server-side. */}
+            {!compact && member?.user_id && !member?.is_admin && (
+              <div className="border-t border-gray-200 pt-4">
+                <label className="block text-xs font-medium text-gray-700 mb-1">Set password</label>
+                <div className="flex items-center gap-2">
+                  <div className="flex-1">
+                    <PasswordInput value={newPassword} onChange={setNewPassword} autoComplete="new-password" placeholder="Leave blank to not change" />
+                  </div>
+                  <button onClick={handleSetPassword} disabled={settingPassword || !newPassword}
+                    className="flex-shrink-0 bg-amber-600 hover:bg-amber-700 disabled:opacity-50 text-white text-sm font-semibold px-3 py-2 rounded-lg">
+                    {settingPassword ? 'Saving…' : 'Set'}
+                  </button>
+                </div>
+                <p className="text-xs text-gray-400 mt-1">{PASSWORD_REQUIREMENTS_TEXT} Replaces it immediately — tell them the new one.</p>
               </div>
             )}
 

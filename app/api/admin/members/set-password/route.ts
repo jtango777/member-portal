@@ -26,6 +26,15 @@ export async function POST(request: Request) {
   if (pwErr) return NextResponse.json({ error: pwErr }, { status: 400 })
 
   const admin = createAdminClient()
+
+  // Admin-to-admin is off the table — an admin can only set a password for
+  // a regular member, never another admin (including themselves through
+  // this route). Checked server-side, not just hidden in the UI, since the
+  // UI check alone wouldn't stop a direct API call.
+  const { data: target } = await admin.from('profiles').select('is_admin').eq('id', user_id).single()
+  if (!target) return NextResponse.json({ error: 'Member not found' }, { status: 404 })
+  if (target.is_admin) return NextResponse.json({ error: "Can't set another admin's password." }, { status: 403 })
+
   const { error } = await admin.auth.admin.updateUserById(user_id, { password })
   if (error) {
     console.error('[admin/members/set-password] error:', error.message)

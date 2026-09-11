@@ -3,13 +3,12 @@
 import { useState, useEffect, useCallback } from 'react'
 import NextLink from 'next/link'
 import { Company, MembershipType } from '@/types'
-import { Plus, Send, Check, Shield, Download, Copy, Link, Search, Edit2, Trash2, X, Camera, Users, DoorOpen, ChevronDown, RefreshCw, KeyRound } from 'lucide-react'
+import { Plus, Send, Check, Shield, Download, Copy, Link, Search, Edit2, Trash2, X, Camera, Users, DoorOpen, ChevronDown, RefreshCw } from 'lucide-react'
 import { formatShortDate } from '@/lib/utils'
 import { useAutoScrollIntoView } from '@/lib/useAutoScrollIntoView'
 import toast from 'react-hot-toast'
 import AssignPhotoDialog from '@/components/admin/AssignPhotoDialog'
 import ArchiveMemberDialog from '@/components/admin/ArchiveMemberDialog'
-import SetPasswordDialog from '@/components/admin/SetPasswordDialog'
 import CompanyCombobox from '@/components/admin/CompanyCombobox'
 import EditMemberDialog from '@/components/admin/EditMemberDialog'
 import { AdminTable, Th, Section, Pagination, IconAction } from '@/components/admin/AdminTable'
@@ -98,7 +97,6 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
   const [editTarget, setEditTarget] = useState<MemberRow | null>(null)
   const [accessTarget, setAccessTarget] = useState<MemberRow | null>(null)
   const [archiveTarget, setArchiveTarget]   = useState<{ id: string; name: string } | null>(null)
-  const [passwordTarget, setPasswordTarget] = useState<{ user_id: string; name: string } | null>(null)
   const [confirmInviteAll, setConfirmInviteAll] = useState(false)
   const [invitingAll, setInvitingAll]           = useState(false)
   const [photoTarget, setPhotoTarget] = useState<{ type: 'member' | 'pending'; id: string; name: string; hasPhoto: boolean; avatarUrl: string | null } | null>(null)
@@ -729,14 +727,6 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
                               colorClass={m.is_admin ? 'text-blue-500 hover:bg-blue-50' : 'text-gray-300 hover:bg-gray-100 hover:text-gray-500'}
                             />
                           )}
-                          {m.user_id && (
-                            <IconAction
-                              icon={KeyRound}
-                              label="Set password"
-                              onClick={() => setPasswordTarget({ user_id: m.user_id!, name: m.full_name ?? m.email })}
-                              colorClass="text-gray-400 hover:bg-amber-50 hover:text-amber-600"
-                            />
-                          )}
                           <IconAction
                             icon={Trash2}
                             label="Archive member"
@@ -875,11 +865,6 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
         member={archiveTarget}
         onOpenChange={v => { if (!v) setArchiveTarget(null) }}
         onSuccess={refresh}
-      />
-
-      <SetPasswordDialog
-        member={passwordTarget}
-        onOpenChange={v => { if (!v) setPasswordTarget(null) }}
       />
     </div>
   )
