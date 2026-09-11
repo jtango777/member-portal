@@ -18,6 +18,19 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'Missing month or id' }, { status: 400 })
   }
 
+  // `id` came straight from a query param with no check that it was
+  // actually the caller's own — the only real caller (CalendarView) only
+  // ever passes the caller's own company or individual id, but nothing
+  // enforced that server-side, so any logged-in member could pass any
+  // other user's or company's id here and read their monthly hours used.
+  // Caught 2026-09-11, same audit as the room-access bug.
+  const { data: profile } = await supabase.from('profiles').select('is_admin, company_id').eq('id', user.id).single()
+  if (!profile) return NextResponse.json({ error: 'Profile not found' }, { status: 403 })
+  const isOwnId = scope === 'individual' ? id === user.id : id === profile.company_id
+  if (!profile.is_admin && !isOwnId) {
+    return NextResponse.json({ error: 'You can only view your own hours.' }, { status: 403 })
+  }
+
   const admin = createAdminClient()
   const { start, end } = getPacificMonthBounds(month)
 

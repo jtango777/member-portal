@@ -10,6 +10,19 @@ export async function PATCH(request: Request) {
   const { first_name, last_name, default_location_id, company_name, license_plate, seating, linkedin_username } = await request.json()
   const admin = createAdminClient()
 
+  // The Settings page only ever shows an editable Company Name field to
+  // admins (everyone else sees their company name as read-only text), but
+  // this route had no check of its own — it just trusted the client to
+  // have hidden the field, so a direct API call could still let a regular
+  // member rename their own (shared, everyone-sees-it) company. Caught
+  // 2026-09-11, same audit as the room-access bug.
+  if (company_name !== undefined) {
+    const { data: callerProfile } = await supabase.from('profiles').select('is_admin').eq('id', user.id).single()
+    if (!callerProfile?.is_admin) {
+      return NextResponse.json({ error: 'Only admins can rename a company.' }, { status: 403 })
+    }
+  }
+
   // Never trust the client to have already stripped this down to a bare
   // username — re-extract it here too, so a direct API call can't sneak an
   // arbitrary URL into a field the UI only ever shows as "linkedin.com/in/…".
