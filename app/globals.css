@@ -9,22 +9,28 @@
   body {
     @apply bg-gray-50 text-gray-900;
   }
-  /* Stops iOS Safari's long-press "Copy / Look Up" popup on buttons and
-     icon actions — an accidental tap-and-hold on something like the
-     trashcan icon showed this native black popup with no visible text in
-     it (its actual label is just "Cancel"/"Copy" etc, easy to misread as
-     a mystery blank box), confusing since there was nothing to select in
-     the first place. -webkit-touch-callout only exists on touch WebKit
-     browsers to begin with (no-op on desktop), but user-select: none
-     would also block normal mouse-drag text selection on desktop, which
-     isn't wanted — scoped to (pointer: coarse) so it's touch-only.
-     Caught 2026-09-11. */
-  button, [role="button"] {
+  /* Stops iOS Safari's long-press "Copy / Look Up" popup — an accidental
+     tap-and-hold anywhere (a card, a room name, not just a button) showed
+     this native black popup with no visible text in it, confusing since
+     there was nothing intentional to select. Scoping it to just
+     button/[role=button] wasn't enough — the popup was still firing on
+     the plain text/divs around them (card content, labels), so this is
+     now whole-page, with inputs/textareas/contenteditable explicitly
+     excluded so typing and selecting-to-edit still work normally.
+     -webkit-touch-callout only exists on touch WebKit to begin with
+     (no-op on desktop); user-select: none is scoped to (pointer: coarse)
+     so desktop's normal mouse-drag text selection is untouched.
+     Caught 2026-09-11 (still happening after the button-only version). */
+  body {
     -webkit-touch-callout: none;
   }
   @media (pointer: coarse) {
-    button, [role="button"] {
+    body {
       user-select: none;
+    }
+    input, textarea, [contenteditable="true"] {
+      -webkit-touch-callout: default;
+      user-select: text;
     }
   }
 }
