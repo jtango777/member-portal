@@ -18,8 +18,10 @@ export default function DevBanner() {
   if (!isDev) return null
 
   return (
-    <div className="bg-amber-400 text-amber-900 text-center text-xs font-bold py-1 px-2 tracking-wide">
-      STAGING ENVIRONMENT — not production
+    <div className="portal-stripes text-center text-xs font-bold py-1.5 px-2 tracking-wide">
+      <span className="bg-black/60 text-white px-2 py-0.5 rounded">
+        STAGING ENVIRONMENT — not production
+      </span>
     </div>
   )
 }
