@@ -11,40 +11,44 @@ export default async function HausSmilesPage() {
   if (!currentProfile) redirect('/login')
   const supabase = await createClient()
 
+  const isAdmin = currentProfile?.is_admin ?? false
+
+  // hidden_from_faces lets a profile stay active and functional (e.g. an
+  // admin's own test account) without showing up on Faces at all — hidden
+  // for everyone, admins included (2026-09-11: confirmed this isn't an
+  // admin-visible exception, just fully off Faces).
+  //
+  // The no-photo gray placeholder (see HausSmilesTabs) is admin-only —
+  // regular members still only ever see people who actually have a photo,
+  // same as before. Admins see everyone, including no-photo people, as a
+  // live visual count of who still needs a picture. Caught 2026-09-14.
+  let profilesQuery = supabase
+    .from('profiles')
+    .select('id, full_name, avatar_url, default_location_id, seating, linkedin_username')
+    .eq('is_active', true)
+    .eq('hidden_from_faces', false)
+    .order('full_name')
+  if (!isAdmin) profilesQuery = profilesQuery.not('avatar_url', 'is', null)
+
+  let pendingQuery = supabase
+    .from('permitted_emails')
+    .select('id, full_name, avatar_url, default_location_id')
+    .is('accepted_at', null)
+    .eq('is_active', true)
+    .eq('hidden_from_faces', false)
+    .order('full_name')
+  if (!isAdmin) pendingQuery = pendingQuery.not('avatar_url', 'is', null)
+
   const [{ data: locations }, { data: profiles }, { data: pendingMembers }] = await Promise.all([
     supabase.from('locations').select('*').order('name'),
-    // hidden_from_faces lets a profile stay active and functional (e.g. an
-    // admin's own test account) without showing up on Faces at all —
-    // hidden for everyone, admins included (2026-09-11: confirmed this
-    // isn't an admin-visible exception, just fully off Faces).
-    //
-    // No longer requires avatar_url — someone with no photo yet now shows
-    // up with a generic gray placeholder (see HausSmilesTabs) instead of
-    // being invisible on Faces entirely. Hiding no-photo people meant
-    // there was no actual incentive to add one — nobody could tell they
-    // were missing. Caught 2026-09-14.
-    supabase
-      .from('profiles')
-      .select('id, full_name, avatar_url, default_location_id, seating, linkedin_username')
-      .eq('is_active', true)
-      .eq('hidden_from_faces', false)
-      .order('full_name'),
-    // No longer requires avatar_url either — same reasoning as profiles
-    // above. Explicitly overridden 2026-09-14: a pending member is still
-    // real and worth the same nudge, whether or not they've signed in yet.
-    supabase
-      .from('permitted_emails')
-      .select('id, full_name, avatar_url, default_location_id')
-      .is('accepted_at', null)
-      .eq('is_active', true)
-      .eq('hidden_from_faces', false)
-      .order('full_name'),
+    profilesQuery,
+    pendingQuery,
   ])
 
   // Faces only shows people formally linked to someone on the Members page —
   // a real registered profile or any pending invite — never a
   // directory_photos entry, which isn't tied to any invite or account at
-  // all. As of 2026-09-14 this deliberately includes every pending invite
+  // all. For admins (only) this deliberately includes every pending invite
   // regardless of photo or invite status, not just ones a photo's already
   // been linked to — doubling as a live visual count of who still needs a
   // picture, gray faces and all.
@@ -75,7 +79,7 @@ export default async function HausSmilesPage() {
         <HausSmilesTabs
           groups={groups}
           defaultLocationId={currentProfile?.default_location_id ?? null}
-          isAdmin={currentProfile?.is_admin ?? false}
+          isAdmin={isAdmin}
         />
       </div>
     </div>
