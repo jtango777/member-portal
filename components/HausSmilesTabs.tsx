@@ -202,7 +202,14 @@ export default function HausSmilesTabs({ groups, defaultLocationId, isAdmin }: P
           targetType={editingPhoto.source === 'profile' ? 'member' : editingPhoto.source === 'pending' ? 'pending' : 'directory'}
           targetId={editingPhoto.id}
           memberName={editingPhoto.full_name}
-          hasPhoto
+          // Was hardcoded true regardless of whether they actually had a
+          // photo — so clicking the pencil icon on anyone still showing
+          // the gray placeholder opened the dialog claiming "Photo already
+          // added for this user," which was simply false. Same bug already
+          // fixed on the individual member page's own version of this
+          // dialog; missed this second copy on the grid itself. Caught
+          // 2026-09-14.
+          hasPhoto={!!editingPhoto.avatar_url}
           avatarUrl={editingPhoto.avatar_url}
         />
       )}
