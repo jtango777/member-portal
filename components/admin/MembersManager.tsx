@@ -129,6 +129,23 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
   const [notInvitedPageSize, setNotInvitedPageSize]   = useState(10)
   const notInvitedListRef = useAutoScrollIntoView<HTMLDivElement>(showNotInvited)
   const [locationSort, setLocationSort]     = useState<'asc' | 'desc' | null>(null)
+  // Active Members sort. Defaults to first name A→Z — before this the table
+  // had no deliberate order at all, just whatever order the data loaded in.
+  // Clicking Name or Joined takes over from the Location sort (and vice
+  // versa, since Location sorting re-sorts the whole list on top).
+  const [activeSort, setActiveSort] = useState<{ key: 'name' | 'joined'; dir: 'asc' | 'desc' }>({ key: 'name', dir: 'asc' })
+
+  function toggleActiveSort(key: 'name' | 'joined') {
+    setLocationSort(null)
+    setActiveSort(prev => prev.key === key
+      ? { key, dir: prev.dir === 'asc' ? 'desc' : 'asc' }
+      // First click on Joined shows newest first; on Name, A→Z.
+      : { key, dir: key === 'joined' ? 'desc' : 'asc' })
+  }
+
+  function firstNameKey(m: MemberRow) {
+    return (m.first_name || m.full_name || m.email).trim().toLowerCase()
+  }
 
   function toggleLocationSort() {
     setLocationSort(s => s === 'asc' ? 'desc' : s === 'desc' ? null : 'asc')
@@ -345,7 +362,15 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
     return true
   })
 
-  const active      = sortByLocation(filtered.filter(m => !!m.accepted_at))
+  const active      = sortByLocation(
+    filtered.filter(m => !!m.accepted_at).sort((a, b) => {
+      const dir = activeSort.dir === 'asc' ? 1 : -1
+      if (activeSort.key === 'joined') {
+        return (new Date(a.accepted_at!).getTime() - new Date(b.accepted_at!).getTime()) * dir
+      }
+      return firstNameKey(a).localeCompare(firstNameKey(b)) * dir
+    })
+  )
   // "Invited" — an admin sent them an invite and they haven't finished
   // signing up yet. This is the ongoing, actionable middle state (new
   // people land here every time someone's invited going forward), so it
@@ -731,7 +756,7 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
           <AdminTable colWidths={['17%', '22%', '12%', '15%', '7%', '11%', '16%']} minWidth={1000}>
             <thead>
               <tr className="border-b border-gray-100 bg-gray-50">
-                <Th>Name</Th><Th>Email</Th><Th>Company</Th><Th sortDir={locationSort} onClick={toggleLocationSort}>Location</Th><Th>Admin</Th><Th>Joined</Th><Th />
+                <Th sortDir={!locationSort && activeSort.key === 'name' ? activeSort.dir : null} onClick={() => toggleActiveSort('name')}>Name</Th><Th>Email</Th><Th>Company</Th><Th sortDir={locationSort} onClick={toggleLocationSort}>Location</Th><Th>Admin</Th><Th sortDir={!locationSort && activeSort.key === 'joined' ? activeSort.dir : null} onClick={() => toggleActiveSort('joined')}>Joined</Th><Th />
               </tr>
             </thead>
             <tbody>
