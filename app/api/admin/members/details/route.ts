@@ -95,6 +95,10 @@ export async function GET() {
       seating:              prof?.seating ?? (pe as any).seating ?? null,
       room_access_requested_at: prof?.room_access_requested_at ?? null,
       is_active:            (pe as any).is_active ?? true,
+      // Set by the Resend webhook when an email to this address bounced or
+      // was marked as spam. Cleared when a fresh invite is sent.
+      email_status:         (pe as any).email_status ?? null,
+      email_status_reason:  (pe as any).email_status_reason ?? null,
     }
   })
 

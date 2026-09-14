@@ -69,7 +69,7 @@ export async function POST(request: Request) {
   const token = generateToken()
 
   const { data: row, error } = await admin.from('permitted_emails').upsert(
-    { email: email.toLowerCase().trim(), first_name: firstName, last_name: lastName, full_name: fullName, company_id: companyId, individual_hours_allotment: individualHours, default_location_id: locationId, seating: seatingValue, invite_token: token, invited_at: new Date().toISOString(), accepted_at: null },
+    { email: email.toLowerCase().trim(), first_name: firstName, last_name: lastName, full_name: fullName, company_id: companyId, individual_hours_allotment: individualHours, default_location_id: locationId, seating: seatingValue, invite_token: token, invited_at: new Date().toISOString(), accepted_at: null, email_status: null, email_status_reason: null, email_status_at: null },
     { onConflict: 'email' }
   ).select('id').single()
 

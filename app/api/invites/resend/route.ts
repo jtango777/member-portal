@@ -18,7 +18,7 @@ export async function POST(request: Request) {
   if (!invite || invite.accepted_at) return NextResponse.json({ error: 'Invalid or already accepted' }, { status: 400 })
 
   const token = generateToken()
-  await admin.from('permitted_emails').update({ invite_token: token, invited_at: new Date().toISOString() }).eq('id', member_id)
+  await admin.from('permitted_emails').update({ invite_token: token, invited_at: new Date().toISOString(), email_status: null, email_status_reason: null, email_status_at: null }).eq('id', member_id)
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
   const inviteLink = `${appUrl}/setup-account?token=${token}`

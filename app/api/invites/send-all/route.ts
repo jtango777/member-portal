@@ -73,7 +73,7 @@ export async function POST() {
 
   // 1. Save tokens first, so the link in each email works the moment it lands.
   const writeResults = await inChunks(invites, 20, inv =>
-    admin.from('permitted_emails').update({ invite_token: inv.token, invited_at: now }).eq('id', inv.id)
+    admin.from('permitted_emails').update({ invite_token: inv.token, invited_at: now, email_status: null, email_status_reason: null, email_status_at: null }).eq('id', inv.id)
   )
   const writeFailed = writeResults.some(r => r.error)
   if (writeFailed) {

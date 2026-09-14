@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import NextLink from 'next/link'
 import { Company, MembershipType } from '@/types'
-import { Plus, Send, Check, Shield, Download, Copy, Link, Search, Edit2, Trash2, X, Camera, Users, DoorOpen, ChevronDown, RefreshCw } from 'lucide-react'
+import { Plus, Send, Check, Shield, Download, Copy, Link, Search, Edit2, Trash2, X, Camera, Users, DoorOpen, ChevronDown, RefreshCw, MailWarning } from 'lucide-react'
 import { formatShortDate } from '@/lib/utils'
 import { useAutoScrollIntoView } from '@/lib/useAutoScrollIntoView'
 import toast from 'react-hot-toast'
@@ -35,6 +35,9 @@ type MemberRow = {
   seating:               string | null
   room_access_requested_at: string | null
   is_active:             boolean
+  // Set by the Resend webhook: this address bounced or marked an email as spam.
+  email_status:          'bounced' | 'complained' | null
+  email_status_reason:   string | null
 }
 
 function companyOrTypeLabel(m: Pick<MemberRow, 'company_name' | 'individual_hours_allotment'>) {
@@ -361,6 +364,12 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
     .filter(m => m.is_active !== false && !!m.room_access_requested_at && !m.company_id && !m.individual_hours_allotment)
     .sort((a, b) => new Date(a.room_access_requested_at!).getTime() - new Date(b.room_access_requested_at!).getTime())
 
+  // Invites Resend reported as bounced or marked spam, for people who
+  // haven't signed up yet — i.e. their invite most likely never reached
+  // them. Added 2026-09-14 with the Resend webhook.
+  const deliveryProblems = members
+    .filter(m => m.is_active !== false && !m.accepted_at && !!m.email_status)
+
   // Opens the edit dialog directly — no need to scroll to the row anymore
   // since editing happens in a modal, not inline in the table.
   function jumpToMember(m: MemberRow) {
@@ -479,6 +488,30 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
           </button>
         </div>
       </div>
+
+      {/* Invites that bounced or were marked spam — reported by Resend */}
+      {deliveryProblems.length > 0 && (
+        <div className="flex flex-wrap items-start gap-3 bg-red-50 border border-red-200 rounded-lg px-3.5 py-2.5">
+          <span className="flex items-center justify-center w-6 h-6 rounded-full bg-red-200 text-red-800 flex-shrink-0 mt-0.5">
+            <MailWarning size={12} />
+          </span>
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-semibold text-red-900">
+              {deliveryProblems.length} {deliveryProblems.length === 1 ? 'invite' : 'invites'} didn't reach the person
+            </p>
+            <p className="text-xs text-red-700 mt-0.5">Click a name to fix the email address, then use Resend invite on their row:</p>
+            <div className="flex flex-wrap gap-1.5 mt-1.5">
+              {deliveryProblems.map(m => (
+                <button key={m.id} onClick={() => jumpToMember(m)}
+                  title={m.email_status_reason ?? undefined}
+                  className="text-xs bg-white border border-red-300 hover:bg-red-100 text-red-900 font-medium px-2.5 py-1 rounded-md">
+                  {m.full_name ?? m.email} · {m.email_status === 'complained' ? 'marked spam' : 'bounced'}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Members who clicked "Register for Rooms" but don't have access yet */}
       {roomAccessRequests.length > 0 && (
@@ -883,6 +916,14 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
 
 function StatusBadge({ m }: { m: MemberRow }) {
   if (m.accepted_at)  return <span className="inline-flex items-center gap-1 whitespace-nowrap text-xs font-medium text-green-700 bg-green-50 border border-green-200 px-2 py-0.5 rounded-full"><Check size={10} /> Active</span>
+  // Checked before "Invited" — a bounced invite technically has a token, but
+  // showing "Invited" for it was exactly the problem: it never arrived.
+  if (m.email_status) return (
+    <span title={m.email_status_reason ?? undefined}
+      className="whitespace-nowrap text-xs font-medium text-red-700 bg-red-50 border border-red-200 px-2 py-0.5 rounded-full cursor-help">
+      {m.email_status === 'complained' ? 'Marked spam' : 'Bounced'}
+    </span>
+  )
   if (m.invite_token) return <span className="whitespace-nowrap text-xs font-medium text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">Invited</span>
   // Plain text, not a pill — same treatment as "Member" in the Admin
   // column on Active Members. "Not invited" isn't really a status worth
