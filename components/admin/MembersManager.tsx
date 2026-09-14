@@ -106,6 +106,9 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
   const [archiveTarget, setArchiveTarget]   = useState<{ id: string; name: string } | null>(null)
   const [confirmInviteAll, setConfirmInviteAll] = useState(false)
   const [invitingAll, setInvitingAll]           = useState(false)
+  // Shown under the Invite button after a batch goes out, so the result
+  // doesn't vanish with the pop-up message.
+  const [lastBatch, setLastBatch] = useState<{ sent: number; at: Date } | null>(null)
   const [photoTarget, setPhotoTarget] = useState<{ type: 'member' | 'pending'; id: string; name: string; hasPhoto: boolean; avatarUrl: string | null } | null>(null)
   const [locations, setLocations]     = useState<{ id: string; name: string }[]>([])
   const [locationFilter, setLocationFilter] = useState('')
@@ -293,6 +296,7 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
     } else if (data.sent === 0 && data.remaining === 0) {
       toast.success('Everyone has already been invited!')
     } else {
+      if (data.sent > 0) setLastBatch({ sent: data.sent, at: new Date() })
       const parts = [`${data.sent} invites sent`]
       if (data.remaining > 0) parts.push(`${data.remaining} still to go`)
       toast.success(parts.join(' · '), { duration: 6000 })
@@ -367,6 +371,16 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
   // Invites Resend reported as bounced or marked spam, for people who
   // haven't signed up yet — i.e. their invite most likely never reached
   // them. Added 2026-09-14 with the Resend webhook.
+  // Progress for sending the Not Invited backlog in batches. "Sent today"
+  // comes from the saved invite dates (not local state), so it stays right
+  // after a page refresh. Counts people who already signed up from today's
+  // invites too, so the bar never slides backward as they accept.
+  const todayKey = new Date().toDateString()
+  const invitedToday = members.filter(m =>
+    m.is_active !== false && (m.invite_token || m.accepted_at) &&
+    m.invited_at && new Date(m.invited_at).toDateString() === todayKey
+  ).length
+
   const deliveryProblems = members
     .filter(m => m.is_active !== false && !m.accepted_at && !!m.email_status)
 
@@ -851,6 +865,35 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
               </button>
             </div>
           </div>
+
+          {/* Batch progress — added 2026-09-14 so sending the backlog 100 at
+              a time reads as one organized job rather than repeated clicks. */}
+          {(() => {
+            const left = notInvited.length
+            const batchesLeft = Math.ceil(left / INVITE_BATCH_SIZE)
+            const total = invitedToday + left
+            const pct = total > 0 ? Math.round((invitedToday / total) * 100) : 0
+            return (
+              <div className="px-3.5 pb-2.5 -mt-0.5">
+                <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-0.5 text-[11px] text-amber-800 tabular-nums">
+                  <span>
+                    {invitedToday > 0 && <><span className="font-semibold">{invitedToday} sent today</span> · </>}
+                    {left} left · {batchesLeft} {batchesLeft === 1 ? 'batch' : 'batches'} of {INVITE_BATCH_SIZE} to go
+                  </span>
+                  {lastBatch && (
+                    <span className="text-amber-700">
+                      Last batch: {lastBatch.sent} sent at {lastBatch.at.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
+                    </span>
+                  )}
+                </div>
+                {invitedToday > 0 && (
+                  <div className="mt-1.5 h-1.5 rounded-full bg-amber-200/70 overflow-hidden">
+                    <div className="h-full rounded-full bg-amber-500 transition-[width] duration-500" style={{ width: `${pct}%` }} />
+                  </div>
+                )}
+              </div>
+            )
+          })()}
 
           <div className={`grid transition-[grid-template-rows] duration-300 ease-in-out ${showNotInvited ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}>
             <div className="overflow-hidden">
