@@ -498,35 +498,49 @@ export default function CompaniesManager({ companies: initial, membershipTypes: 
                     </td>
                   </tr>
                   {/* Always mounted — an inner grid-rows transition animates the
-                      expand/collapse instead of the row hard-mounting/unmounting. */}
+                      expand/collapse instead of the row hard-mounting/unmounting.
+                      Redesigned 2026-09-14 — was a cramped text-xs table with
+                      almost no padding, an under-styled header, and 0h/nonzero
+                      hours rendered as plain differently-sized text instead of
+                      a consistent shape. Real header row, real row padding,
+                      and hours as a pill (quiet gray at 0h, blue otherwise) so
+                      the two states line up instead of visually jumping around. */}
                   <tr className="bg-gray-50/70">
                     <td colSpan={4} className="p-0">
                       <div className={`grid transition-[grid-template-rows] duration-300 ease-in-out ${isExpanded ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}>
                         <div className="overflow-hidden">
-                          <div className="px-4 py-3">
+                          <div className="border-t border-gray-200 bg-white mx-4 mb-3 rounded-lg overflow-hidden">
                             {loadingUsage ? (
-                              <p className="text-xs text-gray-400 py-2">Loading members...</p>
+                              <p className="text-xs text-gray-400 px-4 py-3">Loading members...</p>
                             ) : members.length === 0 ? (
-                              <p className="text-xs text-gray-400 py-2">No members in this company.</p>
+                              <p className="text-xs text-gray-400 px-4 py-3">No members in this company.</p>
                             ) : (
-                              <table className="w-full text-xs">
+                              <table className="w-full text-sm">
                                 <thead>
-                                  <tr className="border-b border-gray-200">
-                                    <th className="text-left font-semibold text-gray-500 pb-1.5 pl-6">Name</th>
-                                    <th className="text-left font-semibold text-gray-500 pb-1.5">Email</th>
-                                    <th className="text-left font-semibold text-gray-500 pb-1.5">Hours Used</th>
-                                    <th className="text-left font-semibold text-gray-500 pb-1.5">Bookings</th>
+                                  <tr className="bg-gray-50 border-b border-gray-100">
+                                    <th className="text-left text-[10.5px] font-semibold text-gray-400 uppercase tracking-wide px-4 py-2">Name</th>
+                                    <th className="text-left text-[10.5px] font-semibold text-gray-400 uppercase tracking-wide px-4 py-2">Email</th>
+                                    <th className="text-right text-[10.5px] font-semibold text-gray-400 uppercase tracking-wide px-4 py-2">Hours used</th>
+                                    <th className="text-right text-[10.5px] font-semibold text-gray-400 uppercase tracking-wide px-4 py-2">Bookings</th>
                                   </tr>
                                 </thead>
                                 <tbody>
                                   {members.map((m, i) => (
-                                    <tr key={m.email + i} className="border-b border-gray-100 last:border-0">
-                                      <td className="py-1.5 pl-6 text-gray-700">
-                                        {m.full_name ?? <span className="text-gray-400 italic">Not registered</span>}
+                                    <tr key={m.email + i} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/60">
+                                      <td className="px-4 py-2.5 font-medium text-gray-900 truncate max-w-[1px]">
+                                        {m.full_name ?? <span className="text-gray-400 italic font-normal">Not registered</span>}
                                       </td>
-                                      <td className="py-1.5 text-gray-600">{m.email}</td>
-                                      <td className="py-1.5 text-gray-700 font-medium">{m.hours_used}h</td>
-                                      <td className="py-1.5 text-gray-700">{m.reservation_count}</td>
+                                      <td className="px-4 py-2.5 text-gray-500 truncate max-w-[1px]">{m.email}</td>
+                                      <td className="px-4 py-2.5 text-right">
+                                        <span className={`inline-block text-xs font-bold tabular-nums px-2 py-0.5 rounded-full ${
+                                          m.hours_used > 0
+                                            ? 'bg-blue-50 text-blue-700'
+                                            : 'bg-gray-50 text-gray-400 border border-gray-100'
+                                        }`}>
+                                          {m.hours_used}h
+                                        </span>
+                                      </td>
+                                      <td className="px-4 py-2.5 text-right text-gray-700 tabular-nums">{m.reservation_count}</td>
                                     </tr>
                                   ))}
                                 </tbody>
