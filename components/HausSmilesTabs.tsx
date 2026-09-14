@@ -54,9 +54,13 @@ export default function HausSmilesTabs({ groups, defaultLocationId, isAdmin }: P
   const [togglingHidden, setTogglingHidden] = useState<string | null>(null)
   const active = groups.find(g => g.key === activeKey) ?? groups[0]
   const q = search.trim().toLowerCase()
+  // showHidden switches the whole grid to a dedicated list of just the
+  // hidden people (not the normal view with hidden ones dimmed and mixed
+  // in) — a clean "who's hidden right now" list, not a jumbled combined
+  // view. Click the toggle again to go back to the normal grid.
   const visibleMembers = active
     ? active.members
-        .filter(m => showHidden || !m.hidden_from_faces)
+        .filter(m => showHidden ? m.hidden_from_faces : !m.hidden_from_faces)
         .filter(m => !seatingFilter || m.seating === seatingFilter)
         .filter(m => !q || m.full_name.toLowerCase().includes(q))
     : []
@@ -158,13 +162,19 @@ export default function HausSmilesTabs({ groups, defaultLocationId, isAdmin }: P
         </div>
       </div>
 
+      {showHidden && (
+        <p className="text-xs text-gray-400 mb-3 -mt-1">
+          Hidden from Faces — everyone else's view skips these entirely. Click the eye icon on a card to bring it back.
+        </p>
+      )}
+
       {visibleMembers.length === 0 && (
-        <p className="text-sm text-gray-500">No one matches that filter yet.</p>
+        <p className="text-sm text-gray-500">{showHidden ? 'No hidden faces match that filter.' : 'No one matches that filter yet.'}</p>
       )}
 
       <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-4">
         {visibleMembers.map(member => (
-          <div key={member.id} className={`relative group ${member.hidden_from_faces ? 'opacity-50' : ''}`}>
+          <div key={member.id} className="relative group">
             {isAdmin && (
               <div className="absolute top-1.5 right-1.5 z-10 flex gap-1 transition-opacity sm:opacity-0 sm:group-hover:opacity-100">
                 <button onClick={() => setEditingPhoto(member)}
