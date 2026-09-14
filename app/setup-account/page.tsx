@@ -85,23 +85,24 @@ function SetupForm() {
     if (invitedLocationId) setLocationId(invitedLocationId)
   }, [invitedLocationId])
 
-  // Seating options depend on the selected location — keeps a valid option
-  // selected at all times (never a blank the select has no matching entry
-  // for), and prefers whatever the admin already put on file (defaultSeating),
-  // same as Default Location just above; only falls back to the first
-  // option once the member has actually chosen something themselves, or if
-  // defaultSeating isn't valid for the current location. Reverted
-  // 2026-09-14 — the in-between version (blank by default, a hint sentence
-  // explaining the admin's preset) read as clunky; pre-filling directly
-  // like every other admin-set field already does is simpler, and it's
-  // still just a normal select they can change.
+  // Seating options depend on the selected location. Pre-fills from the
+  // admin's real preset (defaultSeating) when there is one — that's known,
+  // accurate information, no reason to make someone re-enter it. But when
+  // there's no preset at all, this deliberately leaves it blank instead of
+  // silently landing on the first option: a guessed default (e.g. "Office
+  // - Main Building" just because it's alphabetically first) reads as real
+  // information once it's sitting in the field, and someone who never
+  // meant to open the dropdown has no way to tell "this is accurate" from
+  // "this is arbitrary." Caught 2026-09-14 — Jen Ralls had no preset,
+  // landed on a guessed default, and never noticed it wasn't actually
+  // Open Desk.
   useEffect(() => {
     if (locations.length === 0) return
     const opts = getSeatingOptions(locations.find(l => l.id === locationId)?.name)
     setSeating(prev => {
       if (opts.includes(prev)) return prev
       if (!seatingTouched && defaultSeating && opts.includes(defaultSeating)) return defaultSeating
-      return opts[0] ?? ''
+      return ''
     })
   }, [locationId, locations, seatingTouched, defaultSeating])
 
@@ -217,6 +218,14 @@ function SetupForm() {
               ) : (
                 <select required value={seating} onChange={e => { setSeating(e.target.value); setSeatingTouched(true) }}
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                  {/* Not `disabled` — that's what caused the earlier bug
+                      where this looked selected on a real option while
+                      the actual value stayed empty. A plain (enabled)
+                      empty option keeps the select's displayed state
+                      honestly in sync with what's actually chosen; the
+                      required attribute plus the submit-time check below
+                      still block leaving it on this. */}
+                  {!seating && <option value="">Select where you sit…</option>}
                   {getSeatingOptions(locations.find(l => l.id === locationId)?.name).map(s => <option key={s} value={s}>{s}</option>)}
                 </select>
               )}

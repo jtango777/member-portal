@@ -123,20 +123,22 @@ function DetailsStep({ email, defaultLocationId, defaultFirstName, defaultLastNa
       })
   }, [])
 
-  // Seating options depend on the selected location — prefers whatever the
-  // admin already put on file (defaultSeating), pre-filled directly same
-  // as every other admin-set field on this form; only falls back to the
-  // first option once the member has actually chosen something
-  // themselves, or if defaultSeating isn't valid for the current location.
-  // Reverted 2026-09-14 — the in-between version (blank by default, a
-  // hint sentence explaining the admin's preset) read as clunky.
+  // Seating options depend on the selected location. Pre-fills from the
+  // admin's real preset (defaultSeating) when there is one — known,
+  // accurate information, no reason to make someone re-enter it. When
+  // there's no preset at all, this deliberately leaves it blank instead
+  // of silently landing on the first option: a guessed default reads as
+  // real information once it's sitting in the field, with no way to tell
+  // "this is accurate" from "this is arbitrary." Caught 2026-09-14 — Jen
+  // Ralls had no preset, landed on a guessed default, and never noticed
+  // it wasn't actually Open Desk.
   useEffect(() => {
     if (locations.length === 0) return
     const opts = getSeatingOptions(locations.find(l => l.id === locationId)?.name)
     setSeating(prev => {
       if (opts.includes(prev)) return prev
       if (!seatingTouched && defaultSeating && opts.includes(defaultSeating)) return defaultSeating
-      return opts[0] ?? ''
+      return ''
     })
   }, [locationId, locations, seatingTouched, defaultSeating])
 
@@ -242,6 +244,10 @@ function DetailsStep({ email, defaultLocationId, defaultFirstName, defaultLastNa
           ) : (
             <select required value={seating} onChange={e => { setSeating(e.target.value); setSeatingTouched(true) }}
               className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+              {/* Not `disabled` — that caused the bug where this looked
+                  selected on a real option while the actual value stayed
+                  empty. */}
+              {!seating && <option value="">Select where you sit…</option>}
               {getSeatingOptions(locations.find(l => l.id === locationId)?.name).map(s => <option key={s} value={s}>{s}</option>)}
             </select>
           )}
