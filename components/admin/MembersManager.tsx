@@ -119,9 +119,11 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
   const [activePageSize, setActivePageSize]   = useState(10)
   const [pendingPageSize, setPendingPageSize] = useState(10)
   // "Not Yet Invited" is meant to be a temporary backlog, not an ongoing
-  // section like Active/Invited — collapsed by default, own light-weight
-  // pagination since it can be large right after a big import.
-  const [showNotInvited, setShowNotInvited]           = useState(false)
+  // section like Active/Invited — own light-weight pagination since it can
+  // be large right after a big import. Open by default as of 2026-09-14
+  // (was collapsed), showing the first page of 10, so it's visible while
+  // the backlog is actively being sent in batches.
+  const [showNotInvited, setShowNotInvited]           = useState(true)
   const [notInvitedPage, setNotInvitedPage]           = useState(1)
   const [showAllNotInvited, setShowAllNotInvited]     = useState(false)
   const [notInvitedPageSize, setNotInvitedPageSize]   = useState(10)
