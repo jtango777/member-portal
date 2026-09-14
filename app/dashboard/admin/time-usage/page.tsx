@@ -14,16 +14,22 @@ export default async function TimeUsagePage() {
     supabase.from('companies').select('*').eq('is_active', true).order('name'),
     // Members with their own hour allotment instead of a shared company
     // pool — these never showed up here at all before, since this page
-    // only ever iterated companies.
+    // only ever iterated companies. Also missing is_active — an archived
+    // member with a lingering individual_hours_allotment would show up
+    // here indefinitely. Caught 2026-09-14, same shape as the Invite All
+    // bug.
     supabase.from('profiles').select('id, full_name, individual_hours_allotment')
       .is('company_id', null)
       .not('individual_hours_allotment', 'is', null)
+      .eq('is_active', true)
       .order('full_name'),
     // Everyone with some kind of hours pool (company or individual), for
     // the per-person "User" view — a company view alone can't show who
-    // within a company actually used the hours.
+    // within a company actually used the hours. Same is_active gap fixed
+    // here too.
     supabase.from('profiles').select('id, full_name, company_id, individual_hours_allotment, default_location_id, companies(name)')
       .or('company_id.not.is.null,individual_hours_allotment.not.is.null')
+      .eq('is_active', true)
       .order('full_name'),
   ])
   if (!companies) return <TimeUsageView summaries={[]} people={[]} month={now} />

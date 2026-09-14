@@ -23,8 +23,13 @@ export async function GET(request: Request) {
     { data: { users: authUsers } },
     { data: reservations },
   ] = await Promise.all([
-    admin.from('permitted_emails').select('email, company_id, default_location_id, companies(id, name)'),
-    admin.from('profiles').select('id, full_name, company_id, default_location_id'),
+    // Missing is_active filter meant an archived/removed member kept
+    // showing up in this report forever, with no way to tell them apart
+    // from a currently active member — the sibling
+    // /api/admin/members/registered route already filters this correctly
+    // on both tables. Caught 2026-09-14, same shape as the Invite All bug.
+    admin.from('permitted_emails').select('email, company_id, default_location_id, companies(id, name)').eq('is_active', true),
+    admin.from('profiles').select('id, full_name, company_id, default_location_id').eq('is_active', true),
     admin.auth.admin.listUsers({ perPage: 1000 }),
     admin.from('reservations')
       .select('user_id, start_time, end_time, historical_email')

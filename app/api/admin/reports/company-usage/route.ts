@@ -17,7 +17,12 @@ export async function GET(request: Request) {
 
   const admin = createAdminClient()
   const [{ data: companies }, { data: reservations }] = await Promise.all([
-    admin.from('companies').select('id, name, monthly_hours_allotment').order('name'),
+    // Missing is_active filter meant an archived company kept showing up
+    // in this report forever, indistinguishable from a real active company
+    // that just had zero bookings that month — the sibling Time Usage
+    // page already filters this correctly. Caught 2026-09-14, same shape
+    // as the Invite All bug.
+    admin.from('companies').select('id, name, monthly_hours_allotment').eq('is_active', true).order('name'),
     admin.from('reservations')
       .select('company_id, start_time, end_time')
       .gte('start_time', start)
