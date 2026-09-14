@@ -183,16 +183,14 @@ export default function CalendarView({ locations, profile, company, hourScope, h
     setTimeout(() => {
       const el = scrollRef.current
       if (!el) return
-      // Center on the current time when looking at today, so the calendar
-      // opens showing what's actually relevant right now instead of always
-      // landing on the same fixed 8am-ish spot regardless of the time of
-      // day. Any other date (past or future) has no "now" to center on, so
-      // it keeps that same sensible default.
-      const now = new Date()
-      const targetSlot = isSameDay(selectedDate, now)
-        ? (now.getHours() + now.getMinutes() / 60) * 2
-        : 16
-      el.scrollTop = targetSlot * slotHRef.current - el.clientHeight / 2
+      // Opens with 8am at the top of the grid, for every date including
+      // today — the start of the business day is where people look first.
+      // Changed 2026-09-14: it used to center on the current time for
+      // today and on 8am for other dates, which meant 8am landed mid-screen
+      // and early bookings started partly scrolled out of view. The small
+      // offset keeps the "8am" label itself visible instead of clipped.
+      const EIGHT_AM_SLOT = (8 - START_HOUR) * 2
+      el.scrollTop = Math.max(0, EIGHT_AM_SLOT * slotHRef.current - 8)
     }, 50)
   }, [selectedLocation, selectedDate])
 
