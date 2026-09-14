@@ -74,34 +74,3 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
 
   return NextResponse.json({ error: 'source must be "profile", "pending", or "directory"' }, { status: 400 })
 }
-
-// Toggle whether a face shows up on Faces at all — a light switch, not an
-// archive. Unlike DELETE above (real_active: false, blocks login, unmarks
-// Pipedrive), this changes nothing about the person's actual account or
-// invite — they stay fully active everywhere else, just invisible on this
-// one page. Meant for known-virtual members who don't belong in a "who's
-// physically here" directory. Reversible from the same "Show hidden faces"
-// admin toggle that reveals them again. Caught 2026-09-14.
-export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params
-  const { searchParams } = new URL(request.url)
-  const source = searchParams.get('source')
-
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  const { data: caller } = await supabase.from('profiles').select('is_admin').eq('id', user.id).single()
-  if (!caller?.is_admin) return NextResponse.json({ error: 'Admins only' }, { status: 403 })
-
-  const { hidden } = await request.json().catch(() => ({}))
-  if (typeof hidden !== 'boolean') return NextResponse.json({ error: 'hidden must be true or false' }, { status: 400 })
-
-  const admin = createAdminClient()
-  const table = source === 'pending' ? 'permitted_emails' : source === 'profile' ? 'profiles' : null
-  if (!table) return NextResponse.json({ error: 'source must be "profile" or "pending"' }, { status: 400 })
-
-  const { error } = await admin.from(table).update({ hidden_from_faces: hidden }).eq('id', id)
-  if (error) return NextResponse.json({ error: 'Failed to update.' }, { status: 500 })
-
-  return NextResponse.json({ ok: true })
-}

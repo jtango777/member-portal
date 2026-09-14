@@ -3,8 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { Trash2, Pencil, Search, User, Eye, EyeOff } from 'lucide-react'
-import toast from 'react-hot-toast'
+import { Trash2, Pencil, Search, User } from 'lucide-react'
 import AssignPhotoDialog from './admin/AssignPhotoDialog'
 import ArchiveFaceDialog from './ArchiveFaceDialog'
 import { getSeatingOptions } from '@/lib/seating'
@@ -14,7 +13,6 @@ type Member = {
   id: string; full_name: string; avatar_url: string | null; seating?: string | null
   location_name?: string | null
   linkedin_username?: string | null
-  hidden_from_faces?: boolean
   source: 'profile' | 'directory' | 'pending'
 }
 type Group = { key: string; name: string; members: Member[] }
@@ -46,42 +44,13 @@ export default function HausSmilesTabs({ groups, defaultLocationId, isAdmin }: P
   const [search, setSearch] = useState('')
   const [archiveTarget, setArchiveTarget] = useState<Member | null>(null)
   const [editingPhoto, setEditingPhoto] = useState<Member | null>(null)
-  // Admin-only — the server already sends admins every row (hidden ones
-  // included), so toggling this is instant, no page reload needed. Non-
-  // admins never receive a hidden row in the first place, so this control
-  // doesn't even render for them.
-  const [showHidden, setShowHidden] = useState(false)
-  const [togglingHidden, setTogglingHidden] = useState<string | null>(null)
   const active = groups.find(g => g.key === activeKey) ?? groups[0]
   const q = search.trim().toLowerCase()
-  // showHidden switches the whole grid to a dedicated list of just the
-  // hidden people (not the normal view with hidden ones dimmed and mixed
-  // in) — a clean "who's hidden right now" list, not a jumbled combined
-  // view. Click the toggle again to go back to the normal grid.
   const visibleMembers = active
     ? active.members
-        .filter(m => showHidden ? m.hidden_from_faces : !m.hidden_from_faces)
         .filter(m => !seatingFilter || m.seating === seatingFilter)
         .filter(m => !q || m.full_name.toLowerCase().includes(q))
     : []
-  const hiddenCountInActive = active ? active.members.filter(m => m.hidden_from_faces).length : 0
-
-  async function toggleHidden(member: Member) {
-    const nextHidden = !member.hidden_from_faces
-    setTogglingHidden(member.id)
-    const res = await fetch(`/api/admin/faces/${member.id}?source=${member.source}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ hidden: nextHidden }),
-    })
-    if (res.ok) {
-      toast.success(nextHidden ? `${member.full_name.split(' ')[0]} hidden from Faces` : `${member.full_name.split(' ')[0]} showing on Faces again`)
-      router.refresh()
-    } else {
-      toast.error('Could not update')
-    }
-    setTogglingHidden(null)
-  }
 
   if (!active) {
     return <p className="text-sm text-gray-500">No photos yet — members will show up here as they add theirs.</p>
@@ -141,35 +110,11 @@ export default function HausSmilesTabs({ groups, defaultLocationId, isAdmin }: P
             <option value="">All seating</option>
             {getSeatingOptions(active.name).map(s => <option key={s} value={s}>{s}</option>)}
           </select>
-          {/* Admin-only — lets a known-virtual member (or anyone else) be
-              hidden from Faces without touching their actual account, via
-              the eye icon on each card below. Off by default, same view
-              as everyone else; toggling this reveals whatever's currently
-              hidden, with a filled eye so it's obvious it's on. */}
-          {isAdmin && hiddenCountInActive > 0 && (
-            <button
-              onClick={() => setShowHidden(v => !v)}
-              className={`flex-shrink-0 flex items-center gap-1.5 text-sm font-medium px-2.5 py-1.5 rounded-lg border transition-colors ${
-                showHidden
-                  ? 'bg-gray-900 text-white border-gray-900'
-                  : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'
-              }`}
-            >
-              {showHidden ? <Eye size={13} /> : <EyeOff size={13} />}
-              {showHidden ? `Showing ${hiddenCountInActive} hidden` : `${hiddenCountInActive} hidden`}
-            </button>
-          )}
         </div>
       </div>
 
-      {showHidden && (
-        <p className="text-xs text-gray-400 mb-3 -mt-1">
-          Hidden from Faces — everyone else's view skips these entirely. Click the eye icon on a card to bring it back.
-        </p>
-      )}
-
       {visibleMembers.length === 0 && (
-        <p className="text-sm text-gray-500">{showHidden ? 'No hidden faces match that filter.' : 'No one matches that filter yet.'}</p>
+        <p className="text-sm text-gray-500">No one matches that filter yet.</p>
       )}
 
       <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-4">
@@ -181,16 +126,6 @@ export default function HausSmilesTabs({ groups, defaultLocationId, isAdmin }: P
                   title="Change photo"
                   className="p-1 rounded-md bg-white/90 border border-gray-200 text-gray-400 hover:text-blue-700 hover:bg-white">
                   <Pencil size={13} />
-                </button>
-                {/* Light switch, not an archive — e.g. a known-virtual
-                    member who shouldn't appear in a "who's physically
-                    here" directory but stays fully active everywhere
-                    else. Reversible from the same button. */}
-                <button onClick={() => toggleHidden(member)}
-                  disabled={togglingHidden === member.id}
-                  title={member.hidden_from_faces ? 'Show on Faces' : 'Hide from Faces'}
-                  className="p-1 rounded-md bg-white/90 border border-gray-200 text-gray-400 hover:text-amber-700 hover:bg-white disabled:opacity-50">
-                  {member.hidden_from_faces ? <EyeOff size={13} /> : <Eye size={13} />}
                 </button>
                 <button onClick={() => setArchiveTarget(member)}
                   title="Archive from Faces"
