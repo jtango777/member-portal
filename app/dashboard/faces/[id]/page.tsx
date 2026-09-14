@@ -2,7 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getAuthedProfile } from '@/lib/supabase/session'
 import { redirect, notFound } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, User } from 'lucide-react'
 import HausSmilesMemberActions from '@/components/HausSmilesMemberActions'
 import { linkedinUrl } from '@/lib/linkedin'
 
@@ -24,12 +24,15 @@ export default async function HausSmilesMemberPage({ params, searchParams }: {
   if (!currentProfile) redirect('/login')
   const supabase = await createClient()
 
+  // No longer requires avatar_url — the Faces grid now links to a
+  // no-photo member's own page too (showing the same gray placeholder),
+  // so this query has to actually find them instead of 404ing. Caught
+  // 2026-09-14, same fix as the grid itself.
   const { data: profileMember } = await supabase
     .from('profiles')
     .select('id, full_name, avatar_url, seating, linkedin_username')
     .eq('id', id)
     .eq('is_active', true)
-    .not('avatar_url', 'is', null)
     .single()
 
   const pendingMember = profileMember ? null : (
@@ -62,12 +65,22 @@ export default async function HausSmilesMemberPage({ params, searchParams }: {
           <ArrowLeft size={16} /> Back to Faces
         </Link>
         <div className="relative mb-4">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={member.avatar_url ?? ''}
-            alt={member.full_name}
-            className="w-full aspect-square object-cover rounded-xl border border-gray-200"
-          />
+          {member.avatar_url ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={member.avatar_url}
+              alt={member.full_name}
+              className="w-full aspect-square object-cover rounded-xl border border-gray-200"
+            />
+          ) : (
+            <div
+              role="img"
+              aria-label={`${member.full_name} — no photo yet`}
+              className="w-full aspect-square flex items-center justify-center rounded-xl border border-gray-200 bg-gray-100"
+            >
+              <User size="35%" className="text-gray-400" strokeWidth={1.5} />
+            </div>
+          )}
           {(member as { linkedin_username?: string | null }).linkedin_username && (
             <a
               href={linkedinUrl((member as { linkedin_username?: string | null }).linkedin_username!)}

@@ -17,13 +17,25 @@ export default async function HausSmilesPage() {
     // admin's own test account) without showing up on Faces at all —
     // hidden for everyone, admins included (2026-09-11: confirmed this
     // isn't an admin-visible exception, just fully off Faces).
+    //
+    // No longer requires avatar_url — someone with no photo yet now shows
+    // up with a generic gray placeholder (see HausSmilesTabs) instead of
+    // being invisible on Faces entirely. Hiding no-photo people meant
+    // there was no actual incentive to add one — nobody could tell they
+    // were missing. Caught 2026-09-14.
     supabase
       .from('profiles')
       .select('id, full_name, avatar_url, default_location_id, seating, linkedin_username')
-      .not('avatar_url', 'is', null)
       .eq('is_active', true)
       .eq('hidden_from_faces', false)
       .order('full_name'),
+    // Pending (not-yet-signed-up) invites still require a photo already
+    // on file to show up here — unlike registered members above, these
+    // people aren't using the portal yet, so they can't see their own
+    // missing-photo card to be nudged by it. Showing all several hundred
+    // not-yet-accepted invites as blank gray placeholders would just be
+    // noise for the members actually browsing Faces, not an incentive
+    // for anyone. Kept as before.
     supabase
       .from('permitted_emails')
       .select('id, full_name, avatar_url, default_location_id')

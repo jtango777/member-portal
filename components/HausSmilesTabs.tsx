@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { Trash2, Pencil, Search } from 'lucide-react'
+import { Trash2, Pencil, Search, User } from 'lucide-react'
 import AssignPhotoDialog from './admin/AssignPhotoDialog'
 import ArchiveFaceDialog from './ArchiveFaceDialog'
 import { getSeatingOptions } from '@/lib/seating'
@@ -141,13 +141,30 @@ export default function HausSmilesTabs({ groups, defaultLocationId, isAdmin }: P
                 below since it's itself a link (out to LinkedIn, not the
                 profile page) — nested <a> tags aren't valid. */}
             <div className="relative mb-2">
+              {/* No-photo members used to just be hidden from Faces
+                  entirely — no incentive to add a photo if no one could
+                  ever see you were missing one. Now they still show up,
+                  as a plain gray placeholder linking to their own profile
+                  same as everyone else, so it's visibly obvious to them
+                  (and to admins looking through Faces) who hasn't added a
+                  photo yet. Caught 2026-09-14. */}
               <Link href={`/dashboard/faces/${member.id}?location=${active.key}`}>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={member.avatar_url ?? ''}
-                  alt={member.full_name}
-                  className="w-full aspect-square object-cover rounded-lg border border-gray-200 block group-hover:opacity-80 transition-opacity"
-                />
+                {member.avatar_url ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={member.avatar_url}
+                    alt={member.full_name}
+                    className="w-full aspect-square object-cover rounded-lg border border-gray-200 block group-hover:opacity-80 transition-opacity"
+                  />
+                ) : (
+                  <div
+                    role="img"
+                    aria-label={`${member.full_name} — no photo yet`}
+                    className="w-full aspect-square flex items-center justify-center rounded-lg border border-gray-200 bg-gray-100 group-hover:bg-gray-200 transition-colors"
+                  >
+                    <User size="40%" className="text-gray-400" strokeWidth={1.5} />
+                  </div>
+                )}
               </Link>
               {member.linkedin_username && (
                 <a
