@@ -59,6 +59,10 @@ function pooledHoursLabel(companies: Company[], companyId: string) {
   return `${hours}h/month (pooled with company)`
 }
 
+// Must match BATCH_SIZE in app/api/invites/send-all/route.ts — each Invite
+// All click sends at most this many.
+const INVITE_BATCH_SIZE = 100
+
 type Props = { companies: Company[]; membershipTypes: MembershipType[] }
 
 export default function MembersManager({ companies, membershipTypes }: Props) {
@@ -272,19 +276,26 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
 
   // ── Invite all uninvited ───────────────────────────────────────────────────
 
+  // Sends the NEXT batch only (up to 100 per click), not everyone at once.
+  // See app/api/invites/send-all/route.ts for why — rate limits, timeouts,
+  // and never marking someone invited unless their email actually went out.
   async function handleInviteAll() {
     setInvitingAll(true)
     setConfirmInviteAll(false)
     const res  = await fetch('/api/invites/send-all', { method: 'POST' })
-    const data = await res.json()
+    const data = await res.json().catch(() => ({}))
+    const skippedCount = data.skipped?.length ?? 0
     if (!res.ok) {
-      toast.error(data.error ?? 'Something went wrong')
-    } else if (data.sent === 0) {
+      toast.error(data.error ?? 'Something went wrong. Nothing was sent.', { duration: 8000 })
+    } else if (data.sent === 0 && data.remaining === 0) {
       toast.success('Everyone has already been invited!')
-    } else if (data.failed > 0) {
-      toast.success(`${data.sent} invites sent, ${data.failed} failed`)
     } else {
-      toast.success(`${data.sent} invites sent!`)
+      const parts = [`${data.sent} invites sent`]
+      if (data.remaining > 0) parts.push(`${data.remaining} still to go`)
+      toast.success(parts.join(' · '), { duration: 6000 })
+    }
+    if (skippedCount > 0) {
+      toast.error(`${skippedCount} skipped for an invalid email: ${data.skipped.map((s: { email: string }) => s.email).join(', ')}`, { duration: 10000 })
     }
     await refresh()
     setInvitingAll(false)
@@ -791,7 +802,7 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
               <div className={`col-start-1 row-start-1 flex items-center gap-2 transition-all duration-150 ${
                 confirmInviteAll ? 'opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none'
               }`}>
-                <span className="text-xs text-amber-800 font-medium whitespace-nowrap">Send {notInvited.length} invites?</span>
+                <span className="text-xs text-amber-800 font-medium whitespace-nowrap">Send next {Math.min(INVITE_BATCH_SIZE, notInvited.length)} of {notInvited.length}?</span>
                 <button onClick={handleInviteAll}
                   className="text-xs bg-amber-500 hover:bg-amber-600 text-white font-semibold px-2.5 py-1.5 rounded-md">
                   Yes, send
@@ -803,7 +814,7 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
                 className={`col-start-1 row-start-1 justify-self-end flex items-center gap-1.5 text-xs bg-amber-500 hover:bg-amber-600 text-white font-semibold px-3 py-1.5 rounded-md disabled:opacity-50 transition-all duration-150 whitespace-nowrap ${
                   confirmInviteAll ? 'opacity-0 scale-95 pointer-events-none' : 'opacity-100 scale-100'
                 }`}>
-                <Send size={12} /> {invitingAll ? 'Sending…' : 'Invite All'}
+                <Send size={12} /> {invitingAll ? 'Sending…' : notInvited.length > INVITE_BATCH_SIZE ? `Invite next ${INVITE_BATCH_SIZE}` : 'Invite All'}
               </button>
             </div>
           </div>

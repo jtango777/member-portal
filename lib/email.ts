@@ -97,20 +97,53 @@ function bookingEmailWrapper(content: string, badge: string) {
   `
 }
 
-export async function sendInviteEmail(to: string, token: string) {
+const INVITE_SUBJECT = "You're invited to the BizHaus Member Portal"
+
+function inviteEmailHtml(token: string) {
   const link = `${APP_URL}/setup-account?token=${token}`
-  const { error } = await resend.emails.send({
-    from: FROM,
-    to,
-    subject: "You're invited to the BizHaus Member Portal",
-    html: emailWrapper(`
+  return emailWrapper(`
       <h2 style="color:#0f172a;margin:0 0 8px;font-size:22px;font-weight:700;">You're invited!</h2>
       <p style="color:#475569;line-height:1.6;margin:0 0 24px;">You've been given access to the BizHaus Member Portal — book rooms, connect with the community, and more. Click below to set up your account.</p>
       <a href="${link}" style="display:inline-block;background:#2563eb;color:white;padding:13px 28px;border-radius:7px;text-decoration:none;font-weight:600;font-size:15px;margin-bottom:24px;">Set Up My Account →</a>
       <p style="color:#94a3b8;font-size:13px;margin:0;border-top:1px solid #f1f5f9;padding-top:20px;">This link expires in 7 days. If you weren't expecting this, you can safely ignore it.</p>
-    `),
+    `)
+}
+
+// Throws on failure. It used to only console.error and return normally,
+// so every caller's try/catch treated a rejected send as a success — the
+// single-invite routes reported "email sent" when it wasn't, and Invite
+// All counted failures as sent. Caught 2026-09-14.
+export async function sendInviteEmail(to: string, token: string) {
+  const { error } = await resend.emails.send({
+    from: FROM,
+    to,
+    subject: INVITE_SUBJECT,
+    html: inviteEmailHtml(token),
   })
-  if (error) console.error('[email] Resend error sending invite email:', error)
+  if (error) {
+    console.error('[email] Resend error sending invite email:', error)
+    throw new Error(error.message)
+  }
+}
+
+// Up to 100 invites in one Resend API call. Resend's batch endpoint is
+// all-or-nothing, so this either sends every email in the list or none of
+// them — which lets the caller safely roll back invite tokens on failure
+// instead of leaving people marked "Invited" with no email.
+export async function sendInviteEmailsBatch(invites: { to: string; token: string }[]): Promise<{ ok: true } | { ok: false; error: string }> {
+  if (invites.length === 0) return { ok: true }
+  if (invites.length > 100) return { ok: false, error: 'Batch too large (max 100)' }
+  const { error } = await resend.batch.send(invites.map(i => ({
+    from: FROM,
+    to: i.to,
+    subject: INVITE_SUBJECT,
+    html: inviteEmailHtml(i.token),
+  })))
+  if (error) {
+    console.error('[email] Resend batch error sending invites:', error)
+    return { ok: false, error: error.message }
+  }
+  return { ok: true }
 }
 
 export async function sendConfirmationEmail(
