@@ -28,7 +28,7 @@ export async function GET(request: Request) {
     // from a currently active member — the sibling
     // /api/admin/members/registered route already filters this correctly
     // on both tables. Caught 2026-09-14, same shape as the Invite All bug.
-    admin.from('permitted_emails').select('email, company_id, default_location_id, companies(id, name)').eq('is_active', true),
+    admin.from('permitted_emails').select('email, full_name, company_id, default_location_id, companies(id, name)').eq('is_active', true),
     admin.from('profiles').select('id, full_name, company_id, default_location_id').eq('is_active', true),
     admin.auth.admin.listUsers({ perPage: 1000 }),
     admin.from('reservations')
@@ -79,7 +79,12 @@ export async function GET(request: Request) {
     return {
       user_id:           userId,
       email:             pe.email,
-      full_name:         prof?.full_name ?? null,
+      // Falls back to the name already on file from their invite (most
+      // pending members have one, e.g. imported from Pipedrive) instead of
+      // only ever checking the real account — that's why every unregistered
+      // member showed as "Not registered" here even when we already knew
+      // their name. Caught 2026-09-14.
+      full_name:         prof?.full_name ?? pe.full_name ?? null,
       company_id:        pe.company_id,
       company_name:      (pe.companies as Record<string, unknown>)?.name ?? '',
       hours_used:          Math.round((usage?.hours ?? 0) * 10) / 10,
