@@ -245,8 +245,13 @@ export default function SetupAccountPage() {
           below can actually sit side by side instead of forcing a scroll
           on a screen with plenty of horizontal room to spare. */}
       <div className="w-full max-w-sm md:max-w-xl">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-white tracking-tight">BizHaus <span className="font-medium">Portal</span></h1>
+        {/* Matches login's and register's header exactly — this page had
+            its own third, still different version (plain text wordmark,
+            no logo image, no badge). Caught 2026-09-14. */}
+        <div className="flex flex-col items-center justify-center gap-3 mb-8">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/brand/bizhaus-logo-white.png" alt="BizHaus" className="h-8 w-auto" />
+          <span className="text-xs font-bold bg-blue-600 text-white px-2.5 py-1 rounded">Member Portal</span>
         </div>
         <Suspense fallback={<div className="text-center text-slate-400">Loading…</div>}>
           <SetupForm />

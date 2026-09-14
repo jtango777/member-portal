@@ -267,10 +267,13 @@ export default function RegisterPage() {
   return (
     <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
       <div className="w-full max-w-sm">
-        <div className="flex items-center justify-center gap-2.5 mb-8">
+        {/* Matches login's header exactly — this page had its own older,
+            inconsistent version (inline "Portal" text, no badge). Caught
+            2026-09-14. */}
+        <div className="flex flex-col items-center justify-center gap-3 mb-8">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/brand/bizhaus-logo-white.png" alt="BizHaus" className="h-8 w-auto" />
-          <span className="text-lg font-semibold text-white">Portal</span>
+          <span className="text-xs font-bold bg-blue-600 text-white px-2.5 py-1 rounded">Member Portal</span>
         </div>
         {invite
           ? <DetailsStep
