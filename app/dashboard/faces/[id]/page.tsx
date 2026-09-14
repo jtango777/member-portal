@@ -35,6 +35,10 @@ export default async function HausSmilesMemberPage({ params, searchParams }: {
     .eq('is_active', true)
     .single()
 
+  // Same fix as above — a pending member with no photo now shows up on the
+  // Faces grid too (2026-09-14), so this had to drop its own leftover
+  // avatar_url requirement or every no-photo pending person's card would
+  // 404 the moment it was clicked. Missed this one in the first pass.
   const pendingMember = profileMember ? null : (
     await supabase
       .from('permitted_emails')
@@ -42,7 +46,6 @@ export default async function HausSmilesMemberPage({ params, searchParams }: {
       .eq('id', id)
       .is('accepted_at', null)
       .eq('is_active', true)
-      .not('avatar_url', 'is', null)
       .single()
   ).data
 

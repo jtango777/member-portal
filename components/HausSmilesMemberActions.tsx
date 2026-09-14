@@ -17,7 +17,7 @@ export default function HausSmilesMemberActions({ id, source, fullName, avatarUr
     <div className="flex items-center justify-center gap-4 mt-4">
       <button onClick={() => setEditingPhoto(true)}
         className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-blue-700">
-        <Pencil size={14} /> Change photo
+        <Pencil size={14} /> {avatarUrl ? 'Change photo' : 'Add photo'}
       </button>
       <button onClick={() => setArchiving(true)}
         className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-red-700">
@@ -32,7 +32,7 @@ export default function HausSmilesMemberActions({ id, source, fullName, avatarUr
           targetType={source === 'profile' ? 'member' : source === 'pending' ? 'pending' : 'directory'}
           targetId={id}
           memberName={fullName}
-          hasPhoto
+          hasPhoto={!!avatarUrl}
           avatarUrl={avatarUrl}
         />
       )}
