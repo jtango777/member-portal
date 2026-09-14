@@ -873,6 +873,10 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
 function StatusBadge({ m }: { m: MemberRow }) {
   if (m.accepted_at)  return <span className="inline-flex items-center gap-1 whitespace-nowrap text-xs font-medium text-green-700 bg-green-50 border border-green-200 px-2 py-0.5 rounded-full"><Check size={10} /> Active</span>
   if (m.invite_token) return <span className="whitespace-nowrap text-xs font-medium text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">Invited</span>
-  return <span className="whitespace-nowrap text-xs font-medium text-gray-500 bg-gray-100 border border-gray-200 px-2 py-0.5 rounded-full">Not invited</span>
+  // Plain text, not a pill — same treatment as "Member" in the Admin
+  // column on Active Members. "Not invited" isn't really a status worth
+  // calling out with a badge (Active and Invited are actual milestones;
+  // this is just the absence of one), so it reads quieter to match.
+  return <span className="text-xs text-gray-400">Not invited</span>
 }
 
