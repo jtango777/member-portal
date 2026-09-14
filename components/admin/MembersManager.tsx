@@ -811,7 +811,7 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
             showAll={showAllPending} onToggleShowAll={() => setShowAllPending(v => !v)}
             pageSize={pendingPageSize} onPageSizeChange={size => { setPendingPageSize(size); setPendingPage(1) }} />
         }>
-          <AdminTable colWidths={['17%', '20%', '12%', '14%', '10%', '11%', '16%']} minWidth={1000}>
+          <AdminTable colWidths={['17%', '22%', '12%', '15%', '7%', '11%', '16%']} minWidth={1000}>
             <thead>
               <tr className="border-b border-gray-100 bg-gray-50">
                 <Th>Name</Th><Th>Email</Th><Th>Company</Th><Th>Location</Th><Th>Status</Th><Th>Invited</Th><Th />
@@ -905,7 +905,7 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
                     showAll={showAllNotInvited} onToggleShowAll={() => setShowAllNotInvited(v => !v)}
                     pageSize={notInvitedPageSize} onPageSizeChange={size => { setNotInvitedPageSize(size); setNotInvitedPage(1) }} />
                 </div>
-                <AdminTable colWidths={['17%', '20%', '12%', '14%', '10%', '11%', '16%']} minWidth={1000}>
+                <AdminTable colWidths={['17%', '22%', '12%', '15%', '7%', '11%', '16%']} minWidth={1000}>
                   <thead>
                     <tr className="border-b border-gray-100 bg-gray-50">
                       <Th>Name</Th><Th>Email</Th><Th>Company</Th><Th>Location</Th><Th>Status</Th><Th>Added</Th><Th />
@@ -974,6 +974,6 @@ function StatusBadge({ m }: { m: MemberRow }) {
   // column on Active Members. "Not invited" isn't really a status worth
   // calling out with a badge (Active and Invited are actual milestones;
   // this is just the absence of one), so it reads quieter to match.
-  return <span className="text-xs text-gray-400 whitespace-nowrap">Not invited</span>
+  return <span className="text-xs text-gray-400">Not invited</span>
 }
 
