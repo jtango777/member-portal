@@ -127,8 +127,11 @@ export default function HausSmilesTabs({ groups, defaultLocationId, isAdmin }: P
                   className="p-1 rounded-md bg-white/90 border border-gray-200 text-gray-400 hover:text-blue-700 hover:bg-white">
                   <Pencil size={13} />
                 </button>
+                {/* Was "Archive from Faces" — same fix as the individual
+                    member page's version of this button. Caught
+                    2026-09-14. */}
                 <button onClick={() => setArchiveTarget(member)}
-                  title="Archive from Faces"
+                  title="Archive user"
                   className="p-1 rounded-md bg-white/90 border border-gray-200 text-gray-400 hover:text-red-700 hover:bg-white">
                   <Trash2 size={13} />
                 </button>

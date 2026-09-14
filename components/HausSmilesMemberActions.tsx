@@ -19,9 +19,15 @@ export default function HausSmilesMemberActions({ id, source, fullName, avatarUr
         className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-blue-700">
         <Pencil size={14} /> {avatarUrl ? 'Change photo' : 'Add photo'}
       </button>
+      {/* Was "Archive from Faces" — undersold what this actually does. The
+          confirm dialog that opens already says it correctly ("Archive
+          X's account? Blocks their login and removes them from Members,
+          Faces & reports"); the button that opens it should say the same
+          thing, not the narrower, Faces-only-sounding version. Caught
+          2026-09-14. */}
       <button onClick={() => setArchiving(true)}
         className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-red-700">
-        <Trash2 size={14} /> Archive from Faces
+        <Trash2 size={14} /> Archive user
       </button>
 
       {editingPhoto && (
