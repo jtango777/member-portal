@@ -478,7 +478,17 @@ export default function CompaniesManager({ companies: initial, membershipTypes: 
                       <span className="font-medium text-gray-900">{c.name}</span>
                     </td>
                     <td className="px-4 py-1.5 whitespace-nowrap">
-                      <span className="text-gray-700">{c.monthly_hours_allotment}h</span>
+                      {/* Same pill treatment as the expanded member rows below
+                          — was plain text here while the dropdown got the
+                          pill, so the two didn't read as one design.
+                          Caught 2026-09-14. */}
+                      <span className={`inline-block text-xs font-bold tabular-nums px-2 py-0.5 rounded-full ${
+                        c.monthly_hours_allotment > 0
+                          ? 'bg-blue-50 text-blue-700'
+                          : 'bg-gray-50 text-gray-400 border border-gray-100'
+                      }`}>
+                        {c.monthly_hours_allotment}h
+                      </span>
                     </td>
                     <td className="px-4 py-1.5">
                       <div className="flex items-center justify-end gap-0.5">
