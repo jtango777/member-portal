@@ -9,7 +9,7 @@ import { eachDayOfInterval, getDay, format as formatDate } from 'date-fns'
 import DayPassDatePicker, { DateMode } from '@/components/DayPassDatePicker'
 import Recaptcha, { RecaptchaHandle } from '@/components/Recaptcha'
 import { createClient } from '@/lib/supabase/client'
-import { cn } from '@/lib/utils'
+import { cn, getPacificDayBounds } from '@/lib/utils'
 
 type ExistingCustomer = { id: string; first_name: string; last_name: string; email: string }
 
@@ -126,6 +126,7 @@ export default function DayPassPage() {
           loc={selectedLocation}
           dates={dates}
           guestName={guestName}
+          guestEmail={guestEmail}
           confirmationNumber={confirmationNumber}
           onRestart={restart}
         />
@@ -668,11 +669,46 @@ function PaymentStep({ customerId, locationId, dates, guestName, guestEmail, onS
   )
 }
 
-function StepConfirmation({ loc, dates, guestName, confirmationNumber, onRestart }: {
+// Calendar times for a day pass: 9am to 5pm Pacific on each date, as UTC
+// stamps like 20261030T160000Z (what both Google links and .ics files take).
+function dayPassUtcStamps(date: string) {
+  const dayStart = getPacificDayBounds(date).start.getTime()
+  const stamp = (ms: number) => new Date(ms).toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '')
+  return { start: stamp(dayStart + 9 * 3600000), end: stamp(dayStart + 17 * 3600000) }
+}
+
+function downloadDayPassIcs(loc: typeof LOCATIONS[number], dates: string[], confirmationNumber: string) {
+  const now = new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '')
+  const events = dates.map(d => {
+    const { start, end } = dayPassUtcStamps(d)
+    return [
+      'BEGIN:VEVENT',
+      `UID:daypass-${confirmationNumber}-${d}@bizhaus.com`,
+      `DTSTAMP:${now}`, `DTSTART:${start}`, `DTEND:${end}`,
+      `SUMMARY:BizHaus Day Pass (${loc.name})`,
+      `LOCATION:${loc.address.replace(/,/g, '\\,')}`,
+      `DESCRIPTION:Confirmation #${confirmationNumber}`,
+      'END:VEVENT',
+    ].join('\r\n')
+  })
+  const ics = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//BizHaus//Day Pass//EN', ...events, 'END:VCALENDAR'].join('\r\n')
+  const url = URL.createObjectURL(new Blob([ics], { type: 'text/calendar' }))
+  const a = document.createElement('a')
+  a.href = url; a.download = `bizhaus-day-pass-${confirmationNumber}.ics`
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
+function StepConfirmation({ loc, dates, guestName, guestEmail, confirmationNumber, onRestart }: {
   loc: typeof LOCATIONS[number]; dates: string[]
-  guestName: string; confirmationNumber: string
+  guestName: string; guestEmail: string; confirmationNumber: string
   onRestart: () => void
 }) {
+  const isMarina = loc.name === 'Marina del Rey'
+  const googleCalendarUrl = dates.length === 1 ? (() => {
+    const { start, end } = dayPassUtcStamps(dates[0])
+    return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(`BizHaus Day Pass (${loc.name})`)}&dates=${start}/${end}&location=${encodeURIComponent(loc.address)}&details=${encodeURIComponent(`Confirmation #${confirmationNumber}`)}`
+  })() : null
   const total = DAY_PASS_PRICE * dates.length
   const dateRangeLabel = dates.length > 1
     ? `${dates.length} days (${formatDate(new Date(dates[0] + 'T12:00:00'), 'MMM d')} – ${formatDate(new Date(dates[dates.length - 1] + 'T12:00:00'), 'MMM d, yyyy')})`
@@ -736,28 +772,38 @@ function StepConfirmation({ loc, dates, guestName, confirmationNumber, onRestart
       </div>
 
       <div className="w-full text-left">
-        <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3.5">What&apos;s next</div>
-        <div className="flex flex-col gap-3.5">
-          {[
-            "We've emailed a confirmation and receipt to you.",
-            'Arrive any time during business hours, 9:00am–5:00pm.',
-            'Check in with the front desk using your name or this confirmation.',
-          ].map(text => (
-            <div key={text} className="flex gap-2.5 items-start">
-              <div className="w-6 h-6 rounded-full bg-green-50 flex-shrink-0 flex items-center justify-center mt-0.5">
-                <CheckCircle size={12} className="text-green-600" />
-              </div>
-              <div className="text-sm text-gray-700 leading-relaxed pt-0.5">{text}</div>
-            </div>
-          ))}
+        <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">What&apos;s next</div>
+        <div className="grid grid-cols-[6.5rem_minmax(0,1fr)] text-sm">
+          <div className="py-3 border-t border-gray-100 text-gray-500">Confirmation</div>
+          <div className="py-3 border-t border-gray-100 text-gray-900 break-words">
+            {guestEmail ? <>Sent to {guestEmail}</> : 'Sent to your email'}
+          </div>
+          <div className="py-3 border-t border-gray-100 text-gray-500">When</div>
+          <div className="py-3 border-t border-gray-100 text-gray-900">Arrive any time, 9:00am to 5:00pm</div>
+          <div className="py-3 border-t border-gray-100 text-gray-500">Check in</div>
+          <div className="py-3 border-t border-gray-100 text-gray-900">
+            {isMarina
+              ? 'Self check-in. Your door code is in your confirmation email.'
+              : <>Front desk. Give your name or <span className="font-mono text-[13px]">#{confirmationNumber}</span></>}
+          </div>
+          <div className="py-3 border-y border-gray-100 text-gray-500">Calendar</div>
+          <div className="py-3 border-y border-gray-100 flex flex-wrap gap-x-4 gap-y-1">
+            {googleCalendarUrl && (
+              <a href={googleCalendarUrl} target="_blank" rel="noopener noreferrer" className="font-medium text-booking-600 hover:text-booking-700">Google Calendar</a>
+            )}
+            <button type="button" onClick={() => downloadDayPassIcs(loc, dates, confirmationNumber)} className="font-medium text-booking-600 hover:text-booking-700">
+              {dates.length > 1 ? `Add all ${dates.length} days (Apple, Outlook, Google)` : 'Apple or Outlook'}
+            </button>
+          </div>
         </div>
       </div>
 
-      <div className="flex gap-4 items-center mt-2">
-        <button onClick={onRestart} className="bg-booking-600 hover:bg-booking-700 text-white text-sm font-semibold py-2.5 px-6 rounded-lg transition-colors">
-          Book Another Day Pass
-        </button>
-        <a href="/" className="text-sm font-medium text-gray-500 hover:text-gray-700">Return to bizhaus.com</a>
+      <div className="w-full flex flex-wrap gap-x-5 gap-y-3 items-center mt-2">
+        <a href="/my-bookings" className="bg-booking-600 hover:bg-booking-700 text-white text-sm font-semibold py-2.5 px-6 rounded-lg transition-colors">
+          View my bookings
+        </a>
+        <button onClick={onRestart} className="text-sm font-medium text-gray-500 hover:text-gray-700">Book another day pass</button>
+        <a href="https://bizhaus.com" className="text-sm font-medium text-gray-400 hover:text-gray-600 sm:ml-auto">bizhaus.com</a>
       </div>
     </div>
   )
