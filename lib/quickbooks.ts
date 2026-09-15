@@ -242,9 +242,14 @@ export async function voidSalesReceipt(locationId: string, receiptId: string) {
   const current = await qbFetch('GET', `/salesreceipt/${receiptId}`, tokens.realm_id, accessToken)
   const syncToken = current.SalesReceipt.SyncToken
 
-  const voided = await qbFetch('POST', '/salesreceipt?operation=void', tokens.realm_id, accessToken, {
+  // Sales receipts void with ?include=void + sparse — NOT ?operation=void
+  // (that's the invoice/payment form). Using operation=void made QB reject
+  // every day-pass cancellation with "can't void this credit card amount"
+  // (caught in the first real test cancel, 2026-09-15).
+  const voided = await qbFetch('POST', '/salesreceipt?include=void', tokens.realm_id, accessToken, {
     Id: receiptId,
     SyncToken: syncToken,
+    sparse: true,
   })
 
   return voided.SalesReceipt
