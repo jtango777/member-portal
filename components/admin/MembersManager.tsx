@@ -135,12 +135,18 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
   // versa, since Location sorting re-sorts the whole list on top).
   const [activeSort, setActiveSort] = useState<{ key: 'name' | 'joined'; dir: 'asc' | 'desc' }>({ key: 'name', dir: 'asc' })
 
+  // Two modes people actually want: alphabetical, or who joined most
+  // recently. Clicking Name while already alphabetical flips to newest
+  // joined first (not Z→A, which nobody uses). Clicking Joined toggles
+  // newest/oldest.
   function toggleActiveSort(key: 'name' | 'joined') {
     setLocationSort(null)
-    setActiveSort(prev => prev.key === key
-      ? { key, dir: prev.dir === 'asc' ? 'desc' : 'asc' }
-      // First click on Joined shows newest first; on Name, A→Z.
-      : { key, dir: key === 'joined' ? 'desc' : 'asc' })
+    setActiveSort(prev => {
+      if (key === 'name') {
+        return prev.key === 'name' ? { key: 'joined', dir: 'desc' } : { key: 'name', dir: 'asc' }
+      }
+      return prev.key === 'joined' ? { key: 'joined', dir: prev.dir === 'desc' ? 'asc' : 'desc' } : { key: 'joined', dir: 'desc' }
+    })
   }
 
   function firstNameKey(m: MemberRow) {
@@ -366,7 +372,8 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
     filtered.filter(m => !!m.accepted_at).sort((a, b) => {
       const dir = activeSort.dir === 'asc' ? 1 : -1
       if (activeSort.key === 'joined') {
-        return (new Date(a.accepted_at!).getTime() - new Date(b.accepted_at!).getTime()) * dir
+        const diff = (new Date(a.accepted_at!).getTime() - new Date(b.accepted_at!).getTime()) * dir
+        return diff !== 0 ? diff : firstNameKey(a).localeCompare(firstNameKey(b))
       }
       return firstNameKey(a).localeCompare(firstNameKey(b)) * dir
     })
