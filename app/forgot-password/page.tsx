@@ -58,7 +58,7 @@ function ForgotPasswordForm() {
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
           <h1 className={`text-3xl font-bold tracking-tight ${isDayPass ? 'text-gray-900' : 'text-white'}`}>
-            BizHaus <span className="font-medium">{isDayPass ? 'Day Pass' : 'Portal'}</span>
+            BizHaus <span className="font-medium">{isDayPass ? 'Bookings' : 'Portal'}</span>
           </h1>
         </div>
         <div className="bg-white rounded-xl shadow-lg p-8 border border-gray-200">
