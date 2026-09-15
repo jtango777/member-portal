@@ -16,6 +16,26 @@ function pacificToUTC(dateStr: string, timeStr: string): Date {
   return new Date(dayStart.getTime() + h * 3600000 + m * 60000)
 }
 
+// Any failure AFTER a successful payment has to give the money back —
+// otherwise the customer is charged with no booking. Staff get an alert
+// either way. (Added with the day-pass version, 2026-09-15.)
+async function refundAndAlert(stripe: Stripe, paymentIntentId: string, reason: string, details: Record<string, unknown>) {
+  let refunded = false
+  try {
+    await stripe.refunds.create({ payment_intent: paymentIntentId })
+    refunded = true
+  } catch (err) {
+    console.error('[book/request] Refund failed:', paymentIntentId, err)
+  }
+  try {
+    await sendSystemAlert(refunded ? `${reason} — charge refunded` : `${reason} — REFUND FAILED, refund by hand`, {
+      payment_intent: paymentIntentId, ...details,
+    })
+  } catch (err) {
+    console.error('[book/request] Alert failed:', err)
+  }
+}
+
 export async function POST(request: Request) {
   const ip = request.headers.get('x-forwarded-for') ?? 'unknown'
   if (!rateLimit(ip, 10, 60_000)) {
@@ -81,7 +101,8 @@ export async function POST(request: Request) {
     const hours = ((eh * 60 + em) - (sh * 60 + sm)) / 60
     const expectedCents = Math.round(hours * (room.price_per_hour as number) * 100)
     if (pi.amount < expectedCents) {
-      return NextResponse.json({ error: 'Payment amount does not match the booking price.' }, { status: 400 })
+      await refundAndAlert(stripe, pi.id, 'Room booking payment did not match the booking', { expectedCents, paidCents: pi.amount, room_id, date, start, end })
+      return NextResponse.json({ error: 'Your booking changed after payment was set up, so we refunded that charge. Please try again.' }, { status: 400 })
     }
   }
 
@@ -94,8 +115,11 @@ export async function POST(request: Request) {
     .gt('end_time', startTime.toISOString())
 
   if (conflicts && conflicts.length > 0) {
+    if (stripe_payment_intent_id) {
+      await refundAndAlert(stripe, stripe_payment_intent_id, 'Room booking lost the slot after payment', { room_id, date, start, end })
+    }
     return NextResponse.json(
-      { error: 'This time slot was just booked. Please go back and select another time.' },
+      { error: 'This time slot was just booked, so we refunded that charge. Please go back and select another time.' },
       { status: 409 }
     )
   }
@@ -117,11 +141,14 @@ export async function POST(request: Request) {
     .single()
 
   if (resError || !reservation) {
-    if (resError?.message?.includes('no_overlapping_reservations')) {
-      return NextResponse.json({ error: 'This time slot was just booked. Please go back and select another time.' }, { status: 409 })
-    }
     console.error('[book/request] Reservation insert error:', resError?.message)
-    return NextResponse.json({ error: 'Could not create reservation. Please try again.' }, { status: 500 })
+    if (stripe_payment_intent_id) {
+      await refundAndAlert(stripe, stripe_payment_intent_id, 'Room booking could not be saved after payment', { room_id, date, start, end, error: resError?.message })
+    }
+    if (resError?.message?.includes('no_overlapping_reservations')) {
+      return NextResponse.json({ error: 'This time slot was just booked, so we refunded that charge. Please go back and select another time.' }, { status: 409 })
+    }
+    return NextResponse.json({ error: 'Something went wrong creating your reservation, so we refunded that charge. Please try again.' }, { status: 500 })
   }
 
   // Create the external booking record
@@ -147,7 +174,10 @@ export async function POST(request: Request) {
   if (bookingError || !booking) {
     // Roll back the reservation if external booking fails
     await admin.from('reservations').delete().eq('id', reservation.id)
-    return NextResponse.json({ error: 'Could not save booking. Please try again.' }, { status: 500 })
+    if (stripe_payment_intent_id) {
+      await refundAndAlert(stripe, stripe_payment_intent_id, 'Room booking could not be saved after payment', { room_id, date, start, end, error: bookingError?.message })
+    }
+    return NextResponse.json({ error: 'Something went wrong saving your booking, so we refunded that charge. Please try again or email bookings@bizhaus.com.' }, { status: 500 })
   }
 
   // Shared formatting for both emails below — computed once so a second

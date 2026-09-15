@@ -393,15 +393,27 @@ function DetailsAndPayment({
 
   // Already signed in — skip account creation entirely and go straight to
   // getting a payment intent for this reservation.
+  //
+  // Keyed on the actual booking (location + dates), NOT just "do we have a
+  // customer yet": going back and changing the dates after the payment
+  // intent existed used to keep charging the old amount, so the money went
+  // through and /request then rejected the booking as "Payment amount does
+  // not match the day pass price" — paid, no reservation (hit for real
+  // 2026-09-15, $30 taken and refunded by hand). Changing the booking now
+  // clears the old payment and gets a fresh one for the new total.
+  const bookingKey = `${locationId}|${dates.join(',')}`
   useEffect(() => {
-    if (!existingCustomer || customerId) return
+    if (!existingCustomer) return
+    let cancelled = false
     setCustomerId(existingCustomer.id)
     setGuestName(`${existingCustomer.first_name} ${existingCustomer.last_name}`)
     setGuestEmail(existingCustomer.email)
+    setClientSecret('')
     // Staff/member logins may not have a booking account row yet — create
     // it before payment, or the reservation would fail after paying.
     ;(async () => {
       const linkRes = await fetch('/api/day-pass/my-account', { method: 'POST' })
+      if (cancelled) return
       if (!linkRes.ok) { setAccountError('Something went wrong with your account. Please refresh and try again.'); return }
       const res = await fetch('/api/day-pass/create-payment-intent', {
         method: 'POST',
@@ -409,9 +421,33 @@ function DetailsAndPayment({
         body: JSON.stringify({ location_id: locationId, dates }),
       })
       const data = await res.json()
-      setClientSecret(data.clientSecret)
+      if (!cancelled) setClientSecret(data.clientSecret)
     })()
-  }, [existingCustomer, customerId, locationId, dates, setCustomerId, setClientSecret, setGuestName, setGuestEmail])
+    return () => { cancelled = true }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [existingCustomer, bookingKey])
+
+  // Same protection for someone who just created an account here and then
+  // went back to change the dates: throw away the old payment and get one
+  // for the new total.
+  const firstBookingKey = useRef(bookingKey)
+  useEffect(() => {
+    if (existingCustomer || !customerId || bookingKey === firstBookingKey.current) return
+    firstBookingKey.current = bookingKey
+    let cancelled = false
+    setClientSecret('')
+    ;(async () => {
+      const res = await fetch('/api/day-pass/create-payment-intent', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ location_id: locationId, dates }),
+      })
+      const data = await res.json()
+      if (!cancelled) setClientSecret(data.clientSecret)
+    })()
+    return () => { cancelled = true }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bookingKey, customerId, existingCustomer])
 
   async function handleSignOut() {
     const { createClient } = await import('@/lib/supabase/client')
@@ -488,7 +524,7 @@ function DetailsAndPayment({
           </div>
           <button onClick={handleSignOut} className="text-sm text-gray-400 hover:text-gray-600 underline">Not you? Sign out</button>
         </div>
-        <Elements stripe={stripePromise} options={{ clientSecret }}>
+        <Elements key={clientSecret} stripe={stripePromise} options={{ clientSecret }}>
           <PaymentStep
             customerId={customerId}
             locationId={locationId}

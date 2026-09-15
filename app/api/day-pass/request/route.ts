@@ -10,6 +10,26 @@ import { DAY_PASS_PRICE_CENTS } from '@/app/api/day-pass/create-payment-intent/r
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2025-05-28.basil' })
 
+// Any failure AFTER a successful payment has to give the money back —
+// otherwise a customer is charged with nothing to show for it. Staff get an
+// alert either way so it never passes silently.
+async function refundAndAlert(stripe: Stripe, paymentIntentId: string, reason: string, details: Record<string, unknown>) {
+  let refunded = false
+  try {
+    await stripe.refunds.create({ payment_intent: paymentIntentId })
+    refunded = true
+  } catch (err) {
+    console.error('[day-pass/request] Refund failed:', paymentIntentId, err)
+  }
+  try {
+    await sendSystemAlert(refunded ? `${reason} — charge refunded` : `${reason} — REFUND FAILED, refund by hand`, {
+      payment_intent: paymentIntentId, ...details,
+    })
+  } catch (err) {
+    console.error('[day-pass/request] Alert failed:', err)
+  }
+}
+
 export async function POST(request: Request) {
   const ip = request.headers.get('x-forwarded-for') ?? 'unknown'
   if (!rateLimit(ip, 10, 60_000)) {
@@ -68,7 +88,12 @@ export async function POST(request: Request) {
   }
   const expectedCents = DAY_PASS_PRICE_CENTS * uniqueDates.length
   if (pi.amount < expectedCents) {
-    return NextResponse.json({ error: 'Payment amount does not match the day pass price.' }, { status: 400 })
+    // Money is already taken at this point, so never just reject: refund it,
+    // or the customer has paid for nothing. Hit for real 2026-09-15 when
+    // changing the dates mid-checkout left a stale (cheaper) payment behind
+    // — $30 was charged with no reservation and had to be refunded by hand.
+    await refundAndAlert(stripe, pi.id, 'Payment amount did not match the booking', { expectedCents, paidCents: pi.amount, dates: uniqueDates })
+    return NextResponse.json({ error: 'Your booking changed after payment was set up, so we refunded that charge. Please try again.' }, { status: 400 })
   }
 
   // One reservation row per day (so admin/check-in/RLS all stay per-day),
@@ -96,7 +121,8 @@ export async function POST(request: Request) {
     // Roll back whatever did get created so a partial failure doesn't leave
     // a half-booked range behind.
     await admin.from('day_passes').delete().eq('stripe_payment_intent_id', stripe_payment_intent_id)
-    return NextResponse.json({ error: 'Could not save reservation. Please try again.' }, { status: 500 })
+    await refundAndAlert(stripe, pi.id, 'Day pass could not be saved after payment', { customer_id, dates: uniqueDates, error: insertError?.message })
+    return NextResponse.json({ error: 'Something went wrong saving your reservation, so we refunded that charge. Please try again or email hello@bizhaus.com.' }, { status: 500 })
   }
 
   // Create QuickBooks sales receipts right here, not in the Stripe webhook.
