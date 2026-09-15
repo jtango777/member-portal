@@ -59,7 +59,8 @@ export default function SettingsForm({ profile, company, locations, email }: Pro
         first_name:          firstName.trim(),
         last_name:           lastName.trim(),
         default_location_id: locationId || null,
-        company_name:        companyName,
+        // Only admins can rename; members' company name is read-only.
+        ...(profile.is_admin ? { company_name: companyName } : {}),
         license_plate:       licensePlate,
         seating:             seating || null,
         linkedin_username:   linkedinUsername || null,

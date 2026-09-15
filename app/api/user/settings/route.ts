@@ -16,11 +16,15 @@ export async function PATCH(request: Request) {
   // have hidden the field, so a direct API call could still let a regular
   // member rename their own (shared, everyone-sees-it) company. Caught
   // 2026-09-11, same audit as the room-access bug.
-  if (company_name !== undefined) {
-    const { data: callerProfile } = await supabase.from('profiles').select('is_admin').eq('id', user.id).single()
-    if (!callerProfile?.is_admin) {
-      return NextResponse.json({ error: 'Only admins can rename a company.' }, { status: 403 })
-    }
+  //
+  // Only block an actual rename: the form sends the company name back
+  // unchanged on every save, so rejecting any company_name at all locked
+  // every non-admin out of saving Settings (reported 2026-09-15).
+  const { data: callerProfile } = await supabase.from('profiles').select('is_admin, companies(name)').eq('id', user.id).single()
+  const isAdmin = !!callerProfile?.is_admin
+  const currentCompanyName = ((callerProfile?.companies as unknown as { name: string } | null)?.name ?? '').trim()
+  if (!isAdmin && typeof company_name === 'string' && company_name.trim() && company_name.trim() !== currentCompanyName) {
+    return NextResponse.json({ error: 'Only admins can rename a company.' }, { status: 403 })
   }
 
   // Never trust the client to have already stripped this down to a bare
@@ -51,7 +55,7 @@ export async function PATCH(request: Request) {
   if (profileErr) return NextResponse.json({ error: profileErr.message }, { status: 500 })
 
   // Update company name if provided
-  if (company_name?.trim()) {
+  if (isAdmin && company_name?.trim()) {
     const { data: profile } = await admin
       .from('profiles')
       .select('company_id')
