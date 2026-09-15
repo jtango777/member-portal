@@ -50,6 +50,10 @@ export async function POST(request: Request) {
   const paymentIntent = await stripe.paymentIntents.create({
     amount,
     currency: 'usd',
+    // Cards only (Apple/Google Pay still work). Stripe's default also offered
+    // Link's "save my info" box and bank payments, which take days to clear
+    // while checkout expects an instant 'succeeded' (2026-09-15).
+    payment_method_types: ['card'],
     metadata: { type: 'day_pass', location_id, dates: sortedDates.join(',') },
     description: sortedDates.length > 1
       ? `BizHaus — Day Pass × ${sortedDates.length} (${sortedDates[0]} to ${sortedDates[sortedDates.length - 1]})`

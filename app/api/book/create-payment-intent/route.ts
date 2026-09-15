@@ -39,6 +39,10 @@ export async function POST(request: Request) {
   const paymentIntent = await stripe.paymentIntents.create({
     amount:   totalCents,
     currency: 'usd',
+    // Cards only (Apple/Google Pay still work). Stripe's default also offered
+    // Link's "save my info" box and bank payments, which take days to clear
+    // while checkout expects an instant 'succeeded' (2026-09-15).
+    payment_method_types: ['card'],
     metadata: { room_id, date, start, end },
     description: `BizHaus — ${room.external_name} · ${date} ${start}–${end}`,
   })
