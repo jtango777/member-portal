@@ -6,6 +6,7 @@ import { cn, getPacificDayBounds } from '@/lib/utils'
 import { LOCATION_PHOTOS } from '@/lib/locationPhotos'
 import SignOutButton from '@/components/day-pass/SignOutButton'
 import CancelDayPassButton from '@/components/day-pass/CancelDayPassButton'
+import { getOrLinkBookingCustomer } from '@/lib/bookingAccounts'
 
 export const dynamic = 'force-dynamic'
 
@@ -52,14 +53,9 @@ export default async function DayPassAccountPage() {
 
   // RLS scopes all of these to the logged-in customer's own rows (see
   // migrations 044/046) — no admin bypass needed or wanted here.
-  const { data: customer } = await supabase
-    .from('booking_customers')
-    .select('first_name, last_name, email')
-    .eq('id', user.id)
-    .single()
-
-  // Not a booking_customers account (e.g. a member's own login) — nothing
-  // to show here.
+  // A staff/member login that reached here without a booking account gets
+  // one linked now, instead of being bounced back to /day-pass.
+  const customer = await getOrLinkBookingCustomer(user.id, true)
   if (!customer) redirect('/day-pass')
 
   const [{ data: dayPasses }, { data: roomBookings }] = await Promise.all([

@@ -9,6 +9,48 @@ export type CreateBookingCustomerResult =
 // account system (see migration 044/045 notes). Kept in one place after a
 // bug where day-pass's duplicate-email detection was fixed but would have
 // silently stayed broken in a second, separately-hand-copied version.
+export type BookingCustomer = { id: string; first_name: string; last_name: string; email: string }
+
+// Someone who already has a BizHaus login (staff or a portal member) can't
+// sign up for a booking account — the email is taken — and logging in used
+// to dead-end because no booking_customers row existed (found 2026-09-02,
+// fixed 2026-09-15). This returns their booking account, building it from
+// their existing login + portal name. With create=false it only looks
+// (so merely visiting /day-pass doesn't add anyone to Booking Accounts);
+// create=true is used when they log in there or actually check out.
+export async function getOrLinkBookingCustomer(userId: string, create: boolean): Promise<BookingCustomer | null> {
+  const admin = createAdminClient()
+  const { data: existing } = await admin
+    .from('booking_customers')
+    .select('id, first_name, last_name, email')
+    .eq('id', userId)
+    .maybeSingle()
+  if (existing) return existing
+
+  const { data: authData } = await admin.auth.admin.getUserById(userId)
+  const email = authData?.user?.email?.toLowerCase()
+  if (!email) return null
+
+  const { data: profile } = await admin
+    .from('profiles')
+    .select('first_name, last_name, full_name')
+    .eq('id', userId)
+    .maybeSingle()
+  const [fullFirst, ...fullRest] = (profile?.full_name ?? '').trim().split(/\s+/)
+  const first_name = profile?.first_name?.trim() || fullFirst || email.split('@')[0]
+  const last_name  = profile?.last_name?.trim() || fullRest.join(' ')
+
+  const customer = { id: userId, first_name, last_name, email }
+  if (!create) return customer
+
+  const { error } = await admin.from('booking_customers').upsert(customer, { onConflict: 'id', ignoreDuplicates: true })
+  if (error) {
+    console.error('[bookingAccounts] Link existing login error:', error.message)
+    return null
+  }
+  return customer
+}
+
 export async function createBookingCustomerAccount({
   firstName, lastName, email, password,
 }: {

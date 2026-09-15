@@ -22,6 +22,10 @@ export default function DayPassLoginPage() {
       setLoading(false)
       return
     }
+    // A staff/member login signing in here for the first time gets its
+    // booking account created now (otherwise /day-pass/account bounced
+    // them straight back out — a dead loop).
+    await fetch('/api/day-pass/my-account', { method: 'POST' })
     router.push('/day-pass/account')
     router.refresh()
   }

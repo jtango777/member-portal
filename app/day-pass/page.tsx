@@ -92,17 +92,12 @@ export default function DayPassPage() {
   // mount and skip straight to payment for them.
   const [existingCustomer, setExistingCustomer] = useState<ExistingCustomer | null>(null)
 
+  // Also covers staff/member logins that don't have a booking account yet.
   useEffect(() => {
-    const supabase = createClient()
-    supabase.auth.getUser().then(async ({ data: { user } }) => {
-      if (!user) return
-      const { data: customer } = await supabase
-        .from('booking_customers')
-        .select('id, first_name, last_name, email')
-        .eq('id', user.id)
-        .single()
-      if (customer) setExistingCustomer(customer)
-    })
+    fetch('/api/day-pass/my-account')
+      .then(res => res.json())
+      .then(data => { if (data.customer) setExistingCustomer(data.customer) })
+      .catch(() => {})
   }, [])
 
   const selectedLocation = LOCATIONS.find(l => l.id === locationId) ?? LOCATIONS[0]
@@ -402,13 +397,19 @@ function DetailsAndPayment({
     setCustomerId(existingCustomer.id)
     setGuestName(`${existingCustomer.first_name} ${existingCustomer.last_name}`)
     setGuestEmail(existingCustomer.email)
-    fetch('/api/day-pass/create-payment-intent', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ location_id: locationId, dates }),
-    })
-      .then(res => res.json())
-      .then(data => setClientSecret(data.clientSecret))
+    // Staff/member logins may not have a booking account row yet — create
+    // it before payment, or the reservation would fail after paying.
+    ;(async () => {
+      const linkRes = await fetch('/api/day-pass/my-account', { method: 'POST' })
+      if (!linkRes.ok) { setAccountError('Something went wrong with your account. Please refresh and try again.'); return }
+      const res = await fetch('/api/day-pass/create-payment-intent', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ location_id: locationId, dates }),
+      })
+      const data = await res.json()
+      setClientSecret(data.clientSecret)
+    })()
   }, [existingCustomer, customerId, locationId, dates, setCustomerId, setClientSecret, setGuestName, setGuestEmail])
 
   async function handleSignOut() {
@@ -503,6 +504,7 @@ function DetailsAndPayment({
   // Signed-in customer, still waiting on the payment intent — don't flash
   // the account-creation form while that fetch is in flight.
   if (existingCustomer) {
+    if (accountError) return <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-4 py-3">{accountError}</div>
     return <div className="text-sm text-gray-400 py-4">Loading payment details…</div>
   }
 

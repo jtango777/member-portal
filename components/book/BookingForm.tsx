@@ -90,7 +90,16 @@ function CheckoutForm({
     const guestName = existingCustomer ? `${existingCustomer.first_name} ${existingCustomer.last_name}` : `${firstName.trim()} ${lastName.trim()}`
     const guestEmail = existingCustomer ? existingCustomer.email : email.trim()
 
-    if (!customerId) {
+    if (customerId) {
+      // Staff/member logins may not have a booking account row yet — make
+      // sure it exists before paying, or the booking would fail afterward.
+      const linkRes = await fetch('/api/day-pass/my-account', { method: 'POST' })
+      if (!linkRes.ok) {
+        setError((await linkRes.json()).error ?? 'Something went wrong with your account.')
+        setLoading(false)
+        return
+      }
+    } else {
       const accRes = await fetch('/api/book/create-account', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -323,17 +332,12 @@ export default function BookingForm(props: Props) {
   // Same shared booking_customers account system as day-pass — if this
   // visitor is already signed in (e.g. came from day-pass, or booking
   // again), skip straight past account creation.
+  // Also covers staff/member logins that don't have a booking account yet.
   useEffect(() => {
-    const supabase = createClient()
-    supabase.auth.getUser().then(async ({ data: { user } }) => {
-      if (!user) return
-      const { data: customer } = await supabase
-        .from('booking_customers')
-        .select('id, first_name, last_name, email')
-        .eq('id', user.id)
-        .single()
-      if (customer) setExistingCustomer(customer)
-    })
+    fetch('/api/day-pass/my-account')
+      .then(res => res.json())
+      .then(data => { if (data.customer) setExistingCustomer(data.customer) })
+      .catch(() => {})
   }, [])
 
   // ── Confirmation ────────────────────────────────────────────────────────
