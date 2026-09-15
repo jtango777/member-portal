@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import NextLink from 'next/link'
 import * as Dialog from '@radix-ui/react-dialog'
 import { X, ChevronRight } from 'lucide-react'
 import toast from 'react-hot-toast'
@@ -195,8 +196,18 @@ export default function EditMemberDialog({ member, onOpenChange, onSuccess, comp
             <div>
               <label className="block text-xs font-medium text-gray-700 mb-1">Room Hours</label>
               {companyId ? (
-                <input type="text" disabled value={pooledHoursLabel(companies, companyId)}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-gray-100 text-gray-500" />
+                <>
+                  <input type="text" disabled value={pooledHoursLabel(companies, companyId)}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-gray-100 text-gray-500" />
+                  {/* Hours are set on the company, not the person, so this
+                      box is locked. One-click path to where they actually
+                      live — opens that company's edit window directly.
+                      Added 2026-09-14. */}
+                  <NextLink href={`/dashboard/admin/companies?edit=${companyId}`}
+                    className="inline-block mt-1.5 text-xs text-blue-600 hover:text-blue-800 hover:underline">
+                    Change {companies.find(c => c.id === companyId)?.name ?? 'company'}&apos;s hours →
+                  </NextLink>
+                </>
               ) : (
                 <>
                   <input type="number" min="0" step="0.5" value={individualHours}

@@ -36,6 +36,15 @@ export default function CompaniesManager({ companies: initial, membershipTypes: 
   const [newLocationId,       setNewLocationId]       = useState('')
   const [creating,            setCreating]            = useState(false)
   const [editTarget,          setEditTarget]          = useState<EditableCompany | null>(null)
+  // Deep link from Edit Member's "Change X's hours" link: ?edit=<companyId>
+  // opens that company's edit window on arrival. Read from window.location
+  // (not useSearchParams) so this page doesn't need a Suspense boundary.
+  useEffect(() => {
+    const id = new URLSearchParams(window.location.search).get('edit')
+    const c = id ? initial.find(co => co.id === id) : null
+    if (c) setEditTarget({ id: c.id, name: c.name, monthly_hours_allotment: c.monthly_hours_allotment, location_id: c.location_id, grants_admin: c.grants_admin })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
   const [deleteTarget,        setDeleteTarget]        = useState<Company | null>(null)
   const [deleting,            setDeleting]            = useState(false)
   // Manage types state
