@@ -1,6 +1,6 @@
 import { clsx, type ClassValue } from 'clsx'
 import { twMerge } from 'tailwind-merge'
-import { format } from 'date-fns'
+import { format, addMonths } from 'date-fns'
 
 const PT = 'America/Los_Angeles'
 
@@ -61,6 +61,21 @@ export function getMonthBounds(date: Date) {
   const year  = parts.find(p => p.type === 'year')!.value
   const month = parts.find(p => p.type === 'month')!.value
   return getPacificMonthBounds(`${year}-${month}`)
+}
+
+// Members can only book this far ahead (admins are exempt). Added 2026-09-15.
+// Only checked when a booking is created or moved to a new time, so bookings
+// made before the cap existed (e.g. Luke's weekly series into late Dec) stay
+// put and can still be renamed or cancelled.
+export const MAX_BOOKING_MONTHS_AHEAD = 3
+
+export function bookingWindowError(start: Date): string | null {
+  const latest = addMonths(new Date(), MAX_BOOKING_MONTHS_AHEAD)
+  // Allow the whole last day (Pacific), not just up to the current time of day
+  const lastDayStr = new Intl.DateTimeFormat('en-CA', { timeZone: PT }).format(latest) // yyyy-MM-dd
+  if (start.getTime() <= getPacificDayBounds(lastDayStr).end.getTime()) return null
+  const lastDay = new Intl.DateTimeFormat('en-US', { timeZone: PT, month: 'long', day: 'numeric' }).format(latest)
+  return `Members can book up to ${MAX_BOOKING_MONTHS_AHEAD} months ahead. Pick a date on or before ${lastDay}.`
 }
 
 export function calcHoursUsed(reservations: { start_time: string; end_time: string }[]): number {

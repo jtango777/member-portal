@@ -1,7 +1,7 @@
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 import { sendCancellationEmail } from '@/lib/email'
-import { calcHoursUsed, getMonthBounds } from '@/lib/utils'
+import { calcHoursUsed, getMonthBounds, bookingWindowError } from '@/lib/utils'
 import { getOrCreateGuestUserId } from '@/lib/guestAccount'
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -54,6 +54,13 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   const start = new Date(start_time)
   const end   = new Date(end_time)
   if (end <= start) return NextResponse.json({ error: 'End time must be after start time' }, { status: 400 })
+
+  // Only when the booking is moved later — renaming an existing far-out
+  // booking made before the cap existed must still work.
+  if (!profile.is_admin && start.getTime() > new Date(reservation.start_time).getTime()) {
+    const tooFar = bookingWindowError(start)
+    if (tooFar) return NextResponse.json({ error: tooFar }, { status: 400 })
+  }
 
   // For non-admins: check hour allotment (excluding this reservation's current hours)
   if (!profile.is_admin && profile.company_id) {

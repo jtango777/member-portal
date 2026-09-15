@@ -1,6 +1,6 @@
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
-import { calcHoursUsed, getMonthBounds, getPacificDayBounds, getPacificMonthBounds } from '@/lib/utils'
+import { calcHoursUsed, getMonthBounds, getPacificDayBounds, getPacificMonthBounds, bookingWindowError } from '@/lib/utils'
 import { sendConfirmationEmail } from '@/lib/email'
 import { getOrCreateGuestUserId } from '@/lib/guestAccount'
 import { resolveHistoricalBookings } from '@/lib/resolveHistoricalBookings'
@@ -141,6 +141,10 @@ export async function POST(request: Request) {
   // walk-in that started a few minutes ago).
   if (!profile.is_admin && start.getTime() < Date.now()) {
     return NextResponse.json({ error: 'That time has already passed — pick an upcoming slot.' }, { status: 400 })
+  }
+  if (!profile.is_admin) {
+    const tooFar = bookingWindowError(start)
+    if (tooFar) return NextResponse.json({ error: tooFar }, { status: 400 })
   }
 
   // Check hour allotment for non-admins — a shared company pool if they
