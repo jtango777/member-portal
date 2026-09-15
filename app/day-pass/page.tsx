@@ -809,7 +809,6 @@ function StepConfirmation({ loc, dates, guestName, guestEmail, confirmationNumbe
           View my bookings
         </a>
         <button onClick={onRestart} className="text-sm font-medium text-gray-500 hover:text-gray-700">Book another day pass</button>
-        <a href="https://bizhaus.com" className="text-sm font-medium text-gray-400 hover:text-gray-600">bizhaus.com</a>
       </div>
       </div>
       </div>
