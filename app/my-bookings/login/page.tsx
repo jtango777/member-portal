@@ -23,17 +23,17 @@ export default function DayPassLoginPage() {
       return
     }
     // A staff/member login signing in here for the first time gets its
-    // booking account created now (otherwise /day-pass/account bounced
+    // booking account created now (otherwise /my-bookings bounced
     // them straight back out — a dead loop).
     await fetch('/api/day-pass/my-account', { method: 'POST' })
-    router.push('/day-pass/account')
+    router.push('/my-bookings')
     router.refresh()
   }
 
   return (
     <div className="max-w-sm mx-auto px-6 py-16">
       <h1 className="text-2xl font-bold text-gray-900 mb-1">Sign in</h1>
-      <p className="text-sm text-gray-500 mb-8">View and manage your day pass reservations.</p>
+      <p className="text-sm text-gray-500 mb-8">View and manage your day passes and room bookings.</p>
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <div>

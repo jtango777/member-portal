@@ -28,11 +28,11 @@ export default async function BookLayout({ children }: { children: React.ReactNo
         <span className="text-xs font-bold bg-booking-600 text-white px-2.5 py-1 rounded flex-shrink-0">Bookings</span>
         <div className="flex-1" />
         {isBookingCustomer ? (
-          <a href="/day-pass/account" className="text-sm text-booking-700 font-medium hover:underline whitespace-nowrap">My Bookings</a>
+          <a href="/my-bookings" className="text-sm text-booking-700 font-medium hover:underline whitespace-nowrap">My Bookings</a>
         ) : (
           <span className="text-sm text-gray-500 whitespace-nowrap">
             <span className="hidden sm:inline">Have an account? </span>
-            <a href="/day-pass/login" className="text-booking-700 font-medium hover:underline">Log in</a>
+            <a href="/my-bookings/login" className="text-booking-700 font-medium hover:underline">Log in</a>
           </span>
         )}
       </header>

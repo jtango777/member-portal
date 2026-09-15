@@ -231,7 +231,7 @@ export async function sendExternalBookingReceipt(
         </tr>
       </table>
 
-      <a href="${APP_URL}/day-pass/account" style="display:inline-block;background:#6ec664;color:white;padding:13px 28px;border-radius:7px;text-decoration:none;font-weight:600;font-size:15px;margin-bottom:24px;">View My Reservations →</a>
+      <a href="${APP_URL}/my-bookings" style="display:inline-block;background:#6ec664;color:white;padding:13px 28px;border-radius:7px;text-decoration:none;font-weight:600;font-size:15px;margin-bottom:24px;">View My Reservations →</a>
 
       <p style="color:#94a3b8;font-size:13px;margin:0;border-top:1px solid #f1f5f9;padding-top:20px;">
         <strong style="color:#64748b;">Cancellation policy:</strong> Bookings are non-refundable. To inquire about credit toward a future booking, contact us at

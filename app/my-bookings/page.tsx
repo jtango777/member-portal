@@ -53,7 +53,7 @@ function isStillCancellable(dates: string[]): boolean {
 export default async function DayPassAccountPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/day-pass/login')
+  if (!user) redirect('/my-bookings/login')
 
   // RLS scopes all of these to the logged-in customer's own rows (see
   // migrations 044/046) — no admin bypass needed or wanted here.

@@ -177,7 +177,7 @@ function CheckoutForm({
         <div className="flex items-baseline justify-between">
           <h2 className="font-semibold text-gray-900 text-lg">Your details</h2>
           {!existingCustomer && (
-            <span className="text-sm text-gray-500">Have an account? <a href="/day-pass/login" className="font-semibold text-booking-600 hover:text-booking-700">Log in</a></span>
+            <span className="text-sm text-gray-500">Have an account? <a href="/my-bookings/login" className="font-semibold text-booking-600 hover:text-booking-700">Log in</a></span>
           )}
         </div>
 

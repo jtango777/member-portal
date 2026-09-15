@@ -9,9 +9,9 @@ import toast from 'react-hot-toast'
 // Shared by member-portal login and day-pass/book login — both are real
 // Supabase Auth users under the hood, this page just needs to know which
 // login to send someone back to. `context=day-pass` is passed in by
-// /day-pass/login's "Forgot password?" link and threaded through to
+// /my-bookings/login's "Forgot password?" link and threaded through to
 // /auth/reset-password too, so the whole reset trip sends a booking
-// customer back to /day-pass/login, not the member portal's /login —
+// customer back to /my-bookings/login, not the member portal's /login —
 // before this (2026-08-31) there was no way back in for a booking
 // customer who forgot their password at all.
 //
@@ -28,7 +28,7 @@ export default function ForgotPasswordPage() {
 function ForgotPasswordForm() {
   const searchParams = useSearchParams()
   const isDayPass = searchParams.get('context') === 'day-pass'
-  const backToSignIn = isDayPass ? '/day-pass/login' : '/login'
+  const backToSignIn = isDayPass ? '/my-bookings/login' : '/login'
 
   const [email, setEmail]   = useState('')
   const [loading, setLoading] = useState(false)

@@ -9,7 +9,7 @@ import { passwordError, PASSWORD_REQUIREMENTS_TEXT } from '@/lib/password'
 
 // `context=day-pass` is threaded through from /forgot-password's
 // redirectTo — see that file for why. Determines where "Update Password"
-// sends someone afterward: a booking customer back to /day-pass/login,
+// sends someone afterward: a booking customer back to /my-bookings/login,
 // a member back to /login.
 //
 // Wrapped in Suspense — useSearchParams() requires it for static
@@ -72,7 +72,7 @@ function ResetPasswordForm() {
       setLoading(false)
     } else {
       toast.success('Password updated! Please sign in.')
-      router.push(isDayPass ? '/day-pass/login' : '/login')
+      router.push(isDayPass ? '/my-bookings/login' : '/login')
     }
   }
 
