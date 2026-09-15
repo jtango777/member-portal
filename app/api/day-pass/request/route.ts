@@ -6,7 +6,7 @@ import { verifyRecaptcha } from '@/lib/recaptcha'
 import { createSalesReceipt } from '@/lib/quickbooks'
 import Stripe from 'stripe'
 import { format, getDay } from 'date-fns'
-import { DAY_PASS_PRICE_CENTS } from '@/app/api/day-pass/create-payment-intent/route'
+import { DAY_PASS_PRICE_CENTS, MAX_DAY_PASS_DAYS, MAX_DAYS_MESSAGE, alreadyBookedDates, alreadyBookedMessage } from '@/app/api/day-pass/create-payment-intent/route'
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2025-05-28.basil' })
 
@@ -94,6 +94,19 @@ export async function POST(request: Request) {
     // — $30 was charged with no reservation and had to be refunded by hand.
     await refundAndAlert(stripe, pi.id, 'Payment amount did not match the booking', { expectedCents, paidCents: pi.amount, dates: uniqueDates })
     return NextResponse.json({ error: 'Your booking changed after payment was set up, so we refunded that charge. Please try again.' }, { status: 400 })
+  }
+
+  if (uniqueDates.length > MAX_DAY_PASS_DAYS) {
+    await refundAndAlert(stripe, pi.id, 'Day pass purchase exceeded the max days', { days: uniqueDates.length })
+    return NextResponse.json({ error: MAX_DAYS_MESSAGE }, { status: 400 })
+  }
+
+  // Last line of defence against paying twice for the same day — e.g. two
+  // checkout tabs open at once (the payment step checks this too).
+  const clashes = await alreadyBookedDates(uniqueDates as string[])
+  if (clashes.length > 0) {
+    await refundAndAlert(stripe, pi.id, 'Day pass already booked for those dates', { customer_id, dates: clashes })
+    return NextResponse.json({ error: `${alreadyBookedMessage(clashes)} That charge has been refunded.` }, { status: 409 })
   }
 
   // One reservation row per day (so admin/check-in/RLS all stay per-day),

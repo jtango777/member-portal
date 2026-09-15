@@ -1,13 +1,37 @@
 import { NextResponse } from 'next/server'
 import Stripe from 'stripe'
 import { rateLimit } from '@/lib/rate-limit'
-import { getDay } from 'date-fns'
+import { getDay, format } from 'date-fns'
+import { createClient, createAdminClient } from '@/lib/supabase/server'
+import { DAY_PASS_PRICE_CENTS, MAX_DAY_PASS_DAYS, MAX_DAYS_MESSAGE } from '@/lib/dayPass'
+
+// Re-exported so existing imports of these from this route keep working.
+export { DAY_PASS_PRICE_CENTS, MAX_DAY_PASS_DAYS, MAX_DAYS_MESSAGE }
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2025-05-28.basil' })
 
 // Flat price across all locations for now — if that ever changes, this
 // becomes a per-location lookup the same way /book looks up price_per_hour.
-export const DAY_PASS_PRICE_CENTS = 3000
+
+// Days this customer already holds, so the same date can't be bought (and
+// paid for) twice. Returns [] for a not-yet-created account.
+export async function alreadyBookedDates(dates: string[]): Promise<string[]> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return []
+  const { data } = await createAdminClient()
+    .from('day_passes')
+    .select('date')
+    .eq('customer_id', user.id)
+    .eq('status', 'confirmed')
+    .in('date', dates)
+  return (data ?? []).map(r => r.date)
+}
+
+export function alreadyBookedMessage(dates: string[]): string {
+  const labels = dates.map(d => format(new Date(d + 'T12:00:00'), 'EEE, MMM d')).join(', ')
+  return `You already have a day pass for ${labels}. Pick different days, or check My Bookings.`
+}
 
 export async function POST(request: Request) {
   const ip = request.headers.get('x-forwarded-for') ?? 'unknown'
@@ -42,6 +66,15 @@ export async function POST(request: Request) {
   const noPastDates = uniqueDates.every((d: string) => d >= todayPacific)
   if (!noPastDates) {
     return NextResponse.json({ error: 'One or more selected dates is in the past.' }, { status: 400 })
+  }
+
+  if (uniqueDates.length > MAX_DAY_PASS_DAYS) {
+    return NextResponse.json({ error: MAX_DAYS_MESSAGE }, { status: 400 })
+  }
+
+  const clashes = await alreadyBookedDates(uniqueDates as string[])
+  if (clashes.length > 0) {
+    return NextResponse.json({ error: alreadyBookedMessage(clashes) }, { status: 409 })
   }
 
   const amount = DAY_PASS_PRICE_CENTS * uniqueDates.length

@@ -10,6 +10,7 @@ import DayPassDatePicker, { DateMode } from '@/components/DayPassDatePicker'
 import Recaptcha, { RecaptchaHandle } from '@/components/Recaptcha'
 import { createClient } from '@/lib/supabase/client'
 import { cn, getPacificDayBounds } from '@/lib/utils'
+import { MAX_DAY_PASS_DAYS, MAX_DAYS_MESSAGE } from '@/lib/dayPass'
 
 type ExistingCustomer = { id: string; first_name: string; last_name: string; email: string }
 
@@ -341,9 +342,13 @@ function ReservationFields({
         </div>
       )}
 
+      {dates.length > MAX_DAY_PASS_DAYS && (
+        <div className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-4 py-3">{MAX_DAYS_MESSAGE}</div>
+      )}
+
       <button
         onClick={onContinue}
-        disabled={dates.length === 0 || dates.some(d => d < todayDateStr())}
+        disabled={dates.length === 0 || dates.length > MAX_DAY_PASS_DAYS || dates.some(d => d < todayDateStr())}
         className="self-start bg-booking-600 hover:bg-booking-700 disabled:bg-booking-300 disabled:cursor-not-allowed text-white text-sm font-semibold py-3 px-7 rounded-lg transition-colors"
       >
         Continue
@@ -421,7 +426,9 @@ function DetailsAndPayment({
         body: JSON.stringify({ location_id: locationId, dates }),
       })
       const data = await res.json()
-      if (!cancelled) setClientSecret(data.clientSecret)
+      if (cancelled) return
+      if (!res.ok) { setAccountError(data.error ?? 'Could not set up payment. Please try again.'); return }
+      setClientSecret(data.clientSecret)
     })()
     return () => { cancelled = true }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -443,7 +450,9 @@ function DetailsAndPayment({
         body: JSON.stringify({ location_id: locationId, dates }),
       })
       const data = await res.json()
-      if (!cancelled) setClientSecret(data.clientSecret)
+      if (cancelled) return
+      if (!res.ok) { setAccountError(data.error ?? 'Could not set up payment. Please try again.'); return }
+      setClientSecret(data.clientSecret)
     })()
     return () => { cancelled = true }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -499,6 +508,7 @@ function DetailsAndPayment({
       body: JSON.stringify({ location_id: locationId, dates }),
     })
     const piData = await piRes.json()
+    if (!piRes.ok) { setAccountError(piData.error ?? 'Could not set up payment. Please try again.'); setCreatingAccount(false); return }
     setClientSecret(piData.clientSecret)
     setCreatingAccount(false)
   }
