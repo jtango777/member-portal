@@ -121,7 +121,7 @@ export default function DayPassPage() {
 
   if (phase === 'confirmation') {
     return (
-      <div className="max-w-6xl mx-auto px-6 py-12">
+      <div className="max-w-6xl mx-auto px-6 py-8">
         <StepConfirmation
           loc={selectedLocation}
           dates={dates}
@@ -715,22 +715,27 @@ function StepConfirmation({ loc, dates, guestName, guestEmail, confirmationNumbe
     : dates[0] ? formatDate(new Date(dates[0] + 'T12:00:00'), 'EEEE, MMMM d, yyyy') : ''
 
   return (
-    <div className="max-w-lg mx-auto text-center flex flex-col items-center gap-6 py-12">
-      <div className="w-14 h-14 rounded-full bg-green-50 flex items-center justify-center">
-        <CheckCircle size={28} className="text-green-600" />
+    // Side by side on desktop so the whole confirmation fits on one screen
+    // without scrolling (Caroline, 2026-09-15); stacks on phones.
+    <div className="max-w-4xl mx-auto flex flex-col gap-6">
+      <div className="flex items-center gap-4">
+        <div className="w-12 h-12 rounded-full bg-green-50 flex items-center justify-center flex-shrink-0">
+          <CheckCircle size={24} className="text-green-600" />
+        </div>
+        <div>
+        <div className="text-2xl font-bold text-gray-900 mb-1">You&apos;re all set{guestName ? `, ${guestName.split(' ')[0]}` : ''}!</div>
+        <div className="text-sm text-gray-500">Your day pass{dates.length > 1 ? 'es are' : ' is'} reserved for {dateRangeLabel} at {loc.name}.</div>
+        </div>
       </div>
 
-      <div>
-        <div className="text-2xl font-bold text-gray-900 mb-1.5">You&apos;re all set{guestName ? `, ${guestName.split(' ')[0]}` : ''}!</div>
-        <div className="text-sm text-gray-500">Your day pass{dates.length > 1 ? 'es are' : ' is'} reserved for {dateRangeLabel} at {loc.name}.</div>
-      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
 
       <div className="w-full bg-white border border-gray-200 rounded-xl shadow-sm text-left overflow-hidden">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={loc.photo}
           alt={`${loc.name} open desk space`}
-          className="w-full h-40 object-cover"
+          className="w-full h-32 object-cover"
           style={'photoPosition' in loc ? { objectPosition: loc.photoPosition } : undefined}
         />
         <div className="px-5 py-3.5 border-b border-gray-100 flex justify-between items-baseline">
@@ -760,7 +765,7 @@ function StepConfirmation({ loc, dates, guestName, guestEmail, confirmationNumbe
         >
           <iframe
             src={`https://www.google.com/maps?q=${encodeURIComponent(loc.address)}&output=embed`}
-            className="w-full h-32 pointer-events-none"
+            className="w-full h-28 pointer-events-none"
             loading="lazy"
             title={`Map of ${loc.name}`}
           />
@@ -771,6 +776,7 @@ function StepConfirmation({ loc, dates, guestName, guestEmail, confirmationNumbe
         </a>
       </div>
 
+      <div className="flex flex-col gap-6">
       <div className="w-full text-left">
         <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">What&apos;s next</div>
         <div className="grid grid-cols-[6.5rem_minmax(0,1fr)] text-sm">
@@ -798,12 +804,14 @@ function StepConfirmation({ loc, dates, guestName, guestEmail, confirmationNumbe
         </div>
       </div>
 
-      <div className="w-full flex flex-wrap gap-x-5 gap-y-3 items-center mt-2">
+      <div className="w-full flex flex-wrap gap-x-5 gap-y-3 items-center">
         <a href="/my-bookings" className="bg-booking-600 hover:bg-booking-700 text-white text-sm font-semibold py-2.5 px-6 rounded-lg transition-colors">
           View my bookings
         </a>
         <button onClick={onRestart} className="text-sm font-medium text-gray-500 hover:text-gray-700">Book another day pass</button>
-        <a href="https://bizhaus.com" className="text-sm font-medium text-gray-400 hover:text-gray-600 sm:ml-auto">bizhaus.com</a>
+        <a href="https://bizhaus.com" className="text-sm font-medium text-gray-400 hover:text-gray-600">bizhaus.com</a>
+      </div>
+      </div>
       </div>
     </div>
   )
