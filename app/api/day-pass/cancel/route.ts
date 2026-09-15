@@ -1,9 +1,10 @@
+import { format } from 'date-fns'
 import { NextResponse } from 'next/server'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import Stripe from 'stripe'
 import { getPacificDayBounds } from '@/lib/utils'
 import { voidSalesReceipt } from '@/lib/quickbooks'
-import { sendDayPassCancellationStaffNotification, sendSystemAlert } from '@/lib/email'
+import { sendDayPassCancellationStaffNotification, sendDayPassCancellationEmail, sendSystemAlert } from '@/lib/email'
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2025-05-28.basil' })
 
@@ -111,6 +112,14 @@ export async function POST(request: Request) {
       : rows[0].date
 
     if (customer) {
+      await sendDayPassCancellationEmail(customer.email, {
+        guestName: `${customer.first_name} ${customer.last_name}`,
+        location: (rows[0].locations as unknown as { name: string } | null)?.name ?? 'Unknown location',
+        dates: [...rows].sort((a, b) => a.date.localeCompare(b.date))
+          .map(r => format(new Date(r.date + 'T12:00:00'), 'EEEE, MMMM d, yyyy')),
+        refundAmount: `$${(totalCents / 100).toFixed(2)}`,
+        confirmationNumber: confirmation_number,
+      })
       await sendDayPassCancellationStaffNotification({
         confirmationNumber: confirmation_number,
         guestName: `${customer.first_name} ${customer.last_name}`,

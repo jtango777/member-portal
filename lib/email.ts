@@ -483,6 +483,62 @@ export async function sendDayPassCancellationStaffNotification(
   if (error) console.error('[email] Resend error sending day pass cancellation staff notification:', error)
 }
 
+// Customer-facing counterpart to the staff alert above — same letter style
+// as the day pass confirmation. Added 2026-09-15 after the first real test
+// cancel showed the customer got no email at all, only staff did.
+export function dayPassCancellationEmailHtml(details: { guestName: string; location: string; dates: string[]; refundAmount: string; confirmationNumber: string }) {
+  const firstName = details.guestName.trim().split(/\s+/)[0] || details.guestName
+  const loc = DAY_PASS_LOCATIONS[details.location]
+  const dateLabel = details.dates.join('<br/>')
+  return letterEmailWrapper(`
+    <p style="font-family:${FONT};font-size:15px;color:#3a3f3a;line-height:1.7;margin:0 0 22px;">Hi ${firstName},</p>
+    <p style="font-family:${FONT};font-size:15px;color:#3a3f3a;line-height:1.7;margin:0 0 28px;">
+      Your day pass at our <strong>${details.location}</strong> location has been cancelled, and we've refunded <strong>${details.refundAmount}</strong> to your original payment method.
+    </p>
+
+    <table style="border-collapse:collapse;width:100%;margin-bottom:28px;font-family:${FONT};">
+      <tr>
+        <td style="padding:9px 0;border-top:1px solid #eef0ee;color:#8b948d;font-size:13px;width:120px;vertical-align:top;">${details.dates.length > 1 ? 'Dates' : 'Date'}</td>
+        <td style="padding:9px 0;border-top:1px solid #eef0ee;color:#232823;font-size:13.5px;">${dateLabel}</td>
+      </tr>
+      <tr>
+        <td style="padding:9px 0;border-top:1px solid #eef0ee;color:#8b948d;font-size:13px;">Location</td>
+        <td style="padding:9px 0;border-top:1px solid #eef0ee;color:#232823;font-size:13.5px;">${loc ? `${details.location}, ${loc.address}` : details.location}</td>
+      </tr>
+      <tr>
+        <td style="padding:9px 0;border-top:1px solid #eef0ee;border-bottom:1px solid #eef0ee;color:#8b948d;font-size:13px;">Refunded</td>
+        <td style="padding:9px 0;border-top:1px solid #eef0ee;border-bottom:1px solid #eef0ee;color:#232823;font-size:13.5px;font-weight:bold;">${details.refundAmount}</td>
+      </tr>
+    </table>
+
+    <p style="font-family:${FONT};font-size:15px;color:#3a3f3a;line-height:1.7;margin:0 0 18px;">
+      Refunds usually show up on your statement within 5 to 10 business days, depending on your bank.
+    </p>
+    <p style="font-family:${FONT};font-size:15px;color:#3a3f3a;line-height:1.7;margin:0 0 6px;">
+      Plans change, we get it. Whenever you're ready to come in, you can <a href="${APP_URL}/day-pass" style="color:#3f7a37;">book another day pass</a>.
+    </p>
+    <p style="font-family:${FONT};font-size:15px;color:#3a3f3a;line-height:1.7;margin:24px 0 0;">
+      Hope to see you soon,<br/>The BizHaus Team
+    </p>
+    <p style="font-family:${FONT};font-size:12px;color:#b7bdb6;line-height:1.6;margin:20px 0 0;">
+      Reference #${details.confirmationNumber}
+    </p>
+  `)
+}
+
+export async function sendDayPassCancellationEmail(
+  to: string,
+  details: { guestName: string; location: string; dates: string[]; refundAmount: string; confirmationNumber: string }
+) {
+  const { error } = await resend.emails.send({
+    from: FROM,
+    to,
+    subject: `Your BizHaus Day Pass has been cancelled — ${details.location}`,
+    html: dayPassCancellationEmailHtml(details),
+  })
+  if (error) console.error('[email] Resend error sending day pass cancellation email:', error)
+}
+
 export async function sendCancellationEmail(
   to: string,
   details: { title: string; room: string; location: string; date: string; time: string }
