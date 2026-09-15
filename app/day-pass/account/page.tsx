@@ -33,6 +33,10 @@ type UnifiedBooking = {
   // is a specific room, not a location, and doesn't have per-room photos
   // wired up here) — scoped to day-pass rows only for now.
   photo?: { src: string; position?: string }
+  // Multi-day day passes only cancel as a whole, so point people with a
+  // multi-day booking (and a day still ahead) to email for single days.
+  // Decided 2026-09-15 instead of building per-day refunds.
+  showSingleDayCancelNote?: boolean
 }
 
 // 12-hour cutoff measured from 9:00am Pacific on the day, matching
@@ -100,6 +104,8 @@ export default async function DayPassAccountPage() {
         status: first.status as UnifiedBooking['status'],
         cancellableConfirmationNumber: cancellable ? first.confirmation_number! : undefined,
         photo: LOCATION_PHOTOS[first.location_id],
+        showSingleDayCancelNote: sorted.length > 1 && first.status === 'confirmed'
+          && sorted[sorted.length - 1].date >= new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' }),
       }
     }),
     ...(roomBookings ?? []).map(b => {
@@ -169,6 +175,11 @@ export default async function DayPassAccountPage() {
                 <div className="min-w-0">
                   <div className="font-semibold text-gray-900">{b.title}</div>
                   <div className="text-sm text-gray-500 mt-0.5">{b.subtitle}</div>
+                  {b.showSingleDayCancelNote && (
+                    <div className="text-xs text-gray-400 mt-1">
+                      Need to cancel just one day? Email <a href="mailto:hello@bizhaus.com" className="underline hover:text-gray-600">hello@bizhaus.com</a>
+                    </div>
+                  )}
                 </div>
               </div>
               <div className="flex items-center gap-3 flex-shrink-0">
