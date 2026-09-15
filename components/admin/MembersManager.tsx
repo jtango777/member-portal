@@ -399,7 +399,12 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
   // company or Room Hours assigned — i.e. their request hasn't been
   // granted yet. Sorted oldest-request-first so the longest wait surfaces.
   const roomAccessRequests = members
-    .filter(m => m.is_active !== false && !!m.room_access_requested_at && !m.company_id && !m.individual_hours_allotment)
+    .filter(m => m.is_active !== false && !!m.room_access_requested_at && !hasRoomAccess(m))
+    // Used to check "no company and no individual hours," which hid anyone
+    // attached to a 0-hour company (e.g. AG Design, Timonier) even though
+    // they can't book anything and are genuinely still waiting. Same gap as
+    // the 2026-09-11 room-access fix; caught 2026-09-14 (Steven Martinez,
+    // Ted Pascaru).
     .sort((a, b) => new Date(a.room_access_requested_at!).getTime() - new Date(b.room_access_requested_at!).getTime())
 
   // Invites Resend reported as bounced or marked spam, for people who
@@ -771,7 +776,7 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
                     <tr key={m.id} id={`member-row-${m.id}`} className={"border-b border-gray-100 last:border-0 hover:bg-gray-50"}>
                       <td className="px-4 py-2 font-medium text-gray-900 truncate" title={m.full_name ?? undefined}>
                         {m.full_name ?? '—'}
-                        {m.room_access_requested_at && !m.company_id && !m.individual_hours_allotment && (
+                        {m.room_access_requested_at && !hasRoomAccess(m) && (
                           <span title="Requested room access" className="inline-flex items-center justify-center w-4 h-4 ml-1.5 rounded-full bg-amber-100 text-amber-700 align-middle">
                             <DoorOpen size={10} />
                           </span>
