@@ -57,12 +57,18 @@ function isContiguousRange(sortedDates: string[]): boolean {
 // day that had already happened (caught 2026-08-31 — the calendar UI
 // greys out past days, but the "Continue" button never actually checks
 // the currently-selected date before proceeding).
-function defaultDayPassDate(): string {
-  const day = new Date().getDay()
-  const offset = day === 0 ? 1 : day === 6 ? 2 : 0 // Sun -> Mon, Sat -> Mon
+function defaultDayPassDate(taken: string[] = []): string {
   const d = new Date()
-  d.setDate(d.getDate() + offset)
-  return formatDate(d, 'yyyy-MM-dd')
+  // Next weekday they don't already hold — the page used to open with today
+  // pre-selected even when that day was already booked, so it counted
+  // toward the total and could never be paid for (Caroline, 2026-09-16).
+  for (let i = 0; i < 60; i++) {
+    const day = d.getDay()
+    const value = formatDate(d, 'yyyy-MM-dd')
+    if (day !== 0 && day !== 6 && !taken.includes(value)) return value
+    d.setDate(d.getDate() + 1)
+  }
+  return formatDate(new Date(), 'yyyy-MM-dd')
 }
 
 // Actual today, not weekend-shifted — used to block "Continue" if a
@@ -99,7 +105,15 @@ export default function DayPassPage() {
       .then(res => res.json())
       .then(data => {
         if (data.customer) setExistingCustomer(data.customer)
-        if (Array.isArray(data.bookedDates)) setBookedDates(data.bookedDates)
+        if (Array.isArray(data.bookedDates) && data.bookedDates.length) {
+          setBookedDates(data.bookedDates)
+          // Drop anything pre-selected that they already hold, and fall
+          // back to the next free weekday if that empties the selection.
+          setSelectedDates(prev => {
+            const kept = prev.filter(d => !data.bookedDates.includes(d))
+            return kept.length ? kept : [defaultDayPassDate(data.bookedDates)]
+          })
+        }
       })
       .catch(() => {})
   }, [])
