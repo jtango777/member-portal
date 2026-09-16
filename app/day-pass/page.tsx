@@ -315,6 +315,14 @@ function ReservationFields({
             selected={selectedDates}
             onChange={setSelectedDates}
           />
+          {/* Right under the picker, not down by Continue — with 16 days
+              chosen the day list pushed the old warning miles off screen
+              (Caroline, 2026-09-16). */}
+          {dates.length > MAX_DAY_PASS_DAYS && (
+            <div className="mt-3 text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-4 py-3">
+              <span className="font-semibold">{dates.length} days selected.</span> {MAX_DAYS_MESSAGE}
+            </div>
+          )}
         </div>
       </div>
 
@@ -340,10 +348,6 @@ function ReservationFields({
             <a href="mailto:bookings@bizhaus.com" className="underline hover:text-gray-600">bookings@bizhaus.com</a>.
           </div>
         </div>
-      )}
-
-      {dates.length > MAX_DAY_PASS_DAYS && (
-        <div className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-4 py-3">{MAX_DAYS_MESSAGE}</div>
       )}
 
       <button
