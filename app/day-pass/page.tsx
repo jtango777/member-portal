@@ -6,7 +6,7 @@ import { Eye, EyeOff, CheckCircle, Check } from 'lucide-react'
 import { loadStripe } from '@stripe/stripe-js'
 import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js'
 import { eachDayOfInterval, getDay, format as formatDate } from 'date-fns'
-import DayPassDatePicker, { DateMode } from '@/components/DayPassDatePicker'
+import DayPassDatePicker from '@/components/DayPassDatePicker'
 import Recaptcha, { RecaptchaHandle } from '@/components/Recaptcha'
 import { createClient } from '@/lib/supabase/client'
 import { cn, getPacificDayBounds } from '@/lib/utils'
@@ -76,7 +76,6 @@ function todayDateStr(): string {
 export default function DayPassPage() {
   const [phase, setPhase] = useState<Phase>('reservation')
   const [locationId, setLocationId] = useState<string>(LOCATIONS[0].id)
-  const [dateMode, setDateMode] = useState<DateMode>('single')
   const [selectedDates, setSelectedDates] = useState<string[]>(() => [defaultDayPassDate()])
 
   // Set once the account is created — the payment step needs this to know
@@ -154,7 +153,6 @@ export default function DayPassPage() {
           >
             <ReservationFields
               locationId={locationId} setLocationId={setLocationId}
-              dateMode={dateMode} setDateMode={setDateMode}
               selectedDates={selectedDates} setSelectedDates={setSelectedDates}
               dates={dates}
               onContinue={() => setPhase('details')}
@@ -253,10 +251,9 @@ function AccordionSection({ number, title, state, summary, onEdit, children }: {
 // ── Section 1: Reservation ───────────────────────────────────────────────
 
 function ReservationFields({
-  locationId, setLocationId, dateMode, setDateMode, selectedDates, setSelectedDates, dates, onContinue,
+  locationId, setLocationId, selectedDates, setSelectedDates, dates, onContinue,
 }: {
   locationId: string; setLocationId: (v: string) => void
-  dateMode: DateMode; setDateMode: (v: DateMode) => void
   selectedDates: string[]; setSelectedDates: (v: string[]) => void
   dates: string[]
   onContinue: () => void
@@ -310,8 +307,6 @@ function ReservationFields({
         <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Date</div>
         <div className="w-full max-w-[420px]">
           <DayPassDatePicker
-            mode={dateMode}
-            onModeChange={setDateMode}
             selected={selectedDates}
             onChange={setSelectedDates}
           />

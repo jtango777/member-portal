@@ -6,13 +6,9 @@ import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { cn, isSameDay } from '@/lib/utils'
 import { MAX_DAY_PASS_DAYS } from '@/lib/dayPass'
 
-export type DateMode = 'single' | 'multiple'
-
 type Props = {
-  mode: DateMode
-  onModeChange: (mode: DateMode) => void
-  // Single mode holds exactly one date; multiple mode holds any number,
-  // in any combination — not necessarily consecutive. YYYY-MM-DD strings.
+  // Any number of dates, in any combination — not necessarily consecutive.
+  // YYYY-MM-DD strings.
   selected: string[]
   onChange: (dates: string[]) => void
 }
@@ -37,7 +33,10 @@ function toDate(s: string) {
 // but expands inline as an accordion rather than a floating popover — this
 // page already uses that expand/collapse pattern for its outer sections,
 // and a floating calendar was overlapping the Location/Time content below it.
-export default function DayPassDatePicker({ mode, onModeChange, selected, onChange }: Props) {
+// One picker, no modes: pick one day for one day, pick several for several.
+// It used to have Single day / Multiple days tabs, which made choosing a
+// single date a two-step decision for no reason (Caroline, 2026-09-16).
+export default function DayPassDatePicker({ selected, onChange }: Props) {
   const [open, setOpen] = useState(false)
   const [pickerMonth, setPickerMonth] = useState(() => selected[0] ? toDate(selected[0]) : new Date())
   // Pending selection — only committed to `onChange` when "Select dates"
@@ -56,13 +55,7 @@ export default function DayPassDatePicker({ mode, onModeChange, selected, onChan
 
   function selectDay(day: Date) {
     const value = format(day, 'yyyy-MM-dd')
-    if (mode === 'single') {
-      onChange([value])
-      setOpen(false)
-      return
-    }
-    // Multiple: toggle this exact day in or out, independent of anything
-    // else already picked.
+    // Toggle this exact day in or out, independent of anything else picked.
     setPending(prev => {
       if (prev.includes(value)) return prev.filter(d => d !== value)
       // Capped — see the note above the calendar.
@@ -102,29 +95,13 @@ export default function DayPassDatePicker({ mode, onModeChange, selected, onChan
       <div className={cn('grid transition-[grid-template-rows] duration-300 ease-in-out', open ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]')}>
         <div className={cn('overflow-hidden transition-opacity duration-200', open ? 'opacity-100 delay-100' : 'opacity-0')}>
           <div className="p-3 border-t border-gray-100">
-            {/* Mode tabs */}
-            <div className="flex border-b border-gray-100 mb-3">
-              {(['single', 'multiple'] as const).map(m => (
-                <button
-                  key={m}
-                  type="button"
-                  onClick={() => { onModeChange(m); clearSelection() }}
-                  className={cn(
-                    'flex-1 text-sm font-semibold pb-2 border-b-2 -mb-px transition-colors',
-                    mode === m ? 'text-booking-700 border-booking-600' : 'text-gray-400 border-transparent hover:text-gray-600'
-                  )}
-                >
-                  {m === 'single' ? 'Single day' : 'Multiple days'}
-                </button>
-              ))}
-            </div>
             <p className="text-xs text-gray-400 mb-2">
-              {mode === 'single' ? 'Select a single date to reserve' : 'Select any days you’d like to reserve — they don’t need to be consecutive'}
+              Pick a day — or as many as you need, they don’t have to be consecutive.
             </p>
             {/* Shown the moment the cap is reached, not only when someone
                 clicks an 11th day — the greyed-out days otherwise look
                 broken with no explanation (Caroline, 2026-09-16). */}
-            {mode === 'multiple' && pending.length >= MAX_DAY_PASS_DAYS && (
+            {pending.length >= MAX_DAY_PASS_DAYS && (
               <p className="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-md px-2.5 py-2 mb-2">
                 {pending.length} of {MAX_DAY_PASS_DAYS} days selected — that’s the most you can book at once.
                 Unpick a day to swap it, or email{' '}
@@ -160,13 +137,11 @@ export default function DayPassDatePicker({ mode, onModeChange, selected, onChan
               {eachDayOfInterval({ start: startOfMonth(pickerMonth), end: endOfMonth(pickerMonth) }).map(day => {
                 const isPast = isBefore(day, startOfDay(today))
                 const weekend = isWeekend(day)
-                const atLimit = mode === 'multiple' && pending.length >= MAX_DAY_PASS_DAYS && !pending.includes(format(day, 'yyyy-MM-dd'))
+                const atLimit = pending.length >= MAX_DAY_PASS_DAYS && !pending.includes(format(day, 'yyyy-MM-dd'))
                 const disabled = isPast || weekend || atLimit
                 const value = format(day, 'yyyy-MM-dd')
 
-                const isSelected = mode === 'single'
-                  ? selected[0] && isSameDay(day, toDate(selected[0]))
-                  : pending.includes(value)
+                const isSelected = pending.includes(value)
 
                 return (
                   <button
@@ -197,17 +172,15 @@ export default function DayPassDatePicker({ mode, onModeChange, selected, onChan
               })}
             </div>
 
-            {mode === 'multiple' && (
-              <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-100">
+            <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-100">
                 <button type="button" onClick={clearSelection} className="text-sm font-medium text-booking-600 hover:text-booking-700">
                   Clear dates
                 </button>
                 <button type="button" onClick={confirmSelection} disabled={!pending.length}
                   className="bg-booking-600 hover:bg-booking-700 disabled:bg-booking-300 disabled:cursor-not-allowed text-white text-sm font-semibold py-2 px-4 rounded-lg transition-colors">
-                  {pending.length ? `Select ${pending.length} day${pending.length > 1 ? 's' : ''}` : 'Select dates'}
-                </button>
-              </div>
-            )}
+                {pending.length ? `Select ${pending.length} day${pending.length > 1 ? 's' : ''}` : 'Select dates'}
+              </button>
+            </div>
           </div>
         </div>
       </div>
