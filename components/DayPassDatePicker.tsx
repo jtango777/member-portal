@@ -147,35 +147,50 @@ export default function DayPassDatePicker({ selected, onChange, bookedDates = []
                 const disabled = isPast || weekend || atLimit || alreadyBooked
 
                 const isSelected = pending.includes(value)
+                // The calendar sits in an overflow-hidden accordion, so a
+                // tooltip under the last row would be clipped — flip it up.
+                const nearBottom = day.getDate() > endOfMonth(pickerMonth).getDate() - 7
 
                 return (
-                  <button
-                    key={day.toISOString()}
-                    type="button"
-                    // Not `disabled` when only the limit is the reason —
-                    // a click still needs to explain why it can't be added.
-                    disabled={isPast || weekend || alreadyBooked}
-                    title={alreadyBooked ? 'You already have a day pass for this day' : undefined}
-                    onClick={() => {
-                      if (isPast || weekend) return
-                      if (atLimit) return
-                      selectDay(day)
-                    }}
-                    className={cn(
-                      'text-center text-xs py-1.5 rounded-md transition-colors',
-                      alreadyBooked
-                        ? 'text-booking-700 bg-booking-50 line-through cursor-not-allowed'
-                        : disabled
-                        ? 'text-gray-300 cursor-not-allowed'
-                        : isSelected
-                        ? 'bg-booking-600 text-white font-semibold'
-                        : isSameDay(day, today)
-                        ? 'bg-booking-50 text-booking-600 font-semibold'
-                        : 'hover:bg-gray-100 text-gray-700'
+                  // relative wrapper so an already-booked day can carry its
+                  // own little tooltip — a disabled <button> doesn't fire
+                  // hover events reliably, and the browser's own title
+                  // tooltip is slow and plain (Caroline, 2026-09-16).
+                  <div key={day.toISOString()} className="relative group">
+                    <button
+                      type="button"
+                      // Not `disabled` when only the limit is the reason —
+                      // a click still needs to explain why it can't be added.
+                      disabled={isPast || weekend || alreadyBooked}
+                      onClick={() => {
+                        if (isPast || weekend) return
+                        if (atLimit) return
+                        selectDay(day)
+                      }}
+                      className={cn(
+                        'w-full text-center text-xs py-1.5 rounded-md transition-colors',
+                        alreadyBooked
+                          ? 'text-booking-700 bg-booking-50 line-through cursor-not-allowed'
+                          : disabled
+                          ? 'text-gray-300 cursor-not-allowed'
+                          : isSelected
+                          ? 'bg-booking-600 text-white font-semibold'
+                          : isSameDay(day, today)
+                          ? 'bg-booking-50 text-booking-600 font-semibold'
+                          : 'hover:bg-gray-100 text-gray-700'
+                      )}
+                    >
+                      {format(day, 'd')}
+                    </button>
+                    {alreadyBooked && (
+                      <span className={cn(
+                        'pointer-events-none absolute left-1/2 z-20 -translate-x-1/2 whitespace-nowrap rounded-md bg-gray-900 px-2 py-1 text-[11px] font-medium text-white opacity-0 shadow-sm transition-opacity delay-300 group-hover:opacity-100',
+                        nearBottom ? 'bottom-full mb-1' : 'top-full mt-1'
+                      )}>
+                        You already reserved this day
+                      </span>
                     )}
-                  >
-                    {format(day, 'd')}
-                  </button>
+                  </div>
                 )
               })}
             </div>
