@@ -16,7 +16,7 @@ import { cn } from '@/lib/utils'
 // absolutely and crossfaded; the wrapper transitions to the exact pixel
 // width of whichever one is showing, measured for real via ref instead of
 // guessed, so it's one smooth motion in any browser.
-export default function CancelDayPassButton({ confirmationNumber }: { confirmationNumber: string }) {
+export default function CancelDayPassButton({ confirmationNumber, label = 'Cancel' }: { confirmationNumber: string; label?: string }) {
   const router = useRouter()
   const [confirming, setConfirming] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -64,7 +64,7 @@ export default function CancelDayPassButton({ confirmationNumber }: { confirmati
           onClick={() => setConfirming(true)}
           className="text-sm font-medium text-gray-400 hover:text-red-600 transition-colors"
         >
-          Cancel
+          {label}
         </button>
       </div>
       <div

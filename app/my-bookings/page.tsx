@@ -3,7 +3,6 @@ import { createClient } from '@/lib/supabase/server'
 import { format, eachDayOfInterval, getDay } from 'date-fns'
 import { CheckCircle, Clock, XCircle, Ban } from 'lucide-react'
 import { cn, getPacificDayBounds } from '@/lib/utils'
-import { LOCATION_PHOTOS } from '@/lib/locationPhotos'
 import SignOutButton from '@/components/day-pass/SignOutButton'
 import CancelDayPassButton from '@/components/day-pass/CancelDayPassButton'
 import { getOrLinkBookingCustomer } from '@/lib/bookingAccounts'
@@ -28,16 +27,13 @@ type UnifiedBooking = {
   // never are (Caroline, 2026-08-31). Present only for day-pass entries
   // that are still more than 12 hours from their start.
   cancellableConfirmationNumber?: string
-  // Day pass entries only — a small thumbnail of that location's open desk
-  // space, so the list isn't pure text. Room bookings don't get one (each
-  // is a specific room, not a location, and doesn't have per-room photos
-  // wired up here) — scoped to day-pass rows only for now.
-  photo?: { src: string; position?: string }
-  // Multi-day day passes only cancel as a whole, so list the days out and
-  // point people to email for a single day. Decided 2026-09-15 (kept
-  // 2026-09-16) instead of building per-day refunds — day-pass volume
-  // doesn't justify touching refund code for it yet.
-  days?: { date: string; cancelled: boolean }[]
+  // Every booking lists its own day rows — one for a single day, several
+  // for a multi-day pass. Cancelling is still whole-booking only (per-day
+  // refunds aren't worth touching refund code for at this volume), so the
+  // cancel control sits on the booking, labelled with how many days it
+  // covers, and multi-day bookings keep the "email us for one day" line.
+  days: { date: string; label: string; time: string; cancelled: boolean }[]
+  cancelLabel?: string
   showSingleDayCancelNote?: boolean
 }
 
@@ -118,11 +114,16 @@ export default async function DayPassAccountPage() {
         id: first.confirmation_number ?? first.id,
         sortKey: first.date,
         title: dateLabel,
-        subtitle: `Day Pass · ${first.locations?.name ?? 'Unknown location'} · $${(totalCents / 100).toFixed(2)}${first.confirmation_number ? ` · #${first.confirmation_number}` : ''}`,
+        subtitle: `Day pass · ${first.locations?.name ?? 'Unknown location'}${sorted.length > 1 ? '' : ' · 9:00am – 5:00pm'} · $${(totalCents / 100).toFixed(2)}${first.confirmation_number ? ` · #${first.confirmation_number}` : ''}`,
         status: first.status as UnifiedBooking['status'],
         cancellableConfirmationNumber: cancellable ? first.confirmation_number! : undefined,
-        photo: LOCATION_PHOTOS[first.location_id],
-        days: sorted.length > 1 ? sorted.map(p => ({ date: p.date, cancelled: p.status === 'cancelled' })) : undefined,
+        days: sorted.map(p => ({
+          date: p.date,
+          label: format(new Date(p.date + 'T12:00:00'), 'EEEE, MMMM d'),
+          time: '9:00am – 5:00pm',
+          cancelled: p.status === 'cancelled',
+        })),
+        cancelLabel: sorted.length > 1 ? `Cancel all ${sorted.length} days` : 'Cancel',
         showSingleDayCancelNote: sorted.length > 1 && first.status === 'confirmed'
           && sorted[sorted.length - 1].date >= new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' }),
       }
@@ -132,9 +133,15 @@ export default async function DayPassAccountPage() {
       return {
         id: b.id,
         sortKey: b.start_time,
-        title: format(new Date(b.start_time), 'EEEE, MMMM d, yyyy · h:mm a'),
-        subtitle: `Room Booking · ${room?.external_name ?? room?.name ?? 'Room'} · ${room?.locations?.name ?? 'Unknown location'} · #${b.id.slice(0, 8).toUpperCase()}`,
+        title: format(new Date(b.start_time), 'EEEE, MMMM d, yyyy'),
+        subtitle: `Room booking · ${room?.external_name ?? room?.name ?? 'Room'} · ${room?.locations?.name ?? 'Unknown location'} · ${format(new Date(b.start_time), 'h:mm a')} – ${format(new Date(b.end_time), 'h:mm a')} · #${b.id.slice(0, 8).toUpperCase()}`,
         status: b.status as UnifiedBooking['status'],
+        days: [{
+          date: b.start_time.slice(0, 10),
+          label: format(new Date(b.start_time), 'EEEE, MMMM d'),
+          time: `${format(new Date(b.start_time), 'h:mm a')} – ${format(new Date(b.end_time), 'h:mm a')}`,
+          cancelled: b.status === 'cancelled',
+        }],
       }
     }),
   ]
@@ -149,6 +156,11 @@ export default async function DayPassAccountPage() {
     if (aUpcoming !== bUpcoming) return aUpcoming ? -1 : 1
     return aUpcoming ? a.sortKey.localeCompare(b.sortKey) : b.sortKey.localeCompare(a.sortKey)
   })
+
+  // Anything still ahead and not cancelled is what people came here for;
+  // cancelled and finished bookings drop into Past.
+  const upcoming = bookings.filter(b => b.sortKey >= todayPacific && b.status !== 'cancelled')
+  const past = bookings.filter(b => !(b.sortKey >= todayPacific && b.status !== 'cancelled'))
 
   return (
     <div className="max-w-3xl mx-auto px-6 py-12">
@@ -176,58 +188,58 @@ export default async function DayPassAccountPage() {
         </div>
       )}
 
-      <div className="flex flex-col gap-3">
-        {bookings.map(b => {
-          const Icon = STATUS_ICON[b.status]
-          return (
-            <div key={b.id} className="border border-gray-200 rounded-xl px-5 py-4 flex items-center justify-between gap-4">
-              <div className="flex items-center gap-4 min-w-0">
-                {b.photo && (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={b.photo.src}
-                    alt=""
-                    className="w-14 h-14 rounded-lg object-cover flex-shrink-0"
-                    style={b.photo.position ? { objectPosition: b.photo.position } : undefined}
-                  />
-                )}
-                <div className="min-w-0">
-                  <div className="font-semibold text-gray-900">{b.title}</div>
-                  <div className="text-sm text-gray-500 mt-0.5">{b.subtitle}</div>
-                  {b.days && (
-                    <ul className="mt-2 flex flex-col gap-1">
-                      {b.days.map(d => (
-                        <li key={d.date}
-                          className={cn(
-                            'flex items-baseline gap-2 text-sm',
-                            d.cancelled ? 'text-gray-400 line-through' : 'text-gray-600'
-                          )}>
-                          <span className="text-gray-300">·</span>
-                          <span>{format(new Date(d.date + 'T12:00:00'), 'EEEE, MMMM d')}</span>
-                          <span className="text-xs text-gray-400">9:00am – 5:00pm</span>
-                        </li>
-                      ))}
-                    </ul>
+      {([['Upcoming', upcoming], ['Past', past]] as const).map(([heading, list]) => list.length > 0 && (
+        <div key={heading} className="mb-8 last:mb-0">
+          <div className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">{heading}</div>
+          <div className="border border-gray-200 rounded-xl divide-y divide-gray-100 overflow-hidden">
+            {list.map(b => {
+              const cancelled = b.status === 'cancelled'
+              return (
+                <div key={b.id} className={cn('px-5 py-4', cancelled && 'bg-gray-50/60')}>
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="min-w-0">
+                      <div className={cn('font-semibold', cancelled ? 'text-gray-500' : 'text-gray-900')}>{b.title}</div>
+                      <div className="text-sm text-gray-500 mt-0.5">{b.subtitle}</div>
+                    </div>
+                    <div className="flex items-center gap-3 flex-shrink-0">
+                      {b.cancellableConfirmationNumber && (
+                        <CancelDayPassButton confirmationNumber={b.cancellableConfirmationNumber} label={b.cancelLabel ?? 'Cancel'} />
+                      )}
+                      {b.status !== 'confirmed' && (
+                        <span className={cn('inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium capitalize', STATUS_STYLES[b.status])}>
+                          {(() => { const Icon = STATUS_ICON[b.status]; return <Icon size={13} /> })()} {b.status}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* A single-day booking already says the date in its
+                      title — no point repeating it as a one-item list. */}
+                  {b.days.length > 1 && (
+                  <ul className="mt-2.5 flex flex-col gap-1.5">
+                    {b.days.map(d => (
+                      <li key={d.date} className="flex items-baseline gap-2.5 text-sm">
+                        <span className={cn('w-1.5 h-1.5 rounded-full flex-shrink-0 translate-y-[-1px]',
+                          d.cancelled ? 'bg-gray-300' : 'bg-booking-400')} />
+                        <span className={d.cancelled ? 'text-gray-400' : 'text-gray-700'}>{d.label}</span>
+                        <span className="text-xs text-gray-400">{d.cancelled ? 'Cancelled' : d.time}</span>
+                      </li>
+                    ))}
+                  </ul>
                   )}
+
                   {b.showSingleDayCancelNote && (
-                    <div className="text-xs text-gray-400 mt-1.5">
+                    <div className="text-xs text-gray-400 mt-2.5">
                       Need to cancel just one day? Email <a href="mailto:hello@bizhaus.com" className="underline hover:text-gray-600">hello@bizhaus.com</a>
                     </div>
                   )}
                 </div>
-              </div>
-              <div className="flex items-center gap-3 flex-shrink-0">
-                {b.cancellableConfirmationNumber && (
-                  <CancelDayPassButton confirmationNumber={b.cancellableConfirmationNumber} />
-                )}
-                <span className={cn('inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium capitalize', STATUS_STYLES[b.status])}>
-                  <Icon size={13} /> {b.status}
-                </span>
-              </div>
-            </div>
-          )
-        })}
-      </div>
+              )
+            })}
+          </div>
+        </div>
+      ))}
+
     </div>
   )
 }
