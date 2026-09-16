@@ -776,7 +776,7 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
           <AdminTable colWidths={['20%', '24%', '15%', '14%', '11%', '16%']} minWidth={1000}>
             <thead>
               <tr className="border-b border-gray-100 bg-gray-50">
-                <Th sortDir={!locationSort && activeSort.key === 'name' ? activeSort.dir : null} onClick={() => toggleActiveSort('name')}>Name</Th><Th>Email</Th><Th>Company</Th><Th sortDir={locationSort} onClick={toggleLocationSort}>Location</Th><Th sortDir={!locationSort && activeSort.key === 'joined' ? activeSort.dir : null} onClick={() => toggleActiveSort('joined')}>Joined</Th><Th />
+                <Th sortDir={!locationSort && activeSort.key === 'name' ? activeSort.dir : null} onClick={() => toggleActiveSort('name')}>Name</Th><Th>Email</Th><Th>Company</Th><Th sortDir={locationSort} onClick={toggleLocationSort}>Location</Th><Th sortDir={!locationSort && activeSort.key === 'joined' ? activeSort.dir : null} onClick={() => toggleActiveSort('joined')} hideIdleSortIcon>Joined</Th><Th />
               </tr>
             </thead>
             <tbody>

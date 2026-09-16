@@ -25,19 +25,23 @@ export function AdminTable({ colWidths, minWidth = 900, children }: {
   )
 }
 
-export function Th({ children, sortDir, onClick }: {
+export function Th({ children, sortDir, onClick, hideIdleSortIcon }: {
   children?: React.ReactNode
   sortDir?: 'asc' | 'desc' | null
   onClick?: () => void
+  // Sortable, but no ↑↓ hint until it's actually the active sort — for a
+  // column where the idle arrows read as clutter (Caroline, 2026-09-16).
+  hideIdleSortIcon?: boolean
 }) {
   if (!onClick) {
     return <th className="text-left font-semibold text-gray-500 px-4 py-2.5 text-xs uppercase tracking-wide">{children}</th>
   }
   const Icon = sortDir === 'asc' ? ArrowUp : sortDir === 'desc' ? ArrowDown : ArrowUpDown
+  const showIcon = sortDir ? true : !hideIdleSortIcon
   return (
     <th className="text-left font-semibold text-gray-500 px-4 py-2.5 text-xs uppercase tracking-wide">
       <button onClick={onClick} className="flex items-center gap-1 hover:text-gray-700">
-        {children} <Icon size={11} />
+        {children} {showIcon && <Icon size={11} />}
       </button>
     </th>
   )
