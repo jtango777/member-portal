@@ -454,13 +454,21 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
       <tr key={m.id} className={"border-b border-gray-100 last:border-0 hover:bg-gray-50"}>
         <td className="px-4 py-2 font-medium text-gray-900 truncate" title={m.full_name ?? undefined}>
           {m.full_name ?? <span className="text-gray-400 italic">No name</span>}
+          {/* The Status column is gone (the orange arrow already says
+              "invited"), but a bounced invite is real news — keep it on the
+              name so it can't be missed. */}
+          {m.email_status && (
+            <span title={m.email_status_reason ?? undefined}
+              className="ml-1.5 whitespace-nowrap text-xs font-medium text-red-700 bg-red-50 border border-red-200 px-1.5 py-0.5 rounded-full cursor-help align-middle">
+              {m.email_status === 'complained' ? 'Marked spam' : 'Bounced'}
+            </span>
+          )}
         </td>
         <td className="px-4 py-2 text-gray-700 truncate" title={m.email}>{m.email}</td>
         <td className="px-4 py-2 text-gray-600 truncate" title={companyOrTypeLabel(m)}>{companyOrTypeLabel(m)}</td>
         <td className="px-4 py-2 text-gray-600 truncate text-xs">
           {m.default_location_id ? (locations.find(l => l.id === m.default_location_id)?.name ?? '—') : <span className="text-gray-400">—</span>}
         </td>
-        <td className="px-4 py-2"><StatusBadge m={m} /></td>
         <td className="px-4 py-2 text-gray-500 text-xs whitespace-nowrap">{formatShortDate(new Date(m.invited_at))}</td>
         <td className="px-4 py-2">
           <div className="flex items-center justify-end gap-0.5">
@@ -843,10 +851,10 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
             showAll={showAllPending} onToggleShowAll={() => setShowAllPending(v => !v)}
             pageSize={pendingPageSize} onPageSizeChange={size => { setPendingPageSize(size); setPendingPage(1) }} />
         }>
-          <AdminTable colWidths={['17%', '22%', '12%', '15%', '7%', '11%', '16%']} minWidth={1000}>
+          <AdminTable colWidths={['20%', '24%', '15%', '14%', '11%', '16%']} minWidth={1000}>
             <thead>
               <tr className="border-b border-gray-100 bg-gray-50">
-                <Th>Name</Th><Th>Email</Th><Th>Company</Th><Th>Location</Th><Th>Status</Th><Th>Invited</Th><Th />
+                <Th>Name</Th><Th>Email</Th><Th>Company</Th><Th>Location</Th><Th>Invited</Th><Th />
               </tr>
             </thead>
             <tbody>
@@ -937,10 +945,10 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
                     showAll={showAllNotInvited} onToggleShowAll={() => setShowAllNotInvited(v => !v)}
                     pageSize={notInvitedPageSize} onPageSizeChange={size => { setNotInvitedPageSize(size); setNotInvitedPage(1) }} />
                 </div>
-                <AdminTable colWidths={['17%', '22%', '12%', '15%', '7%', '11%', '16%']} minWidth={1000}>
+                <AdminTable colWidths={['20%', '24%', '15%', '14%', '11%', '16%']} minWidth={1000}>
                   <thead>
                     <tr className="border-b border-gray-100 bg-gray-50">
-                      <Th>Name</Th><Th>Email</Th><Th>Company</Th><Th>Location</Th><Th>Status</Th><Th>Added</Th><Th />
+                      <Th>Name</Th><Th>Email</Th><Th>Company</Th><Th>Location</Th><Th>Added</Th><Th />
                     </tr>
                   </thead>
                   <tbody>
@@ -991,21 +999,4 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
   )
 }
 
-function StatusBadge({ m }: { m: MemberRow }) {
-  if (m.accepted_at)  return <span className="inline-flex items-center gap-1 whitespace-nowrap text-xs font-medium text-green-700 bg-green-50 border border-green-200 px-2 py-0.5 rounded-full"><Check size={10} /> Active</span>
-  // Checked before "Invited" — a bounced invite technically has a token, but
-  // showing "Invited" for it was exactly the problem: it never arrived.
-  if (m.email_status) return (
-    <span title={m.email_status_reason ?? undefined}
-      className="whitespace-nowrap text-xs font-medium text-red-700 bg-red-50 border border-red-200 px-2 py-0.5 rounded-full cursor-help">
-      {m.email_status === 'complained' ? 'Marked spam' : 'Bounced'}
-    </span>
-  )
-  if (m.invite_token) return <span className="whitespace-nowrap text-xs font-medium text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">Invited</span>
-  // Plain text, not a pill — same treatment as "Member" in the Admin
-  // column on Active Members. "Not invited" isn't really a status worth
-  // calling out with a badge (Active and Invited are actual milestones;
-  // this is just the absence of one), so it reads quieter to match.
-  return <span className="text-xs text-gray-400">Not invited</span>
-}
 
