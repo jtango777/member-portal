@@ -39,11 +39,6 @@ function toDate(s: string) {
 // and a floating calendar was overlapping the Location/Time content below it.
 export default function DayPassDatePicker({ mode, onModeChange, selected, onChange }: Props) {
   const [open, setOpen] = useState(false)
-  // Set when someone tries to pick past the limit — the click simply
-  // doesn't take, and this says why right inside the calendar, instead of
-  // letting them build an 16-day selection that can never check out
-  // (Caroline, 2026-09-16).
-  const [limitHit, setLimitHit] = useState(false)
   const [pickerMonth, setPickerMonth] = useState(() => selected[0] ? toDate(selected[0]) : new Date())
   // Pending selection — only committed to `onChange` when "Select dates"
   // is clicked (multiple mode), so picking one day doesn't half-apply.
@@ -69,9 +64,9 @@ export default function DayPassDatePicker({ mode, onModeChange, selected, onChan
     // Multiple: toggle this exact day in or out, independent of anything
     // else already picked.
     setPending(prev => {
-      if (prev.includes(value)) { setLimitHit(false); return prev.filter(d => d !== value) }
-      if (prev.length >= MAX_DAY_PASS_DAYS) { setLimitHit(true); return prev }
-      setLimitHit(false)
+      if (prev.includes(value)) return prev.filter(d => d !== value)
+      // Capped — see the note above the calendar.
+      if (prev.length >= MAX_DAY_PASS_DAYS) return prev
       return [...prev, value].sort()
     })
   }
@@ -84,7 +79,6 @@ export default function DayPassDatePicker({ mode, onModeChange, selected, onChan
 
   function clearSelection() {
     setPending([])
-    setLimitHit(false)
   }
 
   const sortedSelected = [...selected].sort()
@@ -127,10 +121,14 @@ export default function DayPassDatePicker({ mode, onModeChange, selected, onChan
             <p className="text-xs text-gray-400 mb-2">
               {mode === 'single' ? 'Select a single date to reserve' : 'Select any days you’d like to reserve — they don’t need to be consecutive'}
             </p>
-            {limitHit && (
+            {/* Shown the moment the cap is reached, not only when someone
+                clicks an 11th day — the greyed-out days otherwise look
+                broken with no explanation (Caroline, 2026-09-16). */}
+            {mode === 'multiple' && pending.length >= MAX_DAY_PASS_DAYS && (
               <p className="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-md px-2.5 py-2 mb-2">
-                That’s {MAX_DAY_PASS_DAYS} days, the most you can book at once. For a longer stay, email{' '}
-                <a href="mailto:hello@bizhaus.com" className="underline">hello@bizhaus.com</a>.
+                {pending.length} of {MAX_DAY_PASS_DAYS} days selected — that’s the most you can book at once.
+                Unpick a day to swap it, or email{' '}
+                <a href="mailto:hello@bizhaus.com" className="underline">hello@bizhaus.com</a> for a longer stay.
               </p>
             )}
 
@@ -179,7 +177,7 @@ export default function DayPassDatePicker({ mode, onModeChange, selected, onChan
                     disabled={isPast || weekend}
                     onClick={() => {
                       if (isPast || weekend) return
-                      if (atLimit) { setLimitHit(true); return }
+                      if (atLimit) return
                       selectDay(day)
                     }}
                     className={cn(
