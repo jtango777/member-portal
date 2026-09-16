@@ -12,7 +12,7 @@ export async function POST(request: Request) {
   const admin = createAdminClient()
   const { data: profile } = await admin
     .from('profiles')
-    .select('full_name, room_access_requested_at')
+    .select('full_name, room_access_requested_at, locations:default_location_id(name)')
     .eq('id', user.id)
     .single()
 
@@ -36,7 +36,13 @@ export async function POST(request: Request) {
   // Only email staff the first time — not on every repeat "Yes" click across visits
   if (requested && !alreadyRequested && profile) {
     try {
-      await sendRoomAccessRequestEmail({ name: profile.full_name, email: user.email ?? '' })
+      await sendRoomAccessRequestEmail({
+        name: profile.full_name,
+        email: user.email ?? '',
+        // In the subject line so whoever covers that location can pick it
+        // up without opening the email (Caroline, 2026-09-16).
+        location: (profile.locations as unknown as { name: string } | null)?.name ?? null,
+      })
     } catch (err) {
       console.error('[profile/request-room-access] email failed:', err)
       await sendSystemAlert('Room access request email failed', {
