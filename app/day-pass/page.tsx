@@ -91,12 +91,16 @@ export default function DayPassPage() {
   // — that only ever fails with "account already exists". Check once on
   // mount and skip straight to payment for them.
   const [existingCustomer, setExistingCustomer] = useState<ExistingCustomer | null>(null)
+  const [bookedDates, setBookedDates] = useState<string[]>([])
 
   // Also covers staff/member logins that don't have a booking account yet.
   useEffect(() => {
     fetch('/api/day-pass/my-account')
       .then(res => res.json())
-      .then(data => { if (data.customer) setExistingCustomer(data.customer) })
+      .then(data => {
+        if (data.customer) setExistingCustomer(data.customer)
+        if (Array.isArray(data.bookedDates)) setBookedDates(data.bookedDates)
+      })
       .catch(() => {})
   }, [])
 
@@ -154,6 +158,7 @@ export default function DayPassPage() {
             <ReservationFields
               locationId={locationId} setLocationId={setLocationId}
               selectedDates={selectedDates} setSelectedDates={setSelectedDates}
+              bookedDates={bookedDates}
               dates={dates}
               onContinue={() => setPhase('details')}
             />
@@ -251,11 +256,12 @@ function AccordionSection({ number, title, state, summary, onEdit, children }: {
 // ── Section 1: Reservation ───────────────────────────────────────────────
 
 function ReservationFields({
-  locationId, setLocationId, selectedDates, setSelectedDates, dates, onContinue,
+  locationId, setLocationId, selectedDates, setSelectedDates, dates, bookedDates, onContinue,
 }: {
   locationId: string; setLocationId: (v: string) => void
   selectedDates: string[]; setSelectedDates: (v: string[]) => void
   dates: string[]
+  bookedDates: string[]
   onContinue: () => void
 }) {
   const selectedLocation = LOCATIONS.find(l => l.id === locationId) ?? LOCATIONS[0]
@@ -309,6 +315,7 @@ function ReservationFields({
           <DayPassDatePicker
             selected={selectedDates}
             onChange={setSelectedDates}
+            bookedDates={bookedDates}
           />
           {/* Right under the picker, not down by Continue — with 16 days
               chosen the day list pushed the old warning miles off screen

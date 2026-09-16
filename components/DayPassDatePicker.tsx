@@ -11,6 +11,9 @@ type Props = {
   // YYYY-MM-DD strings.
   selected: string[]
   onChange: (dates: string[]) => void
+  // Days this customer already has a pass for — shown as taken instead of
+  // selectable, since buying the same day twice is refused at checkout.
+  bookedDates?: string[]
 }
 
 function isWeekend(d: Date) {
@@ -36,7 +39,7 @@ function toDate(s: string) {
 // One picker, no modes: pick one day for one day, pick several for several.
 // It used to have Single day / Multiple days tabs, which made choosing a
 // single date a two-step decision for no reason (Caroline, 2026-09-16).
-export default function DayPassDatePicker({ selected, onChange }: Props) {
+export default function DayPassDatePicker({ selected, onChange, bookedDates = [] }: Props) {
   const [open, setOpen] = useState(false)
   const [pickerMonth, setPickerMonth] = useState(() => selected[0] ? toDate(selected[0]) : new Date())
   // Pending selection — only committed to `onChange` when "Select dates"
@@ -97,6 +100,7 @@ export default function DayPassDatePicker({ selected, onChange }: Props) {
           <div className="p-3 border-t border-gray-100">
             <p className="text-xs text-gray-400 mb-2">
               Pick a day — or as many as you need, they don’t have to be consecutive.
+              {bookedDates.length > 0 && ' Days you already booked are crossed out.'}
             </p>
             {/* Shown the moment the cap is reached, not only when someone
                 clicks an 11th day — the greyed-out days otherwise look
@@ -137,9 +141,10 @@ export default function DayPassDatePicker({ selected, onChange }: Props) {
               {eachDayOfInterval({ start: startOfMonth(pickerMonth), end: endOfMonth(pickerMonth) }).map(day => {
                 const isPast = isBefore(day, startOfDay(today))
                 const weekend = isWeekend(day)
-                const atLimit = pending.length >= MAX_DAY_PASS_DAYS && !pending.includes(format(day, 'yyyy-MM-dd'))
-                const disabled = isPast || weekend || atLimit
                 const value = format(day, 'yyyy-MM-dd')
+                const alreadyBooked = bookedDates.includes(value)
+                const atLimit = pending.length >= MAX_DAY_PASS_DAYS && !pending.includes(value)
+                const disabled = isPast || weekend || atLimit || alreadyBooked
 
                 const isSelected = pending.includes(value)
 
@@ -149,7 +154,8 @@ export default function DayPassDatePicker({ selected, onChange }: Props) {
                     type="button"
                     // Not `disabled` when only the limit is the reason —
                     // a click still needs to explain why it can't be added.
-                    disabled={isPast || weekend}
+                    disabled={isPast || weekend || alreadyBooked}
+                    title={alreadyBooked ? 'You already have a day pass for this day' : undefined}
                     onClick={() => {
                       if (isPast || weekend) return
                       if (atLimit) return
@@ -157,7 +163,9 @@ export default function DayPassDatePicker({ selected, onChange }: Props) {
                     }}
                     className={cn(
                       'text-center text-xs py-1.5 rounded-md transition-colors',
-                      disabled
+                      alreadyBooked
+                        ? 'text-booking-700 bg-booking-50 line-through cursor-not-allowed'
+                        : disabled
                         ? 'text-gray-300 cursor-not-allowed'
                         : isSelected
                         ? 'bg-booking-600 text-white font-semibold'
