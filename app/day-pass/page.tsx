@@ -57,20 +57,6 @@ function isContiguousRange(sortedDates: string[]): boolean {
 // day that had already happened (caught 2026-08-31 — the calendar UI
 // greys out past days, but the "Continue" button never actually checks
 // the currently-selected date before proceeding).
-function defaultDayPassDate(taken: string[] = []): string {
-  const d = new Date()
-  // Next weekday they don't already hold — the page used to open with today
-  // pre-selected even when that day was already booked, so it counted
-  // toward the total and could never be paid for (Caroline, 2026-09-16).
-  for (let i = 0; i < 60; i++) {
-    const day = d.getDay()
-    const value = formatDate(d, 'yyyy-MM-dd')
-    if (day !== 0 && day !== 6 && !taken.includes(value)) return value
-    d.setDate(d.getDate() + 1)
-  }
-  return formatDate(new Date(), 'yyyy-MM-dd')
-}
-
 // Actual today, not weekend-shifted — used to block "Continue" if a
 // selected date has slipped into the past (e.g. the tab sat open
 // overnight). The server independently re-checks this too — see
@@ -82,7 +68,10 @@ function todayDateStr(): string {
 export default function DayPassPage() {
   const [phase, setPhase] = useState<Phase>('reservation')
   const [locationId, setLocationId] = useState<string>(LOCATIONS[0].id)
-  const [selectedDates, setSelectedDates] = useState<string[]>(() => [defaultDayPassDate()])
+  // Nothing pre-selected — picking the date is the first real decision, and
+  // a default made people think a day was chosen for them (Caroline,
+  // 2026-09-16).
+  const [selectedDates, setSelectedDates] = useState<string[]>([])
 
   // Set once the account is created — the payment step needs this to know
   // who's paying, and the request step needs it to link the reservation.
@@ -107,12 +96,8 @@ export default function DayPassPage() {
         if (data.customer) setExistingCustomer(data.customer)
         if (Array.isArray(data.bookedDates) && data.bookedDates.length) {
           setBookedDates(data.bookedDates)
-          // Drop anything pre-selected that they already hold, and fall
-          // back to the next free weekday if that empties the selection.
-          setSelectedDates(prev => {
-            const kept = prev.filter(d => !data.bookedDates.includes(d))
-            return kept.length ? kept : [defaultDayPassDate(data.bookedDates)]
-          })
+          // Belt and braces: never leave a day they already hold selected.
+          setSelectedDates(prev => prev.filter(d => !data.bookedDates.includes(d)))
         }
       })
       .catch(() => {})
@@ -121,7 +106,7 @@ export default function DayPassPage() {
   const selectedLocation = LOCATIONS.find(l => l.id === locationId) ?? LOCATIONS[0]
   const dates = [...selectedDates].sort()
   const formattedDateRange = dates.length === 0
-    ? ''
+    ? 'No days selected yet'
     : dates.length === 1
     ? formatDate(new Date(dates[0] + 'T12:00:00'), 'MMM d, yyyy')
     : isContiguousRange(dates)
@@ -273,7 +258,7 @@ function ReservationFields({
   locationId, setLocationId, selectedDates, setSelectedDates, dates, bookedDates, onContinue,
 }: {
   locationId: string; setLocationId: (v: string) => void
-  selectedDates: string[]; setSelectedDates: (v: string[]) => void
+  selectedDates: string[]; setSelectedDates: React.Dispatch<React.SetStateAction<string[]>>
   dates: string[]
   bookedDates: string[]
   onContinue: () => void
@@ -897,8 +882,8 @@ function StepConfirmation({ loc, dates, guestName, guestEmail, confirmationNumbe
 }
 
 function PriceSummary({ days, locationName }: { days: number; locationName: string }) {
-  const n = Math.max(days, 1)
-  const total = DAY_PASS_PRICE * n
+  // No days chosen yet: show the rate, not a made-up $30 total.
+  const total = DAY_PASS_PRICE * days
   return (
     <div className="flex flex-col gap-4">
       <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
@@ -908,12 +893,15 @@ function PriceSummary({ days, locationName }: { days: number; locationName: stri
         <div className="px-5 py-4 flex flex-col gap-2.5">
           <div className="flex justify-between text-sm text-gray-700">
             <span>${DAY_PASS_PRICE} / day{days > 1 ? ` × ${days} days` : ''}</span>
-            <span>${total}.00</span>
+            <span>{days ? `$${total}.00` : '—'}</span>
           </div>
           <div className="bg-gray-50 rounded-lg px-3 -mx-3 py-2.5 flex justify-between text-sm font-semibold text-gray-900">
             <span>Total</span>
-            <span>${total}.00</span>
+            <span>{days ? `$${total}.00` : '—'}</span>
           </div>
+          {!days && (
+            <div className="text-xs text-gray-400">Pick your days to see the total.</div>
+          )}
         </div>
       </div>
     </div>

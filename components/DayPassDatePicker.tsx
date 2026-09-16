@@ -10,7 +10,9 @@ type Props = {
   // Any number of dates, in any combination — not necessarily consecutive.
   // YYYY-MM-DD strings.
   selected: string[]
-  onChange: (dates: string[]) => void
+  // Takes an updater as well as a plain array, so two quick clicks can't
+  // both read the same stale selection and lose one of the days.
+  onChange: React.Dispatch<React.SetStateAction<string[]>>
   // Days this customer already has a pass for — shown as taken instead of
   // selectable, since buying the same day twice is refused at checkout.
   bookedDates?: string[]
@@ -42,15 +44,13 @@ function toDate(s: string) {
 export default function DayPassDatePicker({ selected, onChange, bookedDates = [] }: Props) {
   const [open, setOpen] = useState(false)
   const [pickerMonth, setPickerMonth] = useState(() => selected[0] ? toDate(selected[0]) : new Date())
-  // Pending selection — only committed to `onChange` when "Select dates"
-  // is clicked (multiple mode), so picking one day doesn't half-apply.
-  const [pending, setPending] = useState<string[]>(selected)
+  // Every click applies straight away — the price, day list and total all
+  // update as you pick, instead of waiting for a confirm button that made
+  // the page look stuck (Caroline, 2026-09-16).
+  const pending = selected
 
   function handleToggle() {
-    if (!open) {
-      setPickerMonth(selected[0] ? toDate(selected[0]) : new Date())
-      setPending(selected)
-    }
+    if (!open) setPickerMonth(selected[0] ? toDate(selected[0]) : new Date())
     setOpen(v => !v)
   }
 
@@ -59,7 +59,7 @@ export default function DayPassDatePicker({ selected, onChange, bookedDates = []
   function selectDay(day: Date) {
     const value = format(day, 'yyyy-MM-dd')
     // Toggle this exact day in or out, independent of anything else picked.
-    setPending(prev => {
+    onChange(prev => {
       if (prev.includes(value)) return prev.filter(d => d !== value)
       // Capped — see the note above the calendar.
       if (prev.length >= MAX_DAY_PASS_DAYS) return prev
@@ -67,14 +67,8 @@ export default function DayPassDatePicker({ selected, onChange, bookedDates = []
     })
   }
 
-  function confirmSelection() {
-    if (!pending.length) return
-    onChange(pending)
-    setOpen(false)
-  }
-
   function clearSelection() {
-    setPending([])
+    onChange([])
   }
 
   const sortedSelected = [...selected].sort()
@@ -199,9 +193,9 @@ export default function DayPassDatePicker({ selected, onChange, bookedDates = []
                 <button type="button" onClick={clearSelection} className="text-sm font-medium text-booking-600 hover:text-booking-700">
                   Clear dates
                 </button>
-                <button type="button" onClick={confirmSelection} disabled={!pending.length}
-                  className="bg-booking-600 hover:bg-booking-700 disabled:bg-booking-300 disabled:cursor-not-allowed text-white text-sm font-semibold py-2 px-4 rounded-lg transition-colors">
-                {pending.length ? `Select ${pending.length} day${pending.length > 1 ? 's' : ''}` : 'Select dates'}
+              <button type="button" onClick={() => setOpen(false)} disabled={!selected.length}
+                className="bg-booking-600 hover:bg-booking-700 disabled:bg-booking-300 disabled:cursor-not-allowed text-white text-sm font-semibold py-2 px-4 rounded-lg transition-colors">
+                {selected.length > 1 ? `Done · ${selected.length} days` : 'Done'}
               </button>
             </div>
           </div>
