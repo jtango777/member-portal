@@ -103,8 +103,8 @@ export default function DayPassDatePicker({ selected, onChange }: Props) {
                 broken with no explanation (Caroline, 2026-09-16). */}
             {pending.length >= MAX_DAY_PASS_DAYS && (
               <p className="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-md px-2.5 py-2 mb-2">
-                {pending.length} of {MAX_DAY_PASS_DAYS} days selected — that’s the most you can book at once.
-                Unpick a day to swap it, or email{' '}
+                <span className="font-semibold">You’ve hit the {MAX_DAY_PASS_DAYS}-day maximum.</span>{' '}
+                Remove a day to pick a different one, or email{' '}
                 <a href="mailto:hello@bizhaus.com" className="underline">hello@bizhaus.com</a> for a longer stay.
               </p>
             )}
