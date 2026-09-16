@@ -765,10 +765,10 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
             showAll={showAllActive} onToggleShowAll={() => setShowAllActive(v => !v)}
             pageSize={activePageSize} onPageSizeChange={size => { setActivePageSize(size); setActivePage(1) }} />
         }>
-          <AdminTable colWidths={['17%', '22%', '12%', '15%', '7%', '11%', '16%']} minWidth={1000}>
+          <AdminTable colWidths={['20%', '24%', '15%', '14%', '11%', '16%']} minWidth={1000}>
             <thead>
               <tr className="border-b border-gray-100 bg-gray-50">
-                <Th sortDir={!locationSort && activeSort.key === 'name' ? activeSort.dir : null} onClick={() => toggleActiveSort('name')}>Name</Th><Th>Email</Th><Th>Company</Th><Th sortDir={locationSort} onClick={toggleLocationSort}>Location</Th><Th>Admin</Th><Th sortDir={!locationSort && activeSort.key === 'joined' ? activeSort.dir : null} onClick={() => toggleActiveSort('joined')}>Joined</Th><Th />
+                <Th sortDir={!locationSort && activeSort.key === 'name' ? activeSort.dir : null} onClick={() => toggleActiveSort('name')}>Name</Th><Th>Email</Th><Th>Company</Th><Th sortDir={locationSort} onClick={toggleLocationSort}>Location</Th><Th sortDir={!locationSort && activeSort.key === 'joined' ? activeSort.dir : null} onClick={() => toggleActiveSort('joined')}>Joined</Th><Th />
               </tr>
             </thead>
             <tbody>
@@ -786,11 +786,6 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
                       <td className="px-4 py-2 text-gray-600 truncate" title={companyOrTypeLabel(m)}>{companyOrTypeLabel(m)}</td>
                       <td className="px-4 py-2 text-gray-600 truncate text-xs">
                         {m.default_location_id ? (locations.find(l => l.id === m.default_location_id)?.name ?? '—') : <span className="text-gray-400">—</span>}
-                      </td>
-                      <td className="px-4 py-2">
-                        {m.is_admin
-                          ? <span className="inline-flex items-center gap-1 whitespace-nowrap text-xs font-medium text-blue-700 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-full"><Shield size={10} /> Admin</span>
-                          : <span className="text-xs text-gray-400">Member</span>}
                       </td>
                       <td className="px-4 py-2 text-gray-500 text-xs whitespace-nowrap">{formatShortDate(new Date(m.accepted_at!))}</td>
                       <td className="px-4 py-2">
