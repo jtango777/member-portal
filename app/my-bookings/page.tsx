@@ -33,9 +33,11 @@ type UnifiedBooking = {
   // is a specific room, not a location, and doesn't have per-room photos
   // wired up here) — scoped to day-pass rows only for now.
   photo?: { src: string; position?: string }
-  // Multi-day day passes only cancel as a whole, so point people with a
-  // multi-day booking (and a day still ahead) to email for single days.
-  // Decided 2026-09-15 instead of building per-day refunds.
+  // Multi-day day passes only cancel as a whole, so list the days out and
+  // point people to email for a single day. Decided 2026-09-15 (kept
+  // 2026-09-16) instead of building per-day refunds — day-pass volume
+  // doesn't justify touching refund code for it yet.
+  days?: { date: string; cancelled: boolean }[]
   showSingleDayCancelNote?: boolean
 }
 
@@ -104,6 +106,7 @@ export default async function DayPassAccountPage() {
         status: first.status as UnifiedBooking['status'],
         cancellableConfirmationNumber: cancellable ? first.confirmation_number! : undefined,
         photo: LOCATION_PHOTOS[first.location_id],
+        days: sorted.length > 1 ? sorted.map(p => ({ date: p.date, cancelled: p.status === 'cancelled' })) : undefined,
         showSingleDayCancelNote: sorted.length > 1 && first.status === 'confirmed'
           && sorted[sorted.length - 1].date >= new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' }),
       }
@@ -175,8 +178,23 @@ export default async function DayPassAccountPage() {
                 <div className="min-w-0">
                   <div className="font-semibold text-gray-900">{b.title}</div>
                   <div className="text-sm text-gray-500 mt-0.5">{b.subtitle}</div>
+                  {b.days && (
+                    <div className="flex flex-wrap gap-1.5 mt-2">
+                      {b.days.map(d => (
+                        <span key={d.date}
+                          className={cn(
+                            'text-xs rounded-full border px-2.5 py-1',
+                            d.cancelled
+                              ? 'text-gray-400 border-gray-200 line-through'
+                              : 'text-gray-600 border-gray-200 bg-gray-50'
+                          )}>
+                          {format(new Date(d.date + 'T12:00:00'), 'EEE, MMM d')}
+                        </span>
+                      ))}
+                    </div>
+                  )}
                   {b.showSingleDayCancelNote && (
-                    <div className="text-xs text-gray-400 mt-1">
+                    <div className="text-xs text-gray-400 mt-1.5">
                       Need to cancel just one day? Email <a href="mailto:hello@bizhaus.com" className="underline hover:text-gray-600">hello@bizhaus.com</a>
                     </div>
                   )}
