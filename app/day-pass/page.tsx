@@ -332,13 +332,27 @@ function ReservationFields({
       {dates.length > 0 && (
         <div>
           <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Time</div>
-          <div className="bg-gray-50 rounded-lg px-3.5 py-3 flex flex-col gap-1.5">
-            {dates.map(d => (
-              <div key={d} className="flex justify-between text-sm">
-                <span className="text-gray-700">{formatDate(new Date(d + 'T12:00:00'), 'EEE, MMM d')}</span>
-                <span className="text-gray-500">9:00am – 5:00pm</span>
+          {/* Every day is the same 9–5, so repeating the hours per row was
+              eight identical lines for an eight-day booking (Caroline,
+              2026-09-16). One line for the hours, the days as chips. */}
+          <div className="bg-gray-50 rounded-lg px-3.5 py-3 flex flex-col gap-2.5">
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-700 font-medium">
+                {dates.length === 1
+                  ? formatDate(new Date(dates[0] + 'T12:00:00'), 'EEE, MMM d')
+                  : `All ${dates.length} days`}
+              </span>
+              <span className="text-gray-500">9:00am – 5:00pm</span>
+            </div>
+            {dates.length > 1 && (
+              <div className="flex flex-wrap gap-1.5">
+                {dates.map(d => (
+                  <span key={d} className="text-xs text-gray-600 bg-white border border-gray-200 rounded-full px-2.5 py-1">
+                    {formatDate(new Date(d + 'T12:00:00'), 'EEE, MMM d')}
+                  </span>
+                ))}
               </div>
-            ))}
+            )}
           </div>
           <div className="text-xs text-gray-400 mt-2">
             Drop in any time during those hours — flat $30/day, no time slot to reserve.

@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay, addMonths, subMonths, isBefore, startOfDay } from 'date-fns'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { cn, isSameDay } from '@/lib/utils'
+import { MAX_DAY_PASS_DAYS } from '@/lib/dayPass'
 
 export type DateMode = 'single' | 'multiple'
 
@@ -38,6 +39,11 @@ function toDate(s: string) {
 // and a floating calendar was overlapping the Location/Time content below it.
 export default function DayPassDatePicker({ mode, onModeChange, selected, onChange }: Props) {
   const [open, setOpen] = useState(false)
+  // Set when someone tries to pick past the limit — the click simply
+  // doesn't take, and this says why right inside the calendar, instead of
+  // letting them build an 16-day selection that can never check out
+  // (Caroline, 2026-09-16).
+  const [limitHit, setLimitHit] = useState(false)
   const [pickerMonth, setPickerMonth] = useState(() => selected[0] ? toDate(selected[0]) : new Date())
   // Pending selection — only committed to `onChange` when "Select dates"
   // is clicked (multiple mode), so picking one day doesn't half-apply.
@@ -62,7 +68,12 @@ export default function DayPassDatePicker({ mode, onModeChange, selected, onChan
     }
     // Multiple: toggle this exact day in or out, independent of anything
     // else already picked.
-    setPending(prev => prev.includes(value) ? prev.filter(d => d !== value) : [...prev, value].sort())
+    setPending(prev => {
+      if (prev.includes(value)) { setLimitHit(false); return prev.filter(d => d !== value) }
+      if (prev.length >= MAX_DAY_PASS_DAYS) { setLimitHit(true); return prev }
+      setLimitHit(false)
+      return [...prev, value].sort()
+    })
   }
 
   function confirmSelection() {
@@ -73,6 +84,7 @@ export default function DayPassDatePicker({ mode, onModeChange, selected, onChan
 
   function clearSelection() {
     setPending([])
+    setLimitHit(false)
   }
 
   const sortedSelected = [...selected].sort()
@@ -115,6 +127,12 @@ export default function DayPassDatePicker({ mode, onModeChange, selected, onChan
             <p className="text-xs text-gray-400 mb-2">
               {mode === 'single' ? 'Select a single date to reserve' : 'Select any days you’d like to reserve — they don’t need to be consecutive'}
             </p>
+            {limitHit && (
+              <p className="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-md px-2.5 py-2 mb-2">
+                That’s {MAX_DAY_PASS_DAYS} days, the most you can book at once. For a longer stay, email{' '}
+                <a href="mailto:hello@bizhaus.com" className="underline">hello@bizhaus.com</a>.
+              </p>
+            )}
 
             {/* Month navigation */}
             <div className="flex items-center justify-between mb-2">
@@ -144,7 +162,8 @@ export default function DayPassDatePicker({ mode, onModeChange, selected, onChan
               {eachDayOfInterval({ start: startOfMonth(pickerMonth), end: endOfMonth(pickerMonth) }).map(day => {
                 const isPast = isBefore(day, startOfDay(today))
                 const weekend = isWeekend(day)
-                const disabled = isPast || weekend
+                const atLimit = mode === 'multiple' && pending.length >= MAX_DAY_PASS_DAYS && !pending.includes(format(day, 'yyyy-MM-dd'))
+                const disabled = isPast || weekend || atLimit
                 const value = format(day, 'yyyy-MM-dd')
 
                 const isSelected = mode === 'single'
@@ -155,8 +174,14 @@ export default function DayPassDatePicker({ mode, onModeChange, selected, onChan
                   <button
                     key={day.toISOString()}
                     type="button"
-                    disabled={disabled}
-                    onClick={() => !disabled && selectDay(day)}
+                    // Not `disabled` when only the limit is the reason —
+                    // a click still needs to explain why it can't be added.
+                    disabled={isPast || weekend}
+                    onClick={() => {
+                      if (isPast || weekend) return
+                      if (atLimit) { setLimitHit(true); return }
+                      selectDay(day)
+                    }}
                     className={cn(
                       'text-center text-xs py-1.5 rounded-md transition-colors',
                       disabled
