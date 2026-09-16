@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import { format } from 'date-fns'
+import { format, eachDayOfInterval, getDay } from 'date-fns'
 import { CheckCircle, Clock, XCircle, Ban } from 'lucide-react'
 import { cn, getPacificDayBounds } from '@/lib/utils'
 import { LOCATION_PHOTOS } from '@/lib/locationPhotos'
@@ -94,8 +94,24 @@ export default async function DayPassAccountPage() {
       const sorted = [...group].sort((a, b) => a.date.localeCompare(b.date))
       const first = sorted[0]
       const totalCents = sorted.reduce((sum, p) => sum + p.price_cents, 0)
+      // "3 days (Oct 1 – Oct 8)" read as a straight run even when the days
+      // were scattered (Caroline, 2026-09-16) — only use a range when the
+      // days really are back-to-back business days; otherwise just say
+      // which month(s) they fall in, since every date is listed below.
       const dateLabel = sorted.length > 1
-        ? `${sorted.length} days (${format(new Date(sorted[0].date + 'T12:00:00'), 'MMM d')} – ${format(new Date(sorted[sorted.length - 1].date + 'T12:00:00'), 'MMM d, yyyy')})`
+        ? (() => {
+            const days = sorted.map(p => new Date(p.date + 'T12:00:00'))
+            const start = days[0], end = days[days.length - 1]
+            const businessDaysBetween = eachDayOfInterval({ start, end })
+              .filter(d => getDay(d) !== 0 && getDay(d) !== 6).length
+            if (businessDaysBetween === days.length) {
+              return `${format(start, 'MMM d')} – ${format(end, 'MMM d, yyyy')} (${days.length} days)`
+            }
+            const sameMonth = format(start, 'MMM yyyy') === format(end, 'MMM yyyy')
+            return sameMonth
+              ? `${days.length} days in ${format(start, 'MMMM yyyy')}`
+              : `${days.length} days, ${format(start, 'MMM')} – ${format(end, 'MMM yyyy')}`
+          })()
         : format(new Date(first.date + 'T12:00:00'), 'EEEE, MMMM d, yyyy')
       const cancellable = first.status === 'confirmed' && first.confirmation_number && isStillCancellable(sorted.map(p => p.date))
       return {
@@ -179,19 +195,19 @@ export default async function DayPassAccountPage() {
                   <div className="font-semibold text-gray-900">{b.title}</div>
                   <div className="text-sm text-gray-500 mt-0.5">{b.subtitle}</div>
                   {b.days && (
-                    <div className="flex flex-wrap gap-1.5 mt-2">
+                    <ul className="mt-2 flex flex-col gap-1">
                       {b.days.map(d => (
-                        <span key={d.date}
+                        <li key={d.date}
                           className={cn(
-                            'text-xs rounded-full border px-2.5 py-1',
-                            d.cancelled
-                              ? 'text-gray-400 border-gray-200 line-through'
-                              : 'text-gray-600 border-gray-200 bg-gray-50'
+                            'flex items-baseline gap-2 text-sm',
+                            d.cancelled ? 'text-gray-400 line-through' : 'text-gray-600'
                           )}>
-                          {format(new Date(d.date + 'T12:00:00'), 'EEE, MMM d')}
-                        </span>
+                          <span className="text-gray-300">·</span>
+                          <span>{format(new Date(d.date + 'T12:00:00'), 'EEEE, MMMM d')}</span>
+                          <span className="text-xs text-gray-400">9:00am – 5:00pm</span>
+                        </li>
                       ))}
-                    </div>
+                    </ul>
                   )}
                   {b.showSingleDayCancelNote && (
                     <div className="text-xs text-gray-400 mt-1.5">
