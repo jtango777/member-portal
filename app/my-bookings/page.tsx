@@ -20,8 +20,14 @@ const STATUS_STYLES = {
 type UnifiedBooking = {
   id: string
   sortKey: string
+  // Option 1 layout (Caroline, 2026-09-16): location is the heading, the
+  // money gets its own corner, and the hours + reference number sit on a
+  // quiet footer line instead of one long dotted subtitle.
   title: string
   subtitle: string
+  amount: string
+  hours: string
+  reference?: string
   status: 'confirmed' | 'pending' | 'declined' | 'cancelled'
   // Only day passes are self-serve cancellable — conference room bookings
   // never are (Caroline, 2026-08-31). Present only for day-pass entries
@@ -114,8 +120,11 @@ export default async function DayPassAccountPage() {
       return {
         id: first.confirmation_number ?? first.id,
         sortKey: first.date,
-        title: dateLabel,
-        subtitle: `Day pass · ${first.locations?.name ?? 'Unknown location'} · 9:00am – 5:00pm · $${(totalCents / 100).toFixed(2)}${first.confirmation_number ? ` · #${first.confirmation_number}` : ''}`,
+        title: first.locations?.name ?? 'Day pass',
+        subtitle: sorted.length > 1 ? `Day passes · ${dateLabel}` : `Day pass · ${dateLabel}`,
+        amount: `$${(totalCents / 100).toFixed(2)}`,
+        hours: sorted.length > 1 ? '9:00am – 5:00pm each day' : '9:00am – 5:00pm',
+        reference: first.confirmation_number ?? undefined,
         status: first.status as UnifiedBooking['status'],
         cancellableConfirmationNumber: cancellableDates.length && first.confirmation_number ? first.confirmation_number : undefined,
         cancellableDates,
@@ -138,8 +147,11 @@ export default async function DayPassAccountPage() {
       return {
         id: b.id,
         sortKey: b.start_time,
-        title: format(new Date(b.start_time), 'EEEE, MMMM d, yyyy'),
-        subtitle: `Room booking · ${room?.external_name ?? room?.name ?? 'Room'} · ${room?.locations?.name ?? 'Unknown location'} · ${format(new Date(b.start_time), 'h:mm a')} – ${format(new Date(b.end_time), 'h:mm a')} · #${b.id.slice(0, 8).toUpperCase()}`,
+        title: room?.locations?.name ?? 'Room booking',
+        subtitle: `${room?.external_name ?? room?.name ?? 'Room'} · ${format(new Date(b.start_time), 'EEEE, MMMM d')}`,
+        amount: '',
+        hours: `${format(new Date(b.start_time), 'h:mm a')} – ${format(new Date(b.end_time), 'h:mm a')}`,
+        reference: b.id.slice(0, 8).toUpperCase(),
         status: b.status as UnifiedBooking['status'],
         days: [{
           date: b.start_time.slice(0, 10),
@@ -204,19 +216,21 @@ export default async function DayPassAccountPage() {
                 <div key={b.id} className={cn('px-5 py-4', cancelled && 'bg-gray-50/60')}>
                   <div className="flex items-start justify-between gap-4">
                     <div className="min-w-0">
-                      <div className={cn('font-semibold', cancelled ? 'text-gray-500' : 'text-gray-900')}>{b.title}</div>
+                      <div className={cn('text-base font-semibold', cancelled ? 'text-gray-500' : 'text-gray-900')}>{b.title}</div>
                       <div className="text-sm text-gray-500 mt-0.5">{b.subtitle}</div>
                     </div>
-                    <div className="flex items-center gap-3 flex-shrink-0">
-                      {b.cancellableConfirmationNumber && (
+                    <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                      {b.amount && (
+                        <div className={cn('text-base font-semibold whitespace-nowrap', cancelled ? 'text-gray-400' : 'text-gray-900')}>{b.amount}</div>
+                      )}
+                      {b.cancellableConfirmationNumber ? (
                         <CancelDayPassButton
                           confirmationNumber={b.cancellableConfirmationNumber}
                           label={b.cancelLabel ?? 'Cancel'}
                           dates={b.days.length > 1 ? b.cancellableDates : undefined}
                           confirmLabel={b.days.length > 1 ? `Cancel ${b.cancellableDates?.length} days & refund?` : 'Cancel & refund?'}
                         />
-                      )}
-                      {b.status !== 'confirmed' && (
+                      ) : b.status !== 'confirmed' && (
                         <span className={cn('inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium capitalize', STATUS_STYLES[b.status])}>
                           {(() => { const Icon = STATUS_ICON[b.status]; return <Icon size={13} /> })()} {b.status}
                         </span>
@@ -224,33 +238,34 @@ export default async function DayPassAccountPage() {
                     </div>
                   </div>
 
-                  {/* A single-day booking already says the date in its
-                      title — no point repeating it as a one-item list. */}
+                  {/* Dates as soft pills, each with its own cancel. A
+                      single-day booking already names its date above. */}
                   {b.days.length > 1 && (
-                    // One line of dates, not a row each — every day is the
-                    // same 9–5, so repeating the hours four times was pure
-                    // clutter (Caroline, 2026-09-16). Each date carries its
-                    // own cancel.
-                    <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-sm">
+                    <div className="mt-3 flex flex-wrap gap-1.5">
                       {b.days.map(d => (
-                        <span key={d.date} className="inline-flex items-center gap-1">
-                          <span className={d.cancelled ? 'text-gray-300' : 'text-gray-600'}>
-                            {format(new Date(d.date + 'T12:00:00'), 'EEE, MMM d')}
-                          </span>
+                        <span key={d.date}
+                          className={cn('inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[13px]',
+                            d.cancelled ? 'text-gray-400 bg-gray-50' : 'text-gray-700 bg-gray-50')}>
+                          {format(new Date(d.date + 'T12:00:00'), 'EEE, MMM d')}
                           {d.cancellable && b.cancellableConfirmationNumber && (
                             <CancelDayPassButton
                               confirmationNumber={b.cancellableConfirmationNumber}
                               dates={[d.date]}
                               label="×"
                               confirmLabel={`Cancel ${format(new Date(d.date + 'T12:00:00'), 'MMM d')} & refund $30?`}
-                              className="text-base leading-none px-0.5"
+                              className="text-sm leading-none"
                             />
                           )}
+                          {d.cancelled && <span className="text-[11px] text-gray-400">cancelled</span>}
                         </span>
                       ))}
                     </div>
                   )}
 
+                  <div className="mt-3 pt-2.5 border-t border-gray-100 flex items-center justify-between gap-3">
+                    <span className="text-[13px] text-gray-400">{b.hours}</span>
+                    {b.reference && <span className="text-[11px] text-gray-300 tracking-wide">#{b.reference}</span>}
+                  </div>
                 </div>
               )
             })}
