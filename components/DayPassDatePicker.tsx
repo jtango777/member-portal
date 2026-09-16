@@ -93,7 +93,7 @@ export default function DayPassDatePicker({ selected, onChange, bookedDates = []
         <div className={cn('overflow-hidden transition-opacity duration-200', open ? 'opacity-100 delay-100' : 'opacity-0')}>
           <div className="p-3 border-t border-gray-100">
             <p className="text-xs text-gray-400 mb-2">
-              Pick a day — or as many as you need, they don’t have to be consecutive.
+              Pick one day or several, they don’t have to be consecutive. Up to {MAX_DAY_PASS_DAYS} days at a time.
               {bookedDates.length > 0 && ' Days you already booked are crossed out.'}
             </p>
             {/* Shown the moment the cap is reached, not only when someone
