@@ -40,7 +40,10 @@ export function Th({ children, sortDir, onClick, hideIdleSortIcon }: {
   const showIcon = sortDir ? true : !hideIdleSortIcon
   return (
     <th className="text-left font-semibold text-gray-500 px-4 py-2.5 text-xs uppercase tracking-wide">
-      <button onClick={onClick} className="flex items-center gap-1 hover:text-gray-700">
+      {/* uppercase repeated here: the <button> doesn't inherit the th's
+          text-transform, so sortable headers rendered in title case while
+          plain ones were ALL CAPS (spotted 2026-09-16). */}
+      <button onClick={onClick} className="flex items-center gap-1 hover:text-gray-700 uppercase tracking-wide">
         {children} {showIcon && <Icon size={11} />}
       </button>
     </th>
