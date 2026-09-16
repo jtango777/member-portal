@@ -115,7 +115,7 @@ export default async function DayPassAccountPage() {
         id: first.confirmation_number ?? first.id,
         sortKey: first.date,
         title: dateLabel,
-        subtitle: `Day pass · ${first.locations?.name ?? 'Unknown location'}${sorted.length > 1 ? '' : ' · 9:00am – 5:00pm'} · $${(totalCents / 100).toFixed(2)}${first.confirmation_number ? ` · #${first.confirmation_number}` : ''}`,
+        subtitle: `Day pass · ${first.locations?.name ?? 'Unknown location'} · 9:00am – 5:00pm · $${(totalCents / 100).toFixed(2)}${first.confirmation_number ? ` · #${first.confirmation_number}` : ''}`,
         status: first.status as UnifiedBooking['status'],
         cancellableConfirmationNumber: cancellableDates.length && first.confirmation_number ? first.confirmation_number : undefined,
         cancellableDates,
@@ -227,29 +227,28 @@ export default async function DayPassAccountPage() {
                   {/* A single-day booking already says the date in its
                       title — no point repeating it as a one-item list. */}
                   {b.days.length > 1 && (
-                  <ul className="mt-2.5 flex flex-col gap-1.5">
-                    {b.days.map(d => (
-                      <li key={d.date} className="flex items-baseline gap-2.5 text-sm group">
-                        <span className={cn('w-1.5 h-1.5 rounded-full flex-shrink-0 translate-y-[-1px]',
-                          d.cancelled ? 'bg-gray-300' : 'bg-booking-400')} />
-                        <span className={d.cancelled ? 'text-gray-400' : 'text-gray-700'}>{d.label}</span>
-                        <span className="text-xs text-gray-400">{d.cancelled ? 'Cancelled' : d.time}</span>
-                        {/* Per-day cancel — only for a day still outside the
-                            12-hour window. */}
-                        {d.cancellable && b.cancellableConfirmationNumber && (
-                          <span className="ml-auto opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
+                    // One line of dates, not a row each — every day is the
+                    // same 9–5, so repeating the hours four times was pure
+                    // clutter (Caroline, 2026-09-16). Each date carries its
+                    // own cancel.
+                    <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-sm">
+                      {b.days.map(d => (
+                        <span key={d.date} className="inline-flex items-center gap-1">
+                          <span className={d.cancelled ? 'text-gray-300' : 'text-gray-600'}>
+                            {format(new Date(d.date + 'T12:00:00'), 'EEE, MMM d')}
+                          </span>
+                          {d.cancellable && b.cancellableConfirmationNumber && (
                             <CancelDayPassButton
                               confirmationNumber={b.cancellableConfirmationNumber}
                               dates={[d.date]}
-                              label="Cancel this day"
-                              confirmLabel="Cancel this day & refund $30?"
-                              className="text-xs"
+                              label="×"
+                              confirmLabel={`Cancel ${format(new Date(d.date + 'T12:00:00'), 'MMM d')} & refund $30?`}
+                              className="text-base leading-none px-0.5"
                             />
-                          </span>
-                        )}
-                      </li>
-                    ))}
-                  </ul>
+                          )}
+                        </span>
+                      ))}
+                    </div>
                   )}
 
                 </div>
