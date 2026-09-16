@@ -479,12 +479,6 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
               colorClass={hasRoomAccess(m) ? 'text-purple-600 hover:bg-purple-50' : 'text-gray-300 hover:bg-gray-100 hover:text-gray-500'}
             />
             <IconAction
-              icon={Edit2}
-              label="Edit member"
-              onClick={() => setEditTarget(m)}
-              colorClass="text-gray-400 hover:bg-gray-100 hover:text-gray-600"
-            />
-            <IconAction
               icon={Camera}
               label={m.avatar_url ? 'Photo linked' : 'Add picture'}
               onClick={() => setPhotoTarget({ type: 'pending', id: m.id, name: m.email, hasPhoto: !!m.avatar_url, avatarUrl: m.avatar_url })}
@@ -508,6 +502,12 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
               onClick={() => handleResend(m.id)}
               disabled={resending === m.id}
               colorClass={m.invite_token ? 'text-amber-500 hover:bg-amber-50' : 'text-gray-400 hover:bg-gray-100 hover:text-gray-600'}
+            />
+            <IconAction
+              icon={Edit2}
+              label="Edit member"
+              onClick={() => setEditTarget(m)}
+              colorClass="text-gray-400 hover:bg-gray-100 hover:text-gray-600"
             />
             <IconAction
               icon={Trash2}
@@ -804,12 +804,6 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
                             onClick={() => setAccessTarget(m)}
                             colorClass={hasRoomAccess(m) ? 'text-purple-600 hover:bg-purple-50' : 'text-gray-300 hover:bg-gray-100 hover:text-gray-500'}
                           />
-                          <IconAction
-                            icon={Edit2}
-                            label="Edit member"
-                            onClick={() => setEditTarget(m)}
-                            colorClass="text-gray-400 hover:bg-gray-100 hover:text-gray-600"
-                          />
                           {m.user_id && (
                             <IconAction
                               icon={Camera}
@@ -827,6 +821,12 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
                               colorClass={m.is_admin ? 'text-blue-500 hover:bg-blue-50' : 'text-gray-300 hover:bg-gray-100 hover:text-gray-500'}
                             />
                           )}
+                          <IconAction
+                            icon={Edit2}
+                            label="Edit member"
+                            onClick={() => setEditTarget(m)}
+                            colorClass="text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+                          />
                           <IconAction
                             icon={Trash2}
                             label="Archive member"
