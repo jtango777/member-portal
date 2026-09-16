@@ -9,35 +9,45 @@ import { sendDayPassCancellationStaffNotification, sendDayPassCancellationEmail,
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2025-05-28.basil' })
 
 // Self-serve cancellation for day passes only — never /book, conference
-// rooms don't allow cancellations at all (Caroline, 2026-08-31). Cancels
-// a whole confirmation_number group at once (a multi-day purchase is
-// all-or-nothing here, not per-day) — every day in the group must still
-// be more than 12 hours out, and none already cancelled/declined.
+// rooms don't allow cancellations at all (Caroline, 2026-08-31).
+//
+// Takes a confirmation number, optionally narrowed to specific days via
+// `dates` — a multi-day purchase can now be cancelled a day at a time
+// (built 2026-09-16, after the all-or-nothing version left people emailing
+// us to drop one day). Each day cancelled must still be more than 12 hours
+// from its 9am start, and not already cancelled; the refund covers exactly
+// the days being cancelled, and only their QuickBooks receipts are voided.
 export async function POST(request: Request) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const { confirmation_number } = await request.json()
+  const { confirmation_number, dates } = await request.json()
   if (!confirmation_number) return NextResponse.json({ error: 'Missing confirmation number.' }, { status: 400 })
+  const onlyDates: string[] | null = Array.isArray(dates) && dates.length ? dates : null
 
   const admin = createAdminClient()
 
   // Ownership is checked explicitly here (customer_id === user.id), not
   // via RLS — day_passes has no UPDATE policy for customers at all, this
   // route has to use the service-role client to write the cancellation.
-  const { data: rows } = await admin
+  const { data: allRows } = await admin
     .from('day_passes')
     .select('id, date, price_cents, status, stripe_payment_intent_id, qb_receipt_id, location_id, customer_id, locations(name)')
     .eq('confirmation_number', confirmation_number)
     .eq('customer_id', user.id)
 
-  if (!rows || rows.length === 0) {
+  if (!allRows || allRows.length === 0) {
     return NextResponse.json({ error: 'Booking not found.' }, { status: 404 })
   }
 
+  const rows = (onlyDates ? allRows.filter(r => onlyDates.includes(r.date)) : allRows)
+  if (rows.length === 0) {
+    return NextResponse.json({ error: 'Those days are not part of this booking.' }, { status: 404 })
+  }
+
   if (rows.some(r => r.status !== 'confirmed')) {
-    return NextResponse.json({ error: 'This booking has already been cancelled or is no longer active.' }, { status: 400 })
+    return NextResponse.json({ error: onlyDates ? 'That day has already been cancelled.' : 'This booking has already been cancelled or is no longer active.' }, { status: 400 })
   }
 
   // 12-hour cutoff, measured from 9:00am Pacific on each day — the day
@@ -49,11 +59,18 @@ export async function POST(request: Request) {
     return now >= cutoff
   })
   if (tooLate) {
-    return NextResponse.json({ error: 'Some days in this booking are less than 12 hours away — contact us at hello@bizhaus.com to cancel.' }, { status: 400 })
+    return NextResponse.json({ error: rows.length === 1
+      ? 'That day is less than 12 hours away — contact us at hello@bizhaus.com to cancel it.'
+      : 'Some of those days are less than 12 hours away — cancel them individually, or contact us at hello@bizhaus.com.' }, { status: 400 })
   }
 
   const totalCents = rows.reduce((sum, r) => sum + r.price_cents, 0)
   const paymentIntentId = rows[0].stripe_payment_intent_id
+  const cancelledDates = [...rows].sort((a, b) => a.date.localeCompare(b.date)).map(r => r.date)
+  const remainingDates = allRows
+    .filter(r => r.status === 'confirmed' && !cancelledDates.includes(r.date))
+    .map(r => r.date)
+    .sort()
 
   if (paymentIntentId) {
     try {
@@ -67,8 +84,7 @@ export async function POST(request: Request) {
   const { error: updateError } = await admin
     .from('day_passes')
     .update({ status: 'cancelled', cancelled_at: new Date().toISOString() })
-    .eq('confirmation_number', confirmation_number)
-    .eq('customer_id', user.id)
+    .in('id', rows.map(r => r.id))
 
   if (updateError) {
     // The refund already went through — this is now a state mismatch that
@@ -107,16 +123,17 @@ export async function POST(request: Request) {
       .eq('id', user.id)
       .single()
 
-    const dateLabel = rows.length > 1
-      ? `${rows.length} days, starting ${rows[0].date}`
-      : rows[0].date
+    const pretty = (d: string) => format(new Date(d + 'T12:00:00'), 'EEEE, MMMM d, yyyy')
+    const dateLabel = cancelledDates.length > 1
+      ? `${cancelledDates.length} days: ${cancelledDates.map(pretty).join(', ')}`
+      : pretty(cancelledDates[0])
 
     if (customer) {
       await sendDayPassCancellationEmail(customer.email, {
         guestName: `${customer.first_name} ${customer.last_name}`,
         location: (rows[0].locations as unknown as { name: string } | null)?.name ?? 'Unknown location',
-        dates: [...rows].sort((a, b) => a.date.localeCompare(b.date))
-          .map(r => format(new Date(r.date + 'T12:00:00'), 'EEEE, MMMM d, yyyy')),
+        dates: cancelledDates.map(pretty),
+        remainingDates: remainingDates.map(pretty),
         refundAmount: `$${(totalCents / 100).toFixed(2)}`,
         confirmationNumber: confirmation_number,
       })
@@ -133,5 +150,5 @@ export async function POST(request: Request) {
     console.error('[day-pass/cancel] Failed to send staff notification:', err)
   }
 
-  return NextResponse.json({ ok: true, refundedCents: totalCents })
+  return NextResponse.json({ ok: true, refundedCents: totalCents, cancelledDates, remainingDates })
 }

@@ -486,21 +486,28 @@ export async function sendDayPassCancellationStaffNotification(
 // Customer-facing counterpart to the staff alert above — same letter style
 // as the day pass confirmation. Added 2026-09-15 after the first real test
 // cancel showed the customer got no email at all, only staff did.
-export function dayPassCancellationEmailHtml(details: { guestName: string; location: string; dates: string[]; refundAmount: string; confirmationNumber: string }) {
+export function dayPassCancellationEmailHtml(details: { guestName: string; location: string; dates: string[]; remainingDates?: string[]; refundAmount: string; confirmationNumber: string }) {
   const firstName = details.guestName.trim().split(/\s+/)[0] || details.guestName
   const loc = DAY_PASS_LOCATIONS[details.location]
   const dateLabel = details.dates.join('<br/>')
   return letterEmailWrapper(`
     <p style="font-family:${FONT};font-size:15px;color:#3a3f3a;line-height:1.7;margin:0 0 22px;">Hi ${firstName},</p>
     <p style="font-family:${FONT};font-size:15px;color:#3a3f3a;line-height:1.7;margin:0 0 28px;">
-      Your day pass at our <strong>${details.location}</strong> location has been cancelled, and we've refunded <strong>${details.refundAmount}</strong> to your original payment method.
+      ${(details.remainingDates?.length ?? 0) > 0
+        ? `We've cancelled ${details.dates.length > 1 ? 'those days' : 'that day'} at our <strong>${details.location}</strong> location and refunded <strong>${details.refundAmount}</strong> to your original payment method. The rest of your booking is unchanged.`
+        : `Your day pass at our <strong>${details.location}</strong> location has been cancelled, and we've refunded <strong>${details.refundAmount}</strong> to your original payment method.`}
     </p>
 
     <table style="border-collapse:collapse;width:100%;margin-bottom:28px;font-family:${FONT};">
       <tr>
-        <td style="padding:9px 0;border-top:1px solid #eef0ee;color:#8b948d;font-size:13px;width:120px;vertical-align:top;">${details.dates.length > 1 ? 'Dates' : 'Date'}</td>
+        <td style="padding:9px 0;border-top:1px solid #eef0ee;color:#8b948d;font-size:13px;width:120px;vertical-align:top;">Cancelled</td>
         <td style="padding:9px 0;border-top:1px solid #eef0ee;color:#232823;font-size:13.5px;">${dateLabel}</td>
       </tr>
+      ${(details.remainingDates?.length ?? 0) > 0 ? `
+      <tr>
+        <td style="padding:9px 0;border-top:1px solid #eef0ee;color:#8b948d;font-size:13px;vertical-align:top;">Still booked</td>
+        <td style="padding:9px 0;border-top:1px solid #eef0ee;color:#232823;font-size:13.5px;">${details.remainingDates!.join('<br/>')}</td>
+      </tr>` : ''}
       <tr>
         <td style="padding:9px 0;border-top:1px solid #eef0ee;color:#8b948d;font-size:13px;">Location</td>
         <td style="padding:9px 0;border-top:1px solid #eef0ee;color:#232823;font-size:13.5px;">${loc ? `${details.location}, ${loc.address}` : details.location}</td>
@@ -528,12 +535,15 @@ export function dayPassCancellationEmailHtml(details: { guestName: string; locat
 
 export async function sendDayPassCancellationEmail(
   to: string,
-  details: { guestName: string; location: string; dates: string[]; refundAmount: string; confirmationNumber: string }
+  details: { guestName: string; location: string; dates: string[]; remainingDates?: string[]; refundAmount: string; confirmationNumber: string }
 ) {
+  const partial = (details.remainingDates?.length ?? 0) > 0
   const { error } = await resend.emails.send({
     from: FROM,
     to,
-    subject: `Your BizHaus Day Pass has been cancelled — ${details.location}`,
+    subject: partial
+      ? `${details.dates.length} day${details.dates.length > 1 ? 's' : ''} cancelled from your BizHaus Day Pass — ${details.location}`
+      : `Your BizHaus Day Pass has been cancelled — ${details.location}`,
     html: dayPassCancellationEmailHtml(details),
   })
   if (error) console.error('[email] Resend error sending day pass cancellation email:', error)

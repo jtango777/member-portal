@@ -16,7 +16,15 @@ import { cn } from '@/lib/utils'
 // absolutely and crossfaded; the wrapper transitions to the exact pixel
 // width of whichever one is showing, measured for real via ref instead of
 // guessed, so it's one smooth motion in any browser.
-export default function CancelDayPassButton({ confirmationNumber, label = 'Cancel' }: { confirmationNumber: string; label?: string }) {
+export default function CancelDayPassButton({ confirmationNumber, label = 'Cancel', dates, confirmLabel = 'Cancel & refund?', className }: {
+  confirmationNumber: string
+  label?: string
+  // Specific days to cancel — omit for the whole booking. Used by the
+  // per-day cancel on each row (built 2026-09-16).
+  dates?: string[]
+  confirmLabel?: string
+  className?: string
+}) {
   const router = useRouter()
   const [confirming, setConfirming] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -35,7 +43,7 @@ export default function CancelDayPassButton({ confirmationNumber, label = 'Cance
     const res = await fetch('/api/day-pass/cancel', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ confirmation_number: confirmationNumber }),
+      body: JSON.stringify({ confirmation_number: confirmationNumber, ...(dates ? { dates } : {}) }),
     })
     const data = await res.json()
     if (res.ok) {
@@ -62,7 +70,7 @@ export default function CancelDayPassButton({ confirmationNumber, label = 'Cance
       >
         <button
           onClick={() => setConfirming(true)}
-          className="text-sm font-medium text-gray-400 hover:text-red-600 transition-colors"
+          className={cn('text-sm font-medium text-gray-400 hover:text-red-600 transition-colors', className)}
         >
           {label}
         </button>
@@ -75,7 +83,7 @@ export default function CancelDayPassButton({ confirmationNumber, label = 'Cance
           confirming ? 'opacity-100 delay-100' : 'pointer-events-none opacity-0'
         )}
       >
-        <span className="text-gray-500">Cancel &amp; refund?</span>
+        <span className="text-gray-500">{confirmLabel}</span>
         <button onClick={handleCancel} disabled={loading}
           className="font-semibold text-red-600 hover:text-red-700 disabled:opacity-50">
           {loading ? 'Cancelling…' : 'Yes'}

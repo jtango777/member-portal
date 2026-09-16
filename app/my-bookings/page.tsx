@@ -32,20 +32,19 @@ type UnifiedBooking = {
   // refunds aren't worth touching refund code for at this volume), so the
   // cancel control sits on the booking, labelled with how many days it
   // covers, and multi-day bookings keep the "email us for one day" line.
-  days: { date: string; label: string; time: string; cancelled: boolean }[]
+  days: { date: string; label: string; time: string; cancelled: boolean; cancellable: boolean }[]
   cancelLabel?: string
-  showSingleDayCancelNote?: boolean
+  // Days that can still be cancelled — what "Cancel all" actually covers,
+  // since a day inside the 12-hour window can't be.
+  cancellableDates?: string[]
 }
 
 // 12-hour cutoff measured from 9:00am Pacific on the day, matching
 // /api/day-pass/cancel's own check — this only controls whether the
 // button shows, the route re-checks for real before refunding anything.
-function isStillCancellable(dates: string[]): boolean {
-  const now = Date.now()
-  return dates.every(date => {
-    const nineAm = getPacificDayBounds(date).start.getTime() + 9 * 3600000
-    return now < nineAm - 12 * 3600000
-  })
+function isStillCancellable(date: string): boolean {
+  const nineAm = getPacificDayBounds(date).start.getTime() + 9 * 3600000
+  return Date.now() < nineAm - 12 * 3600000
 }
 
 export default async function DayPassAccountPage() {
@@ -109,21 +108,27 @@ export default async function DayPassAccountPage() {
               : `${days.length} days, ${format(start, 'MMM')} – ${format(end, 'MMM yyyy')}`
           })()
         : format(new Date(first.date + 'T12:00:00'), 'EEEE, MMMM d, yyyy')
-      const cancellable = first.status === 'confirmed' && first.confirmation_number && isStillCancellable(sorted.map(p => p.date))
+      const cancellableDates = sorted
+        .filter(p => p.status === 'confirmed' && isStillCancellable(p.date))
+        .map(p => p.date)
       return {
         id: first.confirmation_number ?? first.id,
         sortKey: first.date,
         title: dateLabel,
         subtitle: `Day pass · ${first.locations?.name ?? 'Unknown location'}${sorted.length > 1 ? '' : ' · 9:00am – 5:00pm'} · $${(totalCents / 100).toFixed(2)}${first.confirmation_number ? ` · #${first.confirmation_number}` : ''}`,
         status: first.status as UnifiedBooking['status'],
-        cancellableConfirmationNumber: cancellable ? first.confirmation_number! : undefined,
+        cancellableConfirmationNumber: cancellableDates.length && first.confirmation_number ? first.confirmation_number : undefined,
+        cancellableDates,
         days: sorted.map(p => ({
           date: p.date,
           label: format(new Date(p.date + 'T12:00:00'), 'EEEE, MMMM d'),
           time: '9:00am – 5:00pm',
           cancelled: p.status === 'cancelled',
+          cancellable: p.status === 'confirmed' && isStillCancellable(p.date),
         })),
-        cancelLabel: sorted.length > 1 ? `Cancel all ${sorted.length} days` : 'Cancel',
+        cancelLabel: cancellableDates.length > 1
+          ? (cancellableDates.length === sorted.length ? `Cancel all ${sorted.length} days` : `Cancel ${cancellableDates.length} days`)
+          : 'Cancel',
         showSingleDayCancelNote: sorted.length > 1 && first.status === 'confirmed'
           && sorted[sorted.length - 1].date >= new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' }),
       }
@@ -141,6 +146,7 @@ export default async function DayPassAccountPage() {
           label: format(new Date(b.start_time), 'EEEE, MMMM d'),
           time: `${format(new Date(b.start_time), 'h:mm a')} – ${format(new Date(b.end_time), 'h:mm a')}`,
           cancelled: b.status === 'cancelled',
+          cancellable: false,
         }],
       }
     }),
@@ -203,7 +209,12 @@ export default async function DayPassAccountPage() {
                     </div>
                     <div className="flex items-center gap-3 flex-shrink-0">
                       {b.cancellableConfirmationNumber && (
-                        <CancelDayPassButton confirmationNumber={b.cancellableConfirmationNumber} label={b.cancelLabel ?? 'Cancel'} />
+                        <CancelDayPassButton
+                          confirmationNumber={b.cancellableConfirmationNumber}
+                          label={b.cancelLabel ?? 'Cancel'}
+                          dates={b.days.length > 1 ? b.cancellableDates : undefined}
+                          confirmLabel={b.days.length > 1 ? `Cancel ${b.cancellableDates?.length} days & refund?` : 'Cancel & refund?'}
+                        />
                       )}
                       {b.status !== 'confirmed' && (
                         <span className={cn('inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium capitalize', STATUS_STYLES[b.status])}>
@@ -218,21 +229,29 @@ export default async function DayPassAccountPage() {
                   {b.days.length > 1 && (
                   <ul className="mt-2.5 flex flex-col gap-1.5">
                     {b.days.map(d => (
-                      <li key={d.date} className="flex items-baseline gap-2.5 text-sm">
+                      <li key={d.date} className="flex items-baseline gap-2.5 text-sm group">
                         <span className={cn('w-1.5 h-1.5 rounded-full flex-shrink-0 translate-y-[-1px]',
                           d.cancelled ? 'bg-gray-300' : 'bg-booking-400')} />
                         <span className={d.cancelled ? 'text-gray-400' : 'text-gray-700'}>{d.label}</span>
                         <span className="text-xs text-gray-400">{d.cancelled ? 'Cancelled' : d.time}</span>
+                        {/* Per-day cancel — only for a day still outside the
+                            12-hour window. */}
+                        {d.cancellable && b.cancellableConfirmationNumber && (
+                          <span className="ml-auto opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
+                            <CancelDayPassButton
+                              confirmationNumber={b.cancellableConfirmationNumber}
+                              dates={[d.date]}
+                              label="Cancel this day"
+                              confirmLabel="Cancel this day & refund $30?"
+                              className="text-xs"
+                            />
+                          </span>
+                        )}
                       </li>
                     ))}
                   </ul>
                   )}
 
-                  {b.showSingleDayCancelNote && (
-                    <div className="text-xs text-gray-400 mt-2.5">
-                      Need to cancel just one day? Email <a href="mailto:hello@bizhaus.com" className="underline hover:text-gray-600">hello@bizhaus.com</a>
-                    </div>
-                  )}
                 </div>
               )
             })}
