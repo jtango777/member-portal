@@ -5,6 +5,7 @@ import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay, addMonths,
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { cn, isSameDay } from '@/lib/utils'
 import { MAX_DAY_PASS_DAYS } from '@/lib/dayPass'
+import { closureName } from '@/lib/holidays'
 
 type Props = {
   // Any number of dates, in any combination — not necessarily consecutive.
@@ -136,9 +137,10 @@ export default function DayPassDatePicker({ selected, onChange, bookedDates = []
                 const isPast = isBefore(day, startOfDay(today))
                 const weekend = isWeekend(day)
                 const value = format(day, 'yyyy-MM-dd')
+                const closed = closureName(value)
                 const alreadyBooked = bookedDates.includes(value)
                 const atLimit = pending.length >= MAX_DAY_PASS_DAYS && !pending.includes(value)
-                const disabled = isPast || weekend || atLimit || alreadyBooked
+                const disabled = isPast || weekend || atLimit || alreadyBooked || !!closed
 
                 const isSelected = pending.includes(value)
                 // The calendar sits in an overflow-hidden accordion, so a
@@ -155,7 +157,7 @@ export default function DayPassDatePicker({ selected, onChange, bookedDates = []
                       type="button"
                       // Not `disabled` when only the limit is the reason —
                       // a click still needs to explain why it can't be added.
-                      disabled={isPast || weekend || alreadyBooked}
+                      disabled={isPast || weekend || alreadyBooked || !!closed}
                       onClick={() => {
                         if (isPast || weekend) return
                         if (atLimit) return
@@ -163,7 +165,9 @@ export default function DayPassDatePicker({ selected, onChange, bookedDates = []
                       }}
                       className={cn(
                         'w-full text-center text-xs py-1.5 rounded-md transition-colors',
-                        alreadyBooked
+                        closed
+                          ? 'text-gray-300 line-through cursor-not-allowed'
+                          : alreadyBooked
                           ? 'text-booking-700 bg-booking-50 line-through cursor-not-allowed'
                           : disabled
                           ? 'text-gray-300 cursor-not-allowed'
@@ -176,12 +180,12 @@ export default function DayPassDatePicker({ selected, onChange, bookedDates = []
                     >
                       {format(day, 'd')}
                     </button>
-                    {alreadyBooked && (
+                    {(alreadyBooked || closed) && (
                       <span className={cn(
                         'pointer-events-none absolute left-1/2 z-20 -translate-x-1/2 whitespace-nowrap rounded-md bg-gray-900 px-2 py-1 text-[11px] font-medium text-white opacity-0 shadow-sm transition-opacity delay-300 group-hover:opacity-100',
                         nearBottom ? 'bottom-full mb-1' : 'top-full mt-1'
                       )}>
-                        You already reserved this day
+                        {closed ? `Closed — ${closed}` : 'You already reserved this day'}
                       </span>
                     )}
                   </div>

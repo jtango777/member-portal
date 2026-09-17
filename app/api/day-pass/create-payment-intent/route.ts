@@ -4,6 +4,7 @@ import { rateLimit } from '@/lib/rate-limit'
 import { getDay, format } from 'date-fns'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { DAY_PASS_PRICE_CENTS, MAX_DAY_PASS_DAYS, MAX_DAYS_MESSAGE } from '@/lib/dayPass'
+import { closureName } from '@/lib/holidays'
 
 // Re-exported so existing imports of these from this route keep working.
 export { DAY_PASS_PRICE_CENTS, MAX_DAY_PASS_DAYS, MAX_DAYS_MESSAGE }
@@ -66,6 +67,12 @@ export async function POST(request: Request) {
   const noPastDates = uniqueDates.every((d: string) => d >= todayPacific)
   if (!noPastDates) {
     return NextResponse.json({ error: 'One or more selected dates is in the past.' }, { status: 400 })
+  }
+
+  // BizHaus is shut on these — the picker greys them out, this is the guard.
+  const closedDay = (uniqueDates as string[]).find(d => closureName(d))
+  if (closedDay) {
+    return NextResponse.json({ error: `We're closed on ${closureName(closedDay)}. Please pick another day.` }, { status: 400 })
   }
 
   if (uniqueDates.length > MAX_DAY_PASS_DAYS) {
