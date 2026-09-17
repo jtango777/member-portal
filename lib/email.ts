@@ -3,6 +3,10 @@ import { Resend } from 'resend'
 const resend = new Resend(process.env.RESEND_API_KEY)
 const FROM = process.env.RESEND_FROM_EMAIL ?? 'BizHaus <noreply@bizhaus.com>'
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
+// Customer-facing links (day pass, /book, My Bookings) live on the booking
+// site; staff links stay on the portal. Falls back to APP_URL where there's
+// only one host, i.e. staging and local (2026-09-17).
+const BOOKINGS_URL = process.env.NEXT_PUBLIC_BOOKINGS_URL ?? APP_URL
 const STAFF_EMAIL = process.env.STAFF_NOTIFICATION_EMAIL ?? 'hello@bizhaus.com'
 
 const FONT = `-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif`
@@ -231,7 +235,7 @@ export async function sendExternalBookingReceipt(
         </tr>
       </table>
 
-      <a href="${APP_URL}/my-bookings" style="display:inline-block;background:#6ec664;color:white;padding:13px 28px;border-radius:7px;text-decoration:none;font-weight:600;font-size:15px;margin-bottom:24px;">View My Reservations →</a>
+      <a href="${BOOKINGS_URL}/my-bookings" style="display:inline-block;background:#6ec664;color:white;padding:13px 28px;border-radius:7px;text-decoration:none;font-weight:600;font-size:15px;margin-bottom:24px;">View My Reservations →</a>
 
       <p style="color:#94a3b8;font-size:13px;margin:0;border-top:1px solid #f1f5f9;padding-top:20px;">
         <strong style="color:#64748b;">Cancellation policy:</strong> Bookings are non-refundable. To inquire about credit toward a future booking, contact us at
@@ -323,7 +327,7 @@ function marinaConfirmationEmail(
   firstName: string,
   details: { confirmationNumber: string; date: string }
 ) {
-  const photo = (name: string) => `${APP_URL}/day-pass/${name}`
+  const photo = (name: string) => `${BOOKINGS_URL}/day-pass/${name}`
   const bullet = (label: string, text: string) => `
     <tr>
       <td style="padding:0 0 16px;font-family:${FONT};font-size:14.5px;color:#3a3f3a;line-height:1.65;vertical-align:top;">
@@ -522,7 +526,7 @@ export function dayPassCancellationEmailHtml(details: { guestName: string; locat
       Refunds usually show up on your statement within 5 to 10 business days, depending on your bank.
     </p>
     <p style="font-family:${FONT};font-size:15px;color:#3a3f3a;line-height:1.7;margin:0 0 6px;">
-      Plans change, we get it. Whenever you're ready to come in, you can <a href="${APP_URL}/day-pass" style="color:#3f7a37;">book another day pass</a>.
+      Plans change, we get it. Whenever you're ready to come in, you can <a href="${BOOKINGS_URL}/day-pass" style="color:#3f7a37;">book another day pass</a>.
     </p>
     <p style="font-family:${FONT};font-size:15px;color:#3a3f3a;line-height:1.7;margin:24px 0 0;">
       Hope to see you soon,<br/>The BizHaus Team
