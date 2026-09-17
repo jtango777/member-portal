@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { isStaging } from '@/lib/isStaging'
 import { createClient } from '@/lib/supabase/server'
+import HeaderAccountLink from '@/components/day-pass/HeaderAccountLink'
 
 export const metadata: Metadata = {
   title: isStaging ? '[Staging] Book a Meeting Room — BizHaus' : 'Book a Meeting Room — BizHaus',
@@ -27,14 +28,7 @@ export default async function BookLayout({ children }: { children: React.ReactNo
         <a href="https://bizhaus.com" className="flex-shrink-0"><img src="/brand/bizhaus-logo.png" alt="BizHaus" className="h-5 w-auto" /></a>
         <span className="text-xs font-bold bg-booking-600 text-white px-2.5 py-1 rounded flex-shrink-0">Bookings</span>
         <div className="flex-1" />
-        {isBookingCustomer ? (
-          <a href="/my-bookings" className="text-sm text-booking-700 font-medium hover:underline whitespace-nowrap">My Bookings</a>
-        ) : (
-          <span className="text-sm text-gray-500 whitespace-nowrap">
-            <span className="hidden sm:inline">Have an account? </span>
-            <a href="/my-bookings/login" className="text-booking-700 font-medium hover:underline">Log in</a>
-          </span>
-        )}
+        <HeaderAccountLink initial={isBookingCustomer} />
       </header>
       <main className="flex-1">
         {children}

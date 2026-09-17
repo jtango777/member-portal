@@ -564,12 +564,11 @@ function DetailsAndPayment({
     // browser in — sign in explicitly so they're actually authenticated,
     // not just left with an account that exists but no session.
     await createClient().auth.signInWithPassword({ email, password })
-    // The header showing "Log in" vs "My Reservations" is a server
-    // component (app/day-pass/layout.tsx) that only checks auth once at
-    // the initial page load — this flow never triggers a real navigation,
-    // so it would otherwise never know a session now exists. Refresh
-    // forces that server component to re-render with the fresh session.
-    router.refresh()
+    // The header is rendered once on page load, and this flow never
+    // navigates, so it would keep saying "Log in" to someone who just
+    // signed up. Tell it to re-check instead of refreshing the route,
+    // which would remount the page and lose the chosen days.
+    window.dispatchEvent(new Event(AUTH_CHANGED_EVENT))
 
     // Now that the account exists, get a payment intent covering every
     // day in the range.

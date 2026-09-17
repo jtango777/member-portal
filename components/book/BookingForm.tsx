@@ -14,6 +14,7 @@ import {
 import { cn } from '@/lib/utils'
 import Recaptcha, { RecaptchaHandle } from '@/components/Recaptcha'
 import { createClient } from '@/lib/supabase/client'
+import { AUTH_CHANGED_EVENT } from '@/components/day-pass/HeaderAccountLink'
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!)
 
@@ -119,6 +120,8 @@ function CheckoutForm({
       // authenticated once this completes, not just left with an account
       // that exists but no session.
       await createClient().auth.signInWithPassword({ email, password })
+      // Header says "Log in" until told otherwise — see HeaderAccountLink.
+      window.dispatchEvent(new Event(AUTH_CHANGED_EVENT))
     }
 
     // 1. Confirm payment with Stripe
