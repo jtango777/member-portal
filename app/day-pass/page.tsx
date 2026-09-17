@@ -1000,10 +1000,10 @@ function PriceSummary({ days, locationName }: { days: number; locationName: stri
       <div className="bg-booking-50 rounded-xl px-5 py-4">
         <div className="flex items-center gap-2 text-sm font-semibold text-gray-900">
           <BadgeCheck size={17} className="text-booking-600" />
-          Book with confidence
+          Plans change, that&apos;s fine
         </div>
         <p className="text-sm text-gray-600 mt-1.5 leading-relaxed">
-          Cancel any day for a full refund up to 9:00pm the night before. You can do it yourself from My Bookings.
+          Cancel any day for a full refund up to 9:00pm the night before, right from My Bookings.
         </p>
       </div>
 
