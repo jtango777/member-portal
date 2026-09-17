@@ -609,23 +609,23 @@ function DetailsAndPayment({
     return <div className="text-sm text-gray-400 py-4">Loading payment details…</div>
   }
 
-  // Logging in stays on this page: email + password, then straight to
-  // payment with the days they already picked.
-  if (mode === 'login') {
-    return (
-      <>
-        <div className="flex items-baseline justify-between mt-3">
-          <div className="text-sm text-gray-500">Log in to book with your saved details.</div>
+  // Logging in happens in a dialog over the checkout (the way Industrious
+  // does it) rather than replacing the form or sending people to
+  // /my-bookings/login — either way they'd lose the days they picked.
+  const loginDialog = mode === 'login' && (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/40 px-4"
+      onClick={() => { setMode('signup'); setAccountError(null) }}>
+      <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6" onClick={e => e.stopPropagation()}>
+        <div className="flex items-start justify-between mb-5">
+          <h2 className="text-xl font-bold text-gray-900">Log in</h2>
           <button type="button" onClick={() => { setMode('signup'); setAccountError(null) }}
-            className="text-sm text-gray-500 whitespace-nowrap ml-4">
-            New here? <span className="font-semibold text-booking-600 hover:text-booking-700">Create an account</span>
-          </button>
+            className="text-gray-400 hover:text-gray-600 text-xl leading-none">×</button>
         </div>
 
-        <div className="flex flex-col gap-4 max-w-md">
+        <div className="flex flex-col gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1.5">Email</label>
-            <input type="email" value={email} onChange={e => setEmail(e.target.value)} autoComplete="email"
+            <input type="email" value={email} onChange={e => setEmail(e.target.value)} autoComplete="email" autoFocus
               className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-booking-500" />
           </div>
           <div>
@@ -647,16 +647,23 @@ function DetailsAndPayment({
           )}
 
           <button onClick={handleLogin} disabled={loggingIn || !email.trim() || !password}
-            className="self-start bg-booking-600 hover:bg-booking-700 disabled:bg-booking-300 disabled:cursor-not-allowed text-white text-sm font-semibold py-3 px-7 rounded-lg transition-colors">
+            className="bg-booking-600 hover:bg-booking-700 disabled:bg-booking-300 disabled:cursor-not-allowed text-white text-sm font-semibold py-3 rounded-lg transition-colors">
             {loggingIn ? 'Logging in…' : 'Log in & continue'}
           </button>
+
+          <p className="text-sm text-gray-500 text-center">
+            New to BizHaus?{' '}
+            <button type="button" onClick={() => { setMode('signup'); setAccountError(null) }}
+              className="font-semibold text-booking-600 hover:text-booking-700">Create an account</button>
+          </p>
         </div>
-      </>
-    )
-  }
+      </div>
+    </div>
+  )
 
   return (
     <>
+      {loginDialog}
       <div className="flex items-baseline justify-between mt-3">
         <div className="text-sm text-gray-500">We&apos;ll create your BizHaus account at the same time, so you can manage this reservation later.</div>
         <button type="button" onClick={() => { setMode('login'); setAccountError(null) }}
