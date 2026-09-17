@@ -6,7 +6,7 @@ import { verifyRecaptcha } from '@/lib/recaptcha'
 import { createSalesReceipt } from '@/lib/quickbooks'
 import Stripe from 'stripe'
 import { format, getDay } from 'date-fns'
-import { DAY_PASS_PRICE_CENTS, MAX_DAY_PASS_DAYS, MAX_DAYS_MESSAGE, alreadyBookedDates, alreadyBookedMessage } from '@/app/api/day-pass/create-payment-intent/route'
+import { DAY_PASS_PRICE_CENTS, MAX_DAY_PASS_DAYS, MAX_DAYS_MESSAGE, TOO_FAR_MESSAGE, tooFarAhead, alreadyBookedDates, alreadyBookedMessage } from '@/app/api/day-pass/create-payment-intent/route'
 import { closureName } from '@/lib/holidays'
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2025-05-28.basil' })
@@ -95,6 +95,11 @@ export async function POST(request: Request) {
     // — $30 was charged with no reservation and had to be refunded by hand.
     await refundAndAlert(stripe, pi.id, 'Payment amount did not match the booking', { expectedCents, paidCents: pi.amount, dates: uniqueDates })
     return NextResponse.json({ error: 'Your booking changed after payment was set up, so we refunded that charge. Please try again.' }, { status: 400 })
+  }
+
+  if (tooFarAhead(uniqueDates as string[])) {
+    await refundAndAlert(stripe, pi.id, 'Day pass bought too far ahead', { dates: uniqueDates })
+    return NextResponse.json({ error: `${TOO_FAR_MESSAGE} That charge has been refunded.` }, { status: 400 })
   }
 
   const closedDay = (uniqueDates as string[]).find(d => closureName(d))

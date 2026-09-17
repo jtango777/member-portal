@@ -175,6 +175,7 @@ export default function DayPassPage() {
               locationName={selectedLocation.name}
               dates={dates}
               existingCustomer={existingCustomer}
+              setExistingCustomer={setExistingCustomer}
               customerId={customerId}
               setCustomerId={setCustomerId}
               clientSecret={clientSecret}
@@ -383,13 +384,14 @@ function ReservationFields({
 // actual Stripe card form appears in the same section.
 
 function DetailsAndPayment({
-  locationId, locationName, dates, existingCustomer,
+  locationId, locationName, dates, existingCustomer, setExistingCustomer,
   customerId, setCustomerId, clientSecret, setClientSecret,
   guestName, setGuestName, guestEmail, setGuestEmail,
   onSuccess,
 }: {
   locationId: string; locationName: string; dates: string[]
   existingCustomer: ExistingCustomer | null
+  setExistingCustomer: (v: ExistingCustomer) => void
   customerId: string | null; setCustomerId: (v: string) => void
   clientSecret: string | null; setClientSecret: (v: string) => void
   guestName: string; setGuestName: (v: string) => void
@@ -404,6 +406,11 @@ function DetailsAndPayment({
   const [showPassword, setShowPassword] = useState(false)
   const [creatingAccount, setCreatingAccount] = useState(false)
   const [accountError, setAccountError] = useState<string | null>(null)
+  // Logging in happens right here rather than on /my-bookings/login — being
+  // bounced to another page mid-checkout means picking your days all over
+  // again (Caroline, 2026-09-17).
+  const [mode, setMode] = useState<'signup' | 'login'>('signup')
+  const [loggingIn, setLoggingIn] = useState(false)
   // Its own recaptcha, separate from PaymentStep's — a v2 token is
   // single-use, so the same one can't verify both account creation and
   // the booking request. Account creation didn't have any captcha at all
@@ -481,6 +488,30 @@ function DetailsAndPayment({
     const { createClient } = await import('@/lib/supabase/client')
     await createClient().auth.signOut()
     window.location.reload()
+  }
+
+  async function handleLogin() {
+    setLoggingIn(true)
+    setAccountError(null)
+    const { error } = await createClient().auth.signInWithPassword({ email: email.trim(), password })
+    if (error) {
+      setAccountError('Incorrect email or password.')
+      setLoggingIn(false)
+      return
+    }
+    // Same path a returning customer takes on page load: link the booking
+    // account if needed, then the effect above fetches the payment intent
+    // and the checkout continues with the days they already chose.
+    const res = await fetch('/api/day-pass/my-account', { method: 'POST' })
+    const data = await res.json()
+    if (!res.ok || !data.customer) {
+      setAccountError(data.error ?? 'Could not load your account. Please try again.')
+      setLoggingIn(false)
+      return
+    }
+    router.refresh()
+    setExistingCustomer(data.customer)
+    setLoggingIn(false)
   }
 
   async function handleCreateAccount() {
@@ -574,11 +605,60 @@ function DetailsAndPayment({
     return <div className="text-sm text-gray-400 py-4">Loading payment details…</div>
   }
 
+  // Logging in stays on this page: email + password, then straight to
+  // payment with the days they already picked.
+  if (mode === 'login') {
+    return (
+      <>
+        <div className="flex items-baseline justify-between mt-3">
+          <div className="text-sm text-gray-500">Log in to book with your saved details.</div>
+          <button type="button" onClick={() => { setMode('signup'); setAccountError(null) }}
+            className="text-sm text-gray-500 whitespace-nowrap ml-4">
+            New here? <span className="font-semibold text-booking-600 hover:text-booking-700">Create an account</span>
+          </button>
+        </div>
+
+        <div className="flex flex-col gap-4 max-w-md">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">Email</label>
+            <input type="email" value={email} onChange={e => setEmail(e.target.value)} autoComplete="email"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-booking-500" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">Password</label>
+            <div className="relative">
+              <input type={showPassword ? 'text' : 'password'} value={password} onChange={e => setPassword(e.target.value)} autoComplete="current-password"
+                onKeyDown={e => { if (e.key === 'Enter' && email.trim() && password) handleLogin() }}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2.5 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-booking-500" />
+              <button type="button" onClick={() => setShowPassword(v => !v)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
+            </div>
+            <a href="/forgot-password?context=day-pass" className="inline-block mt-1.5 text-xs text-booking-600 hover:text-booking-700 font-medium">Forgot password?</a>
+          </div>
+
+          {accountError && (
+            <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-4 py-3">{accountError}</div>
+          )}
+
+          <button onClick={handleLogin} disabled={loggingIn || !email.trim() || !password}
+            className="self-start bg-booking-600 hover:bg-booking-700 disabled:bg-booking-300 disabled:cursor-not-allowed text-white text-sm font-semibold py-3 px-7 rounded-lg transition-colors">
+            {loggingIn ? 'Logging in…' : 'Log in & continue'}
+          </button>
+        </div>
+      </>
+    )
+  }
+
   return (
     <>
       <div className="flex items-baseline justify-between mt-3">
         <div className="text-sm text-gray-500">We&apos;ll create your BizHaus account at the same time, so you can manage this reservation later.</div>
-        <span className="text-sm text-gray-500 whitespace-nowrap ml-4">Have an account? <a href="/my-bookings/login" className="font-semibold text-booking-600 hover:text-booking-700">Log in</a></span>
+        <button type="button" onClick={() => { setMode('login'); setAccountError(null) }}
+          className="text-sm text-gray-500 whitespace-nowrap ml-4">
+          Have an account? <span className="font-semibold text-booking-600 hover:text-booking-700">Log in</span>
+        </button>
       </div>
 
       <div className="flex flex-col gap-4">

@@ -3,11 +3,18 @@ import Stripe from 'stripe'
 import { rateLimit } from '@/lib/rate-limit'
 import { getDay, format } from 'date-fns'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
-import { DAY_PASS_PRICE_CENTS, MAX_DAY_PASS_DAYS, MAX_DAYS_MESSAGE } from '@/lib/dayPass'
+import { DAY_PASS_PRICE_CENTS, MAX_DAY_PASS_DAYS, MAX_DAYS_MESSAGE, MAX_DAY_PASS_MONTHS_AHEAD, TOO_FAR_MESSAGE } from '@/lib/dayPass'
 import { closureName } from '@/lib/holidays'
 
 // Re-exported so existing imports of these from this route keep working.
-export { DAY_PASS_PRICE_CENTS, MAX_DAY_PASS_DAYS, MAX_DAYS_MESSAGE }
+export { DAY_PASS_PRICE_CENTS, MAX_DAY_PASS_DAYS, MAX_DAYS_MESSAGE, TOO_FAR_MESSAGE }
+
+export function tooFarAhead(dates: string[]): boolean {
+  const last = new Date()
+  last.setMonth(last.getMonth() + MAX_DAY_PASS_MONTHS_AHEAD)
+  const cutoff = last.toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' })
+  return dates.some(d => d > cutoff)
+}
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2025-05-28.basil' })
 
@@ -67,6 +74,10 @@ export async function POST(request: Request) {
   const noPastDates = uniqueDates.every((d: string) => d >= todayPacific)
   if (!noPastDates) {
     return NextResponse.json({ error: 'One or more selected dates is in the past.' }, { status: 400 })
+  }
+
+  if (tooFarAhead(uniqueDates as string[])) {
+    return NextResponse.json({ error: TOO_FAR_MESSAGE }, { status: 400 })
   }
 
   // BizHaus is shut on these — the picker greys them out, this is the guard.

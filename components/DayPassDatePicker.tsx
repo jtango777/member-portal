@@ -1,10 +1,10 @@
 'use client'
 
 import { useState } from 'react'
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay, addMonths, subMonths, isBefore, startOfDay } from 'date-fns'
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay, addMonths, subMonths, isBefore, isAfter, startOfDay, endOfDay } from 'date-fns'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { cn, isSameDay } from '@/lib/utils'
-import { MAX_DAY_PASS_DAYS } from '@/lib/dayPass'
+import { MAX_DAY_PASS_DAYS, MAX_DAY_PASS_MONTHS_AHEAD } from '@/lib/dayPass'
 import { closureName } from '@/lib/holidays'
 
 type Props = {
@@ -56,6 +56,9 @@ export default function DayPassDatePicker({ selected, onChange, bookedDates = []
   }
 
   const today = new Date()
+  // Last bookable day — the month arrows stop here too, so there's nothing
+  // to scroll into that can't be picked.
+  const lastBookable = endOfDay(addMonths(today, MAX_DAY_PASS_MONTHS_AHEAD))
 
   function selectDay(day: Date) {
     const value = format(day, 'yyyy-MM-dd')
@@ -118,7 +121,8 @@ export default function DayPassDatePicker({ selected, onChange, bookedDates = []
               </button>
               <span className="text-sm font-semibold text-gray-900">{format(pickerMonth, 'MMMM yyyy')}</span>
               <button type="button" onClick={() => setPickerMonth(m => addMonths(m, 1))}
-                className="p-1 hover:bg-gray-100 rounded transition-colors">
+                disabled={startOfMonth(addMonths(pickerMonth, 1)) > lastBookable}
+                className="p-1 hover:bg-gray-100 rounded transition-colors disabled:opacity-30 disabled:cursor-not-allowed">
                 <ChevronRight size={14} />
               </button>
             </div>
@@ -138,9 +142,10 @@ export default function DayPassDatePicker({ selected, onChange, bookedDates = []
                 const weekend = isWeekend(day)
                 const value = format(day, 'yyyy-MM-dd')
                 const closed = closureName(value)
+                const tooFar = isAfter(day, lastBookable)
                 const alreadyBooked = bookedDates.includes(value)
                 const atLimit = pending.length >= MAX_DAY_PASS_DAYS && !pending.includes(value)
-                const disabled = isPast || weekend || atLimit || alreadyBooked || !!closed
+                const disabled = isPast || weekend || atLimit || alreadyBooked || !!closed || tooFar
 
                 const isSelected = pending.includes(value)
                 // The calendar sits in an overflow-hidden accordion, so a
@@ -157,7 +162,7 @@ export default function DayPassDatePicker({ selected, onChange, bookedDates = []
                       type="button"
                       // Not `disabled` when only the limit is the reason —
                       // a click still needs to explain why it can't be added.
-                      disabled={isPast || weekend || alreadyBooked || !!closed}
+                      disabled={isPast || weekend || alreadyBooked || !!closed || tooFar}
                       onClick={() => {
                         if (isPast || weekend) return
                         if (atLimit) return

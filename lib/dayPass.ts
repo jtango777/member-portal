@@ -5,4 +5,10 @@ export const DAY_PASS_PRICE_CENTS = 3000
 // One purchase covers at most this many days — anything longer is really a
 // membership conversation, not a self-serve checkout (Caroline, 2026-09-15).
 export const MAX_DAY_PASS_DAYS = 10
+// How far ahead a day pass can be bought. Matches the members' room-booking
+// window, and stops someone locking in today's price two years out
+// (Caroline, 2026-09-17).
+export const MAX_DAY_PASS_MONTHS_AHEAD = 3
+export const TOO_FAR_MESSAGE = `Day passes can be booked up to ${MAX_DAY_PASS_MONTHS_AHEAD} months ahead. For something further out, email hello@bizhaus.com.`
+
 export const MAX_DAYS_MESSAGE = `${MAX_DAY_PASS_DAYS} days is the most you can book at once. Staying longer? Email hello@bizhaus.com and we'll look into options for you.`
