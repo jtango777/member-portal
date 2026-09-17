@@ -43,8 +43,8 @@ function slotToMinutes(slot: string): number {
 function CheckoutForm({
   roomId, roomName, locationName, locationSlug,
   capacity, pricePerHour, date, start, end, startLabel, endLabel,
-  estimatedTotal, formattedDate, existingCustomer, onSuccess,
-}: Props & { estimatedTotal: number; formattedDate: string; existingCustomer: ExistingCustomer | null; onSuccess: (email: string) => void }) {
+  estimatedTotal, formattedDate, existingCustomer, setExistingCustomer, onSuccess,
+}: Props & { estimatedTotal: number; formattedDate: string; existingCustomer: ExistingCustomer | null; setExistingCustomer: (c: ExistingCustomer) => void; onSuccess: (email: string) => void }) {
   const stripe   = useStripe()
   const elements = useElements()
 
@@ -69,6 +69,32 @@ function CheckoutForm({
   // in the way.
   const [acctRecaptchaToken, setAcctRecaptchaToken] = useState<string | null>(null)
   const acctRecaptchaRef = useRef<RecaptchaHandle>(null)
+  // Logging in happens in a dialog over the page, same as day pass — being
+  // sent to /my-bookings/login mid-checkout means losing the room and time
+  // you picked (Caroline, 2026-09-17).
+  const [showLogin, setShowLogin] = useState(false)
+  const [loggingIn, setLoggingIn] = useState(false)
+  const [loginEmail, setLoginEmail] = useState('')
+  const [loginPassword, setLoginPassword] = useState('')
+  const [loginError, setLoginError] = useState<string | null>(null)
+
+  async function handleLogin() {
+    setLoggingIn(true)
+    setLoginError(null)
+    const { error } = await createClient().auth.signInWithPassword({ email: loginEmail.trim(), password: loginPassword })
+    if (error) { setLoginError('Incorrect email or password.'); setLoggingIn(false); return }
+    const res = await fetch('/api/day-pass/my-account', { method: 'POST' })
+    const data = await res.json()
+    if (!res.ok || !data.customer) {
+      setLoginError(data.error ?? 'Could not load your account. Please try again.')
+      setLoggingIn(false)
+      return
+    }
+    window.dispatchEvent(new Event(AUTH_CHANGED_EVENT))
+    setExistingCustomer(data.customer)
+    setShowLogin(false)
+    setLoggingIn(false)
+  }
 
   async function handleSignOut() {
     await createClient().auth.signOut()
@@ -175,12 +201,51 @@ function CheckoutForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-8">
+      {showLogin && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/40 px-4"
+          onClick={() => setShowLogin(false)}>
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6" onClick={e => e.stopPropagation()}>
+            <div className="flex items-start justify-between mb-5">
+              <h2 className="text-xl font-bold text-gray-900">Log in</h2>
+              <button type="button" onClick={() => setShowLogin(false)} className="text-gray-400 hover:text-gray-600 text-xl leading-none">×</button>
+            </div>
+            <div className="flex flex-col gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">Email</label>
+                <input type="email" value={loginEmail} onChange={e => setLoginEmail(e.target.value)} autoComplete="email" autoFocus
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-booking-500" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">Password</label>
+                <input type="password" value={loginPassword} onChange={e => setLoginPassword(e.target.value)} autoComplete="current-password"
+                  onKeyDown={e => { if (e.key === 'Enter' && loginEmail.trim() && loginPassword) { e.preventDefault(); handleLogin() } }}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-booking-500" />
+                <a href="/forgot-password?context=day-pass" className="inline-block mt-1.5 text-xs text-booking-600 hover:text-booking-700 font-medium">Forgot password?</a>
+              </div>
+              {loginError && (
+                <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-4 py-3">{loginError}</div>
+              )}
+              <button type="button" onClick={handleLogin} disabled={loggingIn || !loginEmail.trim() || !loginPassword}
+                className="bg-booking-600 hover:bg-booking-700 disabled:bg-booking-300 disabled:cursor-not-allowed text-white text-sm font-semibold py-3 rounded-lg transition-colors">
+                {loggingIn ? 'Logging in…' : 'Log in & continue'}
+              </button>
+              <p className="text-sm text-gray-500 text-center">
+                New to BizHaus?{' '}
+                <button type="button" onClick={() => setShowLogin(false)} className="font-semibold text-booking-600 hover:text-booking-700">Create an account</button>
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Your details */}
       <div className="space-y-5">
         <div className="flex items-baseline justify-between">
           <h2 className="font-semibold text-gray-900 text-lg">Your details</h2>
           {!existingCustomer && (
-            <span className="text-sm text-gray-500">Have an account? <a href="/my-bookings/login" className="font-semibold text-booking-600 hover:text-booking-700">Log in</a></span>
+            <button type="button" onClick={() => { setShowLogin(true); setLoginError(null) }} className="text-sm text-gray-500">
+              Have an account? <span className="font-semibold text-booking-600 hover:text-booking-700">Log in</span>
+            </button>
           )}
         </div>
 
@@ -429,6 +494,7 @@ export default function BookingForm(props: Props) {
             estimatedTotal={estimatedTotal}
             formattedDate={formattedDate}
             existingCustomer={existingCustomer}
+            setExistingCustomer={setExistingCustomer}
             onSuccess={(email) => { setConfirmed(true); setConfirmedEmail(email) }}
           />
         </Elements>
