@@ -8,12 +8,14 @@ export async function middleware(request: NextRequest) {
   // localhost serve everything on one host and fall straight through.
   const host = request.headers.get('host')?.toLowerCase() ?? ''
   const path = request.nextUrl.pathname
-  // The split only switches on once NEXT_PUBLIC_BOOKINGS_URL is set in
-  // Vercel — otherwise sending members.bizhaus.com/day-pass to a hostname
-  // whose DNS hasn't propagated would take day pass offline (2026-09-17).
-  const splitLive = !!process.env.NEXT_PUBLIC_BOOKINGS_URL
+  // Sending members.bizhaus.com/day-pass over to the booking host is the
+  // only risky half (it would take day pass offline if that hostname
+  // weren't ready), so that half waits for NEXT_PUBLIC_BOOKINGS_URL to be
+  // set in Vercel. Serving the booking host itself is safe immediately —
+  // nobody reaches it by accident (2026-09-17).
+  const redirectPortalPaths = !!process.env.NEXT_PUBLIC_BOOKINGS_URL
 
-  if (splitLive && host === BOOKING_HOST) {
+  if (host === BOOKING_HOST) {
     // The booking site only serves booking pages; anything else (the
     // portal, admin) belongs on members.bizhaus.com.
     if (path === '/') {
@@ -24,7 +26,7 @@ export async function middleware(request: NextRequest) {
         && path !== '/terms' && path !== '/privacy') {
       return NextResponse.redirect(new URL(path + request.nextUrl.search, `https://${PORTAL_HOST}`))
     }
-  } else if (splitLive && host === PORTAL_HOST && isBookingPath(path)) {
+  } else if (redirectPortalPaths && host === PORTAL_HOST && isBookingPath(path)) {
     // Old links (confirmation emails sent before the move, printed cards)
     // keep working — send them to the booking site, path intact.
     return NextResponse.redirect(new URL(path + request.nextUrl.search, `https://${BOOKING_HOST}`))
