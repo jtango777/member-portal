@@ -23,10 +23,35 @@ const MIN_SLOT_H     = 28
 const MAX_SLOT_H     = 72
 const SLOT_H_STORAGE_KEY = 'bizhaus-calendar-slot-height'
 
+// Below this much pointer travel a press-and-release is still a click, not a
+// drag — admins open the edit modal far more often than they reschedule, so
+// the tiny wobble of a normal click must never turn into a move.
+const DRAG_THRESHOLD_PX = 4
+
 type ModalState =
   | { mode: 'closed' }
   | { mode: 'create'; roomId: string; startSlot: number }
   | { mode: 'view';   reservation: Reservation }
+
+// A reservation an admin is currently dragging. `origin*` is where it sat
+// when the press started (what we snap back to on failure), `target*` is the
+// snapped slot under the pointer right now.
+type DragState = {
+  res:          Reservation
+  durSlots:     number
+  // Pointer-to-top-edge distance at grab time, so the block keeps the same
+  // spot under the finger instead of jumping its top edge to the pointer.
+  grabOffsetY:  number
+  downX:        number
+  downY:        number
+  originRoomId: string
+  originSlot:   number
+  targetRoomId: string
+  targetSlot:   number
+  pointerX:     number
+  pointerY:     number
+  moved:        boolean
+}
 
 type Props = {
   locations:         Location[]
@@ -257,6 +282,183 @@ export default function CalendarView({ locations, profile, company, hourScope, h
 
   function handleBookingClick(res: Reservation) {
     setModal({ mode: 'view', reservation: res })
+  }
+
+  // ── Admin drag-to-reschedule ──────────────────────────────────────────
+  // Admins move a booking to another time or room by dragging its block.
+  // Members never get this: their edit path stays the modal, which is where
+  // the 12-hour window and hour-allotment warnings live.
+  const [drag, setDrag] = useState<DragState | null>(null)
+  const dragRef = useRef<DragState | null>(null)
+  // Room column elements, measured live on every pointermove — the columns
+  // are `flex-1` inside a horizontally scrolling container, so their width
+  // and left edge depend on the room count and the scroll position and can't
+  // be computed from constants.
+  const colRefs = useRef<Record<string, HTMLDivElement | null>>({})
+  // Set on a drag that actually moved, so the click React fires right after
+  // pointerup doesn't also pop the edit modal on top of the move.
+  const suppressClickRef = useRef(false)
+  // Read inside the window-level pointer handlers, which are registered once
+  // per drag and would otherwise see the reservation list as it was when the
+  // drag began.
+  const reservationsRef = useRef(reservations)
+  useEffect(() => { reservationsRef.current = reservations }, [reservations])
+
+  function setDragState(next: DragState | null) {
+    dragRef.current = next
+    setDrag(next)
+  }
+
+  function slotsFree(roomId: string, startSlot: number, durSlots: number, ignoreId: string) {
+    const endSlot = startSlot + durSlots
+    return !reservationsRef.current.some(r =>
+      r.room_id === roomId &&
+      r.id !== ignoreId &&
+      timeToSlot(r.start_time) < endSlot &&
+      timeToSlot(r.end_time) > startSlot
+    )
+  }
+
+  function handleBlockPointerDown(e: React.PointerEvent, res: Reservation, roomId: string) {
+    if (!profile.is_admin || e.button !== 0) return
+    const col = colRefs.current[roomId]
+    if (!col) return
+    const startSlot = Math.max(0, timeToSlot(res.start_time))
+    const endSlot   = Math.min(TOTAL_SLOTS, timeToSlot(res.end_time))
+    // Sub-slot bookings still render a half-slot tall, so a minimum of one
+    // slot keeps the ghost the same size as the block it represents.
+    const durSlots  = Math.max(1, endSlot - startSlot)
+    suppressClickRef.current = false
+    // Stops the browser from starting a text selection or a native image
+    // drag, either of which swallows the pointermove stream mid-gesture.
+    e.preventDefault()
+    setDragState({
+      res,
+      durSlots,
+      grabOffsetY:  e.clientY - (col.getBoundingClientRect().top + startSlot * slotH),
+      downX:        e.clientX,
+      downY:        e.clientY,
+      originRoomId: roomId,
+      originSlot:   startSlot,
+      targetRoomId: roomId,
+      targetSlot:   startSlot,
+      pointerX:     e.clientX,
+      pointerY:     e.clientY,
+      moved:        false,
+    })
+  }
+
+  const dragging = drag !== null
+
+  // Listeners go on the window rather than the block so the gesture survives
+  // the pointer leaving the block (which it does immediately — the block
+  // stays put while the ghost follows) or leaving the grid entirely.
+  useEffect(() => {
+    if (!dragging) return
+
+    function onMove(e: PointerEvent) {
+      const d = dragRef.current
+      if (!d) return
+      // Keep the last valid column when the pointer strays over the time
+      // gutter or past the last room, instead of snapping back to the origin.
+      let targetRoomId = d.targetRoomId
+      for (const room of rooms) {
+        const el = colRefs.current[room.id]
+        if (!el) continue
+        const r = el.getBoundingClientRect()
+        if (e.clientX >= r.left && e.clientX < r.right) { targetRoomId = room.id; break }
+      }
+      const col = colRefs.current[targetRoomId]
+      if (!col) return
+      const topPx = e.clientY - d.grabOffsetY - col.getBoundingClientRect().top
+      const targetSlot = Math.min(
+        TOTAL_SLOTS - d.durSlots,
+        Math.max(0, Math.round(topPx / slotHRef.current))
+      )
+      setDragState({
+        ...d,
+        targetRoomId,
+        targetSlot,
+        pointerX: e.clientX,
+        pointerY: e.clientY,
+        moved: d.moved || Math.hypot(e.clientX - d.downX, e.clientY - d.downY) > DRAG_THRESHOLD_PX,
+      })
+    }
+
+    function onUp() {
+      const d = dragRef.current
+      setDragState(null)
+      if (!d) return
+      if (!d.moved) return           // a plain click — the onClick handler opens the modal
+      suppressClickRef.current = true
+      if (d.targetRoomId === d.originRoomId && d.targetSlot === d.originSlot) return
+      if (!slotsFree(d.targetRoomId, d.targetSlot, d.durSlots, d.res.id)) {
+        toast.error('That time overlaps another booking in that room')
+        return
+      }
+      moveReservation(d)
+    }
+
+    function onCancel() {
+      // A cancelled pointer (OS gesture, pen lift, alt-tab) is an abandoned
+      // drag, not a drop — leave the booking where it was.
+      setDragState(null)
+    }
+
+    window.addEventListener('pointermove', onMove)
+    window.addEventListener('pointerup', onUp)
+    window.addEventListener('pointercancel', onCancel)
+    return () => {
+      window.removeEventListener('pointermove', onMove)
+      window.removeEventListener('pointerup', onUp)
+      window.removeEventListener('pointercancel', onCancel)
+    }
+  }, [dragging, rooms])
+
+  async function moveReservation(d: DragState) {
+    const start = slotToTime(d.targetSlot)
+    const end   = slotToTime(d.targetSlot + d.durSlots)
+    const before = reservationsRef.current
+    // Optimistic: the block lands where it was dropped straight away, and
+    // only snaps back if the server refuses (conflict, hour cap, edit window).
+    setReservations(rs => rs.map(r => r.id === d.res.id
+      ? { ...r, room_id: d.targetRoomId, start_time: start.toISOString(), end_time: end.toISOString() }
+      : r
+    ))
+
+    const res = await fetch(`/api/reservations/${d.res.id}`, {
+      method:  'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      // title/notes ride along unchanged — the route writes every field in
+      // the payload, so omitting them would blank them out.
+      body: JSON.stringify({
+        room_id:    d.targetRoomId,
+        title:      d.res.title,
+        notes:      d.res.notes ?? null,
+        start_time: start.toISOString(),
+        end_time:   end.toISOString(),
+      }),
+    })
+
+    if (res.ok) {
+      // A recurring booking is stored as one row per occurrence, so a drag
+      // only ever moves the one you grabbed — say so, or an admin will assume
+      // the whole series followed.
+      toast.success(d.res.recurrence_group_id
+        ? 'Reservation moved — this occurrence only'
+        : 'Reservation moved')
+      fetchData()
+      return
+    }
+
+    setReservations(before)
+    const data = await res.json().catch(() => ({} as any))
+    // Admins get a machine-readable 'conflict' plus the clashing bookings so
+    // the modal can offer to override; a drag has nowhere to show that, so
+    // it just says what happened.
+    toast.error(data.error === 'conflict'
+      ? 'That room is already booked for that time.'
+      : data.error ?? 'Could not move this reservation')
   }
 
   function handleModalClose(refresh?: boolean) {
@@ -649,6 +851,7 @@ export default function CalendarView({ locations, profile, company, hourScope, h
                 return (
                   <div
                     key={room.id}
+                    ref={el => { colRefs.current[room.id] = el }}
                     className="relative border-l border-gray-200 min-w-[160px] flex-1"
                     style={{ height: slotH * TOTAL_SLOTS }}
                   >
@@ -692,13 +895,32 @@ export default function CalendarView({ locations, profile, company, hourScope, h
                         || (!!profile.company_id && res.company_id === profile.company_id)
                       const isBlock    = res.is_admin_block
 
+                      const isDragged = drag?.res.id === res.id && drag.moved
+
                       return (
                         <div
                           key={res.id}
-                          onClick={e => { e.stopPropagation(); handleBookingClick(res) }}
-                          style={{ top: top + 2, height: height - 4, position: 'absolute', left: 3, right: 3 }}
+                          onClick={e => {
+                            e.stopPropagation()
+                            // Swallow the click the browser fires after a
+                            // completed drag — the move already happened.
+                            if (suppressClickRef.current) { suppressClickRef.current = false; return }
+                            handleBookingClick(res)
+                          }}
+                          onPointerDown={e => handleBlockPointerDown(e, res, room.id)}
+                          style={{
+                            top: top + 2, height: height - 4, position: 'absolute', left: 3, right: 3,
+                            // Only admins drag, and only they need the browser
+                            // to stop treating a press on a block as the start
+                            // of a touch scroll.
+                            touchAction: profile.is_admin ? 'none' : undefined,
+                          }}
                           className={cn(
-                            'rounded-md px-2 py-1 cursor-pointer z-10 overflow-hidden',
+                            'rounded-md px-2 py-1 z-10 overflow-hidden',
+                            profile.is_admin ? 'cursor-grab active:cursor-grabbing' : 'cursor-pointer',
+                            // The original fades while its ghost is out under
+                            // the pointer, so it's obvious which one is live.
+                            isDragged && 'opacity-40',
                             // Only the hover dim should animate — top/height
                             // are driven by the zoom slider and must snap
                             // instantly with the rest of the grid, or the
@@ -738,6 +960,32 @@ export default function CalendarView({ locations, profile, company, hourScope, h
                         </div>
                       )
                     })}
+
+                    {/* Drop preview. Blue outline = the slot is free; grey
+                        hatch = it would overlap something in this room. Red
+                        is deliberately not used here — it's reserved for a
+                        move the server actually rejected. */}
+                    {drag && drag.moved && drag.targetRoomId === room.id && (() => {
+                      const free = slotsFree(room.id, drag.targetSlot, drag.durSlots, drag.res.id)
+                      return (
+                        <div
+                          style={{
+                            top: drag.targetSlot * slotH + 2,
+                            height: drag.durSlots * slotH - 4,
+                            position: 'absolute', left: 3, right: 3,
+                            backgroundImage: free
+                              ? undefined
+                              : 'repeating-linear-gradient(45deg, rgba(100,116,139,0.28) 0 5px, transparent 5px 10px)',
+                          }}
+                          className={cn(
+                            'rounded-md border-2 z-30 pointer-events-none',
+                            free
+                              ? 'border-blue-600 bg-blue-500/15'
+                              : 'border-gray-400 bg-gray-200/80 cursor-not-allowed'
+                          )}
+                        />
+                      )
+                    })()}
                   </div>
                 )
               })}
@@ -747,6 +995,20 @@ export default function CalendarView({ locations, profile, company, hourScope, h
       </div>
 
       </div>
+
+      {/* Prospective time/room readout that trails the pointer during a drag.
+          Fixed and rendered at the root, not inside a column, because the
+          grid scrolls in both directions and would otherwise clip it. */}
+      {drag && drag.moved && (
+        <div
+          style={{ position: 'fixed', left: drag.pointerX + 14, top: drag.pointerY + 14, zIndex: 60 }}
+          className="pointer-events-none rounded-md bg-gray-900/90 text-white text-xs font-medium px-2 py-1 shadow-sm whitespace-nowrap"
+        >
+          {formatTime(slotToTime(drag.targetSlot))} – {formatTime(slotToTime(drag.targetSlot + drag.durSlots))}
+          {' · '}
+          {rooms.find(r => r.id === drag.targetRoomId)?.name}
+        </div>
+      )}
 
       {/* Modal (for viewing/editing existing reservations) */}
       {modal.mode !== 'closed' && (
