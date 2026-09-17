@@ -141,7 +141,7 @@ export default function DayPassPage() {
   return (
     <div className="max-w-6xl mx-auto px-6 py-12">
       <div>
-        <h1 className="text-3xl font-bold text-gray-900 mb-1.5">Reserve a Day Pass</h1>
+        <h1 className="text-3xl font-bold text-gray-900 mb-1.5 tracking-tight">Reserve a Day Pass</h1>
         <p className="text-sm text-gray-500 mb-8">
           Coworking access, by the day. Every pass runs <strong className="font-semibold text-gray-700">9:00am – 5:00pm</strong>, drop in any time.
         </p>
@@ -217,9 +217,13 @@ function AccordionSection({ number, title, state, summary, onEdit, children }: {
   children: React.ReactNode
 }) {
   return (
+    // White cards on the warm ground; the active one lifts rather than
+    // shouting with a heavy green border.
     <div className={cn(
-      'border rounded-xl overflow-hidden transition-colors',
-      state === 'active' ? 'border-booking-600 ring-2 ring-booking-100' : 'border-gray-200'
+      'bg-white rounded-xl overflow-hidden transition-all',
+      state === 'active'
+        ? 'ring-1 ring-booking-600/30 shadow-[0_1px_3px_rgba(16,24,40,0.06),0_8px_24px_-8px_rgba(16,24,40,0.12)]'
+        : 'ring-1 ring-gray-200/80'
     )}>
       <div className="flex items-center justify-between px-5 py-4">
         <div className="flex items-center gap-3">
@@ -277,34 +281,38 @@ function ReservationFields({
           {LOCATIONS.map(loc => {
             const selected = loc.id === locationId
             return (
+              // Photo-led card: the name sits over the image and selection
+              // reads as a ring plus a check, instead of a photo stacked on a
+              // form row with a radio (design pass, 2026-09-17).
               <button
                 key={loc.id}
                 onClick={() => setLocationId(loc.id)}
                 className={cn(
-                  'text-left rounded-xl border overflow-hidden transition-colors',
-                  selected ? 'border-booking-600 ring-2 ring-booking-100 shadow-sm' : 'border-gray-200 hover:border-gray-400 hover:shadow-sm'
+                  'group relative text-left rounded-xl overflow-hidden transition-all aspect-[4/3]',
+                  selected
+                    ? 'ring-2 ring-booking-600 ring-offset-2 ring-offset-[#FAF9F7]'
+                    : 'ring-1 ring-gray-200 hover:ring-gray-300 hover:-translate-y-0.5'
                 )}
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={loc.photo}
                   alt={loc.name}
-                  className="w-full aspect-[16/9] object-cover"
+                  className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
                   style={'photoPosition' in loc ? { objectPosition: loc.photoPosition } : undefined}
                 />
-                <div className="p-4">
-                <div className="flex items-center justify-between mb-2 gap-2">
-                  <span className="text-sm">
-                    <span className="font-semibold text-gray-900">{loc.name}</span>
-                    <span className="text-gray-400 mx-1">·</span>
-                    <span className="text-xs text-gray-500">{loc.phone}</span>
+                <div className="absolute inset-0 bg-gradient-to-t from-gray-900/85 via-gray-900/25 to-transparent" />
+
+                {selected && (
+                  <span className="absolute top-3 right-3 h-6 w-6 rounded-full bg-booking-600 text-white flex items-center justify-center shadow-sm">
+                    <Check size={14} strokeWidth={3} />
                   </span>
-                  <span className={cn(
-                    'h-3.5 w-3.5 rounded-full border-[1.5px] flex-shrink-0',
-                    selected ? 'border-booking-600 bg-booking-600 ring-2 ring-inset ring-white' : 'border-gray-300'
-                  )} />
-                </div>
-                <div className="text-xs text-gray-400">{loc.address}</div>
+                )}
+
+                <div className="absolute inset-x-0 bottom-0 p-3.5 text-white">
+                  <div className="font-semibold leading-tight">{loc.name}</div>
+                  <div className="text-[11px] text-white/75 mt-1 leading-snug">{loc.address}</div>
+                  <div className="text-[11px] text-white/60 mt-0.5">{loc.phone}</div>
                 </div>
               </button>
             )
