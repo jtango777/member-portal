@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { Eye, EyeOff, CheckCircle, Check } from 'lucide-react'
+import { Eye, EyeOff, CheckCircle, Check, BadgeCheck } from 'lucide-react'
 import { loadStripe } from '@stripe/stripe-js'
 import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js'
 import { eachDayOfInterval, getDay, format as formatDate } from 'date-fns'
@@ -977,6 +977,19 @@ function PriceSummary({ days, locationName }: { days: number; locationName: stri
   const total = DAY_PASS_PRICE * days
   return (
     <div className="flex flex-col gap-4">
+      {/* Reassurance before they pay — our real policy, not marketing:
+          cancellable up to 12 hours before the 9am start, i.e. 9pm the
+          night before (Industrious does the same, Caroline, 2026-09-17). */}
+      <div className="bg-booking-50 rounded-xl px-5 py-4">
+        <div className="flex items-center gap-2 text-sm font-semibold text-gray-900">
+          <BadgeCheck size={17} className="text-booking-600" />
+          Book with confidence
+        </div>
+        <p className="text-sm text-gray-600 mt-1.5 leading-relaxed">
+          Cancel any day for a full refund up to 9:00pm the night before. You can do it yourself from My Bookings.
+        </p>
+      </div>
+
       <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
         <div className="px-5 py-4 border-b border-gray-100">
           <div className="text-base font-semibold text-gray-900">{locationName} Day Pass</div>
