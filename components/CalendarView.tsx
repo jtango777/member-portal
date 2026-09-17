@@ -447,7 +447,9 @@ export default function CalendarView({ locations, profile, company, hourScope, h
       toast.success(d.res.recurrence_group_id
         ? 'Reservation moved — this occurrence only'
         : 'Reservation moved')
-      fetchData()
+      // No refetch: the optimistic move already matches what the server
+      // just saved, and re-pulling the day made the whole grid flash and
+      // jump its scroll after every drag (Caroline, 2026-09-17).
       return
     }
 
