@@ -11,6 +11,7 @@ import Recaptcha, { RecaptchaHandle } from '@/components/Recaptcha'
 import { createClient } from '@/lib/supabase/client'
 import { cn, getPacificDayBounds } from '@/lib/utils'
 import { MAX_DAY_PASS_DAYS, MAX_DAYS_MESSAGE } from '@/lib/dayPass'
+import { AUTH_CHANGED_EVENT } from '@/components/day-pass/HeaderAccountLink'
 
 type ExistingCustomer = { id: string; first_name: string; last_name: string; email: string }
 
@@ -141,7 +142,9 @@ export default function DayPassPage() {
     <div className="max-w-6xl mx-auto px-6 py-12">
       <div>
         <h1 className="text-3xl font-bold text-gray-900 mb-1.5">Reserve a Day Pass</h1>
-        <p className="text-sm text-gray-500 mb-8">Coworking access, by the day.</p>
+        <p className="text-sm text-gray-500 mb-8">
+          Coworking access, by the day. Every pass runs <strong className="font-semibold text-gray-700">9:00am – 5:00pm</strong>, drop in any time.
+        </p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 items-start">
@@ -310,7 +313,10 @@ function ReservationFields({
       </div>
 
       <div>
-        <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Date</div>
+        <div className="flex items-baseline justify-between mb-3">
+          <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Date</div>
+          <div className="text-xs text-gray-400">Access 9:00am – 5:00pm on each day</div>
+        </div>
         <div className="w-full max-w-[420px]">
           <DayPassDatePicker
             selected={selectedDates}
@@ -514,6 +520,9 @@ function DetailsAndPayment({
     // thing this inline login exists to avoid (caught in testing,
     // 2026-09-17). The header's "Log in" link stays stale until the next
     // navigation, which is a fair trade.
+    // Tells the header to swap "Log in" for "My Bookings" without a
+    // navigation (see HeaderAccountLink).
+    window.dispatchEvent(new Event(AUTH_CHANGED_EVENT))
     setExistingCustomer(data.customer)
     setLoggingIn(false)
   }
