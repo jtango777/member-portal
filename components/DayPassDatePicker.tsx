@@ -185,12 +185,16 @@ export default function DayPassDatePicker({ selected, onChange, bookedDates = []
                     >
                       {format(day, 'd')}
                     </button>
-                    {(alreadyBooked || closed) && (
+                    {(alreadyBooked || closed || tooFar) && (
                       <span className={cn(
                         'pointer-events-none absolute left-1/2 z-20 -translate-x-1/2 whitespace-nowrap rounded-md bg-gray-900 px-2 py-1 text-[11px] font-medium text-white opacity-0 shadow-sm transition-opacity delay-300 group-hover:opacity-100',
                         nearBottom ? 'bottom-full mb-1' : 'top-full mt-1'
                       )}>
-                        {closed ? `Closed — ${closed}` : 'You already reserved this day'}
+                        {closed
+                          ? `Closed — ${closed}`
+                          : tooFar
+                          ? `More than ${MAX_DAY_PASS_MONTHS_AHEAD} months out — email hello@bizhaus.com`
+                          : 'You already reserved this day'}
                       </span>
                     )}
                   </div>
