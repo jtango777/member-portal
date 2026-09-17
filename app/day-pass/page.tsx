@@ -509,7 +509,11 @@ function DetailsAndPayment({
       setLoggingIn(false)
       return
     }
-    router.refresh()
+    // Deliberately no router.refresh() here: it remounts this page, which
+    // wipes the days they picked and drops them back on step 1 — the exact
+    // thing this inline login exists to avoid (caught in testing,
+    // 2026-09-17). The header's "Log in" link stays stale until the next
+    // navigation, which is a fair trade.
     setExistingCustomer(data.customer)
     setLoggingIn(false)
   }
