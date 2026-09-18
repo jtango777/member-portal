@@ -7,7 +7,7 @@ import { cn } from '@/lib/utils'
 
 // Day pass only — never shown for room bookings, which don't allow
 // self-serve cancellation at all (Caroline, 2026-08-31). The parent page
-// only renders this when the booking is still more than 12 hours out;
+// only renders this when the day hasn't reached its 9am start;
 // /api/day-pass/cancel re-checks that for real before refunding anything.
 //
 // Single continuously-animated width, not two elements collapsing/expanding

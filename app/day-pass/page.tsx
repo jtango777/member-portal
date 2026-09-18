@@ -994,15 +994,15 @@ function PriceSummary({ days, locationName }: { days: number; locationName: stri
   return (
     <div className="flex flex-col gap-4">
       {/* Reassurance before they pay — our real policy, not marketing:
-          cancellable up to 12 hours before the 9am start, i.e. 9pm the
-          night before (Industrious does the same, Caroline, 2026-09-17). */}
+          cancellable any time before the 9am start on the day
+          (Caroline, 2026-09-18; was 9pm the night before). */}
       <div className="bg-booking-50 rounded-xl px-5 py-4">
         <div className="flex items-center gap-2 text-sm font-semibold text-gray-900">
           <BadgeCheck size={17} className="text-booking-600" />
           Plans change, that&apos;s fine
         </div>
         <p className="text-sm text-gray-600 mt-1.5 leading-relaxed">
-          Cancel any day for a full refund up to 9:00pm the night before, right from My Bookings.
+          Cancel any day for a full refund up until 9:00am that morning, right from My Bookings.
         </p>
       </div>
 

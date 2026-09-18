@@ -31,7 +31,7 @@ type UnifiedBooking = {
   status: 'confirmed' | 'pending' | 'declined' | 'cancelled'
   // Only day passes are self-serve cancellable — conference room bookings
   // never are (Caroline, 2026-08-31). Present only for day-pass entries
-  // that are still more than 12 hours from their start.
+  // that haven't reached their 9am start yet.
   cancellableConfirmationNumber?: string
   // Every booking lists its own day rows — one for a single day, several
   // for a multi-day pass. Cancelling is still whole-booking only (per-day
@@ -41,16 +41,16 @@ type UnifiedBooking = {
   days: { date: string; label: string; time: string; cancelled: boolean; cancellable: boolean }[]
   cancelLabel?: string
   // Days that can still be cancelled — what "Cancel all" actually covers,
-  // since a day inside the 12-hour window can't be.
+  // since a day that has already started can't be.
   cancellableDates?: string[]
 }
 
-// 12-hour cutoff measured from 9:00am Pacific on the day, matching
+// Cutoff is 9:00am Pacific on the day, matching
 // /api/day-pass/cancel's own check — this only controls whether the
 // button shows, the route re-checks for real before refunding anything.
 function isStillCancellable(date: string): boolean {
   const nineAm = getPacificDayBounds(date).start.getTime() + 9 * 3600000
-  return Date.now() < nineAm - 12 * 3600000
+  return Date.now() < nineAm
 }
 
 export default async function DayPassAccountPage() {
