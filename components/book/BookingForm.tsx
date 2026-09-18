@@ -238,8 +238,10 @@ function CheckoutForm({
         </div>
       )}
 
-      {/* Your details */}
-      <div className="space-y-5">
+      {/* Your details — a white card on the warm page ground, same as the
+          day pass checkout (design pass, 2026-09-17). Also keeps the inputs,
+          which have no background of their own, reading as white fields. */}
+      <div className="space-y-5 bg-white rounded-xl ring-1 ring-gray-200/80 p-5 sm:p-6">
         <div className="flex items-baseline justify-between">
           <h2 className="font-semibold text-gray-900 text-lg">Your details</h2>
           {!existingCustomer && (
@@ -333,13 +335,13 @@ function CheckoutForm({
       {/* Payment */}
       <div className="space-y-4">
         <h2 className="font-semibold text-gray-900 text-lg">Payment</h2>
-        <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
+        <div className="bg-white ring-1 ring-gray-200/80 rounded-xl p-5">
           <PaymentElement />
         </div>
       </div>
 
       {/* Cancellation policy */}
-      <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 text-sm text-gray-600 space-y-3">
+      <div className="bg-white ring-1 ring-gray-200/80 rounded-xl p-4 text-sm text-gray-600 space-y-3">
         <p><span className="font-semibold text-gray-900">Cancellation policy:</span> Bookings are non-refundable. If you need to cancel, contact us at{' '}
           <a href="mailto:bookings@bizhaus.com" className="text-booking-600 hover:underline">bookings@bizhaus.com</a>{' '}
           to inquire about credit toward a future booking.</p>
@@ -419,7 +421,7 @@ export default function BookingForm(props: Props) {
           <h1 className="text-2xl font-bold text-gray-900">Booking confirmed!</h1>
           <p className="text-gray-500 mt-2">A confirmation has been sent to {confirmedEmail}.</p>
         </div>
-        <div className="bg-white border border-gray-200 rounded-xl p-5 text-left space-y-3 shadow-sm">
+        <div className="bg-white ring-1 ring-gray-200/80 rounded-xl p-5 text-left space-y-3">
           <div className="flex justify-between text-sm">
             <span className="text-gray-500">Room</span>
             <span className="font-medium text-gray-900">{roomName} · {locationName}</span>
@@ -451,10 +453,10 @@ export default function BookingForm(props: Props) {
         <ArrowLeft size={15} /> Back to availability
       </Link>
 
-      <h1 className="text-3xl font-bold text-gray-900">Checkout</h1>
+      <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Checkout</h1>
 
       {/* Booking summary */}
-      <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm space-y-3">
+      <div className="bg-white ring-1 ring-gray-200/80 rounded-xl p-5 space-y-3">
         <h2 className="font-semibold text-gray-900">Booking summary</h2>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
           <div className="flex items-start gap-2 text-gray-600">

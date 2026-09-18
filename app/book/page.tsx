@@ -16,6 +16,15 @@ type BookLocation = {
   slug: string
 }
 
+// Same open-space photos the day pass location cards use, matched by name
+// (lowercased) so a new location without a photo just gets a plain header
+// instead of a broken image (matches the day pass design pass, 2026-09-17).
+const LOCATION_PHOTOS: Record<string, { src: string; position?: string }> = {
+  'el segundo':     { src: '/rooms/es-open-space.jpg' },
+  'marina del rey': { src: '/rooms/mdr-open-space.jpg', position: 'center 70%' },
+  'costa mesa':     { src: '/rooms/cm-open-space.jpg' },
+}
+
 export default async function BookPage() {
   const admin = createAdminClient()
 
@@ -40,21 +49,41 @@ export default async function BookPage() {
 
   return (
     <div className="max-w-5xl mx-auto px-6 py-12">
-      <div className="mb-10">
-        <h1 className="text-3xl font-bold text-gray-900">Book a Meeting Room</h1>
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-gray-900 mb-1.5 tracking-tight">Book a Meeting Room</h1>
+        <p className="text-sm text-gray-500">Meeting and conference rooms by the hour, no membership needed.</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {((locations ?? []) as BookLocation[]).map((location) => {
           const locationRooms = roomsByLocation[location.id] ?? []
+          const photo = LOCATION_PHOTOS[location.name.trim().toLowerCase()]
           return (
+            // White card on the warm ground with a light ring rather than
+            // border + shadow, same as the day pass cards.
             <div
               key={location.id}
-              className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm flex flex-col"
+              className="bg-white ring-1 ring-gray-200/80 rounded-xl overflow-hidden flex flex-col"
             >
-              <div className="px-5 py-4 border-b border-gray-100">
-                <h2 className="font-semibold text-base text-gray-900">{location.name}</h2>
-              </div>
+              {photo ? (
+                <div className="relative aspect-[16/10] overflow-hidden">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={photo.src}
+                    alt={`${location.name} space`}
+                    className="absolute inset-0 w-full h-full object-cover"
+                    style={photo.position ? { objectPosition: photo.position } : undefined}
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-gray-900/85 via-gray-900/25 to-transparent" />
+                  <h2 className="absolute inset-x-0 bottom-0 p-4 font-semibold text-base text-white leading-tight">
+                    {location.name}
+                  </h2>
+                </div>
+              ) : (
+                <div className="px-5 py-4 border-b border-gray-100">
+                  <h2 className="font-semibold text-base text-gray-900">{location.name}</h2>
+                </div>
+              )}
 
               <div className="divide-y divide-gray-100 flex-1">
                 {locationRooms.map((room) => (

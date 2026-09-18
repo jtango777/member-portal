@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { format, addDays, subDays } from 'date-fns'
-import { ArrowLeft, ImageIcon, Phone, Mail, ChevronLeft, ChevronRight } from 'lucide-react'
+import { ArrowLeft, Check, ImageIcon, Phone, Mail, ChevronLeft, ChevronRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import MiniDatePicker from '@/components/MiniDatePicker'
 
@@ -180,7 +180,7 @@ export default function AvailabilityView({ location, rooms }: { location: BookLo
       </Link>
 
       {LOCATION_BANNERS[location.slug]?.src && (
-        <div className="rounded-xl overflow-hidden h-64 w-full">
+        <div className="rounded-xl overflow-hidden h-64 w-full ring-1 ring-gray-200/80">
           <img
             src={LOCATION_BANNERS[location.slug]!.src}
             alt={`${location.name} space`}
@@ -191,7 +191,7 @@ export default function AvailabilityView({ location, rooms }: { location: BookLo
       )}
 
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">{location.name}</h1>
+        <h1 className="text-3xl font-bold text-gray-900 tracking-tight">{location.name}</h1>
         <p className="text-gray-500 mt-1">Select a room and pick your date and time</p>
       </div>
 
@@ -206,13 +206,21 @@ export default function AvailabilityView({ location, rooms }: { location: BookLo
             <div
               key={room.id}
               onClick={() => { setSelectedRoom(room); setSelectedStart(''); setSelectedEnd('') }}
+              // Same selected/unselected treatment as the day pass location
+              // cards: a ring plus a check instead of a heavy border
+              // (matches the day pass design pass, 2026-09-17).
               className={cn(
-                'rounded-xl border overflow-hidden cursor-pointer transition-all bg-white',
+                'group relative rounded-xl overflow-hidden cursor-pointer transition-all bg-white',
                 selectedRoom?.id === room.id
-                  ? 'border-booking-600 ring-2 ring-booking-100 shadow-sm'
-                  : 'border-gray-200 hover:border-gray-400 hover:shadow-sm'
+                  ? 'ring-2 ring-booking-600 ring-offset-2 ring-offset-[#FAF9F7]'
+                  : 'ring-1 ring-gray-200 hover:ring-gray-300 hover:-translate-y-0.5'
               )}
             >
+              {selectedRoom?.id === room.id && (
+                <span className="absolute top-3 right-3 z-10 h-6 w-6 rounded-full bg-booking-600 text-white flex items-center justify-center shadow-sm">
+                  <Check size={14} strokeWidth={3} />
+                </span>
+              )}
               {/* ── Room image / carousel ── add arrays to ROOM_IMAGES above as photos become available ── */}
               {(() => {
                 const images = ROOM_IMAGES[`${location.slug}:${room.external_name}`]
@@ -224,7 +232,7 @@ export default function AvailabilityView({ location, rooms }: { location: BookLo
                         <img
                           src={images[idx]}
                           alt={`${room.external_name} photo ${idx + 1}`}
-                          className="w-full h-full object-cover object-[center_65%]"
+                          className="w-full h-full object-cover object-[center_65%] transition-transform duration-500 group-hover:scale-[1.03]"
                         />
                         {images.length > 1 && (
                           <>
@@ -299,8 +307,16 @@ export default function AvailabilityView({ location, rooms }: { location: BookLo
         </div>
 
         {/* ── Right: Sticky booking widget ─────────────────────────── */}
-        <div className="lg:col-span-2">
-          <div className="sticky top-20 bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+        {/* Sticky on the grid column itself (as on the day pass) — sticky on
+            the inner card did nothing, since its wrapper was only as tall as
+            the card. Desktop only; on phones it just stacks below the rooms. */}
+        <div className="lg:col-span-2 lg:sticky lg:top-6">
+          <div className={cn(
+            'bg-white rounded-xl overflow-hidden transition-all',
+            selectedRoom
+              ? 'ring-1 ring-booking-600/30 shadow-[0_1px_3px_rgba(16,24,40,0.06),0_8px_24px_-8px_rgba(16,24,40,0.12)]'
+              : 'ring-1 ring-gray-200/80'
+          )}>
 
             {!selectedRoom ? (
               <div className="p-6 text-center text-sm text-gray-400 py-12">
@@ -463,7 +479,7 @@ export default function AvailabilityView({ location, rooms }: { location: BookLo
       </div>
 
       {/* Fine print */}
-      <p className="text-xs font-semibold text-gray-800 pt-4 border-t border-gray-100">
+      <p className="text-xs font-semibold text-gray-800 pt-4 border-t border-gray-200">
         Bookings are non-refundable. Need to cancel?{' '}
         <a href={`mailto:${CONTACT_EMAIL}`} className="underline hover:text-gray-600">Contact us</a>
         {' '}to inquire about credit toward a future booking.
