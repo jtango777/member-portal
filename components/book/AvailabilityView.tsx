@@ -191,7 +191,7 @@ export default function AvailabilityView({ location, rooms }: { location: BookLo
       )}
 
       <div>
-        <h1 className="text-3xl font-bold text-gray-900 tracking-tight">{location.name}</h1>
+        <h1 className="text-2xl font-bold text-gray-900 tracking-tight">{location.name}</h1>
         <p className="text-gray-500 mt-1">Select a room and pick your date and time</p>
       </div>
 

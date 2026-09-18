@@ -453,7 +453,7 @@ export default function BookingForm(props: Props) {
         <ArrowLeft size={15} /> Back to availability
       </Link>
 
-      <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Checkout</h1>
+      <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Checkout</h1>
 
       {/* Booking summary */}
       <div className="bg-white ring-1 ring-gray-200/80 rounded-xl p-5 space-y-3">

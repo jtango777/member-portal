@@ -141,7 +141,7 @@ export default function DayPassPage() {
   return (
     <div className="max-w-6xl mx-auto px-6 py-12">
       <div>
-        <h1 className="text-3xl font-bold text-gray-900 mb-1.5 tracking-tight">Reserve a Day Pass</h1>
+        <h1 className="text-2xl font-bold text-gray-900 mb-1.5 tracking-tight">Reserve a Day Pass</h1>
         <p className="text-sm text-gray-500 mb-8">
           Coworking access, by the day. Every pass runs <strong className="font-semibold text-gray-700">9:00am – 5:00pm</strong>, drop in any time.
         </p>
