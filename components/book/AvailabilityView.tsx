@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { format, addDays, subDays } from 'date-fns'
-import { ArrowLeft, Check, ImageIcon, Phone, Mail, ChevronLeft, ChevronRight, Clock, CalendarDays, Users } from 'lucide-react'
+import { ArrowLeft, Check, ImageIcon, Phone, Mail, ChevronLeft, ChevronRight, Clock, Users } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import MiniDatePicker from '@/components/MiniDatePicker'
 import { dateUnavailableReason, lastBookableDate, MAX_BOOKING_MONTHS_AHEAD } from '@/lib/bookingRules'
@@ -201,7 +201,7 @@ export default function AvailabilityView({ location, rooms }: { location: BookLo
   const canContinue = selectedRoom && selectedStart && selectedEnd && !dateClosed && !allDayBlocked
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       {/* Back */}
       <Link href="/book" className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700 transition-colors">
         <ArrowLeft size={15} />
@@ -217,15 +217,13 @@ export default function AvailabilityView({ location, rooms }: { location: BookLo
         <p className="text-sm text-gray-500 mt-1">Meeting rooms by the hour · Monday to Friday, 9:00 AM – 5:00 PM</p>
       </div>
 
-      <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Choose a room</div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
 
         {/* ── Left: Room cards ─────────────────────────────────────── */}
-        <div className="lg:col-span-3 space-y-4">
+        <div className="lg:col-span-8 space-y-4">
 
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {rooms.map(room => (
             <div
               key={room.id}
@@ -250,7 +248,7 @@ export default function AvailabilityView({ location, rooms }: { location: BookLo
                 const images = ROOM_IMAGES[`${location.slug}:${room.external_name}`]
                 const idx = carouselIndex[room.id] ?? 0
                 return (
-                  <div className="relative bg-gray-100 aspect-[4/3] overflow-hidden">
+                  <div className="relative bg-gray-100 aspect-[16/10] overflow-hidden">
                     {images?.length ? (
                       <>
                         <img
@@ -289,7 +287,7 @@ export default function AvailabilityView({ location, rooms }: { location: BookLo
                     {/* One scrim over every photo, so rooms shot in different
                         light still read as one set. */}
                     {!!images?.length && (
-                      <div className="absolute inset-0 bg-gradient-to-t from-gray-900/85 via-gray-900/25 to-transparent pointer-events-none" />
+                      <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-gray-900/85 via-gray-900/40 to-transparent pointer-events-none" />
                     )}
 
                     <div className={cn(
@@ -354,7 +352,7 @@ export default function AvailabilityView({ location, rooms }: { location: BookLo
         {/* Sticky on the grid column itself (as on the day pass) — sticky on
             the inner card did nothing, since its wrapper was only as tall as
             the card. Desktop only; on phones it just stacks below the rooms. */}
-        <div ref={widgetRef} className="lg:col-span-2 lg:sticky lg:top-6 scroll-mt-4">
+        <div ref={widgetRef} className="lg:col-span-4 lg:sticky lg:top-6 scroll-mt-4">
           <div className={cn(
             'bg-white rounded-xl overflow-hidden transition-all',
             selectedRoom
@@ -363,25 +361,9 @@ export default function AvailabilityView({ location, rooms }: { location: BookLo
           )}>
 
             {!selectedRoom ? (
-              <div className="p-5 space-y-4">
-                <div>
-                  <div className="text-sm font-semibold text-gray-900">Pick a room to see times</div>
-                  <p className="text-sm text-gray-500 mt-1">Availability is live, so anything you can select is free.</p>
-                </div>
-                <ul className="space-y-2.5 text-sm text-gray-600 border-t border-gray-100 pt-4">
-                  <li className="flex items-start gap-2">
-                    <Clock size={15} className="mt-0.5 shrink-0 text-booking-600" />
-                    Monday to Friday, 9:00 AM to 5:00 PM
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <CalendarDays size={15} className="mt-0.5 shrink-0 text-booking-600" />
-                    From 30 minutes, up to {MAX_BOOKING_MONTHS_AHEAD} months ahead
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <Users size={15} className="mt-0.5 shrink-0 text-booking-600" />
-                    No membership needed, pay by card
-                  </li>
-                </ul>
+              <div className="px-5 py-6">
+                <div className="text-sm font-semibold text-gray-900">Pick a room to see times</div>
+                <p className="text-sm text-gray-500 mt-1">Whatever you can select is free.</p>
               </div>
             ) : (
               <div className="divide-y divide-gray-100">
