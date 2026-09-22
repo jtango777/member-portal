@@ -285,14 +285,14 @@ export default function AvailabilityView({ location, rooms }: { location: BookLo
                           <>
                             <button
                               onClick={e => { e.stopPropagation(); setCarouselIndex(p => ({ ...p, [room.id]: (idx - 1 + images.length) % images.length })) }}
-                              className="absolute left-2 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white rounded-full p-1 shadow transition-colors"
+                              className="absolute left-2 top-1/2 -translate-y-1/2 z-20 bg-white/80 hover:bg-white rounded-full p-1.5 shadow transition-colors"
                             ><ChevronLeft size={15} /></button>
                             <button
                               onClick={e => { e.stopPropagation(); setCarouselIndex(p => ({ ...p, [room.id]: (idx + 1) % images.length })) }}
-                              className="absolute right-2 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white rounded-full p-1 shadow transition-colors"
+                              className="absolute right-2 top-1/2 -translate-y-1/2 z-20 bg-white/80 hover:bg-white rounded-full p-1.5 shadow transition-colors"
                             ><ChevronRight size={15} /></button>
                             {/* Above the name/price overlay, not behind it. */}
-                            <div className="absolute bottom-14 left-1/2 -translate-x-1/2 flex gap-1.5">
+                            <div className="absolute bottom-14 left-1/2 -translate-x-1/2 z-20 flex gap-1.5">
                               {images.map((_, i) => (
                                 <button key={i} onClick={e => { e.stopPropagation(); setCarouselIndex(p => ({ ...p, [room.id]: i })) }}
                                   className={cn('w-1.5 h-1.5 rounded-full transition-colors', i === idx ? 'bg-white' : 'bg-white/50')}
@@ -312,11 +312,11 @@ export default function AvailabilityView({ location, rooms }: { location: BookLo
                     {/* One scrim over every photo, so rooms shot in different
                         light still read as one set. */}
                     {!!images?.length && (
-                      <div className="absolute inset-0 bg-gradient-to-t from-gray-900/85 via-gray-900/25 to-transparent" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-gray-900/85 via-gray-900/25 to-transparent pointer-events-none" />
                     )}
 
                     <div className={cn(
-                      'absolute inset-x-0 bottom-0 p-4 flex items-end justify-between gap-3',
+                      'absolute inset-x-0 bottom-0 p-4 flex items-end justify-between gap-3 pointer-events-none',
                       images?.length ? 'text-white' : 'text-gray-900'
                     )}>
                       <div>
