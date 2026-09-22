@@ -90,7 +90,7 @@ export default function ExternalRoomsManager({ locations, initialRooms }: Props)
             <Globe size={11} /> /book
           </span>
         </div>
-        <p className="text-sm text-gray-500 mt-0.5">Rooms visible to the public on members.bizhaus.com/book. Toggle rooms on or off, set external-facing names and pricing, and add descriptions for customers.</p>
+        <p className="text-sm text-gray-500 mt-0.5">Rooms visible to the public on bookings.bizhaus.com/book. Toggle rooms on or off, set external-facing names and pricing, and add descriptions for customers.</p>
       </div>
 
       <div className="space-y-4">

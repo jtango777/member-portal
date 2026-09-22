@@ -39,13 +39,6 @@ const ROOM_IMAGES: Record<string, string[]> = {
 }
 
 
-// Location banner images — add slugs as photos become available
-// position: CSS object-position value to fine-tune the crop
-const LOCATION_BANNERS: Record<string, { src: string; position?: string }> = {
-  'el-segundo':     { src: '/rooms/es-open-space.jpg' },
-  'marina-del-rey': { src: '/rooms/mdr-open-space.jpg', position: 'center 70%' },
-  'costa-mesa':     { src: '/rooms/cm-open-space.jpg', position: 'center 55%' },
-}
 
 // Whole dollars stay clean ($75), half hours show the cents that are
 // actually charged — the summary used to round $97.50 up to "$98"
@@ -215,30 +208,14 @@ export default function AvailabilityView({ location, rooms }: { location: BookLo
         All locations
       </Link>
 
-      {/* One hero instead of a stretched photo strip sitting above a plain
-          heading. The name lives on the image, the same treatment as the day
-          pass location cards (design pass, 2026-09-22). */}
-      {LOCATION_BANNERS[location.slug]?.src ? (
-        <div className="relative rounded-2xl overflow-hidden h-44 sm:h-52 w-full ring-1 ring-gray-200/80">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={LOCATION_BANNERS[location.slug]!.src}
-            alt={`${location.name} space`}
-            className="absolute inset-0 w-full h-full object-cover"
-            style={{ objectPosition: LOCATION_BANNERS[location.slug]?.position ?? 'center' }}
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-gray-900/85 via-gray-900/30 to-gray-900/5" />
-          <div className="absolute inset-x-0 bottom-0 p-5 sm:p-6 text-white">
-            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">{location.name}</h1>
-            <p className="text-sm text-white/80 mt-1">Meeting rooms by the hour · Monday to Friday, 9:00 AM – 5:00 PM</p>
-          </div>
-        </div>
-      ) : (
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 tracking-tight">{location.name}</h1>
-          <p className="text-gray-500 mt-1">Meeting rooms by the hour · Monday to Friday, 9:00 AM – 5:00 PM</p>
-        </div>
-      )}
+      {/* No location banner. It was a photo of the open coworking space, not
+          a meeting room, and it pushed the rooms below the fold for 300px of
+          nothing (Caroline, 2026-09-22). People land here having already
+          picked the location, so a heading is enough. */}
+      <div>
+        <h1 className="text-2xl font-bold text-gray-900 tracking-tight">{location.name}</h1>
+        <p className="text-sm text-gray-500 mt-1">Meeting rooms by the hour · Monday to Friday, 9:00 AM – 5:00 PM</p>
+      </div>
 
       <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Choose a room</div>
 
@@ -337,8 +314,13 @@ export default function AvailabilityView({ location, rooms }: { location: BookLo
               })()}
               {/* ──────────────────────────────────────────────────────────────────────────────────── */}
 
+              {/* Only when there's something to read. Every room's description
+                  is empty right now, so this was "See details on this room"
+                  opening onto "Details coming soon." nine times over
+                  (Caroline spotted it, 2026-09-22). Fill them in at
+                  /dashboard/admin/rooms and the toggle comes back. */}
+              {room.description && (
               <div className="px-4 py-3">
-                {/* Details accordion */}
                 <div>
                   <button
                     type="button"
@@ -356,11 +338,12 @@ export default function AvailabilityView({ location, rooms }: { location: BookLo
                     expandedRoom === room.id ? 'max-h-40 opacity-100 mt-2' : 'max-h-0 opacity-0'
                   )}>
                     <p className="text-sm text-gray-500 leading-relaxed">
-                      {room.description ?? 'Details coming soon.'}
+                      {room.description}
                     </p>
                   </div>
                 </div>
               </div>
+              )}
             </div>
           ))}
           </div>
