@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { format, addDays, subDays } from 'date-fns'
-import { ArrowLeft, Check, ImageIcon, Phone, Mail, ChevronLeft, ChevronRight } from 'lucide-react'
+import { ArrowLeft, Check, ImageIcon, Phone, Mail, ChevronLeft, ChevronRight, Clock, CalendarDays, Users } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import MiniDatePicker from '@/components/MiniDatePicker'
 import { dateUnavailableReason, lastBookableDate, MAX_BOOKING_MONTHS_AHEAD } from '@/lib/bookingRules'
@@ -215,21 +215,32 @@ export default function AvailabilityView({ location, rooms }: { location: BookLo
         All locations
       </Link>
 
-      {LOCATION_BANNERS[location.slug]?.src && (
-        <div className="rounded-xl overflow-hidden h-64 w-full ring-1 ring-gray-200/80">
+      {/* One hero instead of a stretched photo strip sitting above a plain
+          heading. The name lives on the image, the same treatment as the day
+          pass location cards (design pass, 2026-09-22). */}
+      {LOCATION_BANNERS[location.slug]?.src ? (
+        <div className="relative rounded-2xl overflow-hidden h-44 sm:h-52 w-full ring-1 ring-gray-200/80">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={LOCATION_BANNERS[location.slug]!.src}
             alt={`${location.name} space`}
-            className="w-full h-full object-cover"
+            className="absolute inset-0 w-full h-full object-cover"
             style={{ objectPosition: LOCATION_BANNERS[location.slug]?.position ?? 'center' }}
           />
+          <div className="absolute inset-0 bg-gradient-to-t from-gray-900/85 via-gray-900/30 to-gray-900/5" />
+          <div className="absolute inset-x-0 bottom-0 p-5 sm:p-6 text-white">
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">{location.name}</h1>
+            <p className="text-sm text-white/80 mt-1">Meeting rooms by the hour · Monday to Friday, 9:00 AM – 5:00 PM</p>
+          </div>
+        </div>
+      ) : (
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900 tracking-tight">{location.name}</h1>
+          <p className="text-gray-500 mt-1">Meeting rooms by the hour · Monday to Friday, 9:00 AM – 5:00 PM</p>
         </div>
       )}
 
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900 tracking-tight">{location.name}</h1>
-        <p className="text-gray-500 mt-1">Select a room and pick your date and time</p>
-      </div>
+      <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Choose a room</div>
 
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 items-start">
 
@@ -262,7 +273,7 @@ export default function AvailabilityView({ location, rooms }: { location: BookLo
                 const images = ROOM_IMAGES[`${location.slug}:${room.external_name}`]
                 const idx = carouselIndex[room.id] ?? 0
                 return (
-                  <div className="relative bg-gray-100 aspect-[16/9] overflow-hidden">
+                  <div className="relative bg-gray-100 aspect-[4/3] overflow-hidden">
                     {images?.length ? (
                       <>
                         <img
@@ -280,7 +291,8 @@ export default function AvailabilityView({ location, rooms }: { location: BookLo
                               onClick={e => { e.stopPropagation(); setCarouselIndex(p => ({ ...p, [room.id]: (idx + 1) % images.length })) }}
                               className="absolute right-2 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white rounded-full p-1 shadow transition-colors"
                             ><ChevronRight size={15} /></button>
-                            <div className="absolute bottom-2.5 left-1/2 -translate-x-1/2 flex gap-1.5">
+                            {/* Above the name/price overlay, not behind it. */}
+                            <div className="absolute bottom-14 left-1/2 -translate-x-1/2 flex gap-1.5">
                               {images.map((_, i) => (
                                 <button key={i} onClick={e => { e.stopPropagation(); setCarouselIndex(p => ({ ...p, [room.id]: i })) }}
                                   className={cn('w-1.5 h-1.5 rounded-full transition-colors', i === idx ? 'bg-white' : 'bg-white/50')}
@@ -296,25 +308,38 @@ export default function AvailabilityView({ location, rooms }: { location: BookLo
                         <span className="text-sm">Photos coming soon</span>
                       </div>
                     )}
+
+                    {/* One scrim over every photo, so rooms shot in different
+                        light still read as one set. */}
+                    {!!images?.length && (
+                      <div className="absolute inset-0 bg-gradient-to-t from-gray-900/85 via-gray-900/25 to-transparent" />
+                    )}
+
+                    <div className={cn(
+                      'absolute inset-x-0 bottom-0 p-4 flex items-end justify-between gap-3',
+                      images?.length ? 'text-white' : 'text-gray-900'
+                    )}>
+                      <div>
+                        <h3 className="font-semibold leading-tight">{room.external_name}</h3>
+                        <p className={cn('text-xs mt-0.5', images?.length ? 'text-white/75' : 'text-gray-500')}>
+                          Up to {room.capacity} people
+                        </p>
+                      </div>
+                      <div className={cn(
+                        'shrink-0 text-xs font-semibold rounded-full px-2.5 py-1',
+                        images?.length ? 'bg-white/15 text-white backdrop-blur-sm' : 'bg-gray-100 text-gray-700'
+                      )}>
+                        ${room.price_per_hour}/hr
+                      </div>
+                    </div>
                   </div>
                 )
               })()}
               {/* ──────────────────────────────────────────────────────────────────────────────────── */}
 
-              <div className="px-5 py-4 space-y-3">
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <h3 className="font-semibold text-gray-900 text-base">{room.external_name}</h3>
-                    <p className="text-sm text-gray-500 mt-0.5">Up to {room.capacity} people</p>
-                  </div>
-                  <div className="text-right shrink-0">
-                    <span className="font-semibold text-gray-900">${room.price_per_hour}</span>
-                    <span className="text-gray-400 text-sm">/hr</span>
-                  </div>
-                </div>
-
+              <div className="px-4 py-3">
                 {/* Details accordion */}
-                <div className="border-t border-gray-100 pt-2">
+                <div>
                   <button
                     type="button"
                     onClick={e => { e.stopPropagation(); setExpandedRoom(expandedRoom === room.id ? null : room.id) }}
@@ -355,8 +380,25 @@ export default function AvailabilityView({ location, rooms }: { location: BookLo
           )}>
 
             {!selectedRoom ? (
-              <div className="p-6 text-center text-sm text-gray-400 py-12">
-                ← Select a room to continue
+              <div className="p-5 space-y-4">
+                <div>
+                  <div className="text-sm font-semibold text-gray-900">Pick a room to see times</div>
+                  <p className="text-sm text-gray-500 mt-1">Availability is live, so anything you can select is free.</p>
+                </div>
+                <ul className="space-y-2.5 text-sm text-gray-600 border-t border-gray-100 pt-4">
+                  <li className="flex items-start gap-2">
+                    <Clock size={15} className="mt-0.5 shrink-0 text-booking-600" />
+                    Monday to Friday, 9:00 AM to 5:00 PM
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <CalendarDays size={15} className="mt-0.5 shrink-0 text-booking-600" />
+                    From 30 minutes, up to {MAX_BOOKING_MONTHS_AHEAD} months ahead
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <Users size={15} className="mt-0.5 shrink-0 text-booking-600" />
+                    No membership needed, pay by card
+                  </li>
+                </ul>
               </div>
             ) : (
               <div className="divide-y divide-gray-100">
