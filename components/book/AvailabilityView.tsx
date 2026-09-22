@@ -6,6 +6,7 @@ import { format, addDays, subDays } from 'date-fns'
 import { ArrowLeft, Check, ImageIcon, Phone, Mail, ChevronLeft, ChevronRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import MiniDatePicker from '@/components/MiniDatePicker'
+import { dateUnavailableReason, lastBookableDate, MAX_BOOKING_MONTHS_AHEAD } from '@/lib/bookingRules'
 
 type BookRoom = {
   id: string
@@ -46,6 +47,13 @@ const LOCATION_BANNERS: Record<string, { src: string; position?: string }> = {
   'costa-mesa':     { src: '/rooms/cm-open-space.jpg', position: 'center 55%' },
 }
 
+// Whole dollars stay clean ($75), half hours show the cents that are
+// actually charged — the summary used to round $97.50 up to "$98"
+// (found in testing, 2026-09-22).
+function money(amount: number) {
+  return amount % 1 === 0 ? `$${amount}` : `$${amount.toFixed(2)}`
+}
+
 function slotToMinutes(s: string) {
   const [h, m] = s.split(':').map(Number)
   return h * 60 + m
@@ -73,11 +81,6 @@ for (let h = 9; h <= 17; h++) {
       label: format(new Date(2000, 0, 1, h, m), 'h:mm a'),
     })
   }
-}
-
-function isWeekend(dateStr: string) {
-  const d = new Date(dateStr + 'T12:00:00').getDay()
-  return d === 0 || d === 6
 }
 
 const PT = 'America/Los_Angeles'
@@ -109,16 +112,29 @@ export default function AvailabilityView({ location, rooms }: { location: BookLo
   const [selectedStart, setSelectedStart] = useState<string>('')
   const [selectedEnd,   setSelectedEnd]   = useState<string>('')
 
-  const weekend = isWeekend(selectedDate)
+  // Weekends, holidays, past dates and anything past the 6-month window —
+  // one shared rule with the API routes (lib/bookingRules).
+  const unavailableReason = dateUnavailableReason(selectedDate)
+  const dateClosed = unavailableReason !== null
 
   useEffect(() => {
     if (!selectedRoom) return
     setLoadingSlots(true)
-    setSelectedStart(''); setSelectedEnd('')
+    // "All day" used to survive a date change with the times cleared out,
+    // which left Proceed to Payment pointing at a booking with no times —
+    // it silently bounced people back to the start (found 2026-09-22).
+    if (allDay) { setSelectedStart('9:00'); setSelectedEnd('17:00') }
+    else { setSelectedStart(''); setSelectedEnd('') }
+    // Drop the previous day's slots so nothing is labelled unavailable
+    // based on a different date while this fetch is in flight.
+    setBlockedSlots([])
     fetch(`/api/book/availability?roomId=${selectedRoom.id}&date=${selectedDate}`)
       .then(r => r.json())
       .then(d => { setBlockedSlots(d.blockedSlots ?? []); setLoadingSlots(false) })
       .catch(() => setLoadingSlots(false))
+  // allDay deliberately left out: re-running this on every toggle would
+  // refetch availability for no reason.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedRoom, selectedDate])
 
   // All start times — blocked or already-passed (when booking for today)
@@ -147,6 +163,11 @@ export default function AvailabilityView({ location, rooms }: { location: BookLo
 
   // Reset end if no longer valid
   useEffect(() => {
+    // All day sets its own 9-5 and is policed by allDayBlocked below. This
+    // check used to clear its 5:00 PM while the new day's availability was
+    // still loading, which left the booking with no end time and the button
+    // dead (found 2026-09-22).
+    if (allDay) return
     if (selectedEnd && !validEndSlots.find(s => s.value === selectedEnd)) setSelectedEnd('')
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedStart, blockedSlots])
@@ -165,11 +186,15 @@ export default function AvailabilityView({ location, rooms }: { location: BookLo
     if (prev >= today) { setSelectedDate(prev); setSelectedStart(''); setSelectedEnd('') }
   }
   function nextDay() {
-    setSelectedDate(format(addDays(new Date(selectedDate + 'T12:00:00'), 1), 'yyyy-MM-dd'))
-    setSelectedStart(''); setSelectedEnd('')
+    const next = format(addDays(new Date(selectedDate + 'T12:00:00'), 1), 'yyyy-MM-dd')
+    if (next > lastBookableDate()) return
+    setSelectedDate(next); setSelectedStart(''); setSelectedEnd('')
   }
 
-  const canContinue = selectedRoom && (allDay || (selectedStart && selectedEnd)) && !weekend
+  // An all-day booking still has to be a free day — the server rejects a
+  // clash and refunds, but there's no reason to take the payment at all.
+  const allDayBlocked = allDay && START_SLOTS.some(s => blockedSlots.includes(s.value))
+  const canContinue = selectedRoom && selectedStart && selectedEnd && !dateClosed && !allDayBlocked
 
   return (
     <div className="space-y-8">
@@ -342,19 +367,24 @@ export default function AvailabilityView({ location, rooms }: { location: BookLo
                         <ChevronLeft size={14} />
                       </button>
                       <div className="flex-1">
-                        <MiniDatePicker value={selectedDate} onChange={v => { setSelectedDate(v); setSelectedStart(''); setSelectedEnd('') }} />
+                        <MiniDatePicker
+                          value={selectedDate}
+                          onChange={v => { setSelectedDate(v); setSelectedStart(''); setSelectedEnd('') }}
+                          maxDate={lastBookableDate()}
+                          dayUnavailable={dateUnavailableReason}
+                        />
                       </div>
-                      <button onClick={nextDay}
-                        className="p-1.5 rounded border border-gray-200 hover:bg-gray-50 transition-colors">
+                      <button onClick={nextDay} disabled={selectedDate >= lastBookableDate()}
+                        className="p-1.5 rounded border border-gray-200 hover:bg-gray-50 disabled:opacity-30 transition-colors">
                         <ChevronRight size={14} />
                       </button>
                     </div>
                   </div>
 
-                  {/* Weekend message */}
-                  {weekend ? (
+                  {/* Weekend, holiday, past date or beyond the booking window */}
+                  {dateClosed ? (
                     <div className="bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 space-y-2">
-                      <p className="text-sm font-medium text-amber-800">Weekend bookings require advance arrangement.</p>
+                      <p className="text-sm font-medium text-amber-800">{unavailableReason}</p>
                       <div className="flex flex-col gap-1">
                         <a href={`tel:${CONTACT_PHONE.replace(/\D/g,'')}`}
                           className="inline-flex items-center gap-1.5 text-sm text-amber-700 hover:text-amber-900">
@@ -398,7 +428,13 @@ export default function AvailabilityView({ location, rooms }: { location: BookLo
                         {loadingSlots ? (
                           <p className="text-sm text-gray-400">Loading availability…</p>
                         ) : allDay ? (
-                          <p className="text-sm text-gray-500 bg-gray-50 rounded-lg px-3 py-2">9:00 AM – 5:00 PM</p>
+                          allDayBlocked ? (
+                            <p className="text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+                              This room is already booked for part of that day. Turn off All day and pick times that are free.
+                            </p>
+                          ) : (
+                            <p className="text-sm text-gray-500 bg-gray-50 rounded-lg px-3 py-2">9:00 AM – 5:00 PM</p>
+                          )
                         ) : (
                           <div className="grid grid-cols-2 gap-2">
                             <select
@@ -434,7 +470,7 @@ export default function AvailabilityView({ location, rooms }: { location: BookLo
                       {durationHours > 0 && (
                         <div className="flex items-center justify-between text-sm bg-gray-50 rounded-lg px-3 py-2">
                           <span className="text-gray-500">{durationHours}h · ${selectedRoom.price_per_hour}/hr</span>
-                          <span className="font-semibold text-gray-900">Est. ${estimatedTotal.toFixed(0)}</span>
+                          <span className="font-semibold text-gray-900">Est. {money(estimatedTotal)}</span>
                         </div>
                       )}
                     </>
@@ -442,7 +478,7 @@ export default function AvailabilityView({ location, rooms }: { location: BookLo
                 </div>
 
                 {/* CTA */}
-                {!weekend && (
+                {!dateClosed && (
                   <div className="px-5 py-4">
                     {canContinue ? (
                       <Link
@@ -463,7 +499,7 @@ export default function AvailabilityView({ location, rooms }: { location: BookLo
             )}
 
             {/* After-hours note */}
-            {selectedRoom && !weekend && (
+            {selectedRoom && !dateClosed && (
               <div className="px-5 py-3 bg-gray-50 border-t border-gray-100">
                 <p className="text-xs text-gray-600">
                   Need outside 9 AM–5 PM Monday–Friday?{' '}
@@ -479,7 +515,10 @@ export default function AvailabilityView({ location, rooms }: { location: BookLo
       </div>
 
       {/* Fine print */}
-      <p className="text-xs font-semibold text-gray-800 pt-4 border-t border-gray-200">
+      <p className="text-xs text-gray-500 pt-4 border-t border-gray-200">
+        Rooms are bookable Monday to Friday, 9:00 AM to 5:00 PM, up to {MAX_BOOKING_MONTHS_AHEAD} months ahead.
+      </p>
+      <p className="text-xs font-semibold text-gray-800">
         Bookings are non-refundable. Need to cancel?{' '}
         <a href={`mailto:${CONTACT_EMAIL}`} className="underline hover:text-gray-600">Contact us</a>
         {' '}to inquire about credit toward a future booking.

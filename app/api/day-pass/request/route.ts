@@ -87,6 +87,20 @@ export async function POST(request: Request) {
   if (pi.status !== 'succeeded') {
     return NextResponse.json({ error: 'Payment has not been completed.' }, { status: 400 })
   }
+  // One payment, one purchase. Without this, someone could pay for one day
+  // and then send the same payment again for a different day, getting it
+  // free (found while testing /book, 2026-09-22). Never refund here: that
+  // money belongs to the day pass that used it first.
+  const { data: paymentAlreadyUsed } = await admin
+    .from('day_passes')
+    .select('id')
+    .eq('stripe_payment_intent_id', stripe_payment_intent_id)
+    .limit(1)
+    .maybeSingle()
+  if (paymentAlreadyUsed) {
+    return NextResponse.json({ error: 'That payment has already been used for another booking. Please start a new booking.' }, { status: 409 })
+  }
+
   const expectedCents = DAY_PASS_PRICE_CENTS * uniqueDates.length
   if (pi.amount < expectedCents) {
     // Money is already taken at this point, so never just reject: refund it,

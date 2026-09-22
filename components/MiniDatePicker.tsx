@@ -10,9 +10,14 @@ type Props = {
   value: string       // YYYY-MM-DD
   onChange: (value: string) => void
   disabled?: boolean
+  /** Last selectable day, YYYY-MM-DD. Days after it are greyed out. */
+  maxDate?: string
+  /** Why a given day can't be picked (weekend, holiday…), or null if it can.
+   *  The reason shows as a tooltip on the greyed-out day. */
+  dayUnavailable?: (date: string) => string | null
 }
 
-export default function MiniDatePicker({ value, onChange, disabled }: Props) {
+export default function MiniDatePicker({ value, onChange, disabled, maxDate, dayUnavailable }: Props) {
   const [open, setOpen] = useState(false)
   const [pos, setPos] = useState({ top: 0, left: 0 })
   const [pickerMonth, setPickerMonth] = useState(() => value ? new Date(value + 'T12:00:00') : new Date())
@@ -86,7 +91,8 @@ export default function MiniDatePicker({ value, onChange, disabled }: Props) {
             </button>
             <span className="text-sm font-semibold text-gray-900">{format(pickerMonth, 'MMMM yyyy')}</span>
             <button type="button" onClick={() => setPickerMonth(m => addMonths(m, 1))}
-              className="p-1 hover:bg-gray-100 rounded transition-colors">
+              disabled={!!maxDate && format(startOfMonth(addMonths(pickerMonth, 1)), 'yyyy-MM-dd') > maxDate}
+              className="p-1 hover:bg-gray-100 rounded transition-colors disabled:opacity-30 disabled:cursor-not-allowed">
               <ChevronRight size={14} />
             </button>
           </div>
@@ -104,16 +110,21 @@ export default function MiniDatePicker({ value, onChange, disabled }: Props) {
               <div key={`pad-${i}`} />
             ))}
             {eachDayOfInterval({ start: startOfMonth(pickerMonth), end: endOfMonth(pickerMonth) }).map(day => {
+              const dayStr = format(day, 'yyyy-MM-dd')
               const isPast = isBefore(day, startOfDay(today))
+              const tooFar = !!maxDate && dayStr > maxDate
+              const reason = dayUnavailable?.(dayStr) ?? null
+              const blocked = isPast || tooFar || !!reason
               return (
                 <button
                   key={day.toISOString()}
                   type="button"
-                  disabled={isPast}
-                  onClick={() => !isPast && selectDay(day)}
+                  disabled={blocked}
+                  title={reason ?? undefined}
+                  onClick={() => !blocked && selectDay(day)}
                   className={cn(
                     'text-center text-xs py-1.5 rounded-md transition-colors',
-                    isPast
+                    blocked
                       ? 'text-gray-300 cursor-not-allowed'
                       : selectedDate && isSameDay(day, selectedDate)
                       ? 'bg-booking-600 text-white font-semibold'

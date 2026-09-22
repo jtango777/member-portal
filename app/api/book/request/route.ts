@@ -5,6 +5,7 @@ import { sendExternalBookingReceipt, sendExternalBookingStaffNotification, sendS
 import { rateLimit } from '@/lib/rate-limit'
 import { verifyRecaptcha } from '@/lib/recaptcha'
 import { createSalesReceipt } from '@/lib/quickbooks'
+import { roomBookingError } from '@/lib/bookingRules'
 import Stripe from 'stripe'
 import { format } from 'date-fns'
 
@@ -67,6 +68,18 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Invalid phone number.' }, { status: 400 })
   }
 
+  // The booking rules again (the payment step checks them first). Anyone
+  // hitting this route directly skips the page entirely, so this is the
+  // check that actually protects the calendar.
+  const ruleProblem = roomBookingError(date, start, end)
+  if (ruleProblem) {
+    if (stripe_payment_intent_id) {
+      await refundAndAlert(stripe, stripe_payment_intent_id, 'Room booking broke the booking rules', { room_id, date, start, end, reason: ruleProblem })
+      return NextResponse.json({ error: `${ruleProblem} That charge has been refunded.` }, { status: 400 })
+    }
+    return NextResponse.json({ error: ruleProblem }, { status: 400 })
+  }
+
   const startTime = pacificToUTC(date, start)
   const endTime   = pacificToUTC(date, end)
 
@@ -94,6 +107,19 @@ export async function POST(request: Request) {
 
     if (pi.status !== 'succeeded') {
       return NextResponse.json({ error: 'Payment has not been completed.' }, { status: 400 })
+    }
+
+    // One payment, one booking. Without this, a customer could pay once
+    // and then send the same payment again for a second slot, getting it
+    // free (found in testing, 2026-09-22). Never refund here: that money
+    // belongs to the booking that used it first.
+    const { data: alreadyUsed } = await admin
+      .from('external_bookings')
+      .select('id')
+      .eq('stripe_payment_intent_id', stripe_payment_intent_id)
+      .maybeSingle()
+    if (alreadyUsed) {
+      return NextResponse.json({ error: 'That payment has already been used for another booking. Please start a new booking.' }, { status: 409 })
     }
 
     const [sh, sm] = start.split(':').map(Number)

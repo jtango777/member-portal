@@ -2,6 +2,7 @@ import { createAdminClient } from '@/lib/supabase/server'
 import { notFound, redirect } from 'next/navigation'
 import { format } from 'date-fns'
 import BookingForm from '@/components/book/BookingForm'
+import { roomBookingError } from '@/lib/bookingRules'
 
 function slotToLabel(slot: string): string {
   const [h, m] = slot.split(':').map(Number)
@@ -16,6 +17,11 @@ export default async function BookRequestPage({
   const { room: roomId, date, start, end, location: locationSlug } = await searchParams
 
   if (!roomId || !date || !start || !end || !locationSlug) redirect('/book')
+
+  // Someone who edited the address (or hit a stale link) shouldn't reach a
+  // checkout for a Saturday, a past time or a 15-minute slot — send them
+  // back to pick again rather than showing a form the server will refuse.
+  if (roomBookingError(date, start, end)) redirect(`/book/${locationSlug}`)
 
   const admin = createAdminClient()
 
