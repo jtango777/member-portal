@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { format, addDays, subDays } from 'date-fns'
 import { ArrowLeft, Check, ImageIcon, Phone, Mail, ChevronLeft, ChevronRight } from 'lucide-react'
@@ -111,6 +111,17 @@ export default function AvailabilityView({ location, rooms }: { location: BookLo
   const [loadingSlots,  setLoadingSlots]  = useState(false)
   const [selectedStart, setSelectedStart] = useState<string>('')
   const [selectedEnd,   setSelectedEnd]   = useState<string>('')
+  const widgetRef = useRef<HTMLDivElement>(null)
+
+  // On a phone the booking panel sits under every room card — picking a
+  // room left the date and time controls about 2,000px down the page with
+  // nothing to show anything had happened (found 2026-09-22). On desktop
+  // the panel is already beside the cards, so this only runs when stacked.
+  useEffect(() => {
+    if (!selectedRoom) return
+    if (window.innerWidth >= 1024) return
+    widgetRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }, [selectedRoom])
 
   // Weekends, holidays, past dates and anything past the 6-month window —
   // one shared rule with the API routes (lib/bookingRules).
@@ -335,7 +346,7 @@ export default function AvailabilityView({ location, rooms }: { location: BookLo
         {/* Sticky on the grid column itself (as on the day pass) — sticky on
             the inner card did nothing, since its wrapper was only as tall as
             the card. Desktop only; on phones it just stacks below the rooms. */}
-        <div className="lg:col-span-2 lg:sticky lg:top-6">
+        <div ref={widgetRef} className="lg:col-span-2 lg:sticky lg:top-6 scroll-mt-4">
           <div className={cn(
             'bg-white rounded-xl overflow-hidden transition-all',
             selectedRoom

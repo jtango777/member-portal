@@ -200,6 +200,12 @@ export async function POST(request: Request) {
   if (bookingError || !booking) {
     // Roll back the reservation if external booking fails
     await admin.from('reservations').delete().eq('id', reservation.id)
+    // The database refused a payment that already paid for another booking
+    // (migration 053). That's the reuse check above losing a race, not a
+    // failed booking — never refund here, the money is the first booking's.
+    if (bookingError?.message?.includes('external_bookings_one_payment_per_booking')) {
+      return NextResponse.json({ error: 'That payment has already been used for another booking. Please start a new booking.' }, { status: 409 })
+    }
     if (stripe_payment_intent_id) {
       await refundAndAlert(stripe, stripe_payment_intent_id, 'Room booking could not be saved after payment', { room_id, date, start, end, error: bookingError?.message })
     }
