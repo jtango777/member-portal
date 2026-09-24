@@ -447,13 +447,18 @@ function DetailsAndPayment({
   // 2026-09-15, $30 taken and refunded by hand). Changing the booking now
   // clears the old payment and gets a fresh one for the new total.
   const bookingKey = `${locationId}|${dates.join(',')}`
+  // Read inside the effects below without making them re-run on every
+  // keystroke in the card box.
+  const clientSecretRef = useRef(clientSecret)
+  clientSecretRef.current = clientSecret
+  const paymentIntentId = () => clientSecretRef.current?.split('_secret')[0]
+
   useEffect(() => {
     if (!existingCustomer) return
     let cancelled = false
     setCustomerId(existingCustomer.id)
     setGuestName(`${existingCustomer.first_name} ${existingCustomer.last_name}`)
     setGuestEmail(existingCustomer.email)
-    setClientSecret('')
     // Staff/member logins may not have a booking account row yet — create
     // it before payment, or the reservation would fail after paying.
     ;(async () => {
@@ -463,11 +468,11 @@ function DetailsAndPayment({
       const res = await fetch('/api/day-pass/create-payment-intent', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ location_id: locationId, dates }),
+        body: JSON.stringify({ location_id: locationId, dates, payment_intent_id: paymentIntentId() }),
       })
       const data = await res.json()
       if (cancelled) return
-      if (!res.ok) { setAccountError(data.error ?? 'Could not set up payment. Please try again.'); return }
+      if (!res.ok) { setClientSecret(''); setAccountError(data.error ?? 'Could not set up payment. Please try again.'); return }
       setClientSecret(data.clientSecret)
     })()
     return () => { cancelled = true }
@@ -475,23 +480,21 @@ function DetailsAndPayment({
   }, [existingCustomer, bookingKey])
 
   // Same protection for someone who just created an account here and then
-  // went back to change the dates: throw away the old payment and get one
-  // for the new total.
+  // went back to change the dates: re-price the payment for the new total.
   const firstBookingKey = useRef(bookingKey)
   useEffect(() => {
     if (existingCustomer || !customerId || bookingKey === firstBookingKey.current) return
     firstBookingKey.current = bookingKey
     let cancelled = false
-    setClientSecret('')
     ;(async () => {
       const res = await fetch('/api/day-pass/create-payment-intent', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ location_id: locationId, dates }),
+        body: JSON.stringify({ location_id: locationId, dates, payment_intent_id: paymentIntentId() }),
       })
       const data = await res.json()
       if (cancelled) return
-      if (!res.ok) { setAccountError(data.error ?? 'Could not set up payment. Please try again.'); return }
+      if (!res.ok) { setClientSecret(''); setAccountError(data.error ?? 'Could not set up payment. Please try again.'); return }
       setClientSecret(data.clientSecret)
     })()
     return () => { cancelled = true }

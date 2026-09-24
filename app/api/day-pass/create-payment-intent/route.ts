@@ -47,7 +47,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Too many requests. Please try again later.' }, { status: 429 })
   }
 
-  const { location_id, dates } = await request.json()
+  const { location_id, dates, payment_intent_id } = await request.json()
 
   if (!location_id || !Array.isArray(dates) || dates.length === 0) {
     return NextResponse.json({ error: 'Missing required fields.' }, { status: 400 })
@@ -98,6 +98,31 @@ export async function POST(request: Request) {
   const amount = DAY_PASS_PRICE_CENTS * uniqueDates.length
   const sortedDates = uniqueDates.sort()
 
+  const metadata = { type: 'day_pass', location_id, dates: sortedDates.join(',') }
+  const description = sortedDates.length > 1
+    ? `BizHaus — Day Pass × ${sortedDates.length} (${sortedDates[0]} to ${sortedDates[sortedDates.length - 1]})`
+    : `BizHaus — Day Pass · ${sortedDates[0]}`
+
+  // Changing the days used to mean a brand new payment, which reset
+  // Stripe's card box and threw away whatever the customer had already
+  // typed (Chris found this while testing, 2026-09-23). Re-price the
+  // payment they already have instead, so the card box stays put. Only
+  // one that hasn't been paid yet can be re-priced; anything else falls
+  // through to a fresh one below. /request re-checks the amount against
+  // the days either way, so the September mis-charge can't come back.
+  if (payment_intent_id) {
+    try {
+      const existing = await stripe.paymentIntents.retrieve(payment_intent_id)
+      const repriceable = ['requires_payment_method', 'requires_confirmation']
+      if (existing.metadata?.type === 'day_pass' && repriceable.includes(existing.status)) {
+        const updated = await stripe.paymentIntents.update(payment_intent_id, { amount, metadata, description })
+        return NextResponse.json({ clientSecret: updated.client_secret, paymentIntentId: updated.id, reused: true })
+      }
+    } catch (err) {
+      console.error('[day-pass/create-payment-intent] Could not re-price, creating a new one:', err)
+    }
+  }
+
   const paymentIntent = await stripe.paymentIntents.create({
     amount,
     currency: 'usd',
@@ -105,11 +130,9 @@ export async function POST(request: Request) {
     // Link's "save my info" box and bank payments, which take days to clear
     // while checkout expects an instant 'succeeded' (2026-09-15).
     payment_method_types: ['card'],
-    metadata: { type: 'day_pass', location_id, dates: sortedDates.join(',') },
-    description: sortedDates.length > 1
-      ? `BizHaus — Day Pass × ${sortedDates.length} (${sortedDates[0]} to ${sortedDates[sortedDates.length - 1]})`
-      : `BizHaus — Day Pass · ${sortedDates[0]}`,
+    metadata,
+    description,
   })
 
-  return NextResponse.json({ clientSecret: paymentIntent.client_secret })
+  return NextResponse.json({ clientSecret: paymentIntent.client_secret, paymentIntentId: paymentIntent.id })
 }

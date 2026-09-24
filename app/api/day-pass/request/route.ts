@@ -102,7 +102,11 @@ export async function POST(request: Request) {
   }
 
   const expectedCents = DAY_PASS_PRICE_CENTS * uniqueDates.length
-  if (pi.amount < expectedCents) {
+  // Exact match, not "at least enough". Paying too little was always
+  // refused; paying too much used to sail through and quietly overcharge,
+  // which mattered more once a payment could be re-priced rather than
+  // replaced (Caroline, 2026-09-23).
+  if (pi.amount !== expectedCents) {
     // Money is already taken at this point, so never just reject: refund it,
     // or the customer has paid for nothing. Hit for real 2026-09-15 when
     // changing the dates mid-checkout left a stale (cheaper) payment behind

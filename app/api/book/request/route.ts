@@ -126,7 +126,8 @@ export async function POST(request: Request) {
     const [eh, em] = end.split(':').map(Number)
     const hours = ((eh * 60 + em) - (sh * 60 + sm)) / 60
     const expectedCents = Math.round(hours * (room.price_per_hour as number) * 100)
-    if (pi.amount < expectedCents) {
+    // Exact match, so an overpayment is refunded rather than pocketed.
+    if (pi.amount !== expectedCents) {
       await refundAndAlert(stripe, pi.id, 'Room booking payment did not match the booking', { expectedCents, paidCents: pi.amount, room_id, date, start, end })
       return NextResponse.json({ error: 'Your booking changed after payment was set up, so we refunded that charge. Please try again.' }, { status: 400 })
     }
