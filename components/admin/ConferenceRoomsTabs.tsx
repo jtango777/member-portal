@@ -5,7 +5,7 @@ import AllBookingsView from './AllBookingsView'
 import RoomsManager from './RoomsManager'
 import ExternalRoomsManager from './ExternalRoomsManager'
 import ClosureDaysManager from './ClosureDaysManager'
-import TabPanel from './TabPanel'
+import TabPanel from '@/components/TabPanel'
 import { cn } from '@/lib/utils'
 
 // Everything about conference rooms in one place: who booked them, the
@@ -21,7 +21,7 @@ import { cn } from '@/lib/utils'
 type Tab = 'bookings' | 'internal' | 'external' | 'closed'
 
 const TABS: [Tab, string][] = [
-  ['bookings', 'Bookings'],
+  ['bookings', 'All Bookings'],
   ['internal', 'Internal Rooms'],
   ['external', 'External Rooms'],
   ['closed',   'Closed Days'],

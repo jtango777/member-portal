@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import TabPanel from '@/components/TabPanel'
 import { Reservation } from '@/types'
 import { format } from 'date-fns'
 import { Trash2, MapPin, Clock, Mail, Phone, Search } from 'lucide-react'
@@ -134,7 +135,7 @@ export default function AllBookingsView({ reservations: initialRes, externalBook
         </div>
       }>
         <AdminTable
-          colWidths={showDelete ? ['18%', '14%', '11%', '16%', '14%', '14%', '13%'] : ['20%', '16%', '13%', '18%', '16%', '17%']}
+          colWidths={['18%', '14%', '11%', '16%', '14%', '14%', '13%']}
           minWidth={900}
         >
           <thead>
@@ -145,7 +146,7 @@ export default function AllBookingsView({ reservations: initialRes, externalBook
               <Th>Date & Time</Th>
               <Th>Booked by</Th>
               <Th>Company</Th>
-              {showDelete && <th className="px-4 py-3" />}
+              <th className="px-4 py-3" />
             </tr>
           </thead>
           <tbody>
@@ -172,6 +173,7 @@ export default function AllBookingsView({ reservations: initialRes, externalBook
                 </td>
                 <td className="px-4 py-2 text-gray-600 truncate">{r.profiles?.full_name}</td>
                 <td className="px-4 py-2 text-gray-600 truncate">{r.companies?.name}</td>
+                {!showDelete && <td className="px-4 py-2" />}
                 {showDelete && (
                   <td className="px-4 py-2 w-24">
                     <div className="grid">
@@ -492,6 +494,9 @@ export default function AllBookingsView({ reservations: initialRes, externalBook
         ))}
       </div>
 
+      {/* key={activeTab} remounts on every switch, so these ease in the
+          same way the page's own tabs do (Caroline, 2026-09-25). */}
+      <TabPanel key={activeTab} className="space-y-6">
       {/* Internal tab */}
       {activeTab === 'internal' && (
         <div className="space-y-6">
@@ -544,6 +549,7 @@ export default function AllBookingsView({ reservations: initialRes, externalBook
 
       {/* All tab */}
       {activeTab === 'all' && <CombinedTable />}
+      </TabPanel>
 
     </div>
   )

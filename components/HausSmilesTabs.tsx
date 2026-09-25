@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import TabPanel from '@/components/TabPanel'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Trash2, Pencil, Search, User } from 'lucide-react'
@@ -113,6 +114,9 @@ export default function HausSmilesTabs({ groups, defaultLocationId, isAdmin }: P
         </div>
       </div>
 
+      {/* key={active.key} remounts when you switch location, which eases the
+          faces in instead of swapping them instantly (Caroline, 2026-09-25). */}
+      <TabPanel key={active.key}>
       {visibleMembers.length === 0 && (
         <p className="text-sm text-gray-500">No one matches that filter yet.</p>
       )}
@@ -196,6 +200,7 @@ export default function HausSmilesTabs({ groups, defaultLocationId, isAdmin }: P
           </div>
         ))}
       </div>
+      </TabPanel>
 
       {editingPhoto && (
         <AssignPhotoDialog

@@ -6,7 +6,7 @@ import { AdminTable, Th, tdNowrap, tdBase, Section, Pagination, usePagedList } f
 import { cn } from '@/lib/utils'
 import DayPassSettings from './DayPassSettings'
 import ClosureDaysManager from './ClosureDaysManager'
-import TabPanel from './TabPanel'
+import TabPanel from '@/components/TabPanel'
 
 type DayPass = {
   id: string
