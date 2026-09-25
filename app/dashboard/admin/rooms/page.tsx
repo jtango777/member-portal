@@ -1,6 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
-import RoomsManager from '@/components/admin/RoomsManager'
-import ExternalRoomsManager from '@/components/admin/ExternalRoomsManager'
+import RoomSettingsTabs from '@/components/admin/RoomSettingsTabs'
 
 export const dynamic = 'force-dynamic'
 
@@ -12,12 +11,8 @@ export default async function RoomsPage() {
     supabase.from('rooms').select('*').order('sort_order'),
   ])
 
-  return (
-    <div className="space-y-12">
-      <RoomsManager locations={locations ?? []} initialRooms={rooms ?? []} />
-      <div className="border-t border-gray-200 pt-10">
-        <ExternalRoomsManager locations={locations ?? []} initialRooms={rooms ?? []} />
-      </div>
-    </div>
-  )
+  // Internal and external rooms are two different jobs, so they're tabs now
+  // rather than one long page; the public booking site's closed days live
+  // under External with the rooms they affect (Caroline, 2026-09-25).
+  return <RoomSettingsTabs locations={locations ?? []} rooms={rooms ?? []} />
 }

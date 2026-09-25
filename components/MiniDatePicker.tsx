@@ -15,9 +15,16 @@ type Props = {
   /** Why a given day can't be picked (weekend, holiday…), or null if it can.
    *  The reason shows as a tooltip on the greyed-out day. */
   dayUnavailable?: (date: string) => string | null
+  /** The booking site's green by default; the admin dashboard is blue. */
+  accent?: 'booking' | 'blue'
+  /** Shown on the button before a date is picked. */
+  placeholder?: string
 }
 
-export default function MiniDatePicker({ value, onChange, disabled, maxDate, dayUnavailable }: Props) {
+export default function MiniDatePicker({ value, onChange, disabled, maxDate, dayUnavailable, accent = 'booking', placeholder = 'Select date' }: Props) {
+  const tone = accent === 'blue'
+    ? { ring: 'focus:ring-blue-500', selected: 'bg-blue-600 text-white font-semibold', today: 'bg-blue-50 text-blue-600 font-semibold' }
+    : { ring: 'focus:ring-booking-500', selected: 'bg-booking-600 text-white font-semibold', today: 'bg-booking-50 text-booking-600 font-semibold' }
   const [open, setOpen] = useState(false)
   const [pos, setPos] = useState({ top: 0, left: 0 })
   const [pickerMonth, setPickerMonth] = useState(() => value ? new Date(value + 'T12:00:00') : new Date())
@@ -68,11 +75,12 @@ export default function MiniDatePicker({ value, onChange, disabled, maxDate, day
         disabled={disabled}
         onClick={handleOpen}
         className={cn(
-          'w-full text-left border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white transition-colors focus:outline-none focus:ring-2 focus:ring-booking-500',
+          'w-full text-left border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white transition-colors focus:outline-none focus:ring-2',
+          tone.ring,
           disabled ? 'opacity-40 cursor-not-allowed' : 'hover:border-gray-400 cursor-pointer',
         )}
       >
-        {selectedDate ? format(selectedDate, 'MMM d, yyyy') : 'Select date'}
+        {selectedDate ? format(selectedDate, 'MMM d, yyyy') : <span className="text-gray-400">{placeholder}</span>}
       </button>
 
       {open && createPortal(
@@ -127,9 +135,9 @@ export default function MiniDatePicker({ value, onChange, disabled, maxDate, day
                     blocked
                       ? 'text-gray-300 cursor-not-allowed'
                       : selectedDate && isSameDay(day, selectedDate)
-                      ? 'bg-booking-600 text-white font-semibold'
+                      ? tone.selected
                       : isSameDay(day, today)
-                      ? 'bg-booking-50 text-booking-600 font-semibold'
+                      ? tone.today
                       : 'hover:bg-gray-100 text-gray-700'
                   )}
                 >

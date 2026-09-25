@@ -6,7 +6,7 @@ import { format, addDays, subDays } from 'date-fns'
 import { ArrowLeft, Check, ImageIcon, Phone, Mail, ChevronLeft, ChevronRight, Clock, Users } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import MiniDatePicker from '@/components/MiniDatePicker'
-import { dateUnavailableReason, lastBookableDate, MAX_BOOKING_MONTHS_AHEAD } from '@/lib/bookingRules'
+import { dateUnavailableReason, lastBookableDate, MAX_BOOKING_MONTHS_AHEAD, type ClosureMap } from '@/lib/bookingRules'
 
 type BookRoom = {
   id: string
@@ -92,7 +92,7 @@ function pacificNowMinutes(): number {
   return h * 60 + m
 }
 
-export default function AvailabilityView({ location, rooms }: { location: BookLocation; rooms: BookRoom[] }) {
+export default function AvailabilityView({ location, rooms, closures }: { location: BookLocation; rooms: BookRoom[]; closures: ClosureMap }) {
   const today = pacificToday()
 
   const [carouselIndex, setCarouselIndex] = useState<Record<string, number>>({})
@@ -118,7 +118,7 @@ export default function AvailabilityView({ location, rooms }: { location: BookLo
 
   // Weekends, holidays, past dates and anything past the 6-month window —
   // one shared rule with the API routes (lib/bookingRules).
-  const unavailableReason = dateUnavailableReason(selectedDate)
+  const unavailableReason = dateUnavailableReason(selectedDate, closures)
   const dateClosed = unavailableReason !== null
 
   useEffect(() => {
@@ -389,7 +389,7 @@ export default function AvailabilityView({ location, rooms }: { location: BookLo
                           value={selectedDate}
                           onChange={v => { setSelectedDate(v); setSelectedStart(''); setSelectedEnd('') }}
                           maxDate={lastBookableDate()}
-                          dayUnavailable={dateUnavailableReason}
+                          dayUnavailable={d => dateUnavailableReason(d, closures)}
                         />
                       </div>
                       <button onClick={nextDay} disabled={selectedDate >= lastBookableDate()}

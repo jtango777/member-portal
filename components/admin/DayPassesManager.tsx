@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import { format } from 'date-fns'
 import { AdminTable, Th, tdNowrap, tdBase, Section, Pagination, usePagedList } from './AdminTable'
 import { cn } from '@/lib/utils'
@@ -38,7 +39,13 @@ function groupByConfirmation(dayPasses: DayPass[]) {
   }).sort((a, b) => b.first.date.localeCompare(a.first.date))
 }
 
+type Tab = 'bookings' | 'settings'
+
 export default function DayPassesManager({ dayPasses }: { dayPasses: DayPass[] }) {
+  // Two jobs on one page: read the bookings, or change the price and the
+  // closed days. Settings sat on top of the list and pushed it off screen
+  // (Caroline, 2026-09-25), so they're tabs now and the list opens first.
+  const [tab, setTab] = useState<Tab>('bookings')
   const grouped = groupByConfirmation(dayPasses)
   const { paged, paginationProps } = usePagedList(grouped, 25)
 
@@ -54,10 +61,28 @@ export default function DayPassesManager({ dayPasses }: { dayPasses: DayPass[] }
         </p>
       </div>
 
-      <DayPassSettings />
+      <div className="flex gap-1 border-b border-gray-200">
+        {([['bookings', 'Bookings'], ['settings', 'Price & Closed Days']] as [Tab, string][]).map(([key, label]) => (
+          <button
+            key={key}
+            onClick={() => setTab(key)}
+            className={cn(
+              'px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors',
+              tab === key
+                ? 'border-blue-600 text-blue-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700'
+            )}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
 
+      {tab === 'settings' && <DayPassSettings />}
+
+      {tab === 'bookings' && (
       <Section title={`${dayPasses.length} Day Passes`} headerRight={<Pagination {...paginationProps} />}>
-        <AdminTable colWidths={['110px', '160px', '220px', '140px', '90px', '110px', '140px']} minWidth={900}>
+        <AdminTable colWidths={['110px', '180px', '240px', '140px', '90px', '110px', '140px']} minWidth={940}>
           <thead>
             <tr>
               <Th>Confirmation</Th>
@@ -74,10 +99,14 @@ export default function DayPassesManager({ dayPasses }: { dayPasses: DayPass[] }
               <tr key={d.confirmation_number ?? d.id} className="hover:bg-gray-50">
                 <td className={cn(tdNowrap, 'font-mono text-xs text-gray-500')}>{d.confirmation_number ?? '—'}</td>
                 <td className={tdNowrap}>
-                  {dates.length > 1
-                    ? `${format(new Date(dates[0] + 'T12:00:00'), 'MMM d')} – ${format(new Date(dates[dates.length - 1] + 'T12:00:00'), 'MMM d, yyyy')}`
-                    : format(new Date(dates[0] + 'T12:00:00'), 'MMM d, yyyy')}
-                  {dates.length > 1 && <span className="text-gray-400 ml-1">({dates.length} days)</span>}
+                  <div>
+                    {dates.length > 1
+                      ? `${format(new Date(dates[0] + 'T12:00:00'), 'MMM d')} – ${format(new Date(dates[dates.length - 1] + 'T12:00:00'), 'MMM d, yyyy')}`
+                      : format(new Date(dates[0] + 'T12:00:00'), 'MMM d, yyyy')}
+                  </div>
+                  {/* Its own line — beside the date it ran into the customer
+                      column on multi-day rows (Caroline, 2026-09-25). */}
+                  {dates.length > 1 && <div className="text-xs text-gray-400">{dates.length} days</div>}
                 </td>
                 <td className="px-4 py-3 truncate">
                   {d.booking_customers ? (
@@ -103,6 +132,7 @@ export default function DayPassesManager({ dayPasses }: { dayPasses: DayPass[] }
           </tbody>
         </AdminTable>
       </Section>
+      )}
     </div>
   )
 }
