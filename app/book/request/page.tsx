@@ -3,6 +3,7 @@ import { notFound, redirect } from 'next/navigation'
 import { format } from 'date-fns'
 import BookingForm from '@/components/book/BookingForm'
 import { roomBookingError } from '@/lib/bookingRules'
+import { getClosureMap } from '@/lib/settings'
 
 function slotToLabel(slot: string): string {
   const [h, m] = slot.split(':').map(Number)
@@ -21,7 +22,7 @@ export default async function BookRequestPage({
   // Someone who edited the address (or hit a stale link) shouldn't reach a
   // checkout for a Saturday, a past time or a 15-minute slot — send them
   // back to pick again rather than showing a form the server will refuse.
-  if (roomBookingError(date, start, end)) redirect(`/book/${locationSlug}`)
+  if (roomBookingError(date, start, end, await getClosureMap('rooms'))) redirect(`/book/${locationSlug}`)
 
   const admin = createAdminClient()
 

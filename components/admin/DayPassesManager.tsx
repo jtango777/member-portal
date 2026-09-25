@@ -3,6 +3,7 @@
 import { format } from 'date-fns'
 import { AdminTable, Th, tdNowrap, tdBase, Section, Pagination, usePagedList } from './AdminTable'
 import { cn } from '@/lib/utils'
+import DayPassSettings from './DayPassSettings'
 
 type DayPass = {
   id: string
@@ -52,6 +53,8 @@ export default function DayPassesManager({ dayPasses }: { dayPasses: DayPass[] }
           {confirmedTotal} confirmed · ${revenue.toFixed(2)} in revenue
         </p>
       </div>
+
+      <DayPassSettings />
 
       <Section title={`${dayPasses.length} Day Passes`} headerRight={<Pagination {...paginationProps} />}>
         <AdminTable colWidths={['110px', '160px', '220px', '140px', '90px', '110px', '140px']} minWidth={900}>

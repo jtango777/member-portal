@@ -5,7 +5,7 @@ import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay, addMonths,
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { cn, isSameDay } from '@/lib/utils'
 import { MAX_DAY_PASS_DAYS, MAX_DAY_PASS_MONTHS_AHEAD } from '@/lib/dayPass'
-import { closureName } from '@/lib/holidays'
+import { useDayPassSettings } from '@/components/day-pass/SettingsContext'
 
 type Props = {
   // Any number of dates, in any combination — not necessarily consecutive.
@@ -43,6 +43,9 @@ function toDate(s: string) {
 // It used to have Single day / Multiple days tabs, which made choosing a
 // single date a two-step decision for no reason (Caroline, 2026-09-16).
 export default function DayPassDatePicker({ selected, onChange, bookedDates = [] }: Props) {
+  // Closed days are editable by staff now, so they arrive at runtime
+  // rather than from a constant file (Caroline, 2026-09-25).
+  const { closures } = useDayPassSettings()
   const [open, setOpen] = useState(false)
   const [pickerMonth, setPickerMonth] = useState(() => selected[0] ? toDate(selected[0]) : new Date())
   // Every click applies straight away — the price, day list and total all
@@ -141,7 +144,7 @@ export default function DayPassDatePicker({ selected, onChange, bookedDates = []
                 const isPast = isBefore(day, startOfDay(today))
                 const weekend = isWeekend(day)
                 const value = format(day, 'yyyy-MM-dd')
-                const closed = closureName(value)
+                const closed = closures[value] ?? null
                 const tooFar = isAfter(day, lastBookable)
                 const alreadyBooked = bookedDates.includes(value)
                 const atLimit = pending.length >= MAX_DAY_PASS_DAYS && !pending.includes(value)

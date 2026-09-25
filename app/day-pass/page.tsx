@@ -7,6 +7,7 @@ import { loadStripe } from '@stripe/stripe-js'
 import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js'
 import { eachDayOfInterval, getDay, format as formatDate } from 'date-fns'
 import DayPassDatePicker from '@/components/DayPassDatePicker'
+import { DayPassSettingsProvider, useDayPassSettings } from '@/components/day-pass/SettingsContext'
 import Recaptcha, { RecaptchaHandle } from '@/components/Recaptcha'
 import { createClient } from '@/lib/supabase/client'
 import { cn, getPacificDayBounds } from '@/lib/utils'
@@ -31,7 +32,8 @@ const LOCATIONS = [
   { id: '11111111-1111-1111-1111-111111111103', name: 'Costa Mesa', phone: '(949) 800-8660', address: '2942 Century Pl, Costa Mesa, CA 92626', photo: '/rooms/cm-open-space.jpg' },
 ] as const
 
-const DAY_PASS_PRICE = 30
+// The price comes from the database via DayPassSettingsProvider — staff
+// edit it at /dashboard/admin/day-passes (Caroline, 2026-09-25).
 
 type Section = 'reservation' | 'details'
 type Phase = Section | 'confirmation'
@@ -67,6 +69,14 @@ function todayDateStr(): string {
 }
 
 export default function DayPassPage() {
+  return (
+    <DayPassSettingsProvider>
+      <DayPassBooking />
+    </DayPassSettingsProvider>
+  )
+}
+
+function DayPassBooking() {
   const [phase, setPhase] = useState<Phase>('reservation')
   const [locationId, setLocationId] = useState<string>(LOCATIONS[0].id)
   // Nothing pre-selected — picking the date is the first real decision, and
@@ -815,7 +825,8 @@ function PaymentStep({ customerId, locationId, dates, guestName, guestEmail, onS
     }
   }
 
-  const total = DAY_PASS_PRICE * dates.length
+  const { priceDollars } = useDayPassSettings()
+  const total = priceDollars * dates.length
 
   return (
     <div className="flex flex-col gap-5 mt-3">
@@ -884,7 +895,8 @@ function StepConfirmation({ loc, dates, guestName, guestEmail, confirmationNumbe
     const { start, end } = dayPassUtcStamps(dates[0])
     return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(`BizHaus Day Pass (${loc.name})`)}&dates=${start}/${end}&location=${encodeURIComponent(loc.address)}&details=${encodeURIComponent(`Confirmation #${confirmationNumber}`)}`
   })() : null
-  const total = DAY_PASS_PRICE * dates.length
+  const { priceDollars } = useDayPassSettings()
+  const total = priceDollars * dates.length
   const dateRangeLabel = dates.length > 1
     ? `${dates.length} days (${formatDate(new Date(dates[0] + 'T12:00:00'), 'MMM d')} – ${formatDate(new Date(dates[dates.length - 1] + 'T12:00:00'), 'MMM d, yyyy')})`
     : dates[0] ? formatDate(new Date(dates[0] + 'T12:00:00'), 'EEEE, MMMM d, yyyy') : ''
@@ -993,7 +1005,8 @@ function StepConfirmation({ loc, dates, guestName, guestEmail, confirmationNumbe
 
 function PriceSummary({ days, locationName }: { days: number; locationName: string }) {
   // No days chosen yet: show the rate, not a made-up $30 total.
-  const total = DAY_PASS_PRICE * days
+  const { priceDollars } = useDayPassSettings()
+  const total = priceDollars * days
   return (
     <div className="flex flex-col gap-4">
       {/* Reassurance before they pay — our real policy, not marketing:
@@ -1015,7 +1028,7 @@ function PriceSummary({ days, locationName }: { days: number; locationName: stri
         </div>
         <div className="px-5 py-4 flex flex-col gap-2.5">
           <div className="flex justify-between text-sm text-gray-700">
-            <span>${DAY_PASS_PRICE} / day{days > 1 ? ` × ${days} days` : ''}</span>
+            <span>${priceDollars} / day{days > 1 ? ` × ${days} days` : ''}</span>
             <span>{days ? `$${total}.00` : '—'}</span>
           </div>
           <div className="bg-gray-50 rounded-lg px-3 -mx-3 py-2.5 flex justify-between text-sm font-semibold text-gray-900">

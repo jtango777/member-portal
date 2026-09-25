@@ -4,7 +4,7 @@ import { rateLimit } from '@/lib/rate-limit'
 import { getDay, format } from 'date-fns'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { DAY_PASS_PRICE_CENTS, MAX_DAY_PASS_DAYS, MAX_DAYS_MESSAGE, MAX_DAY_PASS_MONTHS_AHEAD, TOO_FAR_MESSAGE } from '@/lib/dayPass'
-import { closureName } from '@/lib/holidays'
+import { getDayPassPriceCents, getClosureMap } from '@/lib/settings'
 
 // Re-exported so existing imports of these from this route keep working.
 export { DAY_PASS_PRICE_CENTS, MAX_DAY_PASS_DAYS, MAX_DAYS_MESSAGE, TOO_FAR_MESSAGE }
@@ -81,9 +81,11 @@ export async function POST(request: Request) {
   }
 
   // BizHaus is shut on these — the picker greys them out, this is the guard.
-  const closedDay = (uniqueDates as string[]).find(d => closureName(d))
+  // Staff edit the list at /dashboard/admin/day-passes.
+  const closures = await getClosureMap('day_pass')
+  const closedDay = (uniqueDates as string[]).find(d => closures[d])
   if (closedDay) {
-    return NextResponse.json({ error: `We're closed on ${closureName(closedDay)}. Please pick another day.` }, { status: 400 })
+    return NextResponse.json({ error: `We're closed on ${closures[closedDay]}. Please pick another day.` }, { status: 400 })
   }
 
   if (uniqueDates.length > MAX_DAY_PASS_DAYS) {
@@ -95,7 +97,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: alreadyBookedMessage(clashes) }, { status: 409 })
   }
 
-  const amount = DAY_PASS_PRICE_CENTS * uniqueDates.length
+  const amount = (await getDayPassPriceCents()) * uniqueDates.length
   const sortedDates = uniqueDates.sort()
 
   const metadata = { type: 'day_pass', location_id, dates: sortedDates.join(',') }

@@ -7,7 +7,7 @@ import { createSalesReceipt } from '@/lib/quickbooks'
 import Stripe from 'stripe'
 import { format, getDay } from 'date-fns'
 import { DAY_PASS_PRICE_CENTS, MAX_DAY_PASS_DAYS, MAX_DAYS_MESSAGE, TOO_FAR_MESSAGE, tooFarAhead, alreadyBookedDates, alreadyBookedMessage } from '@/app/api/day-pass/create-payment-intent/route'
-import { closureName } from '@/lib/holidays'
+import { getDayPassPriceCents, getClosureMap } from '@/lib/settings'
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2025-05-28.basil' })
 
@@ -101,7 +101,8 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'That payment has already been used for another booking. Please start a new booking.' }, { status: 409 })
   }
 
-  const expectedCents = DAY_PASS_PRICE_CENTS * uniqueDates.length
+  const priceCents = await getDayPassPriceCents()
+  const expectedCents = priceCents * uniqueDates.length
   // Exact match, not "at least enough". Paying too little was always
   // refused; paying too much used to sail through and quietly overcharge,
   // which mattered more once a payment could be re-priced rather than
@@ -120,10 +121,11 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: `${TOO_FAR_MESSAGE} That charge has been refunded.` }, { status: 400 })
   }
 
-  const closedDay = (uniqueDates as string[]).find(d => closureName(d))
+  const closures = await getClosureMap('day_pass')
+  const closedDay = (uniqueDates as string[]).find(d => closures[d])
   if (closedDay) {
-    await refundAndAlert(stripe, pi.id, 'Day pass bought for a closure day', { date: closedDay, holiday: closureName(closedDay) })
-    return NextResponse.json({ error: `We're closed on ${closureName(closedDay)}, so that charge has been refunded. Please pick another day.` }, { status: 400 })
+    await refundAndAlert(stripe, pi.id, 'Day pass bought for a closure day', { date: closedDay, holiday: closures[closedDay] })
+    return NextResponse.json({ error: `We're closed on ${closures[closedDay]}, so that charge has been refunded. Please pick another day.` }, { status: 400 })
   }
 
   if (uniqueDates.length > MAX_DAY_PASS_DAYS) {
@@ -152,7 +154,7 @@ export async function POST(request: Request) {
       customer_id,
       location_id,
       date,
-      price_cents: DAY_PASS_PRICE_CENTS,
+      price_cents: priceCents,
       status: 'confirmed' as const,
       stripe_payment_intent_id,
       confirmation_number: confirmationNumber,
@@ -185,7 +187,7 @@ export async function POST(request: Request) {
         roomName: 'Day Pass',
         date: dateLabel,
         time: '9:00am – 5:00pm',
-        amount: DAY_PASS_PRICE_CENTS / 100,
+        amount: priceCents / 100,
       })
       if (receipt?.Id) {
         await admin.from('day_passes').update({ qb_receipt_id: receipt.Id }).eq('id', dayPasses[i].id)

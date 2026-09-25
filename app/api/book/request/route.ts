@@ -6,6 +6,7 @@ import { rateLimit } from '@/lib/rate-limit'
 import { verifyRecaptcha } from '@/lib/recaptcha'
 import { createSalesReceipt } from '@/lib/quickbooks'
 import { roomBookingError } from '@/lib/bookingRules'
+import { getClosureMap } from '@/lib/settings'
 import Stripe from 'stripe'
 import { format } from 'date-fns'
 
@@ -71,7 +72,7 @@ export async function POST(request: Request) {
   // The booking rules again (the payment step checks them first). Anyone
   // hitting this route directly skips the page entirely, so this is the
   // check that actually protects the calendar.
-  const ruleProblem = roomBookingError(date, start, end)
+  const ruleProblem = roomBookingError(date, start, end, await getClosureMap('rooms'))
   if (ruleProblem) {
     if (stripe_payment_intent_id) {
       await refundAndAlert(stripe, stripe_payment_intent_id, 'Room booking broke the booking rules', { room_id, date, start, end, reason: ruleProblem })

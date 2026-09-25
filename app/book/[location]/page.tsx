@@ -1,6 +1,7 @@
 import { createAdminClient } from '@/lib/supabase/server'
 import { notFound } from 'next/navigation'
 import AvailabilityView from '@/components/book/AvailabilityView'
+import { getClosureMap } from '@/lib/settings'
 
 type BookRoom = {
   id: string
@@ -29,6 +30,10 @@ export default async function BookLocationPage({ params }: { params: Promise<{ l
 
   if (!location) notFound()
 
+  // Staff edit these at /dashboard/admin/day-passes; the routes check the
+  // same list again before taking any money.
+  const closures = await getClosureMap('rooms')
+
   const { data: rooms } = await admin
     .from('rooms')
     .select('id, location_id, external_name, capacity, price_per_hour, sort_order, description')
@@ -40,6 +45,7 @@ export default async function BookLocationPage({ params }: { params: Promise<{ l
   return (
     <div className="max-w-6xl mx-auto px-6 py-8">
       <AvailabilityView
+        closures={closures}
         location={location as BookLocation}
         rooms={(rooms ?? []) as BookRoom[]}
       />

@@ -8,7 +8,9 @@
 //
 // Client-safe: no server-only imports, so the booking page can use the same
 // functions the routes do.
-import { CLOSURE_DAYS, closureName } from '@/lib/holidays'
+// Closure days come from the database now (admin can edit them), so they're
+// passed in rather than imported. `{ "2026-12-25": "Christmas Day" }`.
+export type ClosureMap = Record<string, string>
 
 /** Bookable hours, Pacific. Anything outside these is arranged by phone. */
 export const OPEN_MINUTES  = 9 * 60    // 9:00 AM
@@ -61,11 +63,11 @@ export function isWeekendDate(date: string): boolean {
 
 /** Why this date can't be booked, or null if it can. Dates only — the time
  *  checks live in roomBookingError below. Used by the date picker too. */
-export function dateUnavailableReason(date: string): string | null {
+export function dateUnavailableReason(date: string, closures: ClosureMap = {}): string | null {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return 'Please choose a date.'
   if (date < pacificToday()) return 'That date has already passed.'
   if (isWeekendDate(date)) return 'Weekend bookings are arranged by phone. Call (310) 870-1730 or email bookings@bizhaus.com.'
-  if (CLOSURE_DAYS[date]) return `We're closed on ${closureName(date)}. Please pick another day.`
+  if (closures[date]) return `We're closed on ${closures[date]}. Please pick another day.`
   if (date > lastBookableDate()) return `Rooms can be booked up to ${MAX_BOOKING_MONTHS_AHEAD} months ahead. For something further out, email bookings@bizhaus.com.`
   return null
 }
@@ -74,8 +76,8 @@ export function dateUnavailableReason(date: string): string | null {
  * The single check both /api/book routes run. Returns an error message to
  * show the customer, or null when the booking is allowed.
  */
-export function roomBookingError(date: string, start: string, end: string): string | null {
-  const dateProblem = dateUnavailableReason(date)
+export function roomBookingError(date: string, start: string, end: string, closures: ClosureMap = {}): string | null {
+  const dateProblem = dateUnavailableReason(date, closures)
   if (dateProblem) return dateProblem
 
   const startMin = toMinutes(start)
