@@ -8,9 +8,9 @@ import { createSalesReceipt } from '@/lib/quickbooks'
 import { roomBookingError } from '@/lib/bookingRules'
 import { getClosureMap } from '@/lib/settings'
 import Stripe from 'stripe'
+import { stripe } from '@/lib/stripe'
 import { format } from 'date-fns'
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2025-05-28.basil' })
 
 function pacificToUTC(dateStr: string, timeStr: string): Date {
   const { start: dayStart } = getPacificDayBounds(dateStr)

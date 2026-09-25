@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import Stripe from 'stripe'
+import { stripe } from '@/lib/stripe'
 import { rateLimit } from '@/lib/rate-limit'
 import { getDay, format } from 'date-fns'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
@@ -16,7 +17,6 @@ export function tooFarAhead(dates: string[]): boolean {
   return dates.some(d => d > cutoff)
 }
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2025-05-28.basil' })
 
 // Flat price across all locations for now — if that ever changes, this
 // becomes a per-location lookup the same way /book looks up price_per_hour.

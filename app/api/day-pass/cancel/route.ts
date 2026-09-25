@@ -2,11 +2,11 @@ import { format } from 'date-fns'
 import { NextResponse } from 'next/server'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import Stripe from 'stripe'
+import { stripe } from '@/lib/stripe'
 import { getPacificDayBounds } from '@/lib/utils'
 import { voidSalesReceipt } from '@/lib/quickbooks'
 import { sendDayPassCancellationStaffNotification, sendDayPassCancellationEmail, sendSystemAlert } from '@/lib/email'
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2025-05-28.basil' })
 
 // Self-serve cancellation for day passes only — never /book, conference
 // rooms don't allow cancellations at all (Caroline, 2026-08-31).

@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/server'
 import Stripe from 'stripe'
+import { stripe } from '@/lib/stripe'
 import { createAdminClient } from '@/lib/supabase/server'
 import { rateLimit } from '@/lib/rate-limit'
 import { roomBookingError } from '@/lib/bookingRules'
 import { getClosureMap } from '@/lib/settings'
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2025-05-28.basil' })
 
 export async function POST(request: Request) {
   const ip = request.headers.get('x-forwarded-for') ?? 'unknown'
