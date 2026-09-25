@@ -76,7 +76,7 @@ export async function POST(request: Request) {
 
   const { data: location } = await admin
     .from('locations')
-    .select('id, name')
+    .select('id, name, qb_day_pass_item')
     .eq('id', location_id)
     .single()
   if (!location) return NextResponse.json({ error: 'Location not found.' }, { status: 404 })
@@ -188,6 +188,10 @@ export async function POST(request: Request) {
         date: dateLabel,
         time: '9:00am – 5:00pm',
         amount: priceCents / 100,
+        // The existing "Day Pass" product in that company's books, so this
+        // continues the same revenue line the report has always shown.
+        itemName: location.qb_day_pass_item ?? 'Day Pass',
+        description: `Day Pass — ${dateLabel}`,
       })
       if (receipt?.Id) {
         await admin.from('day_passes').update({ qb_receipt_id: receipt.Id }).eq('id', dayPasses[i].id)

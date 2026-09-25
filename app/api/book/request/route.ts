@@ -91,7 +91,7 @@ export async function POST(request: Request) {
   // Confirm room exists and is externally bookable
   const { data: room } = await admin
     .from('rooms')
-    .select('id, name, external_name, price_per_hour, location_id, location:locations(name)')
+    .select('id, name, external_name, price_per_hour, location_id, location:locations(name, qb_room_item)')
     .eq('id', room_id)
     .eq('external_bookable', true)
     .single()
@@ -242,8 +242,9 @@ export async function POST(request: Request) {
   const formattedDate = format(new Date(date + 'T12:00:00'), 'EEEE, MMMM d, yyyy')
   const startLabel = format(new Date(`2000-01-01T${padTime(start)}:00`), 'h:mm a')
   const endLabel = format(new Date(`2000-01-01T${padTime(end)}:00`), 'h:mm a')
-  const loc = room.location as { name: string } | { name: string }[] | null
+  const loc = room.location as { name: string; qb_room_item?: string } | { name: string; qb_room_item?: string }[] | null
   const locationName = Array.isArray(loc) ? loc[0]?.name ?? '' : loc?.name ?? ''
+  const roomItemName = (Array.isArray(loc) ? loc[0]?.qb_room_item : loc?.qb_room_item) ?? 'Event / Conference Rm Fee'
   const confirmationNumber = booking.id.slice(0, 8).toUpperCase()
 
   // Create the QuickBooks sales receipt right here, not in the Stripe
@@ -270,6 +271,10 @@ export async function POST(request: Request) {
         date: formattedDate,
         time: `${startLabel} – ${endLabel}`,
         amount: amountDollars,
+        // The conference room product already in that company's books; the
+        // name differs per entity, so it comes from the location.
+        itemName: roomItemName,
+        description: `${room.external_name ?? room.name} — ${formattedDate}, ${startLabel} – ${endLabel}`,
       })
       if (receipt?.Id) {
         await admin.from('external_bookings').update({ qb_receipt_id: receipt.Id }).eq('id', booking.id)

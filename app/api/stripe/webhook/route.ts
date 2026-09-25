@@ -50,7 +50,7 @@ export async function POST(request: Request) {
       try {
         const { data: room } = await admin
           .from('rooms')
-          .select('name, external_name, price_per_hour, location_id')
+          .select('name, external_name, price_per_hour, location_id, locations(qb_room_item)')
           .eq('id', booking.room_id)
           .single()
 
@@ -76,6 +76,10 @@ export async function POST(request: Request) {
             date: dateLabel,
             time: `${startLabel} – ${endLabel}`,
             amount: totalAmount,
+            // Same product the booking route would have used, so the two
+            // paths can't book the same sale to different revenue lines.
+            itemName: (room as any).locations?.qb_room_item ?? 'Event / Conference Rm Fee',
+            description: `${room.external_name ?? room.name} — ${dateLabel}, ${startLabel} – ${endLabel}`,
           })
           if (receipt?.Id) {
             await admin.from('external_bookings').update({ qb_receipt_id: receipt.Id }).eq('id', booking.id)
@@ -120,6 +124,13 @@ export async function POST(request: Request) {
         .single()
 
       if (customer) {
+        const { data: dpLocations } = await admin
+          .from('locations')
+          .select('id, qb_day_pass_item')
+        const dayPassItemFor = (locationId: string) =>
+          (dpLocations as { id: string; qb_day_pass_item: string }[] | null)
+            ?.find(l => l.id === locationId)?.qb_day_pass_item ?? 'Day Pass'
+
         // One QuickBooks line item per day, same per-instance pattern the
         // rest of this webhook uses — a range just means more calls here.
         for (const dayPass of dayPasses) {
@@ -139,6 +150,8 @@ export async function POST(request: Request) {
               date: dateLabel,
               time: '9:00am – 5:00pm',
               amount,
+              itemName: dayPassItemFor(dayPass.location_id),
+              description: `Day Pass — ${dateLabel}`,
             })
             // Stored so a later self-serve cancellation can void this exact
             // receipt instead of having to search QB for it.

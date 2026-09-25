@@ -131,18 +131,26 @@ async function findIncomeAccount(realmId: string, accessToken: string) {
   return accounts.find((a: any) => a.Name === 'Services') ?? accounts[0]
 }
 
-async function findOrCreateItem(realmId: string, accessToken: string) {
-  const query = encodeURIComponent("SELECT * FROM Item WHERE Name = 'Room Booking'")
+// The product/service the sale is booked against, by name, matching what
+// already exists in that company's books ("Day Pass", "Event / Conference
+// Rm Fee", "Conference Room Fee"). Creating one is the fallback, not the
+// intent: a name that doesn't match an existing item starts a brand new
+// line in the Sales by Product/Service report and quietly splits the
+// history, so it's logged loudly (Caroline, 2026-09-25).
+async function findOrCreateItem(realmId: string, accessToken: string, itemName: string) {
+  const safeName = itemName.replace(/'/g, "\\'")
+  const query = encodeURIComponent(`SELECT * FROM Item WHERE Name = '${safeName}'`)
   const result = await qbFetch('GET', `/query?query=${query}`, realmId, accessToken)
 
   if (result.QueryResponse?.Item?.length > 0) {
     return result.QueryResponse.Item[0]
   }
 
+  console.warn(`[qb] No product/service named "${itemName}" in realm ${realmId} — creating it. Check the name matches the books, or this starts a new revenue line.`)
   const incomeAccount = await findIncomeAccount(realmId, accessToken)
 
   const newItem = await qbFetch('POST', '/item', realmId, accessToken, {
-    Name: 'Room Booking',
+    Name: itemName,
     Type: 'Service',
     IncomeAccountRef: { value: incomeAccount.Id, name: incomeAccount.Name },
   })
@@ -184,6 +192,11 @@ export async function createSalesReceipt(
     date: string
     time: string
     amount: number
+    /** QuickBooks product/service to book against, e.g. "Day Pass". Comes
+     *  from the location row, since the names differ per entity. */
+    itemName: string
+    /** What the receipt line reads, e.g. "Day Pass — Friday, October 2". */
+    description: string
   }
 ) {
   const tokens = await getTokens(locationId)
@@ -202,7 +215,7 @@ export async function createSalesReceipt(
     details.phone
   )
 
-  const item = await findOrCreateItem(tokens.realm_id, accessToken)
+  const item = await findOrCreateItem(tokens.realm_id, accessToken, details.itemName)
 
   const receipt = await qbFetch('POST', '/salesreceipt', tokens.realm_id, accessToken, {
     CustomerRef: { value: customer.Id },
@@ -210,7 +223,7 @@ export async function createSalesReceipt(
       {
         Amount: details.amount,
         DetailType: 'SalesItemLineDetail',
-        Description: `Room Booking: ${details.roomName} — ${details.date}, ${details.time}`,
+        Description: details.description,
         SalesItemLineDetail: {
           ItemRef: { value: item.Id, name: item.Name },
           Qty: 1,
@@ -218,7 +231,7 @@ export async function createSalesReceipt(
         },
       },
     ],
-    PrivateNote: `Booking via BizHaus — ${details.roomName}, ${details.date}, ${details.time}`,
+    PrivateNote: `Booked via BizHaus — ${details.roomName}, ${details.date}, ${details.time}`,
   })
 
   return receipt.SalesReceipt
