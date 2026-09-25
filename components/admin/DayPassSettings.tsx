@@ -2,13 +2,12 @@
 
 import { useEffect, useState } from 'react'
 import { Section } from './AdminTable'
-import ClosureDaysManager from './ClosureDaysManager'
 import toast from 'react-hot-toast'
 
-// Price and closure days, editable here instead of in the code (Caroline,
-// 2026-09-25). Both take effect on the public sites within seconds; the
-// booking routes re-read them before taking any payment, so nothing has to
-// be redeployed.
+// The day pass price, editable here instead of in the code (Caroline,
+// 2026-09-25). It takes effect on the public site within seconds; the
+// booking routes re-read it before taking any payment, so nothing has to be
+// redeployed. Closed days are their own tab, see ClosureDaysManager.
 
 export default function DayPassSettings() {
   const [price, setPrice]       = useState('')
@@ -75,7 +74,6 @@ export default function DayPassSettings() {
         </div>
       </Section>
 
-      <ClosureDaysManager product="day_pass" />
     </div>
   )
 }

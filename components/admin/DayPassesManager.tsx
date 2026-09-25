@@ -5,6 +5,7 @@ import { format } from 'date-fns'
 import { AdminTable, Th, tdNowrap, tdBase, Section, Pagination, usePagedList } from './AdminTable'
 import { cn } from '@/lib/utils'
 import DayPassSettings from './DayPassSettings'
+import ClosureDaysManager from './ClosureDaysManager'
 import TabPanel from './TabPanel'
 
 type DayPass = {
@@ -40,7 +41,7 @@ function groupByConfirmation(dayPasses: DayPass[]) {
   }).sort((a, b) => b.first.date.localeCompare(a.first.date))
 }
 
-type Tab = 'bookings' | 'settings'
+type Tab = 'bookings' | 'price' | 'closed'
 
 export default function DayPassesManager({ dayPasses }: { dayPasses: DayPass[] }) {
   // Two jobs on one page: read the bookings, or change the price and the
@@ -63,7 +64,7 @@ export default function DayPassesManager({ dayPasses }: { dayPasses: DayPass[] }
       </div>
 
       <div className="flex gap-1 border-b border-gray-200">
-        {([['bookings', 'Bookings'], ['settings', 'Price & Closed Days']] as [Tab, string][]).map(([key, label]) => (
+        {([['bookings', 'Bookings'], ['price', 'Price'], ['closed', 'Closed Days']] as [Tab, string][]).map(([key, label]) => (
           <button
             key={key}
             onClick={() => setTab(key)}
@@ -82,7 +83,8 @@ export default function DayPassesManager({ dayPasses }: { dayPasses: DayPass[] }
       {/* key={tab} remounts on every switch, so the panel eases in instead
           of snapping (Caroline, 2026-09-25). */}
       <TabPanel key={tab}>
-      {tab === 'settings' && <DayPassSettings />}
+      {tab === 'price'  && <DayPassSettings />}
+      {tab === 'closed' && <ClosureDaysManager product="day_pass" />}
 
       {tab === 'bookings' && (
       <Section title={`${dayPasses.length} Day Passes`} headerRight={<Pagination {...paginationProps} />}>

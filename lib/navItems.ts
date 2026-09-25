@@ -1,4 +1,4 @@
-import { LayoutDashboard, DoorOpen, Smile, CalendarClock, Users, Building2, Megaphone, BarChart2, CalendarDays, BookOpen, Clock, Activity, MessageSquare, CreditCard, UserCircle } from 'lucide-react'
+import { LayoutDashboard, DoorOpen, Smile, CalendarClock, Users, Building2, Megaphone, BarChart2, BookOpen, Clock, Activity, MessageSquare, CreditCard, UserCircle } from 'lucide-react'
 
 export type NavItem = { href: string; label: string; icon: React.ElementType; indent?: boolean }
 
@@ -37,10 +37,12 @@ export const adminManageGroups: NavGroup[] = [
   {
     label: 'Rooms & Bookings',
     items: [
-      { href: '/dashboard/admin/rooms', label: 'Room Settings', icon: DoorOpen },
-      { href: '/dashboard/admin/reservations', label: 'All Bookings', icon: CalendarDays },
+      // One entry per product, each holding its own bookings and settings.
+      // "All Bookings" was a separate entry that sounded like it included
+      // day passes and never did (Caroline, 2026-09-25).
+      { href: '/dashboard/admin/rooms', label: 'Conference Rooms', icon: DoorOpen },
       { href: '/dashboard/admin/day-passes', label: 'Day Passes', icon: CreditCard },
-      { href: '/dashboard/admin/booking-accounts', label: 'Booking Accounts', icon: UserCircle },
+      { href: '/dashboard/admin/booking-accounts', label: 'Booking Customers', icon: UserCircle },
     ],
   },
   {

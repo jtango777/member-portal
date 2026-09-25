@@ -55,7 +55,7 @@ function ListSearch({ value, onChange, placeholder }: { value: string; onChange:
   )
 }
 
-export default function AllBookingsView({ reservations: initialRes, externalBookings }: Props) {
+export default function AllBookingsView({ reservations: initialRes, externalBookings, hideHeading }: Props & { hideHeading?: boolean }) {
   const [reservations, setReservations] = useState(initialRes)
   const [activeTab, setActiveTab] = useState<Tab>('internal')
   const [extFilter, setExtFilter] = useState<ExternalFilter>('confirmed')
@@ -465,10 +465,14 @@ export default function AllBookingsView({ reservations: initialRes, externalBook
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-xl font-bold text-gray-900">All Bookings</h1>
-        <p className="text-sm text-gray-500 mt-0.5">View and manage all internal and external bookings.</p>
-      </div>
+      {/* Sits under the Conference Rooms page's own heading now, so this
+          one would just repeat it (Caroline, 2026-09-25). */}
+      {!hideHeading && (
+        <div>
+          <h1 className="text-xl font-bold text-gray-900">Room Bookings</h1>
+          <p className="text-sm text-gray-500 mt-0.5">View and manage internal and external room bookings.</p>
+        </div>
+      )}
 
       {/* Main tabs */}
       <div className="flex gap-1 border-b border-gray-200">
