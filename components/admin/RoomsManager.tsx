@@ -97,7 +97,7 @@ export default function RoomsManager({ locations, initialRooms }: Props) {
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-4">
         <div className="min-w-0">
-          <h1 className="text-xl font-bold text-gray-900">Internal Conference Rooms</h1>
+          <h1 className="text-xl font-bold text-gray-900">Internal Rooms</h1>
           <p className="text-sm text-gray-500 mt-0.5">Rooms available to BizHaus members on the internal booking calendar. Add or edit room names and capacities, or hide a room temporarily instead of deleting it.</p>
         </div>
         <button

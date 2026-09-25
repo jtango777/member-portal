@@ -85,7 +85,7 @@ export default function ExternalRoomsManager({ locations, initialRooms }: Props)
     <div className="space-y-6">
       <div>
         <div className="flex items-center gap-2">
-          <h1 className="text-xl font-bold text-gray-900">External Booking Rooms</h1>
+          <h1 className="text-xl font-bold text-gray-900">External Rooms</h1>
           <span className="inline-flex items-center gap-1 text-xs font-semibold text-green-700 bg-green-50 border border-green-200 px-2 py-0.5 rounded-full">
             <Globe size={11} /> /book
           </span>
