@@ -7,7 +7,11 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
   return (
     <div className="h-full overflow-auto p-6">
-      <div className="max-w-6xl mx-auto">
+      {/* The bottom padding lives on the inner wrapper, not the scrolling
+          container: a scroll container's own padding-bottom is dropped once
+          the content overflows, so every admin page ended flush against the
+          window (Caroline, 2026-09-25). */}
+      <div className="max-w-6xl mx-auto pb-10">
         {children}
       </div>
     </div>

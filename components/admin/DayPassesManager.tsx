@@ -5,6 +5,7 @@ import { format } from 'date-fns'
 import { AdminTable, Th, tdNowrap, tdBase, Section, Pagination, usePagedList } from './AdminTable'
 import { cn } from '@/lib/utils'
 import DayPassSettings from './DayPassSettings'
+import TabPanel from './TabPanel'
 
 type DayPass = {
   id: string
@@ -78,6 +79,9 @@ export default function DayPassesManager({ dayPasses }: { dayPasses: DayPass[] }
         ))}
       </div>
 
+      {/* key={tab} remounts on every switch, so the panel eases in instead
+          of snapping (Caroline, 2026-09-25). */}
+      <TabPanel key={tab}>
       {tab === 'settings' && <DayPassSettings />}
 
       {tab === 'bookings' && (
@@ -133,6 +137,7 @@ export default function DayPassesManager({ dayPasses }: { dayPasses: DayPass[] }
         </AdminTable>
       </Section>
       )}
+      </TabPanel>
     </div>
   )
 }

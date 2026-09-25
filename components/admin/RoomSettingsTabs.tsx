@@ -4,6 +4,7 @@ import { useState } from 'react'
 import RoomsManager from './RoomsManager'
 import ExternalRoomsManager from './ExternalRoomsManager'
 import ClosureDaysManager from './ClosureDaysManager'
+import TabPanel from './TabPanel'
 import { cn } from '@/lib/utils'
 
 // Two audiences on one page: the rooms members book on the internal
@@ -38,14 +39,18 @@ export default function RoomSettingsTabs({ locations, rooms }: { locations: AnyL
         ))}
       </div>
 
-      {tab === 'internal' && <RoomsManager locations={locations} initialRooms={rooms} />}
-
-      {tab === 'external' && (
-        <div className="flex flex-col gap-10">
-          <ExternalRoomsManager locations={locations} initialRooms={rooms} />
-          <ClosureDaysManager product="rooms" />
-        </div>
-      )}
+      {/* key={tab} remounts on every switch, which is what makes the panel
+          ease in rather than snap (Caroline, 2026-09-25). */}
+      <TabPanel key={tab}>
+        {tab === 'internal'
+          ? <RoomsManager locations={locations} initialRooms={rooms} />
+          : (
+            <div className="flex flex-col gap-10">
+              <ExternalRoomsManager locations={locations} initialRooms={rooms} />
+              <ClosureDaysManager product="rooms" />
+            </div>
+          )}
+      </TabPanel>
     </div>
   )
 }
