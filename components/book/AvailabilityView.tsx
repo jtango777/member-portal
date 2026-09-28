@@ -28,8 +28,13 @@ const CONTACT_EMAIL = 'bookings@bizhaus.com'
 // Keyed by "location-slug:external_name" — arrays support carousel; first image is the cover
 const ROOM_IMAGES: Record<string, string[]> = {
   'el-segundo:Large':     ['/rooms/es-large.jpg'],
-  'el-segundo:Medium +':  ['/rooms/es-medium.jpg'],
-  'el-segundo:Medium':    ['/rooms/es-medium-plus.jpg'],
+  // These two were crossed: Medium + pointed at es-medium.jpg and Medium at
+  // es-medium-plus.jpg, so each El Segundo room showed the other's photo.
+  // The green/cork room seats 6 (Medium) and the brick-and-chalkboard room
+  // seats 8 (Medium +), which is what the filenames always said. Costa Mesa
+  // below was mapped correctly all along. Caught 2026-09-28.
+  'el-segundo:Medium +':  ['/rooms/es-medium-plus.jpg'],
+  'el-segundo:Medium':    ['/rooms/es-medium.jpg'],
   'el-segundo:Small':     ['/rooms/es-small.jpg'],
   'marina-del-rey:Small': ['/rooms/mdr-conference-3.jpg', '/rooms/mdr-conference-2.jpg'],
   'costa-mesa:Large':     ['/rooms/cm-large.jpg', '/rooms/cm-large-2.jpg'],
