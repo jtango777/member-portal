@@ -490,16 +490,26 @@ export async function sendDayPassCancellationStaffNotification(
 // Customer-facing counterpart to the staff alert above — same letter style
 // as the day pass confirmation. Added 2026-09-15 after the first real test
 // cancel showed the customer got no email at all, only staff did.
-export function dayPassCancellationEmailHtml(details: { guestName: string; location: string; dates: string[]; remainingDates?: string[]; refundAmount: string; confirmationNumber: string }) {
+export function dayPassCancellationEmailHtml(details: { guestName: string; location: string; dates: string[]; remainingDates?: string[]; refundAmount: string; confirmationNumber: string; credited?: boolean }) {
   const firstName = details.guestName.trim().split(/\s+/)[0] || details.guestName
   const loc = DAY_PASS_LOCATIONS[details.location]
   const dateLabel = details.dates.join('<br/>')
+  // `credited` is the staff override path: the booking is cancelled but the
+  // money stays with us as credit toward a future visit, so every line that
+  // would promise a card refund has to say something else.
+  const credited = details.credited === true
+  const partial = (details.remainingDates?.length ?? 0) > 0
+  const opening = credited
+    ? (partial
+      ? `We've cancelled ${details.dates.length > 1 ? 'those days' : 'that day'} at our <strong>${details.location}</strong> location and are holding <strong>${details.refundAmount}</strong> as credit toward a future day pass. The rest of your booking is unchanged.`
+      : `Your day pass at our <strong>${details.location}</strong> location has been cancelled, and we're holding <strong>${details.refundAmount}</strong> as credit toward a future day pass.`)
+    : (partial
+      ? `We've cancelled ${details.dates.length > 1 ? 'those days' : 'that day'} at our <strong>${details.location}</strong> location and refunded <strong>${details.refundAmount}</strong> to your original payment method. The rest of your booking is unchanged.`
+      : `Your day pass at our <strong>${details.location}</strong> location has been cancelled, and we've refunded <strong>${details.refundAmount}</strong> to your original payment method.`)
   return letterEmailWrapper(`
     <p style="font-family:${FONT};font-size:15px;color:#3a3f3a;line-height:1.7;margin:0 0 22px;">Hi ${firstName},</p>
     <p style="font-family:${FONT};font-size:15px;color:#3a3f3a;line-height:1.7;margin:0 0 28px;">
-      ${(details.remainingDates?.length ?? 0) > 0
-        ? `We've cancelled ${details.dates.length > 1 ? 'those days' : 'that day'} at our <strong>${details.location}</strong> location and refunded <strong>${details.refundAmount}</strong> to your original payment method. The rest of your booking is unchanged.`
-        : `Your day pass at our <strong>${details.location}</strong> location has been cancelled, and we've refunded <strong>${details.refundAmount}</strong> to your original payment method.`}
+      ${opening}
     </p>
 
     <table style="border-collapse:collapse;width:100%;margin-bottom:28px;font-family:${FONT};">
@@ -517,16 +527,20 @@ export function dayPassCancellationEmailHtml(details: { guestName: string; locat
         <td style="padding:9px 0;border-top:1px solid #eef0ee;color:#232823;font-size:13.5px;">${loc ? `${details.location}, ${loc.address}` : details.location}</td>
       </tr>
       <tr>
-        <td style="padding:9px 0;border-top:1px solid #eef0ee;border-bottom:1px solid #eef0ee;color:#8b948d;font-size:13px;">Refunded</td>
+        <td style="padding:9px 0;border-top:1px solid #eef0ee;border-bottom:1px solid #eef0ee;color:#8b948d;font-size:13px;">${credited ? 'Credit' : 'Refunded'}</td>
         <td style="padding:9px 0;border-top:1px solid #eef0ee;border-bottom:1px solid #eef0ee;color:#232823;font-size:13.5px;font-weight:bold;">${details.refundAmount}</td>
       </tr>
     </table>
 
     <p style="font-family:${FONT};font-size:15px;color:#3a3f3a;line-height:1.7;margin:0 0 18px;">
-      Refunds usually show up on your statement within 5 to 10 business days, depending on your bank.
+      ${credited
+        ? `Just reply to this email when you know the day you'd like instead, and we'll apply the credit to it.`
+        : `Refunds usually show up on your statement within 5 to 10 business days, depending on your bank.`}
     </p>
     <p style="font-family:${FONT};font-size:15px;color:#3a3f3a;line-height:1.7;margin:0 0 6px;">
-      Plans change, we get it. Whenever you're ready to come in, you can <a href="${BOOKINGS_URL}/day-pass" style="color:#3f7a37;">book another day pass</a>.
+      ${credited
+        ? `Plans change, we get it. We'll see you another day.`
+        : `Plans change, we get it. Whenever you're ready to come in, you can <a href="${BOOKINGS_URL}/day-pass" style="color:#3f7a37;">book another day pass</a>.`}
     </p>
     <p style="font-family:${FONT};font-size:15px;color:#3a3f3a;line-height:1.7;margin:24px 0 0;">
       Hope to see you soon,<br/>The BizHaus Team
@@ -539,7 +553,7 @@ export function dayPassCancellationEmailHtml(details: { guestName: string; locat
 
 export async function sendDayPassCancellationEmail(
   to: string,
-  details: { guestName: string; location: string; dates: string[]; remainingDates?: string[]; refundAmount: string; confirmationNumber: string }
+  details: { guestName: string; location: string; dates: string[]; remainingDates?: string[]; refundAmount: string; confirmationNumber: string; credited?: boolean }
 ) {
   const partial = (details.remainingDates?.length ?? 0) > 0
   const { error } = await resend.emails.send({
@@ -551,6 +565,35 @@ export async function sendDayPassCancellationEmail(
     html: dayPassCancellationEmailHtml(details),
   })
   if (error) console.error('[email] Resend error sending day pass cancellation email:', error)
+}
+
+// For a conference room booking cancelled by staff (Caroline, 2026-09-28).
+// Rooms are sold non-refundable, so this only ever goes out when we've
+// chosen to make an exception — either the money goes back, or we hold it
+// for whatever date they rebook.
+export async function sendRoomBookingCancellationEmail(
+  to: string,
+  details: { guestName: string; room: string; location: string; when: string; amount: string; credited: boolean }
+) {
+  const firstName = details.guestName.trim().split(/\s+/)[0] || details.guestName
+  const { error } = await resend.emails.send({
+    from: FROM,
+    to,
+    subject: `Your BizHaus room booking has been cancelled`,
+    html: letterEmailWrapper(`
+      <p style="font-family:${FONT};font-size:15px;color:#3a3f3a;line-height:1.7;margin:0 0 22px;">Hi ${firstName},</p>
+      <p style="font-family:${FONT};font-size:15px;color:#3a3f3a;line-height:1.7;margin:0 0 28px;">
+        We've cancelled your booking of <strong>${details.room}</strong> at our <strong>${details.location}</strong> location on ${details.when}.
+        ${details.credited
+          ? `We're holding <strong>${details.amount}</strong> toward a future booking. Just reply to this email when you know the day and time you'd like instead.`
+          : `We've refunded <strong>${details.amount}</strong> to your original payment method. It usually shows up within 5 to 10 business days, depending on your bank.`}
+      </p>
+      <p style="font-family:${FONT};font-size:15px;color:#3a3f3a;line-height:1.7;margin:24px 0 0;">
+        Thanks,<br/>The BizHaus Team
+      </p>
+    `),
+  })
+  if (error) console.error('[email] Resend error sending room booking cancellation email:', error)
 }
 
 export async function sendCancellationEmail(

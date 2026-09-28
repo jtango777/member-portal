@@ -8,6 +8,7 @@ import { Trash2, MapPin, Clock, Mail, Phone, Search } from 'lucide-react'
 import { cn, formatTime } from '@/lib/utils'
 import { AdminTable, Th, Section, Pagination, usePagedList } from '@/components/admin/AdminTable'
 import toast from 'react-hot-toast'
+import { CancelRowButton } from './CancelBookingDialog'
 
 type ExternalBooking = {
   id: string
@@ -18,7 +19,7 @@ type ExternalBooking = {
   notes: string | null
   start_time: string
   end_time: string
-  status: 'pending' | 'confirmed' | 'declined'
+  status: 'pending' | 'confirmed' | 'declined' | 'cancelled'
   created_at: string
   rooms: {
     external_name: string | null
@@ -35,6 +36,7 @@ const STATUS_STYLES: Record<string, string> = {
   pending:   'bg-amber-50 text-amber-700 border-amber-200',
   confirmed: 'bg-green-50 text-green-700 border-green-200',
   declined:  'bg-red-50 text-red-600 border-red-200',
+  cancelled: 'bg-gray-100 text-gray-500 border-gray-200',
 }
 
 type Props = {
@@ -298,17 +300,17 @@ export default function AllBookingsView({ reservations: initialRes, externalBook
           <Pagination {...paginationProps} />
         </div>
       }>
-        <AdminTable colWidths={['20%', '16%', '12%', '13%', '11%', '14%', '8%', '6%']} minWidth={950}>
+        <AdminTable colWidths={['19%', '15%', '11%', '12%', '10%', '13%', '8%', '6%', '6%']} minWidth={1010}>
           <thead>
             <tr className="bg-gray-50 border-b border-gray-200">
-              {['Guest', 'Email', 'Phone', 'Room', 'Location', 'Date & Time', 'Amount', 'Status'].map(h => (
+              {['Guest', 'Email', 'Phone', 'Room', 'Location', 'Date & Time', 'Amount', 'Status', ''].map(h => (
                 <th key={h} className="text-left px-4 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap">{h}</th>
               ))}
             </tr>
           </thead>
           <tbody>
             {rows.length === 0 && (
-              <tr><td colSpan={8} className="px-4 py-6 text-center text-gray-400">None.</td></tr>
+              <tr><td colSpan={9} className="px-4 py-6 text-center text-gray-400">None.</td></tr>
             )}
             {rows.map((b, i) => {
               const start = new Date(b.start_time)
@@ -316,7 +318,7 @@ export default function AllBookingsView({ reservations: initialRes, externalBook
               const hours = (end.getTime() - start.getTime()) / 3_600_000
               const amount = hours * (b.rooms?.price_per_hour ?? 0)
               return (
-                <tr key={b.id} className={"border-b border-gray-100 last:border-0 hover:bg-gray-50"}>
+                <tr key={b.id} className={"group border-b border-gray-100 last:border-0 hover:bg-gray-50"}>
                   <td className="px-4 py-2 font-medium text-gray-900 truncate">
                     {b.external_name}
                     {b.company_name && <span className="text-gray-400 font-normal"> · {b.company_name}</span>}
@@ -334,6 +336,18 @@ export default function AllBookingsView({ reservations: initialRes, externalBook
                     <span className={cn('text-xs font-semibold px-2 py-0.5 rounded-full border', STATUS_STYLES[b.status] ?? '')}>
                       {b.status}
                     </span>
+                  </td>
+                  <td className="px-4 py-2 text-right">
+                    {b.status === 'confirmed' && (
+                      <CancelRowButton target={{
+                        type: 'room',
+                        id: b.id,
+                        who: b.external_name,
+                        when: `${format(start, 'MMM d')} ${formatTime(start)}`,
+                        amountCents: Math.round(amount * 100),
+                        location: b.rooms?.locations?.name ?? '',
+                      }} />
+                    )}
                   </td>
                 </tr>
               )

@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils'
 import DayPassSettings from './DayPassSettings'
 import ClosureDaysManager from './ClosureDaysManager'
 import TabPanel from '@/components/TabPanel'
+import { CancelRowButton } from './CancelBookingDialog'
 
 type DayPass = {
   id: string
@@ -37,7 +38,14 @@ function groupByConfirmation(dayPasses: DayPass[]) {
   }
   return [...groups.values()].map(group => {
     const sorted = [...group].sort((a, b) => a.date.localeCompare(b.date))
-    return { first: sorted[0], dates: sorted.map(d => d.date), totalCents: sorted.reduce((sum, d) => sum + d.price_cents, 0) }
+    return {
+      first: sorted[0],
+      dates: sorted.map(d => d.date),
+      totalCents: sorted.reduce((sum, d) => sum + d.price_cents, 0),
+      // Days still live, which is what the staff cancel dialog can act on —
+      // a part-cancelled purchase keeps the rest cancellable.
+      confirmedDates: sorted.filter(d => d.status === 'confirmed').map(d => d.date),
+    }
   }).sort((a, b) => b.first.date.localeCompare(a.first.date))
 }
 
@@ -88,7 +96,7 @@ export default function DayPassesManager({ dayPasses }: { dayPasses: DayPass[] }
 
       {tab === 'bookings' && (
       <Section title={`${dayPasses.length} Day Passes`} headerRight={<Pagination {...paginationProps} />}>
-        <AdminTable colWidths={['110px', '180px', '240px', '140px', '90px', '110px', '140px']} minWidth={940}>
+        <AdminTable colWidths={['110px', '180px', '240px', '140px', '90px', '110px', '140px', '80px']} minWidth={1020}>
           <thead>
             <tr>
               <Th>Confirmation</Th>
@@ -98,11 +106,12 @@ export default function DayPassesManager({ dayPasses }: { dayPasses: DayPass[] }
               <Th>Price</Th>
               <Th>Status</Th>
               <Th>Booked</Th>
+              <Th></Th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
-            {paged.map(({ first: d, dates, totalCents }) => (
-              <tr key={d.confirmation_number ?? d.id} className="hover:bg-gray-50">
+            {paged.map(({ first: d, dates, totalCents, confirmedDates }) => (
+              <tr key={d.confirmation_number ?? d.id} className="group hover:bg-gray-50">
                 <td className={cn(tdNowrap, 'font-mono text-xs text-gray-500')}>{d.confirmation_number ?? '—'}</td>
                 <td className={tdNowrap}>
                   <div>
@@ -130,10 +139,22 @@ export default function DayPassesManager({ dayPasses }: { dayPasses: DayPass[] }
                   </span>
                 </td>
                 <td className={cn(tdNowrap, 'text-gray-400 text-xs')}>{format(new Date(d.created_at), 'MMM d, yyyy')}</td>
+                <td className={cn(tdNowrap, 'text-right')}>
+                  {confirmedDates.length > 0 && d.confirmation_number && (
+                    <CancelRowButton target={{
+                      type: 'day_pass',
+                      confirmationNumber: d.confirmation_number,
+                      who: d.booking_customers ? `${d.booking_customers.first_name} ${d.booking_customers.last_name}` : 'Deleted account',
+                      dates: confirmedDates,
+                      pricePerDayCents: Math.round(totalCents / dates.length),
+                      location: d.locations?.name ?? '',
+                    }} />
+                  )}
+                </td>
               </tr>
             ))}
             {paged.length === 0 && (
-              <tr><td colSpan={7} className="px-4 py-8 text-center text-sm text-gray-400">No day passes yet.</td></tr>
+              <tr><td colSpan={8} className="px-4 py-8 text-center text-sm text-gray-400">No day passes yet.</td></tr>
             )}
           </tbody>
         </AdminTable>
