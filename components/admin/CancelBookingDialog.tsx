@@ -51,7 +51,10 @@ function CancelBookingDialog({ target, open, onOpenChange }: {
   const isPass = target.type === 'day_pass'
   const allDates = isPass ? target.dates : []
   const [dates, setDates] = useState<string[]>(allDates)
-  const [refund, setRefund] = useState(true)
+  // Off by default. Refunding is the rare exception, not the norm, so the
+  // money never moves unless someone deliberately flips this (Caroline,
+  // 2026-09-28).
+  const [refund, setRefund] = useState(false)
   const [notify, setNotify] = useState(true)
   const [busy, setBusy] = useState(false)
 

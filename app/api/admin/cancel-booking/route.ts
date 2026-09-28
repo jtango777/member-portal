@@ -29,7 +29,9 @@ export async function POST(request: Request) {
   const user = await assertAdmin()
   if (!user) return NextResponse.json({ error: 'Admins only' }, { status: 403 })
 
-  const { type, id, confirmation_number, dates, refund = true, notify = true } = await request.json()
+  // `refund` defaults to false on purpose: a request that forgets to say
+  // should never move money.
+  const { type, id, confirmation_number, dates, refund = false, notify = true } = await request.json()
   const admin = createAdminClient()
 
   // ── Day passes ──────────────────────────────────────────────────────────
