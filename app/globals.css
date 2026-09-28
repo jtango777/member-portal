@@ -59,6 +59,35 @@
     100% { background-position: 0 0, 0 0, 0 0, 0 0, 0 0, 0 0, 0% 50%; }
   }
 
+  /* Dialogs fade and settle instead of snapping (Caroline, 2026-09-28).
+     Every Radix dialog in the app carried `transition-*` plus
+     `data-[state=closed]:opacity-0` classes, which never actually ran: on
+     open the element mounts already at state=open, so there's no starting
+     frame to transition from, and on close Radix unmounts it right away
+     unless it detects a CSS *animation* (it waits on `animationend`, not
+     on transitionend). Keyframes fix both directions. */
+  .dialog-overlay[data-state='open']    { animation: dialog-overlay-in  180ms ease-out; }
+  .dialog-overlay[data-state='closed']  { animation: dialog-overlay-out 150ms ease-in; }
+  .dialog-panel[data-state='open']      { animation: dialog-panel-in    200ms cubic-bezier(0.16, 1, 0.3, 1); }
+  .dialog-panel[data-state='closed']    { animation: dialog-panel-out   150ms ease-in; }
+
+  @keyframes dialog-overlay-in  { from { opacity: 0 } to { opacity: 1 } }
+  @keyframes dialog-overlay-out { from { opacity: 1 } to { opacity: 0 } }
+  @keyframes dialog-panel-in {
+    from { opacity: 0; transform: translateY(6px) scale(0.97) }
+    to   { opacity: 1; transform: translateY(0)   scale(1) }
+  }
+  @keyframes dialog-panel-out {
+    from { opacity: 1; transform: translateY(0)   scale(1) }
+    to   { opacity: 0; transform: translateY(4px) scale(0.98) }
+  }
+
+  /* Anyone who asks their system for less motion still gets the dialog,
+     just without the movement. */
+  @media (prefers-reduced-motion: reduce) {
+    .dialog-overlay[data-state], .dialog-panel[data-state] { animation-duration: 1ms; }
+  }
+
   .scrollbar-thin {
     scrollbar-width: thin;
     scrollbar-color: #cbd5e1 transparent;
