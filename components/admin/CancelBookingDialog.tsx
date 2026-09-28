@@ -7,6 +7,7 @@ import * as Dialog from '@radix-ui/react-dialog'
 import { X, Trash2, RefreshCw } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { IconAction } from './AdminTable'
+import TabPanel from '@/components/TabPanel'
 
 // Staff cancellation override (Caroline, 2026-09-28).
 //
@@ -123,7 +124,7 @@ function CancelBookingDialog({ target, open, onOpenChange }: {
             )}
 
             <label className="flex items-center gap-2 cursor-pointer select-none mb-4">
-              <RefreshCw size={14} className={refund ? 'text-blue-600' : 'text-gray-300'} />
+              <RefreshCw size={14} className={`transition-colors duration-200 ${refund ? 'text-blue-600' : 'text-gray-300'}`} />
               <span className="relative inline-flex h-4 w-7 flex-shrink-0 items-center">
                 <input type="checkbox" checked={refund} onChange={e => setRefund(e.target.checked)} className="peer sr-only" />
                 <span className="absolute inset-0 rounded-full bg-gray-300 peer-checked:bg-blue-600 transition-colors duration-200" />
@@ -131,11 +132,19 @@ function CancelBookingDialog({ target, open, onOpenChange }: {
               </span>
               <span className="text-sm text-gray-700">Refund {amount} to their card?</span>
             </label>
-            <p className="text-xs text-gray-400 mb-6 -mt-2 ml-8 leading-relaxed">
-              {refund
-                ? 'Back on their statement in 5 to 10 days, and the QuickBooks receipt is voided.'
-                : `No money moves. ${amount} stays with us toward a future booking, which you book for them by hand.`}
-            </p>
+            {/* Fixed height so flipping the toggle doesn't shove everything
+                below it up and down, and the wording cross-fades on the
+                same easing as the tab panels rather than swapping hard
+                (Caroline, 2026-09-28). */}
+            <div className="mb-6 -mt-2 ml-8 h-10">
+              <TabPanel key={refund ? 'refund' : 'credit'}>
+                <p className="text-xs text-gray-400 leading-relaxed">
+                  {refund
+                    ? 'Back on their statement in 5 to 10 days, and the QuickBooks receipt is voided.'
+                    : `No money moves. ${amount} stays with us toward a future booking.`}
+                </p>
+              </TabPanel>
+            </div>
 
             <label className="flex items-center gap-2 cursor-pointer select-none mb-6">
               <span className="relative inline-flex h-4 w-7 flex-shrink-0 items-center ml-[22px]">
@@ -150,8 +159,10 @@ function CancelBookingDialog({ target, open, onOpenChange }: {
               <Dialog.Close className="text-sm text-gray-500 hover:text-gray-700 font-medium px-3 py-2">
                 Never mind
               </Dialog.Close>
+              {/* min-w holds the button still while its label changes
+                  length, so the footer doesn't jump under the cursor. */}
               <button onClick={handleCancel} disabled={busy || nothingPicked}
-                className="bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white text-sm font-semibold px-4 py-2 rounded-lg">
+                className="bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white text-sm font-semibold px-4 py-2 rounded-lg min-w-[13rem] transition-colors duration-200">
                 {busy ? 'Cancelling…' : refund ? `Cancel and refund ${amount}` : 'Cancel and hold credit'}
               </button>
             </div>
