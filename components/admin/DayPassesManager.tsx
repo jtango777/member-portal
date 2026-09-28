@@ -111,7 +111,7 @@ export default function DayPassesManager({ dayPasses }: { dayPasses: DayPass[] }
           </thead>
           <tbody className="divide-y divide-gray-100">
             {paged.map(({ first: d, dates, totalCents, confirmedDates }) => (
-              <tr key={d.confirmation_number ?? d.id} className="group hover:bg-gray-50">
+              <tr key={d.confirmation_number ?? d.id} className="hover:bg-gray-50">
                 <td className={cn(tdNowrap, 'font-mono text-xs text-gray-500')}>{d.confirmation_number ?? '—'}</td>
                 <td className={tdNowrap}>
                   <div>

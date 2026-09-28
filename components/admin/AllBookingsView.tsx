@@ -318,7 +318,7 @@ export default function AllBookingsView({ reservations: initialRes, externalBook
               const hours = (end.getTime() - start.getTime()) / 3_600_000
               const amount = hours * (b.rooms?.price_per_hour ?? 0)
               return (
-                <tr key={b.id} className={"group border-b border-gray-100 last:border-0 hover:bg-gray-50"}>
+                <tr key={b.id} className={"border-b border-gray-100 last:border-0 hover:bg-gray-50"}>
                   <td className="px-4 py-2 font-medium text-gray-900 truncate">
                     {b.external_name}
                     {b.company_name && <span className="text-gray-400 font-normal"> · {b.company_name}</span>}
