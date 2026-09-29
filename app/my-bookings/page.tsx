@@ -2,7 +2,8 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { format, eachDayOfInterval, getDay } from 'date-fns'
 import { CheckCircle, Clock, XCircle, Ban } from 'lucide-react'
-import { cn, getPacificDayBounds } from '@/lib/utils'
+import { cn } from '@/lib/utils'
+import { isDayPassCancellable } from '@/lib/dayPass'
 import SignOutButton from '@/components/day-pass/SignOutButton'
 import CancelDayPassButton from '@/components/day-pass/CancelDayPassButton'
 import { getOrLinkBookingCustomer } from '@/lib/bookingAccounts'
@@ -31,7 +32,7 @@ type UnifiedBooking = {
   status: 'confirmed' | 'pending' | 'declined' | 'cancelled'
   // Only day passes are self-serve cancellable — conference room bookings
   // never are (Caroline, 2026-08-31). Present only for day-pass entries
-  // that haven't reached their 9am start yet.
+  // that are still before their 9pm-night-before cancellation cutoff.
   cancellableConfirmationNumber?: string
   // Every booking lists its own day rows — one for a single day, several
   // for a multi-day pass. Cancelling is still whole-booking only (per-day
@@ -45,12 +46,10 @@ type UnifiedBooking = {
   cancellableDates?: string[]
 }
 
-// Cutoff is 9:00am Pacific on the day, matching
-// /api/day-pass/cancel's own check — this only controls whether the
-// button shows, the route re-checks for real before refunding anything.
+// Cutoff lives in lib/dayPass.ts — this only controls whether the button
+// shows; /api/day-pass/cancel re-checks for real before refunding anything.
 function isStillCancellable(date: string): boolean {
-  const nineAm = getPacificDayBounds(date).start.getTime() + 9 * 3600000
-  return Date.now() < nineAm
+  return isDayPassCancellable(date)
 }
 
 export default async function DayPassAccountPage() {

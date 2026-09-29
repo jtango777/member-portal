@@ -7,9 +7,10 @@ import { sendDayPassCancellationEmail, sendRoomBookingCancellationEmail, sendSys
 
 // Staff override for cancellations (Caroline, 2026-09-28).
 //
-// Customers can only cancel a day pass themselves before its 9am start, and
-// conference rooms are sold as non-refundable. Neither rule binds staff: if
-// someone rings up, BizHaus can cancel it whatever the clock says, and
+// Customers can only cancel a day pass themselves before 9pm the night
+// before it, and conference rooms are sold as non-refundable. Neither rule
+// binds staff: if someone rings up, BizHaus can cancel it whatever the
+// clock says, and
 // decide whether the money goes back on the card or stays with us as credit
 // toward a future booking. That second option is the usual answer for rooms
 // and is deliberately not advertised anywhere customer-facing.

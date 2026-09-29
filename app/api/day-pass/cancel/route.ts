@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import Stripe from 'stripe'
 import { stripe } from '@/lib/stripe'
-import { getPacificDayBounds } from '@/lib/utils'
+import { isDayPassCancellable, CANCEL_CUTOFF_LABEL } from '@/lib/dayPass'
 import { voidSalesReceipt } from '@/lib/quickbooks'
 import { sendDayPassCancellationStaffNotification, sendDayPassCancellationEmail, sendSystemAlert } from '@/lib/email'
 
@@ -14,8 +14,8 @@ import { sendDayPassCancellationStaffNotification, sendDayPassCancellationEmail,
 // Takes a confirmation number, optionally narrowed to specific days via
 // `dates` — a multi-day purchase can now be cancelled a day at a time
 // (built 2026-09-16, after the all-or-nothing version left people emailing
-// us to drop one day). Each day cancelled must still be before its 9am
-// start (Caroline, 2026-09-18, was 12 hours before), and not already cancelled; the refund covers exactly
+// us to drop one day). Each day cancelled must still be before its
+// cutoff (Caroline, 2026-09-29, back to 9pm the night before), and not already cancelled; the refund covers exactly
 // the days being cancelled, and only their QuickBooks receipts are voided.
 export async function POST(request: Request) {
   const supabase = await createClient()
@@ -50,17 +50,14 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: onlyDates ? 'That day has already been cancelled.' : 'This booking has already been cancelled or is no longer active.' }, { status: 400 })
   }
 
-  // Cutoff is 9:00am Pacific on each day, the day pass's actual start
-  // time, not midnight.
+  // Cutoff is 9:00pm Pacific the evening before each day — see
+  // lib/dayPass.ts, which is the single definition of it.
   const now = Date.now()
-  const tooLate = rows.some(r => {
-    const nineAm = getPacificDayBounds(r.date).start.getTime() + 9 * 3600000
-    return now >= nineAm
-  })
+  const tooLate = rows.some(r => !isDayPassCancellable(r.date, now))
   if (tooLate) {
     return NextResponse.json({ error: rows.length === 1
-      ? 'That day has already started, so it can no longer be cancelled. Questions? Contact us at hello@bizhaus.com.'
-      : 'One of those days has already started, so it can no longer be cancelled. Cancel the others individually, or contact us at hello@bizhaus.com.' }, { status: 400 })
+      ? `That day can no longer be cancelled, the ${CANCEL_CUTOFF_LABEL} cutoff has passed. Questions? Contact us at hello@bizhaus.com.`
+      : `One of those days is past its ${CANCEL_CUTOFF_LABEL} cutoff, so it can no longer be cancelled. Cancel the others individually, or contact us at hello@bizhaus.com.` }, { status: 400 })
   }
 
   const totalCents = rows.reduce((sum, r) => sum + r.price_cents, 0)

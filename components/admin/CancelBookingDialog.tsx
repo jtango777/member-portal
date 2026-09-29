@@ -11,7 +11,7 @@ import TabPanel from '@/components/TabPanel'
 
 // Staff cancellation override (Caroline, 2026-09-28).
 //
-// Customers can only cancel a day pass before its 9am start, and conference
+// Customers can only cancel a day pass before 9pm the night before, and conference
 // rooms are sold as non-refundable. Neither rule binds staff: if someone
 // rings up, BizHaus can cancel it whatever the clock says, and decide
 // whether the money goes back on the card or stays with us as credit toward
