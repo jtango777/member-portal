@@ -173,13 +173,34 @@ async function findOrCreateCustomer(
     return result.QueryResponse.Customer[0]
   }
 
-  const newCustomer = await qbFetch('POST', '/customer', realmId, accessToken, {
-    DisplayName: `${name} (${email})`,
+  // Create them under their plain name, the way every customer already in
+  // these books is named. We used to always write `Name (email)` because
+  // QuickBooks rejects a duplicate display name outright, which would have
+  // lost the receipt — but that only happens on an actual clash, so hold the
+  // email suffix back for exactly that case. Caroline spotted the mismatch
+  // on the first real production receipt (2026-09-28); the email was always
+  // set properly on the record either way, it just also cluttered the name.
+  const base = {
     PrimaryEmailAddr: { Address: email },
     PrimaryPhone: { FreeFormNumber: phone },
-  })
-
-  return newCustomer.Customer
+  }
+  try {
+    const newCustomer = await qbFetch('POST', '/customer', realmId, accessToken, {
+      DisplayName: name,
+      ...base,
+    })
+    return newCustomer.Customer
+  } catch (err) {
+    // Almost always QuickBooks' "Duplicate Name Exists" (6240): someone else
+    // in the books is already called this. Retry with the email appended,
+    // which is unique by definition, rather than dropping the sale.
+    console.warn('[quickbooks] Plain customer name rejected, retrying with email suffix:', name, err)
+    const newCustomer = await qbFetch('POST', '/customer', realmId, accessToken, {
+      DisplayName: `${name} (${email})`,
+      ...base,
+    })
+    return newCustomer.Customer
+  }
 }
 
 export async function createSalesReceipt(
@@ -219,6 +240,10 @@ export async function createSalesReceipt(
 
   const receipt = await qbFetch('POST', '/salesreceipt', tokens.realm_id, accessToken, {
     CustomerRef: { value: customer.Id },
+    // Fills the receipt's own Email field. Nothing is sent from QuickBooks
+    // (the customer already got our confirmation via Resend), it just means
+    // the address is there if anyone ever wants to resend from the books.
+    BillEmail: { Address: details.email },
     Line: [
       {
         Amount: details.amount,
