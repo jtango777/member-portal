@@ -39,7 +39,7 @@ type UnifiedBooking = {
   // refunds aren't worth touching refund code for at this volume), so the
   // cancel control sits on the booking, labelled with how many days it
   // covers, and multi-day bookings keep the "email us for one day" line.
-  days: { date: string; label: string; time: string; cancelled: boolean; cancellable: boolean }[]
+  days: { date: string; label: string; time: string; cancelled: boolean; cancellable: boolean; amount?: string }[]
   cancelLabel?: string
   // Days that can still be cancelled — what "Cancel all" actually covers,
   // since a day that has already started can't be.
@@ -92,15 +92,29 @@ export default async function DayPassAccountPage() {
   const bookings: UnifiedBooking[] = [
     ...[...dayPassGroups.values()].map(group => {
       const sorted = [...group].sort((a, b) => a.date.localeCompare(b.date))
-      const first = sorted[0]
-      const totalCents = sorted.reduce((sum, p) => sum + p.price_cents, 0)
+      // Cancelling one day of a multi-day purchase used to take the whole
+      // card down with it: the card's status, date and total were all read
+      // off the earliest row, so dropping day one made the booking look
+      // cancelled, worth its original total, and filed under Past — while
+      // the remaining day was still very much booked and paid for
+      // (Caroline, 2026-09-30, caught on the first real partial cancel).
+      //
+      // The card now summarises the days that are still live and lists the
+      // cancelled ones underneath as a record. It stays ONE card, because
+      // it is one purchase, one confirmation number and one payment; a
+      // second card would imply a booking that exists nowhere in Stripe or
+      // QuickBooks.
+      const live = sorted.filter(p => p.status !== 'cancelled')
+      const headline = live.length ? live : sorted
+      const first = headline[0]
+      const totalCents = headline.reduce((sum, p) => sum + p.price_cents, 0)
       // "3 days (Oct 1 – Oct 8)" read as a straight run even when the days
       // were scattered (Caroline, 2026-09-16) — only use a range when the
       // days really are back-to-back business days; otherwise just say
       // which month(s) they fall in, since every date is listed below.
-      const dateLabel = sorted.length > 1
+      const dateLabel = headline.length > 1
         ? (() => {
-            const days = sorted.map(p => new Date(p.date + 'T12:00:00'))
+            const days = headline.map(p => new Date(p.date + 'T12:00:00'))
             const start = days[0], end = days[days.length - 1]
             const businessDaysBetween = eachDayOfInterval({ start, end })
               .filter(d => getDay(d) !== 0 && getDay(d) !== 6).length
@@ -120,9 +134,9 @@ export default async function DayPassAccountPage() {
         id: first.confirmation_number ?? first.id,
         sortKey: first.date,
         title: first.locations?.name ?? 'Day pass',
-        subtitle: sorted.length > 1 ? `Day passes · ${dateLabel}` : `Day pass · ${dateLabel}`,
+        subtitle: headline.length > 1 ? `Day passes · ${dateLabel}` : `Day pass · ${dateLabel}`,
         amount: `$${(totalCents / 100).toFixed(2)}`,
-        hours: sorted.length > 1 ? '9:00am – 5:00pm each day' : '9:00am – 5:00pm',
+        hours: headline.length > 1 ? '9:00am – 5:00pm each day' : '9:00am – 5:00pm',
         reference: first.confirmation_number ?? undefined,
         status: first.status as UnifiedBooking['status'],
         cancellableConfirmationNumber: cancellableDates.length && first.confirmation_number ? first.confirmation_number : undefined,
@@ -133,12 +147,16 @@ export default async function DayPassAccountPage() {
           time: '9:00am – 5:00pm',
           cancelled: p.status === 'cancelled',
           cancellable: p.status === 'confirmed' && isStillCancellable(p.date),
+          // What this one day actually cost. The confirm prompt used to say
+          // a hardcoded $30, which would lie the moment the price changed
+          // in admin (Caroline, 2026-09-30).
+          amount: `$${(p.price_cents / 100).toFixed(2)}`,
         })),
         cancelLabel: cancellableDates.length > 1
-          ? (cancellableDates.length === sorted.length ? `Cancel all ${sorted.length} days` : `Cancel ${cancellableDates.length} days`)
+          ? (cancellableDates.length === live.length ? `Cancel all ${cancellableDates.length} days` : `Cancel ${cancellableDates.length} days`)
           : 'Cancel',
-        showSingleDayCancelNote: sorted.length > 1 && first.status === 'confirmed'
-          && sorted[sorted.length - 1].date >= new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' }),
+        showSingleDayCancelNote: headline.length > 1 && first.status === 'confirmed'
+          && headline[headline.length - 1].date >= new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' }),
       }
     }),
     ...(roomBookings ?? []).map(b => {
@@ -251,8 +269,8 @@ export default async function DayPassAccountPage() {
                               confirmationNumber={b.cancellableConfirmationNumber}
                               dates={[d.date]}
                               label="×"
-                              confirmLabel={`Cancel ${format(new Date(d.date + 'T12:00:00'), 'MMM d')} & refund $30?`}
-                              className="text-sm leading-none"
+                              confirmLabel={`Cancel ${format(new Date(d.date + 'T12:00:00'), 'MMM d')} & refund ${d.amount ?? 'this day'}?`}
+                              className="text-sm leading-none text-gray-400 hover:text-red-600 transition-colors"
                             />
                           )}
                           {d.cancelled && <span className="text-[11px] text-gray-400">cancelled</span>}
