@@ -76,6 +76,11 @@ type UnifiedBooking = {
   calendarDates?: string[]
 }
 
+// One switch for whether customers are offered conference room booking
+// anywhere in their account. Flip to true once /book has been through a
+// real card at each location and a room cancellation has actually run.
+const ROOM_BOOKING_LAUNCHED = false
+
 // Cutoff lives in lib/dayPass.ts — this only controls whether the button
 // shows; /api/day-pass/cancel re-checks for real before refunding anything.
 function isStillCancellable(date: string): boolean {
@@ -254,7 +259,16 @@ export default async function DayPassAccountPage() {
         <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Your Bookings</h2>
         <div className="flex items-center gap-4 text-sm font-medium">
           <a href="/day-pass" className="text-booking-600 hover:text-booking-700">+ Day Pass</a>
-          <a href="/book" className="text-booking-600 hover:text-booking-700">+ Room Booking</a>
+          {/* Conference rooms are built and running on the live Stripe key,
+              but no real card has ever been through /book and the admin
+              cancellation for a room booking has never run. This link was
+              the one public route into it, straight from every day pass
+              customer's account page. Hidden until rooms are tested for
+              real (Caroline, 2026-09-30). Put it back by flipping this to
+              true; nothing else needs changing. */}
+          {ROOM_BOOKING_LAUNCHED && (
+            <a href="/book" className="text-booking-600 hover:text-booking-700">+ Room Booking</a>
+          )}
         </div>
       </div>
 
