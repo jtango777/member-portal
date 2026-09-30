@@ -10,27 +10,21 @@ import DayPassDatePicker from '@/components/DayPassDatePicker'
 import { DayPassSettingsProvider, useDayPassSettings } from '@/components/day-pass/SettingsContext'
 import Recaptcha, { RecaptchaHandle } from '@/components/Recaptcha'
 import { createClient } from '@/lib/supabase/client'
-import { cn, getPacificDayBounds } from '@/lib/utils'
+import { cn } from '@/lib/utils'
 import { MAX_DAY_PASS_DAYS, MAX_DAYS_MESSAGE } from '@/lib/dayPass'
+import { DAY_PASS_LOCATIONS, DayPassLocation, directionsUrl, mapEmbedUrl } from '@/lib/locations'
+import { dayPassGoogleCalendarUrl, downloadDayPassIcs } from '@/lib/dayPassCalendar'
 import { AUTH_CHANGED_EVENT } from '@/components/day-pass/HeaderAccountLink'
 
 type ExistingCustomer = { id: string; first_name: string; last_name: string; email: string }
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!)
 
-// Locations are hardcoded here rather than fetched from the `locations`
-// table — the ids match the real rows so the API routes' foreign key
-// checks pass, but wiring this up to a live query is a later cleanup.
-// Photos reuse the same open-space shots /book uses for its own location
-// banners (components/book/AvailabilityView.tsx) — same 3 locations,
-// Caroline confirmed all three are accurate as of 2026-08-31 (Costa
-// Mesa's photo was replaced that day, the old one showed an unrelated
-// outdoor patio rather than the desk area).
-const LOCATIONS = [
-  { id: '11111111-1111-1111-1111-111111111101', name: 'El Segundo', phone: '(310) 870-1730', address: '1730 E Holly Ave, El Segundo, CA 90245', photo: '/rooms/es-open-space.jpg' },
-  { id: '11111111-1111-1111-1111-111111111102', name: 'Marina del Rey', phone: '(310) 596-1990', address: '4223 Glencoe Ave Ste C215, Marina Del Rey, CA 90292', photo: '/rooms/mdr-open-space.jpg', photoPosition: 'center 70%' },
-  { id: '11111111-1111-1111-1111-111111111103', name: 'Costa Mesa', phone: '(949) 800-8660', address: '2942 Century Pl, Costa Mesa, CA 92626', photo: '/rooms/cm-open-space.jpg' },
-] as const
+// Locations are hardcoded rather than fetched from the `locations` table,
+// which has no address or phone columns. They now live in lib/locations.ts
+// so this flow, the confirmation emails and the My Bookings cards all read
+// the same details; wiring any of it up to a live query is a later cleanup.
+const LOCATIONS = DAY_PASS_LOCATIONS
 
 // The price comes from the database via DayPassSettingsProvider — staff
 // edit it at /dashboard/admin/day-passes (Caroline, 2026-09-25).
@@ -309,7 +303,7 @@ function ReservationFields({
                   src={loc.photo}
                   alt={loc.name}
                   className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
-                  style={'photoPosition' in loc ? { objectPosition: loc.photoPosition } : undefined}
+                  style={loc.photoPosition ? { objectPosition: loc.photoPosition } : undefined}
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-gray-900/85 via-gray-900/25 to-transparent" />
 
@@ -855,46 +849,15 @@ function PaymentStep({ customerId, locationId, dates, guestName, guestEmail, onS
   )
 }
 
-// Calendar times for a day pass: 9am to 5pm Pacific on each date, as UTC
-// stamps like 20261030T160000Z (what both Google links and .ics files take).
-function dayPassUtcStamps(date: string) {
-  const dayStart = getPacificDayBounds(date).start.getTime()
-  const stamp = (ms: number) => new Date(ms).toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '')
-  return { start: stamp(dayStart + 9 * 3600000), end: stamp(dayStart + 17 * 3600000) }
-}
-
-function downloadDayPassIcs(loc: typeof LOCATIONS[number], dates: string[], confirmationNumber: string) {
-  const now = new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '')
-  const events = dates.map(d => {
-    const { start, end } = dayPassUtcStamps(d)
-    return [
-      'BEGIN:VEVENT',
-      `UID:daypass-${confirmationNumber}-${d}@bizhaus.com`,
-      `DTSTAMP:${now}`, `DTSTART:${start}`, `DTEND:${end}`,
-      `SUMMARY:BizHaus Day Pass (${loc.name})`,
-      `LOCATION:${loc.address.replace(/,/g, '\\,')}`,
-      `DESCRIPTION:Confirmation #${confirmationNumber}`,
-      'END:VEVENT',
-    ].join('\r\n')
-  })
-  const ics = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//BizHaus//Day Pass//EN', ...events, 'END:VCALENDAR'].join('\r\n')
-  const url = URL.createObjectURL(new Blob([ics], { type: 'text/calendar' }))
-  const a = document.createElement('a')
-  a.href = url; a.download = `bizhaus-day-pass-${confirmationNumber}.ics`
-  a.click()
-  URL.revokeObjectURL(url)
-}
-
 function StepConfirmation({ loc, dates, guestName, guestEmail, confirmationNumber, onRestart }: {
-  loc: typeof LOCATIONS[number]; dates: string[]
+  loc: DayPassLocation; dates: string[]
   guestName: string; guestEmail: string; confirmationNumber: string
   onRestart: () => void
 }) {
-  const isMarina = loc.name === 'Marina del Rey'
-  const googleCalendarUrl = dates.length === 1 ? (() => {
-    const { start, end } = dayPassUtcStamps(dates[0])
-    return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(`BizHaus Day Pass (${loc.name})`)}&dates=${start}/${end}&location=${encodeURIComponent(loc.address)}&details=${encodeURIComponent(`Confirmation #${confirmationNumber}`)}`
-  })() : null
+  const isMarina = loc.isMarina === true
+  const googleCalendarUrl = dates.length === 1
+    ? dayPassGoogleCalendarUrl({ locationName: loc.name, address: loc.address, confirmationNumber, date: dates[0] })
+    : null
   const { priceDollars } = useDayPassSettings()
   const total = priceDollars * dates.length
   const dateRangeLabel = dates.length > 1
@@ -923,7 +886,7 @@ function StepConfirmation({ loc, dates, guestName, guestEmail, confirmationNumbe
           src={loc.photo}
           alt={`${loc.name} open desk space`}
           className="w-full h-32 object-cover"
-          style={'photoPosition' in loc ? { objectPosition: loc.photoPosition } : undefined}
+          style={loc.photoPosition ? { objectPosition: loc.photoPosition } : undefined}
         />
         <div className="px-5 py-3.5 border-b border-gray-100 flex justify-between items-baseline">
           <div className="text-[15px] font-semibold text-gray-900">Coworking Day Pass{dates.length > 1 ? 'es' : ''}</div>
@@ -946,12 +909,12 @@ function StepConfirmation({ loc, dates, guestName, guestEmail, confirmationNumbe
           </div>
         </div>
         <a
-          href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(loc.address)}`}
+          href={directionsUrl(loc.address)}
           target="_blank" rel="noopener noreferrer"
           className="block border-t border-gray-100"
         >
           <iframe
-            src={`https://www.google.com/maps?q=${encodeURIComponent(loc.address)}&output=embed`}
+            src={mapEmbedUrl(loc.address)}
             className="w-full h-28 pointer-events-none"
             loading="lazy"
             title={`Map of ${loc.name}`}
@@ -984,7 +947,7 @@ function StepConfirmation({ loc, dates, guestName, guestEmail, confirmationNumbe
             {googleCalendarUrl && (
               <a href={googleCalendarUrl} target="_blank" rel="noopener noreferrer" className="font-medium text-booking-600 hover:text-booking-700">Google Calendar</a>
             )}
-            <button type="button" onClick={() => downloadDayPassIcs(loc, dates, confirmationNumber)} className="font-medium text-booking-600 hover:text-booking-700">
+            <button type="button" onClick={() => downloadDayPassIcs({ locationName: loc.name, address: loc.address, confirmationNumber, dates })} className="font-medium text-booking-600 hover:text-booking-700">
               {dates.length > 1 ? `Add all ${dates.length} days (Apple, Outlook, Google)` : 'Apple or Outlook'}
             </button>
           </div>

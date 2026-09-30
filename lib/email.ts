@@ -1,4 +1,5 @@
 import { Resend } from 'resend'
+import { DAY_PASS_LOCATIONS_BY_NAME, DayPassLocation } from './locations'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 const FROM = process.env.RESEND_FROM_EMAIL ?? 'BizHaus <noreply@bizhaus.com>'
@@ -48,13 +49,10 @@ const BOOKING_GREEN = '#6ec664'
 const LOGO_URL = `${process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'}/brand/bizhaus-logo.png`
 
 
-// Location details used by the day-pass letter templates below. Not worth
-// its own table yet — mirrors app/day-pass/page.tsx's DAY_PASS_LOCATIONS.
-const DAY_PASS_LOCATIONS: Record<string, { phone: string; address: string; isMarina?: boolean }> = {
-  'El Segundo': { phone: '(310) 870-1730', address: '1730 E Holly Ave, El Segundo' },
-  'Marina del Rey': { phone: '(310) 596-1990', address: '4223 Glencoe Ave Ste C215, Marina del Rey', isMarina: true },
-  'Costa Mesa': { phone: '(949) 800-8660', address: '2942 Century Pl, Costa Mesa' },
-}
+// Location details used by the day-pass letter templates below. These used
+// to be a second hand-kept copy of app/day-pass/page.tsx's list; both now
+// read lib/locations.ts (2026-09-30). The letters print `shortAddress`,
+// which is the same text this copy held, so they read exactly as before.
 
 // Letter-style wrapper for the day-pass confirmation email — plainer and
 // more personal than the receipt-style bookingEmailWrapper above, per
@@ -260,10 +258,10 @@ export async function sendDayPassConfirmation(
   }
 ) {
   const firstName = details.guestName.trim().split(/\s+/)[0] || details.guestName
-  const loc = DAY_PASS_LOCATIONS[details.location]
+  const loc = DAY_PASS_LOCATIONS_BY_NAME[details.location]
 
   const html = loc?.isMarina
-    ? marinaConfirmationEmail(firstName, details)
+    ? marinaConfirmationEmail(firstName, details, loc)
     : standardConfirmationEmail(firstName, details, loc)
 
   const { data, error } = await resend.emails.send({
@@ -281,7 +279,7 @@ export async function sendDayPassConfirmation(
 function standardConfirmationEmail(
   firstName: string,
   details: { confirmationNumber: string; location: string; date: string; amountPaid: string },
-  loc: { phone: string; address: string } | undefined
+  loc: DayPassLocation | undefined
 ) {
   return `
     <p style="font-family:${FONT};font-size:15px;color:#3a3f3a;line-height:1.7;margin:0 0 22px;">Hi ${firstName},</p>
@@ -295,7 +293,7 @@ function standardConfirmationEmail(
     <table style="border-collapse:collapse;width:100%;margin-bottom:28px;font-family:${FONT};">
       <tr>
         <td style="padding:9px 0;border-top:1px solid #eef0ee;color:#8b948d;font-size:13px;width:120px;">Location</td>
-        <td style="padding:9px 0;border-top:1px solid #eef0ee;color:#232823;font-size:13.5px;">${loc ? `${details.location}, ${loc.address}` : details.location}</td>
+        <td style="padding:9px 0;border-top:1px solid #eef0ee;color:#232823;font-size:13.5px;">${loc ? `${details.location}, ${loc.shortAddress}` : details.location}</td>
       </tr>
       <tr>
         <td style="padding:9px 0;border-top:1px solid #eef0ee;color:#8b948d;font-size:13px;">Date</td>
@@ -325,7 +323,8 @@ function standardConfirmationEmail(
 
 function marinaConfirmationEmail(
   firstName: string,
-  details: { confirmationNumber: string; date: string }
+  details: { confirmationNumber: string; date: string },
+  loc: DayPassLocation
 ) {
   const photo = (name: string) => `${BOOKINGS_URL}/day-pass/${name}`
   const bullet = (label: string, text: string) => `
@@ -347,7 +346,7 @@ function marinaConfirmationEmail(
 
     <table style="border-collapse:collapse;width:100%;margin-bottom:8px;">
       ${bullet('WiFi Password', 'bizhauswifi')}
-      ${bullet('Building Access', "BizHaus MDR is located at 4223 Glencoe Ave, Suite C215, Marina del Rey. Your day pass code for today is <strong>#6192</strong>, it's the same code for both the building and Suite C215.")}
+      ${bullet('Building Access', `BizHaus MDR is located at 4223 Glencoe Ave, Suite C215, Marina del Rey. Your day pass code for today is <strong>#${loc.doorCode}</strong>, it's the same code for both the building and Suite C215.`)}
       ${bullet('Parking', 'Visitor parking out front is limited to 2 hours. Street parking is available nearby, or park in the AMC structure next door.')}
       ${bullet('Restrooms', 'Down the hallway, keys hang next to each door (pink bear for women, blue bear for men).')}
       ${bullet('Printers', 'Search for &ldquo;BizHaus Printer&rdquo; on the network. Our policy: please be kind to trees and print only when you have to!')}
@@ -492,7 +491,7 @@ export async function sendDayPassCancellationStaffNotification(
 // cancel showed the customer got no email at all, only staff did.
 export function dayPassCancellationEmailHtml(details: { guestName: string; location: string; dates: string[]; remainingDates?: string[]; refundAmount: string; confirmationNumber: string; credited?: boolean }) {
   const firstName = details.guestName.trim().split(/\s+/)[0] || details.guestName
-  const loc = DAY_PASS_LOCATIONS[details.location]
+  const loc = DAY_PASS_LOCATIONS_BY_NAME[details.location]
   const dateLabel = details.dates.join('<br/>')
   // `credited` is the staff override path: the booking is cancelled but the
   // money stays with us as credit toward a future visit, so every line that
@@ -524,7 +523,7 @@ export function dayPassCancellationEmailHtml(details: { guestName: string; locat
       </tr>` : ''}
       <tr>
         <td style="padding:9px 0;border-top:1px solid #eef0ee;color:#8b948d;font-size:13px;">Location</td>
-        <td style="padding:9px 0;border-top:1px solid #eef0ee;color:#232823;font-size:13.5px;">${loc ? `${details.location}, ${loc.address}` : details.location}</td>
+        <td style="padding:9px 0;border-top:1px solid #eef0ee;color:#232823;font-size:13.5px;">${loc ? `${details.location}, ${loc.shortAddress}` : details.location}</td>
       </tr>
       <tr>
         <td style="padding:9px 0;border-top:1px solid #eef0ee;border-bottom:1px solid #eef0ee;color:#8b948d;font-size:13px;">${credited ? 'Credit' : 'Refunded'}</td>

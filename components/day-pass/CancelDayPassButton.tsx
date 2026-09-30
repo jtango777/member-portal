@@ -16,7 +16,7 @@ import { cn } from '@/lib/utils'
 // absolutely and crossfaded; the wrapper transitions to the exact pixel
 // width of whichever one is showing, measured for real via ref instead of
 // guessed, so it's one smooth motion in any browser.
-export default function CancelDayPassButton({ confirmationNumber, label = 'Cancel', dates, confirmLabel = 'Cancel & refund?', className }: {
+export default function CancelDayPassButton({ confirmationNumber, label = 'Cancel', dates, confirmLabel = 'Cancel & refund?', className, wrapperClassName = 'h-5' }: {
   confirmationNumber: string
   label?: string
   // Specific days to cancel — omit for the whole booking. Used by the
@@ -24,6 +24,10 @@ export default function CancelDayPassButton({ confirmationNumber, label = 'Cance
   dates?: string[]
   confirmLabel?: string
   className?: string
+  // The sliding wrapper clips to a fixed height, so a button with a border
+  // and padding needs a taller one than the old plain-text cancel did
+  // (My Bookings redesign, 2026-09-30). Default keeps the original height.
+  wrapperClassName?: string
 }) {
   const router = useRouter()
   const [confirming, setConfirming] = useState(false)
@@ -58,7 +62,7 @@ export default function CancelDayPassButton({ confirmationNumber, label = 'Cance
 
   return (
     <div
-      className="relative h-5 overflow-hidden transition-[width] duration-300 ease-in-out"
+      className={cn('relative overflow-hidden transition-[width] duration-300 ease-in-out', wrapperClassName)}
       style={{ width }}
     >
       <div
