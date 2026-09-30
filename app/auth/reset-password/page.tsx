@@ -32,32 +32,79 @@ function ResetPasswordForm() {
   const [showConf, setShowConf]   = useState(false)
   const [loading, setLoading]     = useState(false)
   const [ready, setReady]         = useState(false)
+  const [failed, setFailed]       = useState<string | null>(null)
 
+  // Turning a reset link into a signed-in session. Supabase can hand the
+  // link back in three different shapes and this page used to understand
+  // only one of them, so it sat on "Verifying reset link…" forever with no
+  // error (Caroline, 2026-09-30):
+  //
+  //   ?code=…        PKCE. What we actually get, because lib/supabase/client
+  //                  uses createBrowserClient, which is PKCE by default.
+  //                  Needs exchangeCodeForSession, which nothing called.
+  //   ?token_hash=…  The browser-independent recovery link.
+  //   #access_token= The old implicit flow; the client picks this up itself.
+  //
+  // Whatever happens, this now finishes: any failure shows a real message
+  // with a way to ask for a fresh link, and a backstop timer means it can
+  // never hang silently again.
   useEffect(() => {
     const supabase = createClient()
+    let settled = false
+    const succeed = () => { if (!settled) { settled = true; setReady(true) } }
+    const fail = (msg: string) => { if (!settled) { settled = true; setFailed(msg) } }
 
-    // Listen for PASSWORD_RECOVERY event from hash fragment
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      if (event === 'PASSWORD_RECOVERY' || event === 'SIGNED_IN') setReady(true)
+      if (event === 'PASSWORD_RECOVERY' || event === 'SIGNED_IN') succeed()
     })
 
-    // Also check if session already exists (e.g. came through /auth/callback)
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) setReady(true)
-    })
+    const EXPIRED = 'This reset link has expired or has already been used.'
 
-    // If hash contains access_token, Supabase client will pick it up automatically
-    // but give it a moment to process
-    if (window.location.hash.includes('access_token')) {
-      setTimeout(() => {
-        supabase.auth.getSession().then(({ data: { session } }) => {
-          if (session) setReady(true)
-        })
-      }, 1000)
-    }
+    ;(async () => {
+      const hash = new URLSearchParams(window.location.hash.replace(/^#/, ''))
+      const param = (k: string) => searchParams.get(k) ?? hash.get(k)
 
-    return () => subscription.unsubscribe()
-  }, [])
+      // Supabase sometimes redirects back with an error instead of a token.
+      const errorDescription = param('error_description') ?? param('error')
+      if (errorDescription) return fail(EXPIRED)
+
+      const { data: { session } } = await supabase.auth.getSession()
+      if (session) return succeed()
+
+      const code = searchParams.get('code')
+      if (code) {
+        const { error } = await supabase.auth.exchangeCodeForSession(code)
+        // PKCE keeps half the handshake in the browser that asked for the
+        // reset, so opening the link on a different device fails here even
+        // though the link itself is perfectly good.
+        return error
+          ? fail('This link has to be opened in the same browser you requested it from, or it has expired.')
+          : succeed()
+      }
+
+      const tokenHash = param('token_hash')
+      if (tokenHash) {
+        const { error } = await supabase.auth.verifyOtp({ token_hash: tokenHash, type: 'recovery' })
+        return error ? fail(EXPIRED) : succeed()
+      }
+
+      // Implicit flow: the client reads the hash itself, so give it a moment.
+      if (hash.get('access_token')) {
+        setTimeout(async () => {
+          const { data: { session: s } } = await supabase.auth.getSession()
+          if (s) succeed(); else fail(EXPIRED)
+        }, 1000)
+        return
+      }
+
+      fail('This page needs a password reset link to work.')
+    })()
+
+    // Backstop: never leave someone staring at "Verifying…".
+    const timer = setTimeout(() => fail(EXPIRED), 10000)
+
+    return () => { subscription.unsubscribe(); clearTimeout(timer) }
+  }, [searchParams])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -74,6 +121,31 @@ function ResetPasswordForm() {
       toast.success('Password updated! Please sign in.')
       router.push(isDayPass ? '/my-bookings/login' : '/login')
     }
+  }
+
+  if (failed) {
+    return (
+      <div className={`min-h-screen flex items-center justify-center p-4 ${isDayPass ? 'bg-gray-50' : 'bg-slate-900'}`}>
+        <div className="w-full max-w-sm bg-white rounded-xl shadow-lg p-8 text-center">
+          <h2 className="text-lg font-semibold text-gray-900 mb-2">We couldn&apos;t open that link</h2>
+          <p className="text-sm text-gray-500 mb-6 leading-relaxed">{failed}</p>
+          <a
+            href={isDayPass ? '/forgot-password?context=day-pass' : '/forgot-password'}
+            className={`inline-block w-full font-semibold py-2 px-4 rounded-lg text-white transition-colors ${
+              isDayPass ? 'bg-booking-600 hover:bg-booking-700' : 'bg-blue-600 hover:bg-blue-700'
+            }`}
+          >
+            Send me a new link
+          </a>
+          <a
+            href={isDayPass ? '/my-bookings/login' : '/login'}
+            className="block mt-4 text-sm text-gray-500 hover:text-gray-700"
+          >
+            Back to sign in
+          </a>
+        </div>
+      </div>
+    )
   }
 
   if (!ready) {
