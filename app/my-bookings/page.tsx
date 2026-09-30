@@ -59,7 +59,6 @@ type UnifiedBooking = {
   // database, which has no columns for either. Missing for a location name
   // that isn't one of the three day pass locations, so every use is guarded.
   address?: string
-  doorCode?: string
   // Only day passes are self-serve cancellable — conference room bookings
   // never are (Caroline, 2026-08-31). Present only for day-pass entries
   // that are still before their 9pm-night-before cancellation cutoff.
@@ -175,7 +174,6 @@ export default async function DayPassAccountPage() {
         reference: first.confirmation_number ?? undefined,
         status: first.status as UnifiedBooking['status'],
         address: loc?.address,
-        doorCode: loc?.doorCode,
         cancellableConfirmationNumber: cancellableDates.length && first.confirmation_number ? first.confirmation_number : undefined,
         cancellableDates,
         calendarDates: live.map(p => p.date),
@@ -312,31 +310,6 @@ function BookingCard({ b, isPast }: { b: UnifiedBooking; isPast: boolean }) {
           )}
         </div>
       </div>
-
-      {/* What you show when you arrive. Costa Mesa's front desk asks for a
-          name or the number, so the number is the thing to make big and
-          readable rather than fine print at the bottom of the card
-          (Caroline, 2026-09-30). Marina del Rey has nobody at the desk in
-          the morning, so there the door code leads instead. */}
-      {showInstructions && b.reference && b.kind === 'day-pass' && (
-        <div className="mx-4 sm:mx-5 mb-4 rounded-lg bg-booking-50 px-4 py-3">
-          {b.doorCode ? (
-            <>
-              <div className="text-xs font-semibold text-booking-800 uppercase tracking-wide">Let yourself in</div>
-              <div className="text-2xl font-bold font-mono tracking-tight text-gray-900 mt-1">#{b.doorCode}</div>
-              <div className="text-[13px] text-gray-600 mt-1 leading-snug">
-                Same code for the building and Suite C215. Confirmation <span className="font-mono">#{b.reference}</span>.
-              </div>
-            </>
-          ) : (
-            <>
-              <div className="text-xs font-semibold text-booking-800 uppercase tracking-wide">Show this at the front desk</div>
-              <div className="text-2xl font-bold font-mono tracking-tight text-gray-900 mt-1">#{b.reference}</div>
-              <div className="text-[13px] text-gray-600 mt-1 leading-snug">Or just give your name.</div>
-            </>
-          )}
-        </div>
-      )}
 
       {/* Every day of the booking, as full rows rather than the little pills
           multi-day bookings used to get. A single-day and a multi-day pass
