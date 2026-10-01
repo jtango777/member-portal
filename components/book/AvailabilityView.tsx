@@ -28,13 +28,13 @@ const CONTACT_EMAIL = 'bookings@bizhaus.com'
 // Keyed by "location-slug:external_name" — arrays support carousel; first image is the cover
 const ROOM_IMAGES: Record<string, string[]> = {
   'el-segundo:Large':     ['/rooms/es-large.jpg'],
-  // These two were crossed: Medium + pointed at es-medium.jpg and Medium at
-  // es-medium-plus.jpg, so each El Segundo room showed the other's photo.
-  // The green/cork room seats 6 (Medium) and the brick-and-chalkboard room
-  // seats 8 (Medium +), which is what the filenames always said. Costa Mesa
-  // below was mapped correctly all along. Caught 2026-09-28.
-  'el-segundo:Medium +':  ['/rooms/es-medium-plus.jpg'],
-  'el-segundo:Medium':    ['/rooms/es-medium.jpg'],
+  // DO NOT "FIX" THESE TO MATCH THE FILENAMES. The two El Segundo files are
+  // misnamed: es-medium.jpg is the Medium + room and es-medium-plus.jpg is
+  // the Medium. I swapped them on 2026-09-28 to match their names, counting
+  // chairs in the photos to justify it, and Caroline corrected it on
+  // 2026-10-01 — she knows which room is which, the filenames do not.
+  'el-segundo:Medium +':  ['/rooms/es-medium.jpg'],
+  'el-segundo:Medium':    ['/rooms/es-medium-plus.jpg'],
   'el-segundo:Small':     ['/rooms/es-small.jpg'],
   'marina-del-rey:Small': ['/rooms/mdr-conference-3.jpg', '/rooms/mdr-conference-2.jpg'],
   'costa-mesa:Large':     ['/rooms/cm-large.jpg', '/rooms/cm-large-2.jpg'],
