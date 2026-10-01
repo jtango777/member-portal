@@ -529,9 +529,14 @@ export default function AvailabilityView({ location, rooms, closures }: { locati
                         Proceed to Payment →
                       </Link>
                     ) : (
+                      // Said "Request Booking" before, which reads as though a
+                      // human reviews it and gets back to you. Nobody does: it
+                      // is an instant paid booking. Since the button is dead
+                      // until times are picked anyway, say what is missing
+                      // (Caroline, 2026-10-01).
                       <button disabled
                         className="w-full bg-booking-200 text-white text-sm font-semibold py-3 rounded-lg cursor-not-allowed">
-                        Request Booking →
+                        {selectedStart ? 'Select an end time' : 'Select a time'}
                       </button>
                     )}
                   </div>
