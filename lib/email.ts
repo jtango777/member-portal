@@ -1,6 +1,6 @@
 import { Resend } from 'resend'
 import { getEmailCopy } from '@/lib/settings'
-import { fillTags, DEFAULT_COPY } from '@/lib/emailCopy'
+import { fillTags, paragraphs, bulletLines, DEFAULT_COPY } from '@/lib/emailCopy'
 import { DAY_PASS_LOCATIONS_BY_NAME, DayPassLocation } from './locations'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
@@ -290,11 +290,8 @@ function standardConfirmationEmail(
   return `
     <p style="font-family:${FONT};font-size:15px;color:#3a3f3a;line-height:1.7;margin:0 0 22px;">Hi ${firstName},</p>
     <p style="font-family:${FONT};font-size:15px;color:#3a3f3a;line-height:1.7;margin:0 0 18px;">
-      ${fillTags(copy['day_pass_confirmation.intro'], tags)}
-    </p>
-    <p style="font-family:${FONT};font-size:15px;color:#3a3f3a;line-height:1.7;margin:0 0 28px;">
-      ${fillTags(copy['day_pass_confirmation.arrival'], tags)}
-    </p>
+      ${paragraphs(fillTags(copy['day_pass_confirmation.body'], tags))
+        .join(`</p><p style="font-family:${FONT};font-size:15px;color:#3a3f3a;line-height:1.7;margin:0 0 28px;">`)}
 
     <table style="border-collapse:collapse;width:100%;margin-bottom:28px;font-family:${FONT};">
       <tr>
@@ -341,7 +338,7 @@ function marinaConfirmationEmail(
   const bullet = (label: string, text: string) => `
     <tr>
       <td style="padding:0 0 16px;font-family:${FONT};font-size:14.5px;color:#3a3f3a;line-height:1.65;vertical-align:top;">
-        <span style="color:#3f7a37;font-weight:700;">${label}:</span> ${text}
+        ${label ? `<span style="color:#3f7a37;font-weight:700;">${label}:</span> ` : ''}${text}
       </td>
     </tr>
   `
@@ -349,19 +346,12 @@ function marinaConfirmationEmail(
   return `
     <p style="font-family:${FONT};font-size:15px;color:#3a3f3a;line-height:1.7;margin:0 0 22px;">Hi ${firstName},</p>
     <p style="font-family:${FONT};font-size:15px;color:#3a3f3a;line-height:1.7;margin:0 0 6px;">
-      ${line('intro')}
-    </p>
-    <p style="font-family:${FONT};font-size:14px;color:#6b746c;line-height:1.6;margin:0 0 26px;">
-      ${line('preamble')}
-    </p>
+      ${paragraphs(line('intro')).map((para, i) => i === 0
+        ? para
+        : `</p><p style="font-family:${FONT};font-size:14px;color:#6b746c;line-height:1.6;margin:0 0 26px;">${para}`).join('')}
 
     <table style="border-collapse:collapse;width:100%;margin-bottom:8px;">
-      ${bullet('WiFi Password', line('wifi'))}
-      ${bullet('Building Access', line('building_access'))}
-      ${bullet('Parking', line('parking'))}
-      ${bullet('Restrooms', line('restrooms'))}
-      ${bullet('Printers', line('printers'))}
-      ${bullet('Kitchen', line('kitchen'))}
+      ${bulletLines(line('details')).map(b => bullet(b.label, b.text)).join('')}
     </table>
 
     <p style="font-family:${FONT};font-size:14.5px;color:#3a3f3a;line-height:1.65;margin:6px 0 10px;">

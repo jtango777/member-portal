@@ -17,6 +17,8 @@ export type CopyField = {
   hint?: string
   /** A longer box for paragraphs. */
   multiline?: boolean
+  /** How tall that box should be. */
+  rows?: number
   default: string
 }
 
@@ -48,18 +50,15 @@ export const EMAIL_TEMPLATES: CopyTemplate[] = [
         default: 'Your BizHaus Day Pass — {location}, {date}',
       },
       {
-        key: 'day_pass_confirmation.intro',
-        label: 'Opening line',
-        hint: 'Tags: {firstName}, {location}',
+        key: 'day_pass_confirmation.body',
+        label: 'Message',
+        hint: 'Leave a blank line between paragraphs. Tags: {firstName}, {location}, {date}',
         multiline: true,
-        default: "Thanks for booking a day pass with BizHaus! We're looking forward to having you at our <strong>{location}</strong> location.",
-      },
-      {
-        key: 'day_pass_confirmation.arrival',
-        label: 'What to do on arrival',
-        hint: 'Shown on every location except Marina del Rey, which has its own door code wording.',
-        multiline: true,
-        default: "We'll be there at <strong>9:00am</strong> to help you get set up when you arrive, just check in with us at the front desk.",
+        rows: 6,
+        default: [
+          "Thanks for booking a day pass with BizHaus! We're looking forward to having you at our <strong>{location}</strong> location.",
+          "We'll be there at <strong>9:00am</strong> to help you get set up when you arrive, just check in with us at the front desk.",
+        ].join('\n\n'),
       },
     ],
   },
@@ -71,56 +70,31 @@ export const EMAIL_TEMPLATES: CopyTemplate[] = [
     fields: [
       {
         key: 'marina_confirmation.intro',
-        label: 'Opening line',
+        label: 'Opening',
+        hint: 'Leave a blank line between paragraphs.',
         multiline: true,
-        default: 'We look forward to having you at BizHaus today!',
+        rows: 5,
+        default: "We look forward to having you at BizHaus today!\n\nOur Marina del Rey location is a satellite space, so a team member won't be there until the afternoon. Here's what you need to get in and get set up.",
       },
       {
-        key: 'marina_confirmation.preamble',
-        label: 'Why these instructions are here',
+        key: 'marina_confirmation.details',
+        label: 'Arrival details',
+        hint: 'One per line, written as "Heading: what it says". Tags: {doorCode}, {address}. Keep {doorCode} so the code only ever has to be changed in one place.',
         multiline: true,
-        default: "Our Marina del Rey location is a satellite space, so a team member won't be there until the afternoon. Here's what you need to get in and get set up.",
-      },
-      {
-        key: 'marina_confirmation.wifi',
-        label: 'WiFi password',
-        default: 'bizhauswifi',
-      },
-      {
-        key: 'marina_confirmation.building_access',
-        label: 'Building access',
-        hint: 'Tags: {doorCode}, {address}. Keep {doorCode} so the code only ever has to be changed in one place.',
-        multiline: true,
-        default: "BizHaus MDR is located at {address}. Your day pass code for today is <strong>#{doorCode}</strong>, it's the same code for both the building and Suite C215.",
-      },
-      {
-        key: 'marina_confirmation.parking',
-        label: 'Parking',
-        multiline: true,
-        default: 'Visitor parking out front is limited to 2 hours. Street parking is available nearby, or park in the AMC structure next door.',
-      },
-      {
-        key: 'marina_confirmation.restrooms',
-        label: 'Restrooms',
-        multiline: true,
-        default: 'Down the hallway, keys hang next to each door (pink bear for women, blue bear for men).',
-      },
-      {
-        key: 'marina_confirmation.printers',
-        label: 'Printers',
-        multiline: true,
-        default: 'Search for &ldquo;BizHaus Printer&rdquo; on the network. Our policy: please be kind to trees and print only when you have to!',
-      },
-      {
-        key: 'marina_confirmation.kitchen',
-        label: 'Kitchen',
-        multiline: true,
-        default: 'Enjoy the Nespresso and purified water. Just place used cups and dishes in the dishwasher.',
+        rows: 10,
+        default: [
+          'WiFi Password: bizhauswifi',
+          "Building Access: BizHaus MDR is located at {address}. Your day pass code for today is <strong>#{doorCode}</strong>, it's the same code for both the building and Suite C215.",
+          'Parking: Visitor parking out front is limited to 2 hours. Street parking is available nearby, or park in the AMC structure next door.',
+          'Restrooms: Down the hallway, keys hang next to each door (pink bear for women, blue bear for men).',
+          'Printers: Search for &ldquo;BizHaus Printer&rdquo; on the network. Our policy: please be kind to trees and print only when you have to!',
+          'Kitchen: Enjoy the Nespresso and purified water. Just place used cups and dishes in the dishwasher.',
+        ].join('\n'),
       },
       {
         key: 'marina_confirmation.desks',
         label: 'Open desk areas',
-        hint: 'The line above the three photos of the desk areas.',
+        hint: 'The line above the three photos.',
         multiline: true,
         default: "feel free to set up wherever's comfortable.",
       },
@@ -202,6 +176,32 @@ export const ALL_COPY_FIELDS: CopyField[] = EMAIL_TEMPLATES.flatMap(t => t.field
 export const DEFAULT_COPY: Record<string, string> = Object.fromEntries(
   ALL_COPY_FIELDS.map(f => [f.key, f.default])
 )
+
+/**
+ * Blank-line-separated text into paragraphs. Lets staff write a message as
+ * a message rather than filling in one box per sentence (Caroline,
+ * 2026-10-01).
+ */
+export function paragraphs(text: string): string[] {
+  return text.split(/\n\s*\n/).map(t => t.trim()).filter(Boolean)
+}
+
+/**
+ * One bullet per line, written "Heading: what it says". A line with no colon
+ * becomes a bullet with no heading rather than being dropped, so a stray
+ * line never silently disappears from an email.
+ */
+export function bulletLines(text: string): { label: string; text: string }[] {
+  return text
+    .split('\n')
+    .map(l => l.trim())
+    .filter(Boolean)
+    .map(line => {
+      const at = line.indexOf(':')
+      if (at === -1) return { label: '', text: line }
+      return { label: line.slice(0, at).trim(), text: line.slice(at + 1).trim() }
+    })
+}
 
 /** Fill {tags} from the values given. Unknown braces are left untouched. */
 export function fillTags(text: string, values: Record<string, string | undefined>): string {
