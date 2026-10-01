@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { format } from 'date-fns'
-import { AdminTable, Th, tdNowrap, tdBase, Section, Pagination, usePagedList } from './AdminTable'
+import { AdminTable, Th, tdNowrap, tdBase, Section, Pagination, usePagedList, ListSearch } from './AdminTable'
 import { cn } from '@/lib/utils'
 import DayPassSettings from './DayPassSettings'
 import ClosureDaysManager from './ClosureDaysManager'
@@ -45,9 +45,17 @@ function groupByConfirmation(dayPasses: DayPass[]) {
       // Days still live, which is what the staff cancel dialog can act on —
       // a part-cancelled purchase keeps the rest cancellable.
       confirmedDates: sorted.filter(d => d.status === 'confirmed').map(d => d.date),
+      // A purchase counts as cancelled only when every day of it is.
+      cancelled: sorted.every(d => d.status === 'cancelled'),
     }
-  }).sort((a, b) => b.first.date.localeCompare(a.first.date))
+  })
 }
+
+// Ordering lives with the filters below, since it depends on which column
+// is selected. The rule that does not change: cancelled purchases sink to
+// the bottom. The list used to sort on the date of the pass, so a cancelled
+// booking for late October sat above a real one for today, which is how the
+// first actual customer ended up near the bottom (Caroline, 2026-10-01).
 
 type Tab = 'bookings' | 'price' | 'closed'
 
@@ -56,7 +64,42 @@ export default function DayPassesManager({ dayPasses }: { dayPasses: DayPass[] }
   // closed days. Settings sat on top of the list and pushed it off screen
   // (Caroline, 2026-09-25), so they're tabs now and the list opens first.
   const [tab, setTab] = useState<Tab>('bookings')
+  const [search, setSearch] = useState('')
+  const [location, setLocation] = useState('all')
+  // Sorted by when it was booked, because that is the question the list
+  // usually answers: what came in, and when. Click either header to swap.
+  const [sortBy, setSortBy] = useState<'booked' | 'date'>('booked')
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc')
+  function toggleSort(key: 'booked' | 'date') {
+    if (sortBy === key) setSortDir(d => (d === 'asc' ? 'desc' : 'asc'))
+    else { setSortBy(key); setSortDir('desc') }
+  }
+
+  const locationNames = [...new Set(dayPasses.map(d => d.locations?.name).filter(Boolean) as string[])].sort()
+
+  const q = search.trim().toLowerCase()
   const grouped = groupByConfirmation(dayPasses)
+    .filter(g => location === 'all' || g.first.locations?.name === location)
+    .filter(g => {
+      if (!q) return true
+      const c = g.first.booking_customers
+      // Everything someone might have to hand when they call: a name, an
+      // email, the confirmation number off their email, or the location.
+      return [
+        c ? `${c.first_name} ${c.last_name}` : '',
+        c?.email ?? '',
+        g.first.confirmation_number ?? '',
+        g.first.locations?.name ?? '',
+      ].some(v => v.toLowerCase().includes(q))
+    })
+    .sort((a, b) => {
+      // Cancelled purchases always sink, whichever column is sorted.
+      if (a.cancelled !== b.cancelled) return a.cancelled ? 1 : -1
+      const av = sortBy === 'booked' ? a.first.created_at : a.first.date
+      const bv = sortBy === 'booked' ? b.first.created_at : b.first.date
+      return sortDir === 'desc' ? bv.localeCompare(av) : av.localeCompare(bv)
+    })
+
   const { paged, paginationProps } = usePagedList(grouped, 25)
 
   const confirmedTotal = dayPasses.filter(d => d.status === 'confirmed').length
@@ -95,17 +138,35 @@ export default function DayPassesManager({ dayPasses }: { dayPasses: DayPass[] }
       {tab === 'closed' && <ClosureDaysManager product="day_pass" />}
 
       {tab === 'bookings' && (
-      <Section title={`${dayPasses.length} Day Passes`} headerRight={<Pagination {...paginationProps} />}>
+      <Section
+        title={grouped.length === 1 ? '1 booking' : `${grouped.length} bookings`}
+        headerRight={
+          <div className="flex items-center gap-3">
+            <ListSearch value={search} onChange={setSearch} placeholder="Name, email, confirmation..." />
+            {locationNames.length > 1 && (
+              <select
+                value={location}
+                onChange={e => setLocation(e.target.value)}
+                className="py-1.5 px-2.5 border border-gray-300 rounded-lg text-xs bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="all">All locations</option>
+                {locationNames.map(n => <option key={n} value={n}>{n}</option>)}
+              </select>
+            )}
+            <Pagination {...paginationProps} />
+          </div>
+        }
+      >
         <AdminTable colWidths={['110px', '180px', '240px', '140px', '90px', '110px', '140px', '80px']} minWidth={1020}>
           <thead>
             <tr>
               <Th>Confirmation</Th>
-              <Th>Date</Th>
+              <Th sortDir={sortBy === 'date' ? sortDir : null} onClick={() => toggleSort('date')}>Date</Th>
               <Th>Customer</Th>
               <Th>Location</Th>
               <Th>Price</Th>
               <Th>Status</Th>
-              <Th>Booked</Th>
+              <Th sortDir={sortBy === 'booked' ? sortDir : null} onClick={() => toggleSort('booked')}>Booked</Th>
               <Th></Th>
             </tr>
           </thead>

@@ -6,7 +6,7 @@ import { Reservation } from '@/types'
 import { format } from 'date-fns'
 import { Trash2, MapPin, Clock, Mail, Phone, Search } from 'lucide-react'
 import { cn, formatTime } from '@/lib/utils'
-import { AdminTable, Th, Section, Pagination, usePagedList } from '@/components/admin/AdminTable'
+import { AdminTable, Th, Section, Pagination, usePagedList, ListSearch } from '@/components/admin/AdminTable'
 import toast from 'react-hot-toast'
 import { CancelRowButton } from './CancelBookingDialog'
 
@@ -47,17 +47,6 @@ type Props = {
 // Small search box shared by each list — kept per-list (not one global
 // search) since Upcoming and Past are separate contexts an admin searches
 // independently ("did this person already book" vs "did they book before").
-function ListSearch({ value, onChange, placeholder }: { value: string; onChange: (v: string) => void; placeholder?: string }) {
-  return (
-    <div className="relative">
-      <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
-      <input value={value} onChange={e => onChange(e.target.value)}
-        className="pl-7 pr-2.5 py-1.5 w-48 border border-gray-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-        placeholder={placeholder ?? 'Search...'} />
-    </div>
-  )
-}
-
 export default function AllBookingsView({ reservations: initialRes, externalBookings, hideHeading }: Props & { hideHeading?: boolean }) {
   const [reservations, setReservations] = useState(initialRes)
   const [activeTab, setActiveTab] = useState<Tab>('internal')

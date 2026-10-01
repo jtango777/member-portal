@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { ArrowUp, ArrowDown, ArrowUpDown, ChevronLeft, ChevronRight } from 'lucide-react'
+import { ArrowUp, ArrowDown, ArrowUpDown, ChevronLeft, ChevronRight, Search } from 'lucide-react'
 
 // Shared table scaffold for admin list pages (Members, Companies, ...).
 // The whole point of this file existing is that "table-fixed + an explicit
@@ -52,6 +52,20 @@ export function Th({ children, sortDir, onClick, hideIdleSortIcon }: {
 
 // Standard cell treatments, so "which columns truncate/nowrap" doesn't have
 // to be independently re-decided (and potentially gotten wrong) per table.
+// The list search box, shared so every admin list searches the same way
+// and looks the same doing it. Lived privately inside AllBookingsView until
+// Day Passes needed one too (Caroline, 2026-10-01).
+export function ListSearch({ value, onChange, placeholder }: { value: string; onChange: (v: string) => void; placeholder?: string }) {
+  return (
+    <div className="relative">
+      <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
+      <input value={value} onChange={e => onChange(e.target.value)}
+        className="pl-7 pr-2.5 py-1.5 w-48 border border-gray-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+        placeholder={placeholder ?? 'Search...'} />
+    </div>
+  )
+}
+
 export const tdTruncate = 'px-4 py-3 truncate'
 export const tdNowrap   = 'px-4 py-3 whitespace-nowrap'
 export const tdBase     = 'px-4 py-3'
