@@ -265,7 +265,7 @@ export async function sendDayPassConfirmation(
   const tags = { firstName, location: details.location, date: details.date }
 
   const html = loc?.isMarina
-    ? marinaConfirmationEmail(firstName, details, loc)
+    ? marinaConfirmationEmail(firstName, details, loc, copy)
     : standardConfirmationEmail(firstName, details, loc, copy, tags)
 
   const { data, error } = await resend.emails.send({
@@ -330,8 +330,13 @@ function standardConfirmationEmail(
 function marinaConfirmationEmail(
   firstName: string,
   details: { confirmationNumber: string; date: string },
-  loc: DayPassLocation
+  loc: DayPassLocation,
+  copy: Record<string, string> = DEFAULT_COPY
 ) {
+  // The door code and address stay sourced from lib/locations, so changing
+  // the code never means hunting through email wording.
+  const tags = { doorCode: loc.doorCode ?? '', address: loc.address }
+  const line = (key: string) => fillTags(copy[`marina_confirmation.${key}`], tags)
   const photo = (name: string) => `${BOOKINGS_URL}/day-pass/${name}`
   const bullet = (label: string, text: string) => `
     <tr>
@@ -344,23 +349,23 @@ function marinaConfirmationEmail(
   return `
     <p style="font-family:${FONT};font-size:15px;color:#3a3f3a;line-height:1.7;margin:0 0 22px;">Hi ${firstName},</p>
     <p style="font-family:${FONT};font-size:15px;color:#3a3f3a;line-height:1.7;margin:0 0 6px;">
-      We look forward to having you at BizHaus today!
+      ${line('intro')}
     </p>
     <p style="font-family:${FONT};font-size:14px;color:#6b746c;line-height:1.6;margin:0 0 26px;">
-      Our Marina del Rey location is a satellite space, so a team member won't be there until the afternoon. Here's what you need to get in and get set up.
+      ${line('preamble')}
     </p>
 
     <table style="border-collapse:collapse;width:100%;margin-bottom:8px;">
-      ${bullet('WiFi Password', 'bizhauswifi')}
-      ${bullet('Building Access', `BizHaus MDR is located at 4223 Glencoe Ave, Suite C215, Marina del Rey. Your day pass code for today is <strong>#${loc.doorCode}</strong>, it's the same code for both the building and Suite C215.`)}
-      ${bullet('Parking', 'Visitor parking out front is limited to 2 hours. Street parking is available nearby, or park in the AMC structure next door.')}
-      ${bullet('Restrooms', 'Down the hallway, keys hang next to each door (pink bear for women, blue bear for men).')}
-      ${bullet('Printers', 'Search for &ldquo;BizHaus Printer&rdquo; on the network. Our policy: please be kind to trees and print only when you have to!')}
-      ${bullet('Kitchen', 'Enjoy the Nespresso and purified water. Just place used cups and dishes in the dishwasher.')}
+      ${bullet('WiFi Password', line('wifi'))}
+      ${bullet('Building Access', line('building_access'))}
+      ${bullet('Parking', line('parking'))}
+      ${bullet('Restrooms', line('restrooms'))}
+      ${bullet('Printers', line('printers'))}
+      ${bullet('Kitchen', line('kitchen'))}
     </table>
 
     <p style="font-family:${FONT};font-size:14.5px;color:#3a3f3a;line-height:1.65;margin:6px 0 10px;">
-      <span style="color:#3f7a37;font-weight:700;">Open desk areas:</span> feel free to set up wherever's comfortable.
+      <span style="color:#3f7a37;font-weight:700;">Open desk areas:</span> ${line('desks')}
     </p>
     <table style="width:100%;border-collapse:collapse;margin-bottom:26px;">
       <tr>

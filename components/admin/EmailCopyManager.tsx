@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { ChevronRight, RotateCcw } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { cn } from '@/lib/utils'
-import { EMAIL_TEMPLATES } from '@/lib/emailCopy'
+import { EMAIL_TEMPLATES, type CopyProduct } from '@/lib/emailCopy'
 import TabPanel from '@/components/TabPanel'
 
 // Editing the wording of customer emails. Only the words: the layout, the
@@ -15,6 +15,10 @@ import TabPanel from '@/components/TabPanel'
 export default function EmailCopyManager() {
   const [copy, setCopy] = useState<Record<string, string> | null>(null)
   const [defaults, setDefaults] = useState<Record<string, string>>({})
+  // Day pass and room emails are different jobs and get edited at different
+  // times, so they are separate tabs rather than one long list
+  // (Caroline, 2026-10-01).
+  const [product, setProduct] = useState<CopyProduct>('day_pass')
   const [open, setOpen] = useState<string | null>(EMAIL_TEMPLATES[0].id)
   const [saving, setSaving] = useState(false)
   const [preview, setPreview] = useState<{ id: string; lines?: { label: string; text: string }[]; html?: string } | null>(null)
@@ -65,7 +69,22 @@ export default function EmailCopyManager() {
         </p>
       </div>
 
-      {EMAIL_TEMPLATES.map(t => {
+      <div className="flex gap-1 border-b border-gray-200">
+        {([['day_pass', 'Day Passes'], ['rooms', 'Conference Rooms']] as [CopyProduct, string][]).map(([key, label]) => (
+          <button
+            key={key}
+            onClick={() => { setProduct(key); setOpen(EMAIL_TEMPLATES.find(t => t.product === key)!.id); setPreview(null) }}
+            className={cn(
+              'px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors',
+              product === key ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700',
+            )}
+          >
+            {label} <span className="text-gray-400">{EMAIL_TEMPLATES.filter(t => t.product === key).length}</span>
+          </button>
+        ))}
+      </div>
+
+      {EMAIL_TEMPLATES.filter(t => t.product === product).map(t => {
         const isOpen = open === t.id
         return (
           <div key={t.id} className="rounded-xl border border-gray-200 bg-white overflow-hidden">
