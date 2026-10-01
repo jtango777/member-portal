@@ -106,6 +106,12 @@ export default function AvailabilityView({ location, rooms, closures }: { locati
   const [selectedRoom,  setSelectedRoom]  = useState<BookRoom | null>(null)
   const [selectedDate,  setSelectedDate]  = useState(today)
   const [blockedSlots,  setBlockedSlots]  = useState<string[]>([])
+  // Days this room has no free half hour on at all, so the picker can grey
+  // them out instead of letting someone choose a date and then find every
+  // time slot says Unavailable (Caroline, 2026-10-01). Fetched once per
+  // room for the whole booking window, which is cheaper and simpler than
+  // following the calendar's month as it moves.
+  const [fullDays, setFullDays] = useState<Set<string>>(new Set())
   const [loadingSlots,  setLoadingSlots]  = useState(false)
   const [selectedStart, setSelectedStart] = useState<string>('')
   const [selectedEnd,   setSelectedEnd]   = useState<string>('')
@@ -125,6 +131,18 @@ export default function AvailabilityView({ location, rooms, closures }: { locati
   // one shared rule with the API routes (lib/bookingRules).
   const unavailableReason = dateUnavailableReason(selectedDate, closures)
   const dateClosed = unavailableReason !== null
+
+  // Fully booked days for this room, loaded once per room rather than per
+  // date, since the picker shows a whole month at a time.
+  useEffect(() => {
+    if (!selectedRoom) { setFullDays(new Set()); return }
+    let cancelled = false
+    fetch(`/api/book/availability?roomId=${selectedRoom.id}&fullDays=1`)
+      .then(r => r.json())
+      .then(d => { if (!cancelled) setFullDays(new Set<string>(d.fullDays ?? [])) })
+      .catch(() => { if (!cancelled) setFullDays(new Set()) })
+    return () => { cancelled = true }
+  }, [selectedRoom])
 
   useEffect(() => {
     if (!selectedRoom) return
@@ -394,7 +412,7 @@ export default function AvailabilityView({ location, rooms, closures }: { locati
                           value={selectedDate}
                           onChange={v => { setSelectedDate(v); setSelectedStart(''); setSelectedEnd('') }}
                           maxDate={lastBookableDate()}
-                          dayUnavailable={d => dateUnavailableReason(d, closures)}
+                          dayUnavailable={d => dateUnavailableReason(d, closures) ?? (fullDays.has(d) ? 'Fully booked' : null)}
                         />
                       </div>
                       <button onClick={nextDay} disabled={selectedDate >= lastBookableDate()}
