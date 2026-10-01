@@ -60,7 +60,7 @@ export const DAY_PASS_LOCATIONS: readonly DayPassLocation[] = [
     shortAddress: '4223 Glencoe Ave Ste C215, Marina del Rey',
     photo: '/rooms/mdr-open-space.jpg',
     photoPosition: 'center 70%',
-    doorCode: '6192',
+    doorCode: '5075',
     isMarina: true,
   },
   {

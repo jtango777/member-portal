@@ -214,7 +214,7 @@ export default async function DayPassAccountPage() {
         reference: b.id.slice(0, 8).toUpperCase(),
         status: b.status as UnifiedBooking['status'],
         address: loc?.address,
-        // No door code on a room booking even at Marina: #6192 is the day
+        // No door code on a room booking even at Marina: the code is the day
         // pass code, and a room booking is let in by whoever is hosting it.
         days: [{
           date: b.start_time.slice(0, 10),
