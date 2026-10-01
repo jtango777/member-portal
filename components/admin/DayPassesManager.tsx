@@ -47,6 +47,9 @@ function groupByConfirmation(dayPasses: DayPass[]) {
       confirmedDates: sorted.filter(d => d.status === 'confirmed').map(d => d.date),
       // A purchase counts as cancelled only when every day of it is.
       cancelled: sorted.every(d => d.status === 'cancelled'),
+      // The last day anyone is actually coming in on, which is what decides
+      // whether a purchase is still ahead of us or finished.
+      lastDate: sorted[sorted.length - 1].date,
     }
   })
 }
@@ -58,6 +61,15 @@ function groupByConfirmation(dayPasses: DayPass[]) {
 // first actual customer ended up near the bottom (Caroline, 2026-10-01).
 
 type Tab = 'bookings' | 'price' | 'closed'
+// Upcoming, past and cancelled as filters rather than headings inside one
+// table: headings and pagination fight each other, and once there are a few
+// hundred bookings "page 3 of everything mixed together" is unreadable
+// (Caroline, 2026-10-01). Upcoming opens first, since that is the one staff
+// act on.
+type Bucket = 'upcoming' | 'past' | 'cancelled' | 'all'
+const BUCKET_LABELS: [Bucket, string][] = [
+  ['upcoming', 'Upcoming'], ['past', 'Past'], ['cancelled', 'Cancelled'], ['all', 'All'],
+]
 
 export default function DayPassesManager({ dayPasses }: { dayPasses: DayPass[] }) {
   // Two jobs on one page: read the bookings, or change the price and the
@@ -66,6 +78,7 @@ export default function DayPassesManager({ dayPasses }: { dayPasses: DayPass[] }
   const [tab, setTab] = useState<Tab>('bookings')
   const [search, setSearch] = useState('')
   const [location, setLocation] = useState('all')
+  const [bucket, setBucket] = useState<Bucket>('upcoming')
   // Sorted by when it was booked, because that is the question the list
   // usually answers: what came in, and when. Click either header to swap.
   const [sortBy, setSortBy] = useState<'booked' | 'date'>('booked')
@@ -77,8 +90,20 @@ export default function DayPassesManager({ dayPasses }: { dayPasses: DayPass[] }
 
   const locationNames = [...new Set(dayPasses.map(d => d.locations?.name).filter(Boolean) as string[])].sort()
 
+  const todayPacific = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' })
+  const bucketOf = (g: { cancelled: boolean; lastDate: string }): Exclude<Bucket, 'all'> =>
+    g.cancelled ? 'cancelled' : g.lastDate >= todayPacific ? 'upcoming' : 'past'
+
   const q = search.trim().toLowerCase()
-  const grouped = groupByConfirmation(dayPasses)
+  const allGroups = groupByConfirmation(dayPasses)
+  const counts = {
+    upcoming: allGroups.filter(g => bucketOf(g) === 'upcoming').length,
+    past: allGroups.filter(g => bucketOf(g) === 'past').length,
+    cancelled: allGroups.filter(g => bucketOf(g) === 'cancelled').length,
+    all: allGroups.length,
+  }
+  const grouped = allGroups
+    .filter(g => bucket === 'all' || bucketOf(g) === bucket)
     .filter(g => location === 'all' || g.first.locations?.name === location)
     .filter(g => {
       if (!q) return true
@@ -93,8 +118,8 @@ export default function DayPassesManager({ dayPasses }: { dayPasses: DayPass[] }
       ].some(v => v.toLowerCase().includes(q))
     })
     .sort((a, b) => {
-      // Cancelled purchases always sink, whichever column is sorted.
-      if (a.cancelled !== b.cancelled) return a.cancelled ? 1 : -1
+      // Only the All view mixes them, and there cancelled still sinks.
+      if (bucket === 'all' && a.cancelled !== b.cancelled) return a.cancelled ? 1 : -1
       const av = sortBy === 'booked' ? a.first.created_at : a.first.date
       const bv = sortBy === 'booked' ? b.first.created_at : b.first.date
       return sortDir === 'desc' ? bv.localeCompare(av) : av.localeCompare(bv)
@@ -138,6 +163,24 @@ export default function DayPassesManager({ dayPasses }: { dayPasses: DayPass[] }
       {tab === 'closed' && <ClosureDaysManager product="day_pass" />}
 
       {tab === 'bookings' && (
+      <>
+      <div className="flex items-center gap-1.5 mb-3">
+        {BUCKET_LABELS.map(([key, label]) => (
+          <button
+            key={key}
+            onClick={() => setBucket(key)}
+            className={cn(
+              'px-3 py-1.5 rounded-full text-xs font-medium border transition-colors',
+              bucket === key
+                ? 'bg-blue-50 border-blue-200 text-blue-700'
+                : 'bg-white border-gray-200 text-gray-500 hover:text-gray-700'
+            )}
+          >
+            {label} <span className={bucket === key ? 'text-blue-400' : 'text-gray-400'}>{counts[key]}</span>
+          </button>
+        ))}
+      </div>
+
       <Section
         title={grouped.length === 1 ? '1 booking' : `${grouped.length} bookings`}
         headerRight={
@@ -220,6 +263,7 @@ export default function DayPassesManager({ dayPasses }: { dayPasses: DayPass[] }
           </tbody>
         </AdminTable>
       </Section>
+      </>
       )}
       </TabPanel>
     </div>
