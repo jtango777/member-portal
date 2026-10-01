@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { format, eachDayOfInterval, getDay } from 'date-fns'
 import { CheckCircle, Clock, XCircle, Ban, MapPin } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { cn, formatTime, formatDate, formatDayAndMonth, pacificDateKey } from '@/lib/utils'
 import { isDayPassCancellable } from '@/lib/dayPass'
 import { DAY_PASS_LOCATIONS_BY_NAME, directionsUrl } from '@/lib/locations'
 import SignOutButton from '@/components/day-pass/SignOutButton'
@@ -204,22 +204,24 @@ export default async function DayPassAccountPage() {
       const loc = DAY_PASS_LOCATIONS_BY_NAME[locationName]
       return {
         id: b.id,
-        sortKey: b.start_time,
+        // Sort and bucket on the Pacific day, not the UTC one: an evening
+        // booking is tomorrow in UTC and would land in the wrong group.
+        sortKey: pacificDateKey(new Date(b.start_time)),
         kind: 'room',
         locationName,
         what: room?.external_name ?? room?.name ?? 'Room booking',
-        dateLabel: format(new Date(b.start_time), 'EEEE, MMMM d, yyyy'),
+        dateLabel: formatDate(new Date(b.start_time)),
         amount: '',
-        hours: `${format(new Date(b.start_time), 'h:mm a')} – ${format(new Date(b.end_time), 'h:mm a')}`,
+        hours: `${formatTime(new Date(b.start_time))} – ${formatTime(new Date(b.end_time))}`,
         reference: b.id.slice(0, 8).toUpperCase(),
         status: b.status as UnifiedBooking['status'],
         address: loc?.address,
         // No door code on a room booking even at Marina: the code is the day
         // pass code, and a room booking is let in by whoever is hosting it.
         days: [{
-          date: b.start_time.slice(0, 10),
-          label: format(new Date(b.start_time), 'EEEE, MMMM d'),
-          time: `${format(new Date(b.start_time), 'h:mm a')} – ${format(new Date(b.end_time), 'h:mm a')}`,
+          date: pacificDateKey(new Date(b.start_time)),
+          label: formatDayAndMonth(new Date(b.start_time)),
+          time: `${formatTime(new Date(b.start_time))} – ${formatTime(new Date(b.end_time))}`,
           cancelled: b.status === 'cancelled',
           cancellable: false,
         }],

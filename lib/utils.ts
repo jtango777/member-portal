@@ -39,12 +39,29 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
+// Everything BizHaus does happens in Pacific time, but these run on the
+// server too, where the clock is UTC. date-fns formats in whatever zone it
+// finds itself in, so a 9:00 AM booking rendered on the server came out as
+// 4:00 PM (Caroline spotted it on her own room booking, 2026-10-01). Pin
+// the zone rather than trusting wherever the code happens to run.
+const PT_ZONE = 'America/Los_Angeles'
+
 export function formatTime(date: Date): string {
-  return format(date, 'h:mm a')
+  return date.toLocaleTimeString('en-US', { timeZone: PT_ZONE, hour: 'numeric', minute: '2-digit' })
 }
 
 export function formatDate(date: Date): string {
-  return format(date, 'EEEE, MMMM d, yyyy')
+  return date.toLocaleDateString('en-US', { timeZone: PT_ZONE, weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })
+}
+
+/** "Thursday, October 7" — no year, for use beside a time. */
+export function formatDayAndMonth(date: Date): string {
+  return date.toLocaleDateString('en-US', { timeZone: PT_ZONE, weekday: 'long', month: 'long', day: 'numeric' })
+}
+
+/** The Pacific calendar day a moment falls on, as YYYY-MM-DD. */
+export function pacificDateKey(date: Date): string {
+  return date.toLocaleDateString('en-CA', { timeZone: PT_ZONE })
 }
 
 export function formatShortDate(date: Date): string {
