@@ -25,6 +25,12 @@ export const adminManageGroups: NavGroup[] = [
     items: [
       { href: '/dashboard/admin/members', label: 'Members', icon: Users },
       { href: '/dashboard/admin/companies', label: 'Companies', icon: Building2 },
+      // Sat under Rooms & Bookings next to two lists of *bookings*, so three
+      // side-by-side entries looked like three of the same kind of thing and
+      // you went hunting for day passers in it (Caroline, 2026-10-01). It is
+      // a list of people, so it belongs with the people. Members pay monthly,
+      // Customers buy one-offs, and plenty of them show up in both.
+      { href: '/dashboard/admin/booking-accounts', label: 'Customers', icon: UserCircle },
     ],
   },
   {
@@ -42,7 +48,6 @@ export const adminManageGroups: NavGroup[] = [
       // day passes and never did (Caroline, 2026-09-25).
       { href: '/dashboard/admin/rooms', label: 'Conference Rooms', icon: DoorOpen },
       { href: '/dashboard/admin/day-passes', label: 'Day Passes', icon: CreditCard },
-      { href: '/dashboard/admin/booking-accounts', label: 'Booking Customers', icon: UserCircle },
     ],
   },
   {
