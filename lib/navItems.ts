@@ -39,7 +39,7 @@ export const adminManageGroups: NavGroup[] = [
     items: [
       { href: '/dashboard/admin/announcements', label: 'Announcements', icon: Megaphone },
       { href: '/dashboard/admin/feedback', label: 'Feedback', icon: MessageSquare },
-      { href: '/dashboard/admin/emails', label: 'Email Wording', icon: Mail },
+      { href: '/dashboard/admin/emails', label: 'Email Templates', icon: Mail },
     ],
   },
   {
