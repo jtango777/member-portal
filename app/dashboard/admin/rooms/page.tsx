@@ -23,7 +23,19 @@ export default async function ConferenceRoomsPage() {
       .order('created_at', { ascending: false }),
   ])
 
-  const resolvedReservations = await resolveHistoricalBookings(supabase, reservations ?? [])
+  // A booking made from /book writes an external_bookings row AND a
+  // placeholder reservation to hold the slot. The placeholder has no member
+  // attached, so it showed up in the Internal tab as "External Booking —
+  // <name>" with Booked by and Company empty, and counted again in All, so
+  // every external booking appeared twice (Caroline, 2026-10-01). Drop the
+  // placeholders here: the real booking is already in the External tab with
+  // the guest, their company and what they paid.
+  const placeholderIds = new Set(
+    (externalBookings ?? []).map(b => b.reservation_id).filter(Boolean) as string[]
+  )
+  const memberReservations = (reservations ?? []).filter(r => !placeholderIds.has(r.id))
+
+  const resolvedReservations = await resolveHistoricalBookings(supabase, memberReservations)
 
   return (
     <ConferenceRoomsTabs
