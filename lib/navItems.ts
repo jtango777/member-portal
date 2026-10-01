@@ -1,4 +1,5 @@
-import { LayoutDashboard, DoorOpen, Smile, CalendarClock, Users, Building2, Megaphone, BarChart2, BookOpen, Clock, Activity, MessageSquare, CreditCard, UserCircle } from 'lucide-react'
+import {
+  Mail, LayoutDashboard, DoorOpen, Smile, CalendarClock, Users, Building2, Megaphone, BarChart2, BookOpen, Clock, Activity, MessageSquare, CreditCard, UserCircle } from 'lucide-react'
 
 export type NavItem = { href: string; label: string; icon: React.ElementType; indent?: boolean }
 
@@ -38,6 +39,7 @@ export const adminManageGroups: NavGroup[] = [
     items: [
       { href: '/dashboard/admin/announcements', label: 'Announcements', icon: Megaphone },
       { href: '/dashboard/admin/feedback', label: 'Feedback', icon: MessageSquare },
+      { href: '/dashboard/admin/emails', label: 'Email Wording', icon: Mail },
     ],
   },
   {

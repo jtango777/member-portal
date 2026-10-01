@@ -1,5 +1,6 @@
 import { createAdminClient } from '@/lib/supabase/server'
 import { DAY_PASS_PRICE_CENTS as FALLBACK_PRICE_CENTS } from '@/lib/dayPass'
+import { DEFAULT_COPY } from '@/lib/emailCopy'
 
 // The day pass price and the closure-day list used to be constants in the
 // code. They live in the database now so staff can change them from the
@@ -16,10 +17,43 @@ export type Closure = { date: string; name: string; blocks_day_pass: boolean; bl
 const CACHE_MS = 30_000
 let priceCache:    { at: number; cents: number } | null = null
 let closureCache:  { at: number; rows: Closure[] } | null = null
+let copyCache:     { at: number; copy: Record<string, string> } | null = null
 
 export function clearSettingsCache() {
   priceCache = null
   closureCache = null
+  copyCache = null
+}
+
+/**
+ * The editable wording for customer emails, defaults filled in for anything
+ * staff have not overridden. A blank override counts as not set, so clearing
+ * a box in the admin screen restores the default.
+ */
+export async function getEmailCopy(): Promise<Record<string, string>> {
+  if (copyCache && Date.now() - copyCache.at < CACHE_MS) return copyCache.copy
+
+  const { data, error } = await createAdminClient()
+    .from('app_settings')
+    .select('value')
+    .eq('key', 'email_copy')
+    .maybeSingle()
+
+  // Never let a database hiccup send a half-written email: fall back to the
+  // wording in the code.
+  if (error) {
+    console.error('[settings] Could not read email copy:', error.message)
+    return { ...DEFAULT_COPY }
+  }
+
+  const overrides = (data?.value ?? {}) as Record<string, unknown>
+  const copy = { ...DEFAULT_COPY }
+  for (const [key, value] of Object.entries(overrides)) {
+    if (typeof value === 'string' && value.trim()) copy[key] = value
+  }
+
+  copyCache = { at: Date.now(), copy }
+  return copy
 }
 
 export async function getDayPassPriceCents(): Promise<number> {

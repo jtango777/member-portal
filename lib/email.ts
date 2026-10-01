@@ -1,4 +1,6 @@
 import { Resend } from 'resend'
+import { getEmailCopy } from '@/lib/settings'
+import { fillTags, DEFAULT_COPY } from '@/lib/emailCopy'
 import { DAY_PASS_LOCATIONS_BY_NAME, DayPassLocation } from './locations'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
@@ -193,7 +195,7 @@ export async function sendExternalBookingReceipt(
   const { error } = await resend.emails.send({
     from: FROM,
     to,
-    subject: `BizHaus Receipt — ${details.room} on ${details.date}`,
+    subject: fillTags((await getEmailCopy())['room_receipt.subject'], { room: details.room, date: details.date }),
     html: bookingEmailWrapper(`
       <h2 style="color:#0f172a;margin:0 0 4px;font-size:22px;font-weight:700;">Booking Confirmed ✓</h2>
       <p style="color:#64748b;font-size:13px;margin:0 0 24px;">Confirmation #${details.confirmationNumber}</p>
@@ -259,15 +261,17 @@ export async function sendDayPassConfirmation(
 ) {
   const firstName = details.guestName.trim().split(/\s+/)[0] || details.guestName
   const loc = DAY_PASS_LOCATIONS_BY_NAME[details.location]
+  const copy = await getEmailCopy()
+  const tags = { firstName, location: details.location, date: details.date }
 
   const html = loc?.isMarina
     ? marinaConfirmationEmail(firstName, details, loc)
-    : standardConfirmationEmail(firstName, details, loc)
+    : standardConfirmationEmail(firstName, details, loc, copy, tags)
 
   const { data, error } = await resend.emails.send({
     from: FROM,
     to,
-    subject: `Your BizHaus Day Pass — ${details.location}, ${details.date}`,
+    subject: fillTags(copy['day_pass_confirmation.subject'], tags),
     html: letterEmailWrapper(html),
   })
   if (error) {
@@ -279,15 +283,17 @@ export async function sendDayPassConfirmation(
 function standardConfirmationEmail(
   firstName: string,
   details: { confirmationNumber: string; location: string; date: string; amountPaid: string },
-  loc: DayPassLocation | undefined
+  loc: DayPassLocation | undefined,
+  copy: Record<string, string>,
+  tags: Record<string, string>
 ) {
   return `
     <p style="font-family:${FONT};font-size:15px;color:#3a3f3a;line-height:1.7;margin:0 0 22px;">Hi ${firstName},</p>
     <p style="font-family:${FONT};font-size:15px;color:#3a3f3a;line-height:1.7;margin:0 0 18px;">
-      Thanks for booking a day pass with BizHaus! We're looking forward to having you at our <strong>${details.location}</strong> location.
+      ${fillTags(copy['day_pass_confirmation.intro'], tags)}
     </p>
     <p style="font-family:${FONT};font-size:15px;color:#3a3f3a;line-height:1.7;margin:0 0 28px;">
-      We'll be there at <strong>9:00am</strong> to help you get set up when you arrive, just check in with us at the front desk.
+      ${fillTags(copy['day_pass_confirmation.arrival'], tags)}
     </p>
 
     <table style="border-collapse:collapse;width:100%;margin-bottom:28px;font-family:${FONT};">
@@ -489,7 +495,7 @@ export async function sendDayPassCancellationStaffNotification(
 // Customer-facing counterpart to the staff alert above — same letter style
 // as the day pass confirmation. Added 2026-09-15 after the first real test
 // cancel showed the customer got no email at all, only staff did.
-export function dayPassCancellationEmailHtml(details: { guestName: string; location: string; dates: string[]; remainingDates?: string[]; refundAmount: string; confirmationNumber: string; credited?: boolean }) {
+export function dayPassCancellationEmailHtml(details: { guestName: string; location: string; dates: string[]; remainingDates?: string[]; refundAmount: string; confirmationNumber: string; credited?: boolean }, copy: Record<string, string> = DEFAULT_COPY) {
   const firstName = details.guestName.trim().split(/\s+/)[0] || details.guestName
   const loc = DAY_PASS_LOCATIONS_BY_NAME[details.location]
   const dateLabel = details.dates.join('<br/>')
@@ -533,13 +539,13 @@ export function dayPassCancellationEmailHtml(details: { guestName: string; locat
 
     <p style="font-family:${FONT};font-size:15px;color:#3a3f3a;line-height:1.7;margin:0 0 18px;">
       ${credited
-        ? `Just reply to this email when you know the day you'd like instead, and we'll apply the credit to it.`
-        : `Refunds usually show up on your statement within 5 to 10 business days, depending on your bank.`}
+        ? copy['day_pass_cancellation.credited_note']
+        : copy['day_pass_cancellation.refunded_note']}
     </p>
     <p style="font-family:${FONT};font-size:15px;color:#3a3f3a;line-height:1.7;margin:0 0 6px;">
       ${credited
-        ? `Plans change, we get it. We'll see you another day.`
-        : `Plans change, we get it. Whenever you're ready to come in, you can <a href="${BOOKINGS_URL}/day-pass" style="color:#3f7a37;">book another day pass</a>.`}
+        ? copy['day_pass_cancellation.signoff'].replace(/you can book another day pass\.?$/i, "we'll see you another day.")
+        : copy['day_pass_cancellation.signoff'].replace(/book another day pass/i, `<a href="${BOOKINGS_URL}/day-pass" style="color:#3f7a37;">book another day pass</a>`)}
     </p>
     <p style="font-family:${FONT};font-size:15px;color:#3a3f3a;line-height:1.7;margin:24px 0 0;">
       Hope to see you soon,<br/>The BizHaus Team
@@ -561,7 +567,7 @@ export async function sendDayPassCancellationEmail(
     subject: partial
       ? `${details.dates.length} day${details.dates.length > 1 ? 's' : ''} cancelled from your BizHaus Day Pass — ${details.location}`
       : `Your BizHaus Day Pass has been cancelled — ${details.location}`,
-    html: dayPassCancellationEmailHtml(details),
+    html: dayPassCancellationEmailHtml(details, await getEmailCopy()),
   })
   if (error) console.error('[email] Resend error sending day pass cancellation email:', error)
 }
@@ -575,6 +581,7 @@ export async function sendRoomBookingCancellationEmail(
   details: { guestName: string; room: string; location: string; when: string; amount: string; credited: boolean }
 ) {
   const firstName = details.guestName.trim().split(/\s+/)[0] || details.guestName
+  const copy = await getEmailCopy()
   const { error } = await resend.emails.send({
     from: FROM,
     to,
@@ -583,9 +590,10 @@ export async function sendRoomBookingCancellationEmail(
       <p style="font-family:${FONT};font-size:15px;color:#3a3f3a;line-height:1.7;margin:0 0 22px;">Hi ${firstName},</p>
       <p style="font-family:${FONT};font-size:15px;color:#3a3f3a;line-height:1.7;margin:0 0 28px;">
         We've cancelled your booking of <strong>${details.room}</strong> at our <strong>${details.location}</strong> location on ${details.when}.
-        ${details.credited
-          ? `We're holding <strong>${details.amount}</strong> toward a future booking. Just reply to this email when you know the day and time you'd like instead.`
-          : `We've refunded <strong>${details.amount}</strong> to your original payment method. It usually shows up within 5 to 10 business days, depending on your bank.`}
+        ${fillTags(
+          details.credited ? copy['room_cancellation.credited_note'] : copy['room_cancellation.refunded_note'],
+          { amount: details.amount },
+        )}
       </p>
       <p style="font-family:${FONT};font-size:15px;color:#3a3f3a;line-height:1.7;margin:24px 0 0;">
         Thanks,<br/>The BizHaus Team
