@@ -136,7 +136,7 @@ function CheckoutForm({
       const accRes = await fetch('/api/book/create-account', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ first_name: firstName, last_name: lastName, email, password, recaptcha_token: acctRecaptchaToken }),
+        body: JSON.stringify({ first_name: firstName, last_name: lastName, email, password, phone, recaptcha_token: acctRecaptchaToken }),
       })
       const accData = await accRes.json()
       if (!accRes.ok) {

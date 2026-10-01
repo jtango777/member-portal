@@ -12,13 +12,13 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Too many requests. Please try again later.' }, { status: 429 })
   }
 
-  const { first_name, last_name, email, password, recaptcha_token } = await request.json()
+  const { first_name, last_name, email, password, recaptcha_token, phone } = await request.json()
 
   if (!(await verifyRecaptcha(recaptcha_token))) {
     return NextResponse.json({ error: 'reCAPTCHA verification failed. Please try again.' }, { status: 400 })
   }
 
-  const result = await createBookingCustomerAccount({ firstName: first_name ?? '', lastName: last_name ?? '', email: email ?? '', password: password ?? '' })
+  const result = await createBookingCustomerAccount({ firstName: first_name ?? '', lastName: last_name ?? '', email: email ?? '', password: password ?? '', phone: phone ?? '' })
 
   if (!result.ok) {
     return NextResponse.json({ error: result.error }, { status: result.status })

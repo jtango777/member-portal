@@ -58,9 +58,18 @@ export async function createBookingCustomerAccount({
   lastName: string
   email: string
   password: string
+  phone?: string
 }): Promise<CreateBookingCustomerResult> {
   if (!firstName.trim() || !lastName.trim() || !email.trim() || !password) {
     return { ok: false, status: 400, error: 'Missing required fields.' }
+  }
+  // Required on both products since 2026-10-01 (Joe's call). Same shape
+  // check as /book has always used.
+  if (!phone?.trim()) {
+    return { ok: false, status: 400, error: 'A phone number is required.' }
+  }
+  if (!/^[\d\s()+\-\.]{7,20}$/.test(phone.trim())) {
+    return { ok: false, status: 400, error: 'Invalid phone number.' }
   }
   if (password.length < 8) {
     return { ok: false, status: 400, error: 'Password must be at least 8 characters.' }
@@ -91,6 +100,7 @@ export async function createBookingCustomerAccount({
     first_name: firstName.trim(),
     last_name: lastName.trim(),
     email: normalizedEmail,
+    phone: phone.trim(),
   })
 
   if (dbError) {

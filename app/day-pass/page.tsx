@@ -420,6 +420,9 @@ function DetailsAndPayment({
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
   const [email, setEmail] = useState('')
+  // Required since 2026-10-01 (Joe's call). Marina is self-entry on a door
+  // code, so if the code changes or someone cannot get in, email is useless.
+  const [phone, setPhone] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [creatingAccount, setCreatingAccount] = useState(false)
@@ -438,7 +441,7 @@ function DetailsAndPayment({
   const [recaptchaToken, setRecaptchaToken] = useState<string | null>(null)
   const recaptchaRef = useRef<RecaptchaHandle>(null)
 
-  const canSubmit = firstName.trim() && lastName.trim() && email.trim() && password.length >= 8 && !!recaptchaToken
+  const canSubmit = firstName.trim() && lastName.trim() && email.trim() && phone.trim() && password.length >= 8 && !!recaptchaToken
 
   // Already signed in — skip account creation entirely and go straight to
   // getting a payment intent for this reservation.
@@ -549,7 +552,7 @@ function DetailsAndPayment({
     const res = await fetch('/api/day-pass/create-account', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ first_name: firstName, last_name: lastName, email, password, recaptcha_token: recaptchaToken }),
+      body: JSON.stringify({ first_name: firstName, last_name: lastName, email, password, phone, recaptcha_token: recaptchaToken }),
     })
     const data = await res.json()
 
@@ -708,10 +711,18 @@ function DetailsAndPayment({
               className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-booking-500" />
           </div>
         </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1.5">Email*</label>
-          <input type="email" value={email} onChange={e => setEmail(e.target.value)}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-booking-500" />
+        <div className="grid sm:grid-cols-2 gap-3.5">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">Email*</label>
+            <input type="email" value={email} onChange={e => setEmail(e.target.value)}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-booking-500" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">Phone*</label>
+            <input type="tel" value={phone} onChange={e => setPhone(e.target.value)}
+              placeholder="(310) 555-0000"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-booking-500" />
+          </div>
         </div>
       </div>
 
