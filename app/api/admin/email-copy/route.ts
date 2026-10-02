@@ -2,7 +2,13 @@ import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 import { ALL_COPY_FIELDS, DEFAULT_COPY, fillTags } from '@/lib/emailCopy'
 import { clearSettingsCache, getEmailCopy } from '@/lib/settings'
-import { dayPassCancellationEmailHtml } from '@/lib/email'
+import {
+  dayPassCancellationEmailHtml,
+  standardConfirmationEmail,
+  marinaConfirmationEmail,
+  wrapLetterEmail,
+} from '@/lib/email'
+import { DAY_PASS_LOCATIONS_BY_NAME } from '@/lib/locations'
 
 // Reading and saving the editable wording in customer emails, plus a preview
 // so nobody has to send themselves a real email to see what they changed
@@ -61,12 +67,35 @@ export async function PUT(request: Request) {
 
   const { templateId, copy } = await request.json()
   const merged = { ...DEFAULT_COPY, ...(copy ?? {}) }
-  const tags = { firstName: 'Alex', location: 'El Segundo', date: 'Friday, October 9, 2026', room: 'Small', amount: '$32.50' }
 
-  // Only the cancellation email is rendered from a pure function today, so it
-  // is the one we can preview without sending. The others build their HTML
-  // inside their send function; previewing those means lifting the HTML out
-  // first, which is a bigger change than this screen is worth right now.
+  // Previews render through the real email builders, so what is shown here
+  // cannot drift from what is sent. The first version printed the raw text
+  // instead, which made a perfectly good email look like one run-on blob
+  // (Caroline, 2026-10-01).
+  const sample = {
+    confirmationNumber: 'ABC12345',
+    location: 'El Segundo',
+    date: 'Friday, October 9, 2026',
+    guestName: 'Alex Rivera',
+    amountPaid: '$39.00',
+  }
+
+  if (templateId === 'day_pass_confirmation') {
+    const loc = DAY_PASS_LOCATIONS_BY_NAME['El Segundo']
+    return NextResponse.json({
+      html: wrapLetterEmail(standardConfirmationEmail('Alex', sample, loc, merged, {
+        firstName: 'Alex', location: sample.location, date: sample.date,
+      })),
+    })
+  }
+
+  if (templateId === 'marina_confirmation') {
+    const loc = DAY_PASS_LOCATIONS_BY_NAME['Marina del Rey']
+    return NextResponse.json({
+      html: wrapLetterEmail(marinaConfirmationEmail('Alex', sample, loc, merged)),
+    })
+  }
+
   if (templateId === 'day_pass_cancellation') {
     return NextResponse.json({
       html: dayPassCancellationEmailHtml({
@@ -80,8 +109,10 @@ export async function PUT(request: Request) {
     })
   }
 
-  // Everything else previews as the lines themselves, with the tags filled
-  // in, which is what is actually editable.
+  // The room emails build their HTML inside their send function, so there is
+  // nothing to render without sending one. Show the lines with their tags
+  // filled in, which is what is editable.
+  const tags = { firstName: 'Alex', room: 'Small', location: 'El Segundo', date: sample.date, amount: '$32.50' }
   const fields = ALL_COPY_FIELDS.filter(f => f.key.startsWith(templateId + '.'))
   return NextResponse.json({
     lines: fields.map(f => ({ label: f.label, text: fillTags(merged[f.key], tags) })),

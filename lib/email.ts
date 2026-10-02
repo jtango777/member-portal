@@ -246,6 +246,11 @@ export async function sendExternalBookingReceipt(
   if (error) console.error('[email] Resend error sending external booking receipt:', error)
 }
 
+/** The letter-style shell, exported so the admin preview shows the real email. */
+export function wrapLetterEmail(inner: string): string {
+  return letterEmailWrapper(inner)
+}
+
 export async function sendDayPassConfirmation(
   to: string,
   details: {
@@ -280,7 +285,7 @@ export async function sendDayPassConfirmation(
   return { data, error }
 }
 
-function standardConfirmationEmail(
+export function standardConfirmationEmail(
   firstName: string,
   details: { confirmationNumber: string; location: string; date: string; amountPaid: string },
   loc: DayPassLocation | undefined,
@@ -324,7 +329,7 @@ function standardConfirmationEmail(
   `
 }
 
-function marinaConfirmationEmail(
+export function marinaConfirmationEmail(
   firstName: string,
   details: { confirmationNumber: string; date: string },
   loc: DayPassLocation,
