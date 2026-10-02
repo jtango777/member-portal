@@ -56,8 +56,8 @@ export const EMAIL_TEMPLATES: CopyTemplate[] = [
         multiline: true,
         rows: 6,
         default: [
-          "Thanks for booking a day pass with BizHaus! We're looking forward to having you at our <strong>{location}</strong> location.",
-          "We'll be there at <strong>9:00am</strong> to help you get set up when you arrive, just check in with us at the front desk.",
+          "Thanks for booking a day pass with BizHaus! We're looking forward to having you at our **{location}** location.",
+          "We'll be there at **9:00am** to help you get set up when you arrive, just check in with us at the front desk.",
         ].join('\n\n'),
       },
     ],
@@ -84,7 +84,7 @@ export const EMAIL_TEMPLATES: CopyTemplate[] = [
         rows: 10,
         default: [
           'WiFi Password: bizhauswifi',
-          "Building Access: BizHaus MDR is located at {address}. Your day pass code for today is <strong>#{doorCode}</strong>, it's the same code for both the building and Suite C215.",
+          "Building Access: BizHaus MDR is located at {address}. Your day pass code for today is **#{doorCode}**, it's the same code for both the building and Suite C215.",
           'Parking: Visitor parking out front is limited to 2 hours. Street parking is available nearby, or park in the AMC structure next door.',
           'Restrooms: Down the hallway, keys hang next to each door (pink bear for women, blue bear for men).',
           'Printers: Search for &ldquo;BizHaus Printer&rdquo; on the network. Our policy: please be kind to trees and print only when you have to!',
@@ -158,14 +158,14 @@ export const EMAIL_TEMPLATES: CopyTemplate[] = [
         label: 'Note when the money is refunded',
         hint: 'Tags: {amount}',
         multiline: true,
-        default: "We've refunded <strong>{amount}</strong> to your original payment method. It usually shows up within 5 to 10 business days, depending on your bank.",
+        default: "We've refunded **{amount}** to your original payment method. It usually shows up within 5 to 10 business days, depending on your bank.",
       },
       {
         key: 'room_cancellation.credited_note',
         label: 'Note when the money is held as credit',
         hint: 'Tags: {amount}',
         multiline: true,
-        default: "We're holding <strong>{amount}</strong> toward a future booking. Just reply to this email when you know the day and time you'd like instead.",
+        default: "We're holding **{amount}** toward a future booking. Just reply to this email when you know the day and time you'd like instead.",
       },
     ],
   },
@@ -201,6 +201,16 @@ export function bulletLines(text: string): { label: string; text: string }[] {
       if (at === -1) return { label: '', text: line }
       return { label: line.slice(0, at).trim(), text: line.slice(at + 1).trim() }
     })
+}
+
+/**
+ * **bold** becomes bold. Staff should be writing an email, not HTML, and
+ * <strong> tags in the editing box made it look like code (Caroline,
+ * 2026-10-01). Raw HTML still passes through untouched, so anything saved
+ * before this keeps working.
+ */
+export function emphasise(text: string): string {
+  return text.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
 }
 
 /** Fill {tags} from the values given. Unknown braces are left untouched. */

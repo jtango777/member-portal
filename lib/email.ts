@@ -1,6 +1,6 @@
 import { Resend } from 'resend'
 import { getEmailCopy, getDoorCodes } from '@/lib/settings'
-import { fillTags, paragraphs, bulletLines, DEFAULT_COPY } from '@/lib/emailCopy'
+import { fillTags, paragraphs, bulletLines, emphasise, DEFAULT_COPY } from '@/lib/emailCopy'
 import { DAY_PASS_LOCATIONS_BY_NAME, DayPassLocation } from './locations'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
@@ -185,11 +185,11 @@ export function roomReceiptHtml(
   return bookingEmailWrapper(`
       <h2 style="color:#0f172a;margin:0 0 4px;font-size:22px;font-weight:700;">Booking Confirmed ✓</h2>
       <p style="color:#64748b;font-size:13px;margin:0 0 16px;">Confirmation #${details.confirmationNumber}</p>
-      <p style="color:#334155;font-size:14.5px;line-height:1.6;margin:0 0 24px;">${fillTags(copy['room_receipt.intro'], {
+      <p style="color:#334155;font-size:14.5px;line-height:1.6;margin:0 0 24px;">${emphasise(fillTags(copy['room_receipt.intro'], {
         firstName: details.guestName.trim().split(/\s+/)[0] || details.guestName,
         room: details.room,
         location: details.location,
-      })}</p>
+      }))}</p>
 
       <table style="border-collapse:collapse;width:100%;margin-bottom:24px;background:#f8fafc;border-radius:7px;overflow:hidden;">
         <tr>
@@ -314,7 +314,7 @@ export function standardConfirmationEmail(
   return `
     <p style="font-family:${FONT};font-size:15px;color:#3a3f3a;line-height:1.7;margin:0 0 22px;">Hi ${firstName},</p>
     <p style="font-family:${FONT};font-size:15px;color:#3a3f3a;line-height:1.7;margin:0 0 18px;">
-      ${paragraphs(fillTags(copy['day_pass_confirmation.body'], tags))
+      ${paragraphs(emphasise(fillTags(copy['day_pass_confirmation.body'], tags)))
         .join(`</p><p style="font-family:${FONT};font-size:15px;color:#3a3f3a;line-height:1.7;margin:0 0 28px;">`)}
 
     <table style="border-collapse:collapse;width:100%;margin-bottom:28px;font-family:${FONT};">
@@ -358,7 +358,7 @@ export function marinaConfirmationEmail(
   // The code comes from the locations table when one is passed in; the value
   // in lib/locations is only the fallback for a preview or a failed read.
   const tags = { doorCode: doorCode || loc.doorCode || '', address: loc.address }
-  const line = (key: string) => fillTags(copy[`marina_confirmation.${key}`], tags)
+  const line = (key: string) => emphasise(fillTags(copy[`marina_confirmation.${key}`], tags))
   const photo = (name: string) => `${BOOKINGS_URL}/day-pass/${name}`
   const bullet = (label: string, text: string) => `
     <tr>
@@ -559,13 +559,13 @@ export function dayPassCancellationEmailHtml(details: { guestName: string; locat
 
     <p style="font-family:${FONT};font-size:15px;color:#3a3f3a;line-height:1.7;margin:0 0 18px;">
       ${credited
-        ? copy['day_pass_cancellation.credited_note']
-        : copy['day_pass_cancellation.refunded_note']}
+        ? emphasise(copy['day_pass_cancellation.credited_note'])
+        : emphasise(copy['day_pass_cancellation.refunded_note'])}
     </p>
     <p style="font-family:${FONT};font-size:15px;color:#3a3f3a;line-height:1.7;margin:0 0 6px;">
       ${credited
-        ? copy['day_pass_cancellation.signoff'].replace(/you can book another day pass\.?$/i, "we'll see you another day.")
-        : copy['day_pass_cancellation.signoff'].replace(/book another day pass/i, `<a href="${BOOKINGS_URL}/day-pass" style="color:#3f7a37;">book another day pass</a>`)}
+        ? emphasise(copy['day_pass_cancellation.signoff']).replace(/you can book another day pass\.?$/i, "we'll see you another day.")
+        : emphasise(copy['day_pass_cancellation.signoff']).replace(/book another day pass/i, `<a href="${BOOKINGS_URL}/day-pass" style="color:#3f7a37;">book another day pass</a>`)}
     </p>
     <p style="font-family:${FONT};font-size:15px;color:#3a3f3a;line-height:1.7;margin:24px 0 0;">
       Hope to see you soon,<br/>The BizHaus Team
@@ -606,10 +606,10 @@ export function roomCancellationHtml(
       <p style="font-family:${FONT};font-size:15px;color:#3a3f3a;line-height:1.7;margin:0 0 22px;">Hi ${firstName},</p>
       <p style="font-family:${FONT};font-size:15px;color:#3a3f3a;line-height:1.7;margin:0 0 28px;">
         We've cancelled your booking of <strong>${details.room}</strong> at our <strong>${details.location}</strong> location on ${details.when}.
-        ${fillTags(
+        ${emphasise(fillTags(
           details.credited ? copy['room_cancellation.credited_note'] : copy['room_cancellation.refunded_note'],
           { amount: details.amount },
-        )}
+        ))}
       </p>
       <p style="font-family:${FONT};font-size:15px;color:#3a3f3a;line-height:1.7;margin:24px 0 0;">
         Thanks,<br/>The BizHaus Team
