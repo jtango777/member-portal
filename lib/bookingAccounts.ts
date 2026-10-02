@@ -52,7 +52,7 @@ export async function getOrLinkBookingCustomer(userId: string, create: boolean):
 }
 
 export async function createBookingCustomerAccount({
-  firstName, lastName, email, password,
+  firstName, lastName, email, password, phone,
 }: {
   firstName: string
   lastName: string

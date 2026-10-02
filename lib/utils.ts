@@ -179,3 +179,19 @@ export function parseFuzzyDate(input: string): Date | null {
 // from DB state. Caught 2026-09-11 after two separate welcomed-flag fixes
 // still weren't reliable enough for every case.
 export const JUST_SIGNED_UP_KEY = 'bizhaus_just_signed_up'
+
+/**
+ * A dollar amount the way a receipt writes it. Whole dollars stay clean
+ * ($25), anything else keeps its cents ($32.50).
+ *
+ * Conference rooms are priced by the hour and bookable in half hours, so
+ * cents are routine: a 30 minute booking at $65/hr is $32.50. The admin
+ * lists used to print these with toFixed(0), which rounded that to $33
+ * and disagreed with Stripe, QuickBooks and the customer's own receipt
+ * (Caroline, 2026-10-01). Day passes are whole dollars, which is why
+ * nothing caught it until rooms were being tested.
+ */
+export function formatMoney(dollars: number): string {
+  const rounded = Math.round(dollars * 100) / 100
+  return `$${rounded.toFixed(Number.isInteger(rounded) ? 0 : 2)}`
+}

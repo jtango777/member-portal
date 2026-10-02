@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { format } from 'date-fns'
 import { MapPin, Clock, Mail, Phone, Building2 } from 'lucide-react'
-import { cn, formatTime } from '@/lib/utils'
+import { cn, formatTime, formatMoney } from '@/lib/utils'
 
 type ExternalBooking = {
   id: string
@@ -108,7 +108,7 @@ export default function ExternalBookingsQueue({ bookings: initial }: { bookings:
                     </p>
                   </div>
                   <span className="text-lg font-bold text-gray-900 flex-shrink-0">
-                    ${amount.toFixed(0)}
+                    {formatMoney(amount)}
                   </span>
                 </div>
 

@@ -5,7 +5,7 @@ import TabPanel from '@/components/TabPanel'
 import { Reservation } from '@/types'
 import { format } from 'date-fns'
 import { Trash2, MapPin, Clock, Mail, Phone, Search } from 'lucide-react'
-import { cn, formatTime } from '@/lib/utils'
+import { cn, formatTime, formatMoney } from '@/lib/utils'
 import { AdminTable, Th, Section, Pagination, usePagedList, ListSearch } from '@/components/admin/AdminTable'
 import toast from 'react-hot-toast'
 import { CancelRowButton } from './CancelBookingDialog'
@@ -225,7 +225,7 @@ export default function AllBookingsView({ reservations: initialRes, externalBook
             </p>
           </div>
           <span className="text-lg font-bold text-gray-900 flex-shrink-0">
-            ${amount.toFixed(0)}
+            {formatMoney(amount)}
           </span>
         </div>
 
@@ -320,7 +320,7 @@ export default function AllBookingsView({ reservations: initialRes, externalBook
                     {format(start, 'MMM d, yyyy')}
                     <span className="block text-xs text-gray-400">{formatTime(start)} – {formatTime(end)}</span>
                   </td>
-                  <td className="px-4 py-2 text-gray-700 font-medium">${amount.toFixed(0)}</td>
+                  <td className="px-4 py-2 text-gray-700 font-medium">{formatMoney(amount)}</td>
                   <td className="px-4 py-2">
                     <span className={cn('text-xs font-semibold px-2 py-0.5 rounded-full border', STATUS_STYLES[b.status] ?? '')}>
                       {b.status}
