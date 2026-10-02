@@ -276,6 +276,10 @@ function ReservationFields({
   onContinue: () => void
 }) {
   const selectedLocation = LOCATIONS.find(l => l.id === locationId) ?? LOCATIONS[0]
+  // Read the live price. This line used to say "$30" in typed-in text while
+  // the total underneath charged the real $39, so step one contradicted step
+  // three (reported by a coworker, 2026-10-02).
+  const { priceDollars } = useDayPassSettings()
 
   return (
     <>
@@ -375,7 +379,7 @@ function ReservationFields({
             )}
           </div>
           <div className="text-xs text-gray-400 mt-2">
-            Drop in any time during those hours — flat $30/day, no time slot to reserve.
+            Drop in any time during those hours — flat ${priceDollars}/day, no time slot to reserve.
           </div>
           <div className="text-xs text-gray-400 mt-2">
             Need to arrive earlier or stay later than 9am–5pm? {selectedLocation.phone} or{' '}
