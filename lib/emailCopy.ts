@@ -40,8 +40,8 @@ export const EMAIL_TEMPLATES: CopyTemplate[] = [
   {
     id: 'day_pass_confirmation',
     product: 'day_pass',
-    name: 'Day pass confirmation',
-    description: 'Sent the moment someone buys a day pass. Marina del Rey gets its own version with the door code.',
+    name: 'Day pass confirmation — El Segundo & Costa Mesa',
+    description: 'Sent the moment someone buys a day pass at a location with someone on the front desk. Marina del Rey has its own version below.',
     fields: [
       {
         key: 'day_pass_confirmation.subject',
@@ -66,7 +66,7 @@ export const EMAIL_TEMPLATES: CopyTemplate[] = [
     id: 'marina_confirmation',
     product: 'day_pass',
     name: 'Day pass confirmation — Marina del Rey',
-    description: 'Marina is a satellite space with nobody at the desk in the morning, so its confirmation carries the door code and everything else someone needs to let themselves in and get set up.',
+    description: 'Marina is a satellite space with nobody at the desk in the morning, so it gets its own confirmation with the door code and everything else needed to let yourself in.',
     fields: [
       {
         key: 'marina_confirmation.intro',
