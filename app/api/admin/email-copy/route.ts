@@ -7,6 +7,8 @@ import {
   standardConfirmationEmail,
   marinaConfirmationEmail,
   wrapLetterEmail,
+  roomReceiptHtml,
+  roomCancellationHtml,
 } from '@/lib/email'
 import { DAY_PASS_LOCATIONS_BY_NAME } from '@/lib/locations'
 
@@ -109,12 +111,24 @@ export async function PUT(request: Request) {
     })
   }
 
-  // The room emails build their HTML inside their send function, so there is
-  // nothing to render without sending one. Show the lines with their tags
-  // filled in, which is what is editable.
-  const tags = { firstName: 'Alex', room: 'Small', location: 'El Segundo', date: sample.date, amount: '$32.50' }
-  const fields = ALL_COPY_FIELDS.filter(f => f.key.startsWith(templateId + '.'))
-  return NextResponse.json({
-    lines: fields.map(f => ({ label: f.label, text: fillTags(merged[f.key], tags) })),
-  })
+  if (templateId === 'room_receipt') {
+    return NextResponse.json({
+      html: roomReceiptHtml({
+        confirmationNumber: 'ABC12345', room: 'Small', location: 'El Segundo',
+        date: 'Friday, October 9, 2026', time: '9:00 AM – 10:00 AM',
+        guestName: 'Alex Rivera', amountPaid: '$50.00', paymentDate: 'October 1, 2026',
+      }, 'Visa ending in 4242', merged),
+    })
+  }
+
+  if (templateId === 'room_cancellation') {
+    return NextResponse.json({
+      html: roomCancellationHtml({
+        guestName: 'Alex Rivera', room: 'Small', location: 'El Segundo',
+        when: 'Friday, October 9 at 9:00AM', amount: '$50.00', credited: true,
+      }, merged),
+    })
+  }
+
+  return NextResponse.json({ error: 'Unknown template' }, { status: 400 })
 }

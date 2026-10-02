@@ -173,32 +173,23 @@ export async function sendConfirmationEmail(
   if (error) console.error('[email] Resend error sending confirmation email:', error)
 }
 
-export async function sendExternalBookingReceipt(
-  to: string,
+/** The room receipt's body, exported so the admin preview renders the real email. */
+export function roomReceiptHtml(
   details: {
-    confirmationNumber: string
-    room: string
-    location: string
-    date: string
-    time: string
-    guestName: string
-    amountPaid: string
-    cardLast4: string | null
-    cardBrand: string | null
-    paymentDate: string
-  }
-) {
-  const cardLine = details.cardLast4
-    ? `${(details.cardBrand ?? 'Card').charAt(0).toUpperCase() + (details.cardBrand ?? 'card').slice(1)} ending in ${details.cardLast4}`
-    : 'Card on file'
-
-  const { error } = await resend.emails.send({
-    from: FROM,
-    to,
-    subject: fillTags((await getEmailCopy())['room_receipt.subject'], { room: details.room, date: details.date }),
-    html: bookingEmailWrapper(`
+    confirmationNumber: string; room: string; location: string; date: string; time: string
+    guestName: string; amountPaid: string; paymentDate: string
+  },
+  cardLine: string,
+  copy: Record<string, string> = DEFAULT_COPY,
+): string {
+  return bookingEmailWrapper(`
       <h2 style="color:#0f172a;margin:0 0 4px;font-size:22px;font-weight:700;">Booking Confirmed ✓</h2>
-      <p style="color:#64748b;font-size:13px;margin:0 0 24px;">Confirmation #${details.confirmationNumber}</p>
+      <p style="color:#64748b;font-size:13px;margin:0 0 16px;">Confirmation #${details.confirmationNumber}</p>
+      <p style="color:#334155;font-size:14.5px;line-height:1.6;margin:0 0 24px;">${fillTags(copy['room_receipt.intro'], {
+        firstName: details.guestName.trim().split(/\s+/)[0] || details.guestName,
+        room: details.room,
+        location: details.location,
+      })}</p>
 
       <table style="border-collapse:collapse;width:100%;margin-bottom:24px;background:#f8fafc;border-radius:7px;overflow:hidden;">
         <tr>
@@ -241,7 +232,33 @@ export async function sendExternalBookingReceipt(
         <strong style="color:#64748b;">Cancellation policy:</strong> Bookings are non-refundable. To inquire about credit toward a future booking, contact us at
         <a href="mailto:hello@bizhaus.com" style="color:#4f9645;text-decoration:none;">hello@bizhaus.com</a>.
       </p>
-    `, 'Bookings'),
+    `, 'Bookings')
+}
+
+export async function sendExternalBookingReceipt(
+  to: string,
+  details: {
+    confirmationNumber: string
+    room: string
+    location: string
+    date: string
+    time: string
+    guestName: string
+    amountPaid: string
+    cardLast4: string | null
+    cardBrand: string | null
+    paymentDate: string
+  }
+) {
+  const cardLine = details.cardLast4
+    ? `${(details.cardBrand ?? 'Card').charAt(0).toUpperCase() + (details.cardBrand ?? 'card').slice(1)} ending in ${details.cardLast4}`
+    : 'Card on file'
+
+  const { error } = await resend.emails.send({
+    from: FROM,
+    to,
+    subject: fillTags((await getEmailCopy())['room_receipt.subject'], { room: details.room, date: details.date }),
+    html: roomReceiptHtml(details, cardLine, await getEmailCopy()),
   })
   if (error) console.error('[email] Resend error sending external booking receipt:', error)
 }
@@ -576,17 +593,13 @@ export async function sendDayPassCancellationEmail(
 // Rooms are sold non-refundable, so this only ever goes out when we've
 // chosen to make an exception — either the money goes back, or we hold it
 // for whatever date they rebook.
-export async function sendRoomBookingCancellationEmail(
-  to: string,
-  details: { guestName: string; room: string; location: string; when: string; amount: string; credited: boolean }
-) {
+/** The room cancellation body, exported so the admin preview renders it. */
+export function roomCancellationHtml(
+  details: { guestName: string; room: string; location: string; when: string; amount: string; credited: boolean },
+  copy: Record<string, string> = DEFAULT_COPY,
+): string {
   const firstName = details.guestName.trim().split(/\s+/)[0] || details.guestName
-  const copy = await getEmailCopy()
-  const { error } = await resend.emails.send({
-    from: FROM,
-    to,
-    subject: `Your BizHaus room booking has been cancelled`,
-    html: letterEmailWrapper(`
+  return letterEmailWrapper(`
       <p style="font-family:${FONT};font-size:15px;color:#3a3f3a;line-height:1.7;margin:0 0 22px;">Hi ${firstName},</p>
       <p style="font-family:${FONT};font-size:15px;color:#3a3f3a;line-height:1.7;margin:0 0 28px;">
         We've cancelled your booking of <strong>${details.room}</strong> at our <strong>${details.location}</strong> location on ${details.when}.
@@ -598,7 +611,21 @@ export async function sendRoomBookingCancellationEmail(
       <p style="font-family:${FONT};font-size:15px;color:#3a3f3a;line-height:1.7;margin:24px 0 0;">
         Thanks,<br/>The BizHaus Team
       </p>
-    `),
+  `)
+}
+
+// For a conference room booking cancelled by staff (Caroline, 2026-09-28).
+// Rooms are sold non-refundable, so this only ever goes out when we've
+// chosen to make an exception.
+export async function sendRoomBookingCancellationEmail(
+  to: string,
+  details: { guestName: string; room: string; location: string; when: string; amount: string; credited: boolean }
+) {
+  const { error } = await resend.emails.send({
+    from: FROM,
+    to,
+    subject: `Your BizHaus room booking has been cancelled`,
+    html: roomCancellationHtml(details, await getEmailCopy()),
   })
   if (error) console.error('[email] Resend error sending room booking cancellation email:', error)
 }
