@@ -67,7 +67,8 @@ export async function POST(request: Request) {
 export async function PUT(request: Request) {
   if (!await assertAdmin()) return NextResponse.json({ error: 'Admins only' }, { status: 403 })
 
-  const { templateId, copy } = await request.json()
+  const { templateId, copy, variant } = await request.json()
+  const credited = variant === 'credited'
   const merged = { ...DEFAULT_COPY, ...(copy ?? {}) }
 
   // Previews render through the real email builders, so what is shown here
@@ -85,6 +86,7 @@ export async function PUT(request: Request) {
   if (templateId === 'day_pass_confirmation') {
     const loc = DAY_PASS_LOCATIONS_BY_NAME['El Segundo']
     return NextResponse.json({
+      subject: fillTags(merged['day_pass_confirmation.subject'], { location: sample.location, date: sample.date }),
       html: wrapLetterEmail(standardConfirmationEmail('Alex', sample, loc, merged, {
         firstName: 'Alex', location: sample.location, date: sample.date,
       })),
@@ -94,12 +96,14 @@ export async function PUT(request: Request) {
   if (templateId === 'marina_confirmation') {
     const loc = DAY_PASS_LOCATIONS_BY_NAME['Marina del Rey']
     return NextResponse.json({
+      subject: fillTags(merged['day_pass_confirmation.subject'], { location: 'Marina del Rey', date: sample.date }),
       html: wrapLetterEmail(marinaConfirmationEmail('Alex', sample, loc, merged)),
     })
   }
 
   if (templateId === 'day_pass_cancellation') {
     return NextResponse.json({
+      subject: `Your BizHaus Day Pass has been cancelled — ${sample.location}`,
       html: dayPassCancellationEmailHtml({
         guestName: 'Alex Rivera',
         location: 'El Segundo',
@@ -107,12 +111,14 @@ export async function PUT(request: Request) {
         remainingDates: [],
         refundAmount: '$39.00',
         confirmationNumber: 'ABC12345',
+        credited,
       }, merged),
     })
   }
 
   if (templateId === 'room_receipt') {
     return NextResponse.json({
+      subject: fillTags(merged['room_receipt.subject'], { room: 'Small', date: sample.date }),
       html: roomReceiptHtml({
         confirmationNumber: 'ABC12345', room: 'Small', location: 'El Segundo',
         date: 'Friday, October 9, 2026', time: '9:00 AM – 10:00 AM',
@@ -123,9 +129,10 @@ export async function PUT(request: Request) {
 
   if (templateId === 'room_cancellation') {
     return NextResponse.json({
+      subject: 'Your BizHaus room booking has been cancelled',
       html: roomCancellationHtml({
         guestName: 'Alex Rivera', room: 'Small', location: 'El Segundo',
-        when: 'Friday, October 9 at 9:00AM', amount: '$50.00', credited: true,
+        when: 'Friday, October 9 at 9:00AM', amount: '$50.00', credited,
       }, merged),
     })
   }

@@ -5,6 +5,7 @@ import * as Dialog from '@radix-ui/react-dialog'
 import { X, RotateCcw } from 'lucide-react'
 import toast from 'react-hot-toast'
 import type { CopyTemplate } from '@/lib/emailCopy'
+import { cn } from '@/lib/utils'
 
 // Editing one email: the words on the left, the real email on the right,
 // updating as you type (Caroline, 2026-10-01). The preview renders through
@@ -22,6 +23,8 @@ export default function EmailTemplateDialog({
   onOpenChange: (open: boolean) => void
 }) {
   const [html, setHtml] = useState<string | null>(null)
+  const [subject, setSubject] = useState<string>('')
+  const [variant, setVariant] = useState<string>('refunded')
   const [saving, setSaving] = useState(false)
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -33,14 +36,14 @@ export default function EmailTemplateDialog({
       fetch('/api/admin/email-copy', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ templateId: template.id, copy }),
+        body: JSON.stringify({ templateId: template.id, copy, variant }),
       })
         .then(r => r.json())
-        .then(d => setHtml(d.html ?? null))
+        .then(d => { setHtml(d.html ?? null); setSubject(d.subject ?? '') })
         .catch(() => setHtml(null))
     }, 350)
     return () => { if (timer.current) clearTimeout(timer.current) }
-  }, [template, copy])
+  }, [template, copy, variant])
 
   async function save() {
     setSaving(true)
@@ -113,9 +116,33 @@ export default function EmailTemplateDialog({
               </div>
 
               {/* The email */}
-              <div className="overflow-y-auto bg-gray-50">
+              <div className="overflow-y-auto bg-gray-50 flex flex-col">
+                {template?.variants && (
+                  <div className="flex gap-1 px-4 py-2.5 border-b border-gray-200 bg-white flex-shrink-0">
+                    {template.variants.map(v => (
+                      <button
+                        key={v.id}
+                        onClick={() => setVariant(v.id)}
+                        className={cn(
+                          'px-3 py-1 rounded-full text-xs font-medium border transition-colors',
+                          variant === v.id
+                            ? 'bg-blue-50 border-blue-200 text-blue-700'
+                            : 'bg-white border-gray-200 text-gray-500 hover:text-gray-700',
+                        )}
+                      >
+                        {v.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+                {subject && (
+                  <div className="px-4 py-2.5 border-b border-gray-200 bg-white flex-shrink-0">
+                    <span className="text-[11px] uppercase tracking-wide text-gray-400 mr-2">Subject</span>
+                    <span className="text-sm text-gray-800">{subject}</span>
+                  </div>
+                )}
                 {html ? (
-                  <iframe title="Email preview" srcDoc={html} className="w-full h-full min-h-[600px] bg-white border-0" />
+                  <iframe title="Email preview" srcDoc={html} className="w-full flex-1 min-h-[600px] bg-white border-0" />
                 ) : (
                   <div className="h-full flex items-center justify-center text-sm text-gray-400">Rendering…</div>
                 )}

@@ -30,6 +30,13 @@ export type CopyTemplate = {
   product: CopyProduct
   name: string
   description: string
+  /**
+   * Some emails go out in more than one version depending on what happened,
+   * and one preview cannot show both: editing the credit wording did nothing
+   * visible while the preview was rendering the refunded version (Caroline,
+   * 2026-10-01).
+   */
+  variants?: { id: string; label: string }[]
   fields: CopyField[]
 }
 
@@ -102,6 +109,7 @@ export const EMAIL_TEMPLATES: CopyTemplate[] = [
   },
   {
     id: 'day_pass_cancellation',
+    variants: [{ id: 'refunded', label: 'Refunded' }, { id: 'credited', label: 'Held as credit' }],
     product: 'day_pass',
     name: 'Day pass cancellation',
     description: 'Sent when a day pass is cancelled, whether by the customer or by staff. The refunded and credited versions differ.',
@@ -149,6 +157,7 @@ export const EMAIL_TEMPLATES: CopyTemplate[] = [
   },
   {
     id: 'room_cancellation',
+    variants: [{ id: 'refunded', label: 'Refunded' }, { id: 'credited', label: 'Held as credit' }],
     product: 'rooms',
     name: 'Room booking cancellation',
     description: 'Sent when staff cancel a conference room booking. Rooms are sold non-refundable, so the credit version is the usual one.',
