@@ -1,6 +1,6 @@
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
-import { getPacificMonthBounds } from '@/lib/utils'
+import { getPacificMonthBounds, one } from '@/lib/utils'
 
 export async function GET(request: Request) {
   const supabase = await createClient()
@@ -86,7 +86,7 @@ export async function GET(request: Request) {
       // their name. Caught 2026-09-14.
       full_name:         prof?.full_name ?? pe.full_name ?? null,
       company_id:        pe.company_id,
-      company_name:      (pe.companies as Record<string, unknown>)?.name ?? '',
+      company_name:      one(pe.companies)?.name ?? '',
       hours_used:          Math.round((usage?.hours ?? 0) * 10) / 10,
       reservation_count:   usage?.count ?? 0,
       // Most members here are still "pending" (added by an admin, no

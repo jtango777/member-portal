@@ -1,4 +1,4 @@
-import { createServerClient } from '@supabase/ssr'
+import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 import { BOOKING_HOST, PORTAL_HOST, isBookingPath } from '@/lib/hosts'
 
@@ -42,9 +42,13 @@ export async function middleware(request: NextRequest) {
         getAll() {
           return request.cookies.getAll()
         },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) =>
-            request.cookies.set(name, value, options)
+        setAll(cookiesToSet: { name: string; value: string; options: CookieOptions }[]) {
+          // The request side takes name and value only. It used to be passed
+          // options as a third argument, which this signature has never
+          // accepted, so they were silently dropped. Options belong on the
+          // response cookie below, which is the one the browser receives.
+          cookiesToSet.forEach(({ name, value }) =>
+            request.cookies.set(name, value)
           )
           supabaseResponse = NextResponse.next({ request })
           cookiesToSet.forEach(({ name, value, options }) =>

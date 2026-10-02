@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { ArrowUpRight, CalendarDays, DollarSign, Clock, Users } from 'lucide-react'
 import Link from 'next/link'
-import { calcHoursUsed, getMonthBounds, formatMonthYear } from '@/lib/utils'
+import { calcHoursUsed, getMonthBounds, formatMonthYear, one } from '@/lib/utils'
 import { format, subMonths } from 'date-fns'
 import DashboardRangePicker from '@/components/admin/DashboardRangePicker'
 
@@ -65,7 +65,7 @@ async function getStats(range: string) {
   let externalRevenueThisMonth = 0
   for (const b of externalBookingsThisMonth ?? []) {
     const hours = (new Date(b.end_time).getTime() - new Date(b.start_time).getTime()) / 3_600_000
-    const room = b.rooms as { price_per_hour: number } | null
+    const room = one(b.rooms)
     externalRevenueThisMonth += hours * (room?.price_per_hour ?? 0)
   }
 

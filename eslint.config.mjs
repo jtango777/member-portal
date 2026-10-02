@@ -1,14 +1,25 @@
-import { dirname } from 'path'
-import { fileURLToPath } from 'url'
-import { FlatCompat } from '@eslint/eslintrc'
+import coreWebVitals from 'eslint-config-next/core-web-vitals'
+import typescriptRules from 'eslint-config-next/typescript'
 
-const __filename = fileURLToPath(import.meta.url)
-const __dirname  = dirname(__filename)
-
-const compat = new FlatCompat({ baseDirectory: __dirname })
+// Lint was broken in two layers and nobody noticed, because `npm run lint`
+// failed with "no such directory: .../lint" — which reads like a config
+// quirk rather than "the linter is not running" (2026-10-01).
+//
+// Layer one: Next 16 removed `next lint`, so the script ran `next lint` as
+// `next <directory>`. Layer two, underneath it: this file used the
+// FlatCompat shim to load the old-style config, and eslint-config-next 16
+// ships real flat configs, so the shim crashed on a circular structure.
+//
+// It mattered. On 2026-10-01 a `phone` argument was used but never
+// destructured, which broke account creation for every new day pass
+// customer in production. `no-undef` catches that in under a second.
 
 const eslintConfig = [
-  ...compat.extends('next/core-web-vitals', 'next/typescript'),
+  ...coreWebVitals,
+  ...typescriptRules,
+  {
+    ignores: ['.next/**', 'node_modules/**', 'supabase/**', 'scripts-tmp-*.mjs'],
+  },
 ]
 
 export default eslintConfig

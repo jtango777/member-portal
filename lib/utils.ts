@@ -195,3 +195,18 @@ export function formatMoney(dollars: number): string {
   const rounded = Math.round(dollars * 100) / 100
   return `$${rounded.toFixed(Number.isInteger(rounded) ? 0 : 2)}`
 }
+
+/**
+ * A Supabase to-one join, as one row.
+ *
+ * `select('..., rooms(name)')` returns a single object at runtime but is
+ * typed as an array, so the codebase was casting it with `as`. A cast is a
+ * promise to the typechecker, not a check: if the shape is ever the other
+ * one, the cast stays quiet and the value reads as undefined, which here
+ * would mean silently counting revenue as zero. This handles both shapes
+ * for real (2026-10-01).
+ */
+export function one<T>(rel: T | T[] | null | undefined): T | null {
+  if (!rel) return null
+  return Array.isArray(rel) ? (rel[0] ?? null) : rel
+}
