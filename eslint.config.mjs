@@ -18,7 +18,10 @@ const eslintConfig = [
   ...coreWebVitals,
   ...typescriptRules,
   {
-    ignores: ['.next/**', 'node_modules/**', 'supabase/**', 'scripts-tmp-*.mjs'],
+    // .claude/worktrees holds a stale scratch copy of the repo from an agent
+    // run. Linting it double-reported every finding against code that is not
+    // shipped (2026-10-01).
+    ignores: ['.next/**', 'node_modules/**', 'supabase/**', 'scripts-tmp-*.mjs', '.claude/**'],
   },
 ]
 
