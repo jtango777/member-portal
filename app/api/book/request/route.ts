@@ -1,6 +1,6 @@
 import { createAdminClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
-import { getPacificDayBounds } from '@/lib/utils'
+import { getPacificDayBounds, formatReceiptDate } from '@/lib/utils'
 import { sendExternalBookingReceipt, sendExternalBookingStaffNotification, sendSystemAlert } from '@/lib/email'
 import { rateLimit } from '@/lib/rate-limit'
 import { verifyRecaptcha } from '@/lib/recaptcha'
@@ -307,7 +307,7 @@ export async function POST(request: Request) {
       amountPaid,
       cardLast4,
       cardBrand,
-      paymentDate: format(new Date(), 'MMMM d, yyyy'),
+      paymentDate: formatReceiptDate(),
     })
     console.log('[email] Receipt sent successfully')
   } catch (err) {

@@ -1,6 +1,6 @@
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
-import { calcHoursUsed, getMonthBounds, getPacificDayBounds, getPacificMonthBounds, bookingWindowError } from '@/lib/utils'
+import { calcHoursUsed, getMonthBounds, getPacificDayBounds, getPacificMonthBounds, bookingWindowError, formatDate, formatTime } from '@/lib/utils'
 import { sendConfirmationEmail } from '@/lib/email'
 import { getOrCreateGuestUserId } from '@/lib/guestAccount'
 import { resolveHistoricalBookings } from '@/lib/resolveHistoricalBookings'
@@ -255,8 +255,8 @@ export async function POST(request: Request) {
       title,
       room:    room?.name ?? '',
       location: room?.locations?.name ?? '',
-      date:    formatted_date ?? format(start, 'EEEE, MMMM d, yyyy'),
-      time:    formatted_time ?? `${format(start, 'h:mm a')} – ${format(end, 'h:mm a')}`,
+      date:    formatted_date ?? formatDate(start),
+      time:    formatted_time ?? `${formatTime(start)} – ${formatTime(end)}`,
       booker:  bookerName,
     })
   } catch (_) { /* Email failure should not block the booking */ }

@@ -1,6 +1,7 @@
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 import { format } from 'date-fns'
+import { formatDayAndMonth, formatTime, formatDate } from '@/lib/utils'
 import { stripe } from '@/lib/stripe'
 import { voidSalesReceipt } from '@/lib/quickbooks'
 import { sendDayPassCancellationEmail, sendRoomBookingCancellationEmail, sendSystemAlert } from '@/lib/email'
@@ -173,7 +174,10 @@ export async function POST(request: Request) {
           guestName: booking.external_name ?? '',
           room: room?.external_name ?? room?.name ?? 'your room',
           location: room?.locations?.name ?? '',
-          when: format(start, "EEEE, MMMM d 'at' h:mma"),
+          // date-fns formats in the server's timezone, and Vercel runs UTC,
+          // so an 11:30 AM Costa Mesa booking was emailed to the customer as
+          // 6:30PM (Caroline, 2026-10-01). These helpers pin Pacific.
+          when: `${formatDayAndMonth(start)} at ${formatTime(start)}`,
           amount: `$${(amountCents / 100).toFixed(2)}`,
           credited: !refund,
         })

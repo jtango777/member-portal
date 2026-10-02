@@ -210,3 +210,12 @@ export function one<T>(rel: T | T[] | null | undefined): T | null {
   if (!rel) return null
   return Array.isArray(rel) ? (rel[0] ?? null) : rel
 }
+
+/**
+ * Today's date in Pacific, for receipts. `format(new Date(), ...)` on a UTC
+ * server rolls over at 5pm Pacific, so anything bought in the evening was
+ * receipted with tomorrow's date (2026-10-01).
+ */
+export function formatReceiptDate(date: Date = new Date()): string {
+  return date.toLocaleDateString('en-US', { timeZone: PT_ZONE, month: 'long', day: 'numeric', year: 'numeric' })
+}

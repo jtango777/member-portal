@@ -1,7 +1,7 @@
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 import { sendCancellationRequestEmail, sendSystemAlert } from '@/lib/email'
-import { format } from 'date-fns'
+import { formatDate, formatTime } from '@/lib/utils'
 
 // A member can't self-cancel within 12 hours of the start time (see
 // DELETE below) — instead this flags the reservation and emails the
@@ -50,8 +50,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       title:    reservation.title,
       room:     room?.name ?? '',
       location: room?.locations?.name ?? '',
-      date:     format(start, 'EEEE, MMMM d, yyyy'),
-      time:     `${format(start, 'h:mm a')} – ${format(end, 'h:mm a')}`,
+      date:     formatDate(start),
+      time:     `${formatTime(start)} – ${formatTime(end)}`,
     })
   } catch (err) {
     console.error('[reservations] cancellation-request email failed:', err)
