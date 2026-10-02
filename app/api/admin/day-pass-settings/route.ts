@@ -18,19 +18,42 @@ export async function GET() {
   if (!user) return NextResponse.json({ error: 'Admins only' }, { status: 403 })
 
   const admin = createAdminClient()
-  const [{ data: setting }, { data: closures }] = await Promise.all([
+  const [{ data: setting }, { data: closures }, { data: locations }] = await Promise.all([
     admin.from('app_settings').select('value, updated_at').eq('key', 'day_pass_price_cents').maybeSingle(),
     admin.from('closure_days').select('date, name, blocks_day_pass, blocks_rooms').order('date'),
+    admin.from('locations').select('id, name, door_code').order('name'),
   ])
 
   return NextResponse.json({
     priceCents: Number(setting?.value) || 0,
     priceUpdatedAt: setting?.updated_at ?? null,
     closures: closures ?? [],
+    locations: locations ?? [],
   })
 }
 
 export async function PATCH(request: Request) {
+  const userForCodes = await assertAdmin()
+  if (!userForCodes) return NextResponse.json({ error: 'Admins only' }, { status: 403 })
+
+  const peek = await request.clone().json()
+  // Door codes, per location. Blank clears it, which is right for a location
+  // that stops being self-entry.
+  if (peek && typeof peek === 'object' && 'door_codes' in peek) {
+    const codes = peek.door_codes as Record<string, string>
+    const admin = createAdminClient()
+    for (const [id, raw] of Object.entries(codes ?? {})) {
+      const code = typeof raw === 'string' ? raw.trim() : ''
+      const { error } = await admin.from('locations').update({ door_code: code || null }).eq('id', id)
+      if (error) {
+        console.error('[day-pass-settings] door code save failed:', error.message)
+        return NextResponse.json({ error: 'Could not save the door codes.' }, { status: 500 })
+      }
+    }
+    clearSettingsCache()
+    return NextResponse.json({ ok: true })
+  }
+
   const user = await assertAdmin()
   if (!user) return NextResponse.json({ error: 'Admins only' }, { status: 403 })
 

@@ -1,5 +1,5 @@
 import { Resend } from 'resend'
-import { getEmailCopy } from '@/lib/settings'
+import { getEmailCopy, getDoorCodes } from '@/lib/settings'
 import { fillTags, paragraphs, bulletLines, DEFAULT_COPY } from '@/lib/emailCopy'
 import { DAY_PASS_LOCATIONS_BY_NAME, DayPassLocation } from './locations'
 
@@ -285,9 +285,11 @@ export async function sendDayPassConfirmation(
   const loc = DAY_PASS_LOCATIONS_BY_NAME[details.location]
   const copy = await getEmailCopy()
   const tags = { firstName, location: details.location, date: details.date }
+  // The code comes from the database, so staff can change it themselves.
+  const doorCode = (await getDoorCodes())[details.location] ?? loc?.doorCode ?? ''
 
   const html = loc?.isMarina
-    ? marinaConfirmationEmail(firstName, details, loc, copy)
+    ? marinaConfirmationEmail(firstName, details, loc, copy, doorCode)
     : standardConfirmationEmail(firstName, details, loc, copy, tags)
 
   const { data, error } = await resend.emails.send({
@@ -350,11 +352,12 @@ export function marinaConfirmationEmail(
   firstName: string,
   details: { confirmationNumber: string; date: string },
   loc: DayPassLocation,
-  copy: Record<string, string> = DEFAULT_COPY
+  copy: Record<string, string> = DEFAULT_COPY,
+  doorCode?: string
 ) {
-  // The door code and address stay sourced from lib/locations, so changing
-  // the code never means hunting through email wording.
-  const tags = { doorCode: loc.doorCode ?? '', address: loc.address }
+  // The code comes from the locations table when one is passed in; the value
+  // in lib/locations is only the fallback for a preview or a failed read.
+  const tags = { doorCode: doorCode || loc.doorCode || '', address: loc.address }
   const line = (key: string) => fillTags(copy[`marina_confirmation.${key}`], tags)
   const photo = (name: string) => `${BOOKINGS_URL}/day-pass/${name}`
   const bullet = (label: string, text: string) => `

@@ -23,6 +23,33 @@ export function clearSettingsCache() {
   priceCache = null
   closureCache = null
   copyCache = null
+  doorCache = null
+}
+
+let doorCache: { at: number; codes: Record<string, string> } | null = null
+
+/**
+ * Door codes by location name. Lives in the database rather than the code
+ * because a door code changes without warning and the confirmation email is
+ * the only thing between a day passer and a locked door (Caroline,
+ * 2026-10-01).
+ */
+export async function getDoorCodes(): Promise<Record<string, string>> {
+  if (doorCache && Date.now() - doorCache.at < CACHE_MS) return doorCache.codes
+
+  const { data, error } = await createAdminClient()
+    .from('locations')
+    .select('name, door_code')
+
+  if (error) {
+    console.error('[settings] Could not read door codes:', error.message)
+    return doorCache?.codes ?? {}
+  }
+
+  const codes: Record<string, string> = {}
+  for (const row of data ?? []) if (row.door_code) codes[row.name] = row.door_code
+  doorCache = { at: Date.now(), codes }
+  return codes
 }
 
 /**
