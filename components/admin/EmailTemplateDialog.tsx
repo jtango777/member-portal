@@ -82,10 +82,26 @@ export default function EmailTemplateDialog({
                 {template?.fields.map(f => {
                   const value = copy[f.key] ?? ''
                   const changed = value.trim() !== (defaults[f.key] ?? '').trim()
+                  // A line that belongs to the other version of this email is
+                  // not in the preview right now, so say so and dim it rather
+                  // than letting someone type into a box that appears to do
+                  // nothing (Caroline, 2026-10-01).
+                  const hidden = !!f.onlyIn && f.onlyIn !== variant
+                  const show = () => { if (f.onlyIn) setVariant(f.onlyIn) }
                   return (
-                    <div key={f.key}>
+                    <div key={f.key} className={cn('transition-opacity', hidden && 'opacity-50')}>
                       <div className="flex items-center justify-between mb-1">
-                        <label className="text-xs font-medium text-gray-700">{f.label}</label>
+                        <label className="text-xs font-medium text-gray-700">
+                          {f.label}
+                          {hidden && (
+                            <button
+                              onClick={show}
+                              className="ml-2 font-normal text-[11px] text-blue-600 hover:underline"
+                            >
+                              Not in the version shown. Show it
+                            </button>
+                          )}
+                        </label>
                         {changed && (
                           <button
                             onClick={() => onChange({ ...copy, [f.key]: defaults[f.key] })}
@@ -99,12 +115,14 @@ export default function EmailTemplateDialog({
                         <textarea
                           rows={f.rows ?? 3}
                           value={value}
+                          onFocus={show}
                           onChange={e => onChange({ ...copy, [f.key]: e.target.value })}
                           className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm leading-relaxed focus:outline-none focus:ring-2 focus:ring-blue-500"
                         />
                       ) : (
                         <input
                           value={value}
+                          onFocus={show}
                           onChange={e => onChange({ ...copy, [f.key]: e.target.value })}
                           className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                         />
@@ -118,7 +136,8 @@ export default function EmailTemplateDialog({
               {/* The email */}
               <div className="overflow-y-auto bg-gray-50 flex flex-col">
                 {template?.variants && (
-                  <div className="flex gap-1 px-4 py-2.5 border-b border-gray-200 bg-white flex-shrink-0">
+                  <div className="flex items-center gap-1 px-4 py-2.5 border-b border-gray-200 bg-white flex-shrink-0">
+                    <span className="text-[11px] uppercase tracking-wide text-gray-400 mr-1.5">Showing</span>
                     {template.variants.map(v => (
                       <button
                         key={v.id}

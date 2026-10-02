@@ -19,6 +19,14 @@ export type CopyField = {
   multiline?: boolean
   /** How tall that box should be. */
   rows?: number
+  /**
+   * For a template with variants: the only version of the email this line
+   * appears in. The editor uses it to switch the preview to that version
+   * when you start typing, because editing a box that is invisible in the
+   * preview beside it reads as the editor being broken (Caroline,
+   * 2026-10-01).
+   */
+  onlyIn?: string
   default: string
 }
 
@@ -117,12 +125,14 @@ export const EMAIL_TEMPLATES: CopyTemplate[] = [
       {
         key: 'day_pass_cancellation.refunded_note',
         label: 'Note when the money is refunded',
+        onlyIn: 'refunded',
         multiline: true,
         default: 'Refunds usually show up on your statement within 5 to 10 business days, depending on your bank.',
       },
       {
         key: 'day_pass_cancellation.credited_note',
         label: 'Note when the money is held as credit',
+        onlyIn: 'credited',
         multiline: true,
         default: "Just reply to this email when you know the day you'd like instead, and we'll apply the credit to it.",
       },
@@ -165,6 +175,7 @@ export const EMAIL_TEMPLATES: CopyTemplate[] = [
       {
         key: 'room_cancellation.refunded_note',
         label: 'Note when the money is refunded',
+        onlyIn: 'refunded',
         hint: 'Tags: {amount}',
         multiline: true,
         default: "We've refunded **{amount}** to your original payment method. It usually shows up within 5 to 10 business days, depending on your bank.",
@@ -172,6 +183,7 @@ export const EMAIL_TEMPLATES: CopyTemplate[] = [
       {
         key: 'room_cancellation.credited_note',
         label: 'Note when the money is held as credit',
+        onlyIn: 'credited',
         hint: 'Tags: {amount}',
         multiline: true,
         default: "We're holding **{amount}** toward a future booking. Just reply to this email when you know the day and time you'd like instead.",
