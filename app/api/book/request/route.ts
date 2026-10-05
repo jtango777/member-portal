@@ -4,11 +4,11 @@ import { getPacificDayBounds, formatReceiptDate } from '@/lib/utils'
 import { sendExternalBookingReceipt, sendExternalBookingStaffNotification, sendSystemAlert } from '@/lib/email'
 import { rateLimit } from '@/lib/rate-limit'
 import { verifyRecaptcha } from '@/lib/recaptcha'
-import { createSalesReceipt } from '@/lib/quickbooks'
+import { createSalesReceipt, recordProcessingFee } from '@/lib/quickbooks'
 import { roomBookingError } from '@/lib/bookingRules'
 import { getClosureMap } from '@/lib/settings'
 import Stripe from 'stripe'
-import { stripe } from '@/lib/stripe'
+import { stripe, stripeFeeDollars } from '@/lib/stripe'
 import { format } from 'date-fns'
 
 
@@ -279,6 +279,15 @@ export async function POST(request: Request) {
       if (receipt?.Id) {
         await admin.from('external_bookings').update({ qb_receipt_id: receipt.Id }).eq('id', booking.id)
       }
+
+      // Book what Stripe kept, so the books show the net the bank actually
+      // receives instead of leaving every transaction out by its fee.
+      const feeDollars = await stripeFeeDollars(stripe_payment_intent_id)
+      await recordProcessingFee(room.location_id, {
+        paymentIntentId: stripe_payment_intent_id,
+        amount: feeDollars,
+        description: `Stripe fee — ${confirmationNumber}`,
+      })
     } catch (err: any) {
       if (err?.message === 'QB_NEEDS_RECONNECT') {
         console.warn('[qb] Location needs reconnection — skipping sales receipt')

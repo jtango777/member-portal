@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server'
 import Stripe from 'stripe'
-import { stripe } from '@/lib/stripe'
+import { stripe, stripeFeeDollars } from '@/lib/stripe'
 import { createAdminClient } from '@/lib/supabase/server'
-import { createSalesReceipt } from '@/lib/quickbooks'
+import { createSalesReceipt, recordProcessingFee } from '@/lib/quickbooks'
 import { sendSystemAlert } from '@/lib/email'
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!
@@ -84,6 +84,14 @@ export async function POST(request: Request) {
           if (receipt?.Id) {
             await admin.from('external_bookings').update({ qb_receipt_id: receipt.Id }).eq('id', booking.id)
           }
+          // Backup path for the fee too. recordProcessingFee is keyed on the
+          // payment intent, so whichever of the two paths gets there first
+          // wins and the other is a no-op.
+          await recordProcessingFee(room.location_id, {
+            paymentIntentId: pi.id,
+            amount: await stripeFeeDollars(pi.id),
+            description: `Stripe fee — ${pi.id}`,
+          })
           console.log('[qb] Sales receipt created successfully')
         }
       } catch (err: any) {
@@ -176,6 +184,13 @@ export async function POST(request: Request) {
             }
           }
         }
+
+        // Outside the per-day loop: one charge, one fee, however many days.
+        await recordProcessingFee(dayPasses[0].location_id, {
+          paymentIntentId: pi.id,
+          amount: await stripeFeeDollars(pi.id),
+          description: `Stripe fee — ${pi.id}`,
+        })
       }
     }
   }

@@ -3,9 +3,9 @@ import { NextResponse } from 'next/server'
 import { sendDayPassConfirmation, sendDayPassStaffNotification, sendSystemAlert } from '@/lib/email'
 import { rateLimit } from '@/lib/rate-limit'
 import { verifyRecaptcha } from '@/lib/recaptcha'
-import { createSalesReceipt } from '@/lib/quickbooks'
+import { createSalesReceipt, recordProcessingFee } from '@/lib/quickbooks'
 import Stripe from 'stripe'
-import { stripe } from '@/lib/stripe'
+import { stripe, stripeFeeDollars } from '@/lib/stripe'
 import { format, getDay } from 'date-fns'
 import { formatReceiptDate } from '@/lib/utils'
 import { DAY_PASS_PRICE_CENTS, MAX_DAY_PASS_DAYS, MAX_DAYS_MESSAGE, TOO_FAR_MESSAGE, tooFarAhead, alreadyBookedDates, alreadyBookedMessage } from '@/app/api/day-pass/create-payment-intent/route'
@@ -213,6 +213,15 @@ export async function POST(request: Request) {
       }
     }
   }
+
+  // One fee for the whole purchase, outside the loop: five days is five $39
+  // receipts but a single charge carrying a single Stripe fee.
+  const feeDollars = await stripeFeeDollars(stripe_payment_intent_id)
+  await recordProcessingFee(location_id, {
+    paymentIntentId: stripe_payment_intent_id,
+    amount: feeDollars,
+    description: `Stripe fee — ${confirmationNumber}`,
+  })
 
   // Send confirmation / receipt email (non-blocking — don't fail the reservation if email fails)
   try {

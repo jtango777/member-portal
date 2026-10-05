@@ -325,3 +325,120 @@ export async function getConnectionStatus(locationId: string) {
     realmId: tokens.realm_id,
   }
 }
+
+// ---------------------------------------------------------------------------
+// Stripe's processing fee
+//
+// The books recorded the gross sale and nothing else, so QuickBooks said
+// $195 while the bank received $189.04 and somebody had to account for the
+// difference by hand on every single transaction (Caroline, 2026-10-05).
+//
+// The fee is booked as an expense paid out of Undeposited Funds, which is
+// where the sale already lands. That leaves Undeposited Funds holding the
+// net, exactly what Stripe deposits, so the books match the bank with no
+// new accounts beyond the expense category itself.
+//
+// One fee per *payment*, not per receipt: a five day pass is five $39
+// receipts but a single $195 charge carrying a single fee.
+// ---------------------------------------------------------------------------
+
+const STRIPE_FEE_ACCOUNT_NAME = 'Stripe Fee'
+
+async function findOrCreateExpenseAccount(realmId: string, accessToken: string, name: string) {
+  const safeName = name.replace(/'/g, "\\'")
+  const query = encodeURIComponent(`SELECT * FROM Account WHERE Name = '${safeName}'`)
+  const result = await qbFetch('GET', `/query?query=${query}`, realmId, accessToken)
+
+  if (result.QueryResponse?.Account?.length > 0) {
+    return result.QueryResponse.Account[0]
+  }
+
+  console.warn(`[qb] No account named "${name}" in realm ${realmId} — creating it.`)
+  const created = await qbFetch('POST', '/account', realmId, accessToken, {
+    Name: name,
+    AccountType: 'Expense',
+    // Where QuickBooks files merchant processing fees by convention, so this
+    // lands somewhere a bookkeeper expects rather than a generic bucket.
+    AccountSubType: 'BankCharges',
+  })
+  return created.Account
+}
+
+async function findUndepositedFunds(realmId: string, accessToken: string) {
+  const query = encodeURIComponent("SELECT * FROM Account WHERE AccountSubType = 'UndepositedFunds'")
+  const result = await qbFetch('GET', `/query?query=${query}`, realmId, accessToken)
+  const account = result.QueryResponse?.Account?.[0]
+  if (!account) {
+    throw new Error('QB_NO_UNDEPOSITED_FUNDS: no Undeposited Funds account in this company file')
+  }
+  return account
+}
+
+/**
+ * Books one Stripe processing fee. Idempotent: the payment intent id goes in
+ * DocNumber, and an existing purchase carrying it means the fee is already
+ * recorded. That matters because the booking route and the Stripe webhook
+ * both run this path with no guaranteed ordering, the same race the receipts
+ * themselves already guard against.
+ *
+ * Returns null rather than throwing on anything recoverable. A missing fee
+ * is a bookkeeping correction; a thrown error here would fail a booking the
+ * customer has already paid for.
+ */
+export async function recordProcessingFee(
+  locationId: string,
+  details: { paymentIntentId: string; amount: number; description: string }
+) {
+  if (!(details.amount > 0)) return null
+
+  const tokens = await getTokens(locationId)
+  if (!tokens) {
+    console.error('[qb] No QB tokens found for location:', locationId)
+    return null
+  }
+
+  try {
+    const accessToken = await refreshIfNeeded(tokens)
+
+    const safeDoc = details.paymentIntentId.replace(/'/g, "\\'")
+    const existing = await qbFetch(
+      'GET',
+      `/query?query=${encodeURIComponent(`SELECT * FROM Purchase WHERE DocNumber = '${safeDoc}'`)}`,
+      tokens.realm_id,
+      accessToken
+    )
+    if (existing.QueryResponse?.Purchase?.length > 0) {
+      return existing.QueryResponse.Purchase[0]
+    }
+
+    const [feeAccount, undeposited] = await Promise.all([
+      findOrCreateExpenseAccount(tokens.realm_id, accessToken, STRIPE_FEE_ACCOUNT_NAME),
+      findUndepositedFunds(tokens.realm_id, accessToken),
+    ])
+
+    const purchase = await qbFetch('POST', '/purchase', tokens.realm_id, accessToken, {
+      PaymentType: 'Cash',
+      AccountRef: { value: undeposited.Id, name: undeposited.Name },
+      // Stripe's own id, so the fee can be traced back to the charge and so
+      // this stays idempotent across the route/webhook race.
+      DocNumber: details.paymentIntentId,
+      PrivateNote: details.description,
+      TxnDate: new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' }),
+      Line: [
+        {
+          Amount: details.amount,
+          DetailType: 'AccountBasedExpenseLineDetail',
+          Description: details.description,
+          AccountBasedExpenseLineDetail: {
+            AccountRef: { value: feeAccount.Id, name: feeAccount.Name },
+          },
+        },
+      ],
+    })
+
+    return purchase.Purchase
+  } catch (err) {
+    console.error('[qb] Could not record Stripe fee:', err instanceof Error ? err.message : err)
+    return null
+  }
+}
