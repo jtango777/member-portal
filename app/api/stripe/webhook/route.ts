@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server'
 import Stripe from 'stripe'
 import { stripeFor, webhookSecrets } from '@/lib/stripe'
+import { getQbBankAccounts } from '@/lib/settings'
 import { createAdminClient } from '@/lib/supabase/server'
-import { createSalesReceipt } from '@/lib/quickbooks'
+import { createSalesReceipt, recordPayoutDeposit } from '@/lib/quickbooks'
 import { sendSystemAlert } from '@/lib/email'
 
 /**
@@ -223,5 +224,112 @@ export async function POST(request: Request) {
     await admin.from('day_passes').update({ status: 'declined' }).eq('stripe_payment_intent_id', pi.id)
   }
 
+  // Stripe has sent money to the bank. Record it as a deposit so the books
+  // show the money arriving and what Stripe kept, instead of every sale
+  // sitting in Undeposited Funds for someone to clear by hand.
+  //
+  // Both events are handled: reconciliation_completed is the one that
+  // guarantees the payout's contents can be listed, and paid is the fallback
+  // for accounts that never send it. recordPayoutDeposit is idempotent on
+  // the payout id, so whichever arrives first wins.
+  if (event.type === 'payout.paid' || event.type === 'payout.reconciliation_completed') {
+    const payout = event.data.object as Stripe.Payout
+    await recordPayout(verified.locationId, payout)
+  }
+
   return NextResponse.json({ received: true })
+}
+
+/**
+ * Turns one Stripe payout into one QuickBooks deposit.
+ *
+ * The join runs: payout → its balance transactions → the charges in it →
+ * their payment intents → our own rows → the sales receipts already in
+ * QuickBooks. Anything that cannot be matched is left out rather than
+ * guessed at, and the deposit is skipped entirely if nothing matches, so a
+ * payout covering a refund or a transfer does not create an empty entry.
+ */
+async function recordPayout(locationId: string, payout: Stripe.Payout) {
+  const bankAccounts = await getQbBankAccounts()
+  const bankAccountName = bankAccounts[locationId]
+  if (!bankAccountName) {
+    console.warn(
+      `[webhook] Payout ${payout.id}: no QuickBooks bank account set for location ` +
+      `${locationId}. Set one in Admin → QuickBooks and future payouts will record.`
+    )
+    return
+  }
+
+  const stripe = stripeFor(locationId)
+  const admin = createAdminClient()
+
+  // Every balance transaction in this payout, following Stripe's pages.
+  const txns: Stripe.BalanceTransaction[] = []
+  for await (const t of stripe.balanceTransactions.list({ payout: payout.id, limit: 100, expand: ['data.source'] })) {
+    txns.push(t)
+  }
+
+  let feeTotal = 0
+  const paymentIntentIds: string[] = []
+  for (const t of txns) {
+    feeTotal += t.fee
+    if (t.type !== 'charge' && t.type !== 'payment') continue
+    const source = t.source as Stripe.Charge | string | null
+    const pi = source && typeof source !== 'string' ? source.payment_intent : null
+    if (typeof pi === 'string') paymentIntentIds.push(pi)
+  }
+
+  if (paymentIntentIds.length === 0) {
+    console.log(`[webhook] Payout ${payout.id} contained no charges, nothing to deposit.`)
+    return
+  }
+
+  // Our own records hold the QuickBooks receipt id for each sale.
+  const [{ data: passes }, { data: rooms }] = await Promise.all([
+    admin.from('day_passes')
+      .select('qb_receipt_id, price_cents')
+      .in('stripe_payment_intent_id', paymentIntentIds)
+      .eq('status', 'confirmed'),
+    admin.from('external_bookings')
+      .select('qb_receipt_id, stripe_payment_intent_id')
+      .in('stripe_payment_intent_id', paymentIntentIds),
+  ])
+
+  const receipts: { id: string; amount: number }[] = []
+  for (const p of passes ?? []) {
+    if (p.qb_receipt_id) receipts.push({ id: p.qb_receipt_id, amount: p.price_cents / 100 })
+  }
+  // Room bookings keep no amount of their own; take it from the charge.
+  const roomAmounts = new Map<string, number>()
+  for (const t of txns) {
+    const source = t.source as Stripe.Charge | string | null
+    const pi = source && typeof source !== 'string' ? source.payment_intent : null
+    if (typeof pi === 'string') roomAmounts.set(pi, t.amount / 100)
+  }
+  for (const b of rooms ?? []) {
+    if (b.qb_receipt_id) {
+      receipts.push({ id: b.qb_receipt_id, amount: roomAmounts.get(b.stripe_payment_intent_id) ?? 0 })
+    }
+  }
+
+  if (receipts.length === 0) {
+    console.warn(`[webhook] Payout ${payout.id}: no QuickBooks receipts found for its charges.`)
+    return
+  }
+
+  const result = await recordPayoutDeposit(locationId, {
+    payoutId: payout.id,
+    date: new Date(payout.arrival_date * 1000).toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' }),
+    receipts,
+    feeTotal: feeTotal / 100,
+    bankAccountName,
+  })
+
+  if (result) {
+    console.log(`[webhook] Payout ${payout.id} recorded as deposit ${result.Id}.`)
+  } else {
+    await sendSystemAlert('Stripe payout could not be recorded in QuickBooks', {
+      payout: payout.id, location_id: locationId, receipts: receipts.length,
+    })
+  }
 }

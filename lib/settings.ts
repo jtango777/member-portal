@@ -24,6 +24,7 @@ export function clearSettingsCache() {
   closureCache = null
   copyCache = null
   doorCache = null
+  bankCache = null
 }
 
 let doorCache: { at: number; codes: Record<string, string> } | null = null
@@ -130,4 +131,35 @@ export async function getClosureMap(product: 'day_pass' | 'rooms'): Promise<Reco
     if (product === 'day_pass' ? r.blocks_day_pass : r.blocks_rooms) map[r.date] = r.name
   }
   return map
+}
+
+let bankCache: { at: number; accounts: Record<string, string> } | null = null
+
+/**
+ * The QuickBooks bank account each entity's Stripe payouts are deposited
+ * into, keyed by location id.
+ *
+ * Stored in app_settings rather than a column on `locations` so adding it
+ * needs no migration run by hand on two databases, and typed into the admin
+ * screen rather than hardcoded because nobody here can see the chart of
+ * accounts: Caroline's QuickBooks role cannot open it, so the names have to
+ * come from Joe or the accounting firm (2026-10-06).
+ */
+export async function getQbBankAccounts(): Promise<Record<string, string>> {
+  if (bankCache && Date.now() - bankCache.at < CACHE_MS) return bankCache.accounts
+
+  const { data, error } = await createAdminClient()
+    .from('app_settings')
+    .select('value')
+    .eq('key', 'qb_bank_accounts')
+    .maybeSingle()
+
+  if (error) {
+    console.error('[settings] Could not read QB bank accounts:', error.message)
+    return bankCache?.accounts ?? {}
+  }
+
+  const accounts = (data?.value ?? {}) as Record<string, string>
+  bankCache = { at: Date.now(), accounts }
+  return accounts
 }

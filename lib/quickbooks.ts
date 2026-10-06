@@ -325,3 +325,163 @@ export async function getConnectionStatus(locationId: string) {
     realmId: tokens.realm_id,
   }
 }
+
+/**
+ * A read-only QuickBooks query against one location's company file, with the
+ * access token refreshed the same way every other call here does.
+ *
+ * Exported so the Stripe payout work can look up accounts and existing
+ * transactions without each caller re-implementing token handling, and so
+ * the shape of a real deposit can be inspected rather than guessed at
+ * (2026-10-06).
+ */
+export async function qbQuery(locationId: string, sql: string) {
+  const tokens = await getTokens(locationId)
+  if (!tokens) return null
+  const accessToken = await refreshIfNeeded(tokens)
+  return qbFetch('GET', `/query?query=${encodeURIComponent(sql)}`, tokens.realm_id, accessToken)
+}
+
+// ---------------------------------------------------------------------------
+// Recording a Stripe payout as a bank deposit
+//
+// The books knew about every sale but nothing about the money arriving, so
+// each sale sat in Undeposited Funds waiting for a person, and Stripe's fee
+// was recorded nowhere at all. QuickBooks said $195 while the bank received
+// $189.04, and somebody reconciled the difference by hand, every time
+// (Caroline, 2026-10-05).
+//
+// One deposit per payout: the sales it covers lifted out of Undeposited
+// Funds, plus a negative line for the fees, totalling exactly what the bank
+// received. That single entry records the fee and clears Undeposited Funds
+// at once, which is why there is no separate fee expense; booking both would
+// count every fee twice.
+// ---------------------------------------------------------------------------
+
+/**
+ * The expense accounts card processing fees are already booked to, named
+ * differently per company: Marina has "Credit Card Processing Fees", El
+ * Segundo and Costa Mesa have "Credit Card Fees" (Joe, 2026-10-05). All are
+ * sub-accounts of Bank Service Charges, and a QuickBooks sub-account is
+ * looked up by its leaf name, not the "Parent:Child" path.
+ */
+const STRIPE_FEE_ACCOUNT_NAMES = ['Credit Card Processing Fees', 'Credit Card Fees']
+
+/**
+ * Deliberately never creates. These accounts already exist in all three
+ * companies, so finding none means the names here have drifted from the
+ * books, and quietly creating one would split the fee history in two.
+ */
+async function findExpenseAccount(realmId: string, accessToken: string, names: string[]) {
+  const list = names.map(n => `'${n.replace(/'/g, "\\'")}'`).join(', ')
+  const result = await qbFetch(
+    'GET',
+    `/query?query=${encodeURIComponent(`SELECT * FROM Account WHERE Name IN (${list})`)}`,
+    realmId,
+    accessToken
+  )
+
+  const found: { Id: string; Name: string }[] = result.QueryResponse?.Account ?? []
+  if (found.length === 0) {
+    throw new Error(
+      `QB_NO_FEE_ACCOUNT: none of ${names.join(' / ')} exist in realm ${realmId}.`
+    )
+  }
+  // Keep the order above rather than whatever QuickBooks returns, so a
+  // company holding both always books to the same one.
+  return found.sort((a, b) => names.indexOf(a.Name) - names.indexOf(b.Name))[0]
+}
+
+async function findAccountByName(realmId: string, accessToken: string, name: string) {
+  const safe = name.replace(/'/g, "\\'")
+  const result = await qbFetch(
+    'GET',
+    `/query?query=${encodeURIComponent(`SELECT Id, Name FROM Account WHERE Name = '${safe}'`)}`,
+    realmId,
+    accessToken
+  )
+  return result.QueryResponse?.Account?.[0] ?? null
+}
+
+export type PayoutDeposit = {
+  /** Stripe's payout id, used to make this idempotent. */
+  payoutId: string
+  /** The date the money reached the bank, as YYYY-MM-DD in Pacific. */
+  date: string
+  /** QuickBooks sales receipt ids this payout covers, with their amounts. */
+  receipts: { id: string; amount: number }[]
+  /** Total Stripe kept, as a positive number. Booked as a negative line. */
+  feeTotal: number
+  /** The bank account's name in this company's chart of accounts. */
+  bankAccountName: string
+}
+
+/**
+ * Records one Stripe payout. Returns null rather than throwing on anything
+ * recoverable: a missing deposit is a bookkeeping correction, and throwing
+ * here would make Stripe retry the webhook forever.
+ */
+export async function recordPayoutDeposit(locationId: string, d: PayoutDeposit) {
+  if (d.receipts.length === 0) return null
+
+  const tokens = await getTokens(locationId)
+  if (!tokens) {
+    console.error('[qb] No QB tokens for location:', locationId)
+    return null
+  }
+
+  try {
+    const accessToken = await refreshIfNeeded(tokens)
+
+    // Idempotent on the payout id, because Stripe sends both payout.paid and
+    // payout.reconciliation_completed, and retries anything we answer slowly.
+    const existing = await qbFetch(
+      'GET',
+      `/query?query=${encodeURIComponent(`SELECT Id FROM Deposit WHERE PrivateNote LIKE '%${d.payoutId}%'`)}`,
+      tokens.realm_id,
+      accessToken
+    )
+    if (existing.QueryResponse?.Deposit?.length > 0) {
+      return existing.QueryResponse.Deposit[0]
+    }
+
+    const bank = await findAccountByName(tokens.realm_id, accessToken, d.bankAccountName)
+    if (!bank) {
+      console.error(`[qb] No bank account named "${d.bankAccountName}" in realm ${tokens.realm_id}`)
+      return null
+    }
+
+    const feeAccount = d.feeTotal > 0
+      ? await findExpenseAccount(tokens.realm_id, accessToken, STRIPE_FEE_ACCOUNT_NAMES)
+      : null
+
+    const lines: Record<string, unknown>[] = d.receipts.map(r => ({
+      Amount: r.amount,
+      DetailType: 'DepositLineDetail',
+      // Lifts the sale out of Undeposited Funds rather than creating income
+      // a second time.
+      LinkedTxn: [{ TxnId: r.id, TxnType: 'SalesReceipt' }],
+    }))
+
+    if (feeAccount && d.feeTotal > 0) {
+      lines.push({
+        Amount: -d.feeTotal,
+        DetailType: 'DepositLineDetail',
+        Description: `Stripe fees — payout ${d.payoutId}`,
+        DepositLineDetail: { AccountRef: { value: feeAccount.Id, name: feeAccount.Name } },
+      })
+    }
+
+    const deposit = await qbFetch('POST', '/deposit', tokens.realm_id, accessToken, {
+      DepositToAccountRef: { value: bank.Id, name: bank.Name },
+      TxnDate: d.date,
+      PrivateNote: `Stripe payout ${d.payoutId}`,
+      Line: lines,
+    })
+
+    return deposit.Deposit
+  } catch (err) {
+    console.error('[qb] Could not record payout deposit:', err instanceof Error ? err.message : err)
+    return null
+  }
+}
