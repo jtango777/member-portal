@@ -342,26 +342,33 @@ export async function getConnectionStatus(locationId: string) {
 // receipts but a single $195 charge carrying a single fee.
 // ---------------------------------------------------------------------------
 
-const STRIPE_FEE_ACCOUNT_NAME = 'Stripe Fee'
+/**
+ * The existing expense account card processing fees are already booked to,
+ * a sub-account of Bank Service Charges (Joe, 2026-10-05). Looked up by name,
+ * which for a QuickBooks sub-account is the leaf on its own, not the
+ * "Parent:Child" path.
+ */
+const STRIPE_FEE_ACCOUNT_NAME = 'Credit Card Processing Fees'
 
-async function findOrCreateExpenseAccount(realmId: string, accessToken: string, name: string) {
+/**
+ * Deliberately never creates. The account already exists in all three
+ * companies, so a miss means the name here has drifted from the books, and
+ * silently creating a second account would split the fee history in two
+ * without anyone noticing.
+ */
+async function findExpenseAccount(realmId: string, accessToken: string, name: string) {
   const safeName = name.replace(/'/g, "\\'")
   const query = encodeURIComponent(`SELECT * FROM Account WHERE Name = '${safeName}'`)
   const result = await qbFetch('GET', `/query?query=${query}`, realmId, accessToken)
 
-  if (result.QueryResponse?.Account?.length > 0) {
-    return result.QueryResponse.Account[0]
+  const account = result.QueryResponse?.Account?.[0]
+  if (!account) {
+    throw new Error(
+      `QB_NO_FEE_ACCOUNT: no account named "${name}" in realm ${realmId}. ` +
+      `Check the name matches the chart of accounts exactly.`
+    )
   }
-
-  console.warn(`[qb] No account named "${name}" in realm ${realmId} — creating it.`)
-  const created = await qbFetch('POST', '/account', realmId, accessToken, {
-    Name: name,
-    AccountType: 'Expense',
-    // Where QuickBooks files merchant processing fees by convention, so this
-    // lands somewhere a bookkeeper expects rather than a generic bucket.
-    AccountSubType: 'BankCharges',
-  })
-  return created.Account
+  return account
 }
 
 async function findUndepositedFunds(realmId: string, accessToken: string) {
@@ -412,7 +419,7 @@ export async function recordProcessingFee(
     }
 
     const [feeAccount, undeposited] = await Promise.all([
-      findOrCreateExpenseAccount(tokens.realm_id, accessToken, STRIPE_FEE_ACCOUNT_NAME),
+      findExpenseAccount(tokens.realm_id, accessToken, STRIPE_FEE_ACCOUNT_NAME),
       findUndepositedFunds(tokens.realm_id, accessToken),
     ])
 
