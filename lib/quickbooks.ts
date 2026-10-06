@@ -343,32 +343,42 @@ export async function getConnectionStatus(locationId: string) {
 // ---------------------------------------------------------------------------
 
 /**
- * The existing expense account card processing fees are already booked to,
- * a sub-account of Bank Service Charges (Joe, 2026-10-05). Looked up by name,
- * which for a QuickBooks sub-account is the leaf on its own, not the
- * "Parent:Child" path.
+ * The expense accounts card processing fees are already booked to, which are
+ * named differently per company: Marina has "Credit Card Processing Fees",
+ * El Segundo and Costa Mesa have "Credit Card Fees" (Joe, 2026-10-05). All
+ * are sub-accounts of Bank Service Charges.
+ *
+ * A list rather than a per-location column because it is one concept with
+ * two spellings, and a column would mean a migration run by hand on two
+ * databases for something this small. Order matters only if a company ever
+ * has both, which none do.
+ *
+ * Looked up by name, which for a QuickBooks sub-account is the leaf on its
+ * own, not the "Parent:Child" path.
  */
-const STRIPE_FEE_ACCOUNT_NAME = 'Credit Card Processing Fees'
+const STRIPE_FEE_ACCOUNT_NAMES = ['Credit Card Processing Fees', 'Credit Card Fees']
 
 /**
- * Deliberately never creates. The account already exists in all three
- * companies, so a miss means the name here has drifted from the books, and
- * silently creating a second account would split the fee history in two
+ * Deliberately never creates. These accounts already exist in all three
+ * companies, so finding none means the names here have drifted from the
+ * books, and silently creating one would split the fee history in two
  * without anyone noticing.
  */
-async function findExpenseAccount(realmId: string, accessToken: string, name: string) {
-  const safeName = name.replace(/'/g, "\\'")
-  const query = encodeURIComponent(`SELECT * FROM Account WHERE Name = '${safeName}'`)
+async function findExpenseAccount(realmId: string, accessToken: string, names: string[]) {
+  const list = names.map(n => `'${n.replace(/'/g, "\\'")}'`).join(', ')
+  const query = encodeURIComponent(`SELECT * FROM Account WHERE Name IN (${list})`)
   const result = await qbFetch('GET', `/query?query=${query}`, realmId, accessToken)
 
-  const account = result.QueryResponse?.Account?.[0]
-  if (!account) {
+  const found: { Id: string; Name: string }[] = result.QueryResponse?.Account ?? []
+  if (found.length === 0) {
     throw new Error(
-      `QB_NO_FEE_ACCOUNT: no account named "${name}" in realm ${realmId}. ` +
-      `Check the name matches the chart of accounts exactly.`
+      `QB_NO_FEE_ACCOUNT: none of ${names.join(' / ')} exist in realm ${realmId}. ` +
+      `Check the names match the chart of accounts exactly.`
     )
   }
-  return account
+  // Keep the order above rather than whatever QuickBooks returns, so a
+  // company holding both always books to the same one.
+  return found.sort((a, b) => names.indexOf(a.Name) - names.indexOf(b.Name))[0]
 }
 
 async function findUndepositedFunds(realmId: string, accessToken: string) {
@@ -419,7 +429,7 @@ export async function recordProcessingFee(
     }
 
     const [feeAccount, undeposited] = await Promise.all([
-      findExpenseAccount(tokens.realm_id, accessToken, STRIPE_FEE_ACCOUNT_NAME),
+      findExpenseAccount(tokens.realm_id, accessToken, STRIPE_FEE_ACCOUNT_NAMES),
       findUndepositedFunds(tokens.realm_id, accessToken),
     ])
 
