@@ -3,8 +3,8 @@
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { Eye, EyeOff, CheckCircle, Check, BadgeCheck } from 'lucide-react'
-import { loadStripe } from '@stripe/stripe-js'
 import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js'
+import { stripePromiseFor } from '@/lib/stripeClient'
 import { eachDayOfInterval, getDay, format as formatDate } from 'date-fns'
 import DayPassDatePicker from '@/components/DayPassDatePicker'
 import { DayPassSettingsProvider, useDayPassSettings } from '@/components/day-pass/SettingsContext'
@@ -18,7 +18,6 @@ import { AUTH_CHANGED_EVENT } from '@/components/day-pass/HeaderAccountLink'
 
 type ExistingCustomer = { id: string; first_name: string; last_name: string; email: string }
 
-const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!)
 
 // Locations are hardcoded rather than fetched from the `locations` table,
 // which has no address or phone columns. They now live in lib/locations.ts
@@ -618,7 +617,7 @@ function DetailsAndPayment({
           </div>
           <button onClick={handleSignOut} className="text-sm text-gray-400 hover:text-gray-600 underline">Not you? Sign out</button>
         </div>
-        <Elements key={clientSecret} stripe={stripePromise} options={{ clientSecret }}>
+        <Elements key={clientSecret} stripe={stripePromiseFor(locationId)} options={{ clientSecret }}>
           <PaymentStep
             customerId={customerId}
             locationId={locationId}

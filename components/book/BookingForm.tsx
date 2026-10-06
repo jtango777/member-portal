@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { format } from 'date-fns'
 import { ArrowLeft, CheckCircle, Clock, MapPin, Users, Eye, EyeOff } from 'lucide-react'
-import { loadStripe } from '@stripe/stripe-js'
+import { stripePromiseFor } from '@/lib/stripeClient'
 import {
   Elements,
   PaymentElement,
@@ -16,12 +16,13 @@ import Recaptcha, { RecaptchaHandle } from '@/components/Recaptcha'
 import { createClient } from '@/lib/supabase/client'
 import { AUTH_CHANGED_EVENT } from '@/components/day-pass/HeaderAccountLink'
 
-const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!)
 
 type ExistingCustomer = { id: string; first_name: string; last_name: string; email: string }
 
 type Props = {
   roomId:       string
+  /** Picks the Stripe account, which is per entity (2026-10-06). */
+  locationId:   string
   roomName:     string
   locationName: string
   locationSlug: string
@@ -496,7 +497,7 @@ export default function BookingForm(props: Props) {
       {!clientSecret ? (
         <div className="text-center py-12 text-sm text-gray-400">Loading payment form…</div>
       ) : (
-        <Elements stripe={stripePromise} options={{ clientSecret, appearance: { theme: 'stripe' } }}>
+        <Elements stripe={stripePromiseFor(props.locationId)} options={{ clientSecret, appearance: { theme: 'stripe' } }}>
           <CheckoutForm
             {...props}
             estimatedTotal={estimatedTotal}

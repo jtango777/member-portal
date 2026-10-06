@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import Stripe from 'stripe'
-import { stripe } from '@/lib/stripe'
+import { stripeFor } from '@/lib/stripe'
 import { createAdminClient } from '@/lib/supabase/server'
 import { rateLimit } from '@/lib/rate-limit'
 import { roomBookingError } from '@/lib/bookingRules'
@@ -29,7 +29,7 @@ export async function POST(request: Request) {
   const admin = createAdminClient()
   const { data: room } = await admin
     .from('rooms')
-    .select('external_name, price_per_hour')
+    .select('external_name, price_per_hour, location_id')
     .eq('id', room_id)
     .eq('external_bookable', true)
     .single()
@@ -44,7 +44,7 @@ export async function POST(request: Request) {
   const hours = ((eh * 60 + em) - (sh * 60 + sm)) / 60
   const totalCents = Math.round(hours * room.price_per_hour * 100)
 
-  const paymentIntent = await stripe.paymentIntents.create({
+  const paymentIntent = await stripeFor(room.location_id).paymentIntents.create({
     amount:   totalCents,
     currency: 'usd',
     // Cards only (Apple/Google Pay still work). Stripe's default also offered

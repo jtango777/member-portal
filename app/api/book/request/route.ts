@@ -8,7 +8,7 @@ import { createSalesReceipt } from '@/lib/quickbooks'
 import { roomBookingError } from '@/lib/bookingRules'
 import { getClosureMap } from '@/lib/settings'
 import Stripe from 'stripe'
-import { stripe } from '@/lib/stripe'
+import { stripeFor } from '@/lib/stripe'
 import { format } from 'date-fns'
 
 
@@ -69,6 +69,20 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Invalid phone number.' }, { status: 400 })
   }
 
+  // The room is fetched before the rule check because every Stripe call
+  // below needs to know which entity's account the money is on, including
+  // the refund issued when the rules are broken (2026-10-06).
+  const { data: room } = await admin
+    .from('rooms')
+    .select('id, name, external_name, price_per_hour, location_id, location:locations(name, qb_room_item)')
+    .eq('id', room_id)
+    .eq('external_bookable', true)
+    .single()
+
+  if (!room) return NextResponse.json({ error: 'Room not found.' }, { status: 404 })
+
+  const stripe = stripeFor(room.location_id)
+
   // The booking rules again (the payment step checks them first). Anyone
   // hitting this route directly skips the page entirely, so this is the
   // check that actually protects the calendar.
@@ -87,16 +101,6 @@ export async function POST(request: Request) {
   if (endTime <= startTime) {
     return NextResponse.json({ error: 'End time must be after start time.' }, { status: 400 })
   }
-
-  // Confirm room exists and is externally bookable
-  const { data: room } = await admin
-    .from('rooms')
-    .select('id, name, external_name, price_per_hour, location_id, location:locations(name, qb_room_item)')
-    .eq('id', room_id)
-    .eq('external_bookable', true)
-    .single()
-
-  if (!room) return NextResponse.json({ error: 'Room not found.' }, { status: 404 })
 
   // Require payment for paid rooms
   if (room.price_per_hour && room.price_per_hour > 0) {

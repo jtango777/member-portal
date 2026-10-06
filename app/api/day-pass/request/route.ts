@@ -5,7 +5,7 @@ import { rateLimit } from '@/lib/rate-limit'
 import { verifyRecaptcha } from '@/lib/recaptcha'
 import { createSalesReceipt } from '@/lib/quickbooks'
 import Stripe from 'stripe'
-import { stripe } from '@/lib/stripe'
+import { stripeFor } from '@/lib/stripe'
 import { format, getDay } from 'date-fns'
 import { formatReceiptDate } from '@/lib/utils'
 import { DAY_PASS_PRICE_CENTS, MAX_DAY_PASS_DAYS, MAX_DAYS_MESSAGE, TOO_FAR_MESSAGE, tooFarAhead, alreadyBookedDates, alreadyBookedMessage } from '@/app/api/day-pass/create-payment-intent/route'
@@ -46,6 +46,9 @@ export async function POST(request: Request) {
   if (!customer_id || !location_id || !Array.isArray(dates) || dates.length === 0 || !guest_name || !email || !stripe_payment_intent_id) {
     return NextResponse.json({ error: 'Missing required fields.' }, { status: 400 })
   }
+
+  // Each location's money is on its own Stripe account (2026-10-06).
+  const stripe = stripeFor(location_id)
 
   const uniqueDates = [...new Set(dates)] as string[]
   const allWeekdays = uniqueDates.every(d => { const day = getDay(new Date(d + 'T12:00:00')); return day !== 0 && day !== 6 })

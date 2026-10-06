@@ -2,7 +2,7 @@ import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 import { format } from 'date-fns'
 import { formatDayAndMonth, formatTime, formatDate } from '@/lib/utils'
-import { stripe } from '@/lib/stripe'
+import { stripeForPayment, LEGACY_LOCATION_ID } from '@/lib/stripe'
 import { voidSalesReceipt } from '@/lib/quickbooks'
 import { sendDayPassCancellationEmail, sendRoomBookingCancellationEmail, sendSystemAlert } from '@/lib/email'
 
@@ -59,6 +59,9 @@ export async function POST(request: Request) {
 
     if (refund && rows[0].stripe_payment_intent_id) {
       try {
+        // The account that took the money, which for anything bought before
+        // the per-entity split is the original one (2026-10-06).
+        const stripe = await stripeForPayment(rows[0].location_id, rows[0].stripe_payment_intent_id)
         await stripe.refunds.create({ payment_intent: rows[0].stripe_payment_intent_id, amount: totalCents })
       } catch (err) {
         console.error('[admin/cancel-booking] Refund failed:', err)
@@ -138,6 +141,8 @@ export async function POST(request: Request) {
     let amountCents = 0
     if (booking.stripe_payment_intent_id) {
       try {
+        const roomLocationId = (booking.rooms as unknown as { location_id: string } | null)?.location_id
+        const stripe = await stripeForPayment(roomLocationId ?? LEGACY_LOCATION_ID, booking.stripe_payment_intent_id)
         const pi = await stripe.paymentIntents.retrieve(booking.stripe_payment_intent_id)
         amountCents = pi.amount
         if (refund) await stripe.refunds.create({ payment_intent: booking.stripe_payment_intent_id })

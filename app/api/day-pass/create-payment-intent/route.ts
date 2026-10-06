@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import Stripe from 'stripe'
-import { stripe } from '@/lib/stripe'
+import { stripeFor } from '@/lib/stripe'
 import { rateLimit } from '@/lib/rate-limit'
 import { getDay, format } from 'date-fns'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
@@ -114,10 +114,10 @@ export async function POST(request: Request) {
   // the days either way, so the September mis-charge can't come back.
   if (payment_intent_id) {
     try {
-      const existing = await stripe.paymentIntents.retrieve(payment_intent_id)
+      const existing = await stripeFor(location_id).paymentIntents.retrieve(payment_intent_id)
       const repriceable = ['requires_payment_method', 'requires_confirmation']
       if (existing.metadata?.type === 'day_pass' && repriceable.includes(existing.status)) {
-        const updated = await stripe.paymentIntents.update(payment_intent_id, { amount, metadata, description })
+        const updated = await stripeFor(location_id).paymentIntents.update(payment_intent_id, { amount, metadata, description })
         return NextResponse.json({ clientSecret: updated.client_secret, paymentIntentId: updated.id, reused: true })
       }
     } catch (err) {
@@ -125,7 +125,7 @@ export async function POST(request: Request) {
     }
   }
 
-  const paymentIntent = await stripe.paymentIntents.create({
+  const paymentIntent = await stripeFor(location_id).paymentIntents.create({
     amount,
     currency: 'usd',
     // Cards only (Apple/Google Pay still work). Stripe's default also offered

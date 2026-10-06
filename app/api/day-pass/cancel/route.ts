@@ -2,7 +2,7 @@ import { format } from 'date-fns'
 import { NextResponse } from 'next/server'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import Stripe from 'stripe'
-import { stripe } from '@/lib/stripe'
+import { stripeForPayment } from '@/lib/stripe'
 import { isDayPassCancellable, CANCEL_CUTOFF_LABEL } from '@/lib/dayPass'
 import { voidSalesReceipt } from '@/lib/quickbooks'
 import { sendDayPassCancellationStaffNotification, sendDayPassCancellationEmail, sendSystemAlert } from '@/lib/email'
@@ -70,6 +70,10 @@ export async function POST(request: Request) {
 
   if (paymentIntentId) {
     try {
+      // Refund from the account that actually took the money. Passes bought
+      // before the per-entity split are all on the original account whatever
+      // location they were for (2026-10-06).
+      const stripe = await stripeForPayment(rows[0].location_id, paymentIntentId)
       await stripe.refunds.create({ payment_intent: paymentIntentId, amount: totalCents })
     } catch (err) {
       console.error('[day-pass/cancel] Stripe refund failed:', err)

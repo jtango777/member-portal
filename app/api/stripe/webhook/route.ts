@@ -1,11 +1,27 @@
 import { NextResponse } from 'next/server'
 import Stripe from 'stripe'
-import { stripe } from '@/lib/stripe'
+import { stripeFor, webhookSecrets } from '@/lib/stripe'
 import { createAdminClient } from '@/lib/supabase/server'
 import { createSalesReceipt } from '@/lib/quickbooks'
 import { sendSystemAlert } from '@/lib/email'
 
-const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!
+/**
+ * All three accounts' webhooks point at this one URL, so the signature is
+ * what identifies the sender: an event is from whichever account's secret
+ * verifies it. Trying each is cheap, and it means adding a fourth entity
+ * later needs no change here (2026-10-06).
+ */
+function verify(body: string, sig: string): { event: Stripe.Event; locationId: string } | null {
+  for (const { locationId, secret } of webhookSecrets()) {
+    try {
+      const anyClient = stripeFor(locationId)
+      return { event: anyClient.webhooks.constructEvent(body, sig, secret), locationId }
+    } catch {
+      // Not this account's secret, or its key is not configured here.
+    }
+  }
+  return null
+}
 
 export async function POST(request: Request) {
   const body = await request.text()
@@ -15,12 +31,11 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Missing signature' }, { status: 400 })
   }
 
-  let event: Stripe.Event
-  try {
-    event = stripe.webhooks.constructEvent(body, sig, webhookSecret)
-  } catch {
+  const verified = verify(body, sig)
+  if (!verified) {
     return NextResponse.json({ error: 'Invalid signature' }, { status: 400 })
   }
+  const { event } = verified
 
   const admin = createAdminClient()
   console.log('[webhook] Event received:', event.type)

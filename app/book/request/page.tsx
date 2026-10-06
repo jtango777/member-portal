@@ -46,6 +46,7 @@ export default async function BookRequestPage({
     <div className="max-w-3xl mx-auto px-6 py-12">
       <BookingForm
         roomId={room.id}
+        locationId={room.location_id}
         roomName={room.external_name ?? room.name}
         locationName={location.name}
         locationSlug={location.slug}
