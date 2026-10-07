@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { Toaster } from 'react-hot-toast'
 import DevBanner from '@/components/DevBanner'
+import GoogleAdsTag from '@/components/GoogleAdsTag'
 import { isStaging } from '@/lib/isStaging'
 import './globals.css'
 
@@ -16,6 +17,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en">
       <body>
+        <GoogleAdsTag />
         <DevBanner />
         {children}
         <Toaster

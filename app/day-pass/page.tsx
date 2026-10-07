@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { Eye, EyeOff, CheckCircle, Check, BadgeCheck } from 'lucide-react'
 import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js'
 import { stripePromiseFor } from '@/lib/stripeClient'
+import { reportConversion } from '@/components/GoogleAdsTag'
 import { eachDayOfInterval, getDay, format as formatDate } from 'date-fns'
 import DayPassDatePicker from '@/components/DayPassDatePicker'
 import { DayPassSettingsProvider, useDayPassSettings } from '@/components/day-pass/SettingsContext'
@@ -874,6 +875,20 @@ function StepConfirmation({ loc, dates, guestName, guestEmail, confirmationNumbe
     : null
   const { priceDollars } = useDayPassSettings()
   const total = priceDollars * dates.length
+
+  // Google Ads conversion (Chris, 2026-10-07). There is no dedicated
+  // confirmation URL — this is the last step of the booking flow — so the
+  // event fires the moment this screen appears instead. The confirmation
+  // number is the transaction id, which is unique per purchase and what
+  // staff and the customer both quote, and the value is the real total
+  // rather than one day's price, since a five day pass is one purchase.
+  const reported = useRef(false)
+  useEffect(() => {
+    if (reported.current || !confirmationNumber || !total) return
+    reported.current = true
+    reportConversion({ value: total, transactionId: confirmationNumber })
+  }, [confirmationNumber, total])
+
   const dateRangeLabel = dates.length > 1
     ? `${dates.length} days (${formatDate(new Date(dates[0] + 'T12:00:00'), 'MMM d')} – ${formatDate(new Date(dates[dates.length - 1] + 'T12:00:00'), 'MMM d, yyyy')})`
     : dates[0] ? formatDate(new Date(dates[0] + 'T12:00:00'), 'EEEE, MMMM d, yyyy') : ''
