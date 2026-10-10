@@ -1010,7 +1010,9 @@ function PriceSummary({ days, locationName }: { days: number; locationName: stri
           Plans change, that&apos;s fine
         </div>
         <p className="text-sm text-gray-600 mt-1.5 leading-relaxed">
-          Cancel any day for a full refund up until 9:00pm the night before, right from My Bookings.
+          {/* Was "Cancel any day", which was meant as "any of the days you
+              booked" but read as "cancel at any time" (Chris, 2026-10-09). */}
+          Cancel your day pass for a full refund up until 9:00pm the night before, right from My Bookings.
         </p>
       </div>
 
