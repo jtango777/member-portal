@@ -72,7 +72,10 @@ export default function DayPassPage() {
 
 function DayPassBooking() {
   const [phase, setPhase] = useState<Phase>('reservation')
-  const [locationId, setLocationId] = useState<string>(LOCATIONS[0].id)
+  // Nothing preselected: a customer assumed the location that happened to be
+  // highlighted was the one they were booking and did not realise it was a
+  // choice (Caroline, 2026-10-12).
+  const [locationId, setLocationId] = useState<string>('')
   // Nothing pre-selected — picking the date is the first real decision, and
   // a default made people think a day was chosen for them (Caroline,
   // 2026-09-16).
@@ -198,7 +201,7 @@ function DayPassBooking() {
         </div>
 
         <div className="lg:col-span-2 sticky top-20">
-          <PriceSummary days={dates.length} locationName={selectedLocation.name} />
+          <PriceSummary days={dates.length} locationName={locationId ? selectedLocation.name : ''} />
         </div>
       </div>
     </div>
@@ -390,7 +393,7 @@ function ReservationFields({
 
       <button
         onClick={onContinue}
-        disabled={dates.length === 0 || dates.length > MAX_DAY_PASS_DAYS || dates.some(d => d < todayDateStr())}
+        disabled={!locationId || dates.length === 0 || dates.length > MAX_DAY_PASS_DAYS || dates.some(d => d < todayDateStr())}
         className="self-start bg-booking-600 hover:bg-booking-700 disabled:bg-booking-300 disabled:cursor-not-allowed text-white text-sm font-semibold py-3 px-7 rounded-lg transition-colors"
       >
         Continue
@@ -1018,7 +1021,9 @@ function PriceSummary({ days, locationName }: { days: number; locationName: stri
 
       <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
         <div className="px-5 py-4 border-b border-gray-100">
-          <div className="text-base font-semibold text-gray-900">{locationName} Day Pass</div>
+          {/* Blank until she picks, so the card never names a location the
+              customer has not chosen (Caroline, 2026-10-12). */}
+          <div className="text-base font-semibold text-gray-900">{locationName ? `${locationName} Day Pass` : 'Day Pass'}</div>
         </div>
         <div className="px-5 py-4 flex flex-col gap-2.5">
           <div className="flex justify-between text-sm text-gray-700">
