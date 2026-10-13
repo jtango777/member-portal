@@ -743,9 +743,14 @@ export async function sendRoomAccessRequestEmail(details: { name: string; email:
 // if this function itself is being called from a half-broken code path.
 export async function sendSystemAlert(subject: string, details: Record<string, unknown> | string) {
   const body = typeof details === 'string' ? details : JSON.stringify(details, null, 2)
+  // STAFF_NOTIFICATION_EMAIL may be several addresses, comma separated, so
+  // these can go to a small group rather than the whole-team inbox: they are
+  // plumbing diagnostics nobody else can act on, and the people who can act
+  // on them change over time (Caroline, 2026-10-13).
+  const recipients = STAFF_EMAIL.split(',').map(a => a.trim()).filter(Boolean)
   const { error } = await resend.emails.send({
     from: FROM,
-    to: STAFF_EMAIL,
+    to: recipients,
     subject: `⚠️ BizHaus Alert: ${subject}`,
     html: `
       <div style="font-family:${FONT};padding:24px;">
