@@ -472,6 +472,10 @@ export async function recordPayoutDeposit(
       // Lifts the sale out of Undeposited Funds rather than creating income
       // a second time.
       LinkedTxn: [{ TxnId: r.id, TxnType: 'SalesReceipt' }],
+      // QuickBooks expects the detail object that matches DetailType even on
+      // a linked line, where it carries nothing of its own. Sending the line
+      // without it is the likeliest remaining rejection (2026-10-13).
+      DepositLineDetail: {},
     }))
 
     if (feeAccount && d.feeTotal > 0) {
