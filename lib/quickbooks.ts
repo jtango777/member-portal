@@ -438,15 +438,22 @@ export async function recordPayoutDeposit(
 
     // Idempotent on the payout id, because Stripe sends both payout.paid and
     // payout.reconciliation_completed, and retries anything we answer slowly.
+    //
+    // Matched in code rather than in the query. Asking QuickBooks for
+    // `WHERE PrivateNote LIKE ...` is rejected outright with "property
+    // 'PrivateNote' is not queryable", which is what stopped the first real
+    // payout from being recorded at all (2026-10-13). TxnDate is queryable,
+    // and a day holds few enough deposits to scan.
     const existing = await qbFetch(
       'GET',
-      `/query?query=${encodeURIComponent(`SELECT Id FROM Deposit WHERE PrivateNote LIKE '%${d.payoutId}%'`)}`,
+      `/query?query=${encodeURIComponent(`SELECT * FROM Deposit WHERE TxnDate = '${d.date}'`)}`,
       tokens.realm_id,
       accessToken
     )
-    if (existing.QueryResponse?.Deposit?.length > 0) {
-      return { deposit: existing.QueryResponse.Deposit[0], error: null }
-    }
+    const already = (existing.QueryResponse?.Deposit ?? []).find(
+      (dep: { PrivateNote?: string }) => (dep.PrivateNote ?? '').includes(d.payoutId)
+    )
+    if (already) return { deposit: already, error: null }
 
     const bank = await findAccountByName(tokens.realm_id, accessToken, d.bankAccountName)
     if (!bank) {
