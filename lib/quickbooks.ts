@@ -421,13 +421,16 @@ export type PayoutDeposit = {
  * recoverable: a missing deposit is a bookkeeping correction, and throwing
  * here would make Stripe retry the webhook forever.
  */
-export async function recordPayoutDeposit(locationId: string, d: PayoutDeposit) {
-  if (d.receipts.length === 0) return null
+export async function recordPayoutDeposit(
+  locationId: string,
+  d: PayoutDeposit
+): Promise<{ deposit: { Id: string } | null; error: string | null }> {
+  if (d.receipts.length === 0) return { deposit: null, error: 'No receipts to deposit.' }
 
   const tokens = await getTokens(locationId)
   if (!tokens) {
     console.error('[qb] No QB tokens for location:', locationId)
-    return null
+    return { deposit: null, error: `QuickBooks is not connected for location ${locationId}.` }
   }
 
   try {
@@ -442,13 +445,14 @@ export async function recordPayoutDeposit(locationId: string, d: PayoutDeposit) 
       accessToken
     )
     if (existing.QueryResponse?.Deposit?.length > 0) {
-      return existing.QueryResponse.Deposit[0]
+      return { deposit: existing.QueryResponse.Deposit[0], error: null }
     }
 
     const bank = await findAccountByName(tokens.realm_id, accessToken, d.bankAccountName)
     if (!bank) {
-      console.error(`[qb] No bank account named "${d.bankAccountName}" in realm ${tokens.realm_id}`)
-      return null
+      const msg = `No bank account named "${d.bankAccountName}" in this company file.`
+      console.error('[qb]', msg)
+      return { deposit: null, error: msg }
     }
 
     const feeAccount = d.feeTotal > 0
@@ -479,9 +483,15 @@ export async function recordPayoutDeposit(locationId: string, d: PayoutDeposit) 
       Line: lines,
     })
 
-    return deposit.Deposit
+    return { deposit: deposit.Deposit, error: null }
   } catch (err) {
-    console.error('[qb] Could not record payout deposit:', err instanceof Error ? err.message : err)
-    return null
+    // The message carries QuickBooks' own rejection text, which is the only
+    // thing that says what it actually objected to. It used to be logged and
+    // nowhere else, so the alert said "could not be recorded" and nothing
+    // more, and the logs had already rolled by the time anyone looked
+    // (Caroline, 2026-10-13).
+    const msg = err instanceof Error ? err.message : String(err)
+    console.error('[qb] Could not record payout deposit:', msg)
+    return { deposit: null, error: msg }
   }
 }

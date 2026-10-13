@@ -325,11 +325,17 @@ async function recordPayout(locationId: string, payout: Stripe.Payout) {
     bankAccountName,
   })
 
-  if (result) {
-    console.log(`[webhook] Payout ${payout.id} recorded as deposit ${result.Id}.`)
+  if (result.deposit) {
+    console.log(`[webhook] Payout ${payout.id} recorded as deposit ${result.deposit.Id}.`)
   } else {
+    // Carry QuickBooks' own words. The first version of this alert said only
+    // that it failed, which meant hunting Vercel logs that had already rolled
+    // (Caroline, 2026-10-13).
     await sendSystemAlert('Stripe payout could not be recorded in QuickBooks', {
-      payout: payout.id, location_id: locationId, receipts: receipts.length,
+      payout: payout.id,
+      location_id: locationId,
+      receipts: receipts.length,
+      error: result.error ?? 'unknown',
     })
   }
 }
