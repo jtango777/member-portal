@@ -101,47 +101,56 @@ function MonthPicker({ value, onChange, earliestMonth }: { value: string; onChan
 const REPORTS = [
   {
     id:          'reservations' as ReportType,
+    group:       'Rooms',
     title:       'Reservations',
     description: 'A line-item report of all reservations for the selected month, including room, time, duration, and who booked.',
     icon:        FileText,
   },
   {
     id:          'company-usage' as ReportType,
+    group:       'Members and companies',
     title:       'Company Usage',
     description: 'Hours used by each company for the selected month, with allotments, usage, and remaining time.',
     icon:        Building2,
   },
   {
     id:          'room-utilization' as ReportType,
+    group:       'Rooms',
     title:       'Room Utilization',
     description: 'Booking counts and hours booked per room for the selected month, with utilization percentage against available hours.',
     icon:        LayoutGrid,
   },
   {
     id:          'external-bookings' as ReportType,
+    group:       'Rooms',
     title:       'External Bookings',
     description: 'Revenue and booking details from external (non-member) room reservations, by month and location.',
     icon:        Globe,
   },
   {
     id:          'day-passes' as ReportType,
+    group:       'Day passes',
     title:       'Day Passes',
     description: 'Revenue and pass details for the selected month, by location.',
     icon:        CreditCard,
   },
   {
     id:          'day-pass-channels' as ReportType,
+    group:       'Day passes',
     title:       'Day Pass Demand and Channels',
     description: 'Month by month: total day pass sales from QuickBooks, how much of that came from the self-serve website, and how much was sold at the front desk.',
     icon:        TrendingUp,
   },
   {
     id:          'license-plates' as ReportType,
+    group:       'Members and companies',
     title:       'License Plates',
-    description: 'Every active member and the license plate on file for them — a current snapshot, not tied to a specific month.',
+    description: 'Every active member and the license plate on file for them. A current snapshot, not tied to a specific month.',
     icon:        Car,
   },
 ]
+
+const REPORT_GROUPS = ['Rooms', 'Day passes', 'Members and companies'] as const
 
 // ── Individual report views ───────────────────────────────────────────────────
 
@@ -948,19 +957,24 @@ export default function ReportsHub({ earliestMonth }: { earliestMonth: string | 
       {/* Landing — report cards */}
       {!active && (
         <div className="space-y-3">
-          {REPORTS.map(r => (
-            <button key={r.id} onClick={() => setActive(r.id)}
-              className="w-full text-left bg-white border border-gray-200 rounded-xl p-5 hover:border-blue-300 hover:shadow-sm transition-all group">
-              <div className="flex items-start gap-4">
-                <div className="bg-blue-50 rounded-lg p-2.5 flex-shrink-0 group-hover:bg-blue-100 transition-colors">
-                  <r.icon size={18} className="text-blue-600" />
-                </div>
-                <div>
-                  <p className="font-semibold text-blue-600 group-hover:text-blue-700">{r.title}</p>
-                  <p className="text-sm text-gray-500 mt-0.5">{r.description}</p>
-                </div>
-              </div>
-            </button>
+          {REPORT_GROUPS.map(groupName => (
+            <div key={groupName} className="flex flex-col gap-3">
+              <div className="text-xs font-semibold text-gray-400 uppercase tracking-wide">{groupName}</div>
+              {REPORTS.filter(r => r.group === groupName).map(r => (
+                <button key={r.id} onClick={() => setActive(r.id)}
+                  className="w-full text-left bg-white border border-gray-200 rounded-xl p-5 hover:border-blue-300 hover:shadow-sm transition-all group">
+                  <div className="flex items-start gap-4">
+                    <div className="bg-blue-50 rounded-lg p-2.5 flex-shrink-0 group-hover:bg-blue-100 transition-colors">
+                      <r.icon size={18} className="text-blue-600" />
+                    </div>
+                    <div>
+                      <p className="font-semibold text-blue-600 group-hover:text-blue-700">{r.title}</p>
+                      <p className="text-sm text-gray-500 mt-0.5">{r.description}</p>
+                    </div>
+                  </div>
+                </button>
+              ))}
+            </div>
           ))}
         </div>
       )}
