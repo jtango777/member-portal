@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react'
 import { format, subMonths } from 'date-fns'
 import { FileText, Building2, LayoutGrid, ChevronLeft, ChevronRight, Download, Globe, Car, TrendingUp, AlertTriangle } from 'lucide-react'
 import { formatMoney } from '@/lib/utils'
-import type { DayPassChannelReport } from '@/lib/dayPassChannels'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -43,7 +42,7 @@ type LicensePlateRow = {
   companies: { name: string } | null
 }
 
-type ReportType = 'reservations' | 'company-usage' | 'room-utilization' | 'external-bookings' | 'day-pass-channels' | 'license-plates'
+type ReportType = 'reservations' | 'company-usage' | 'room-utilization' | 'external-bookings' | 'license-plates'
 
 // ── CSV helper ────────────────────────────────────────────────────────────────
 
@@ -122,13 +121,6 @@ const REPORTS = [
     icon:        Globe,
   },
   {
-    id:          'day-pass-channels' as ReportType,
-    group:       'Day passes',
-    title:       'Day Pass Demand and Channels',
-    description: 'Month by month: total day pass sales from QuickBooks, how much of that came from the self-serve website, and how much was sold at the front desk.',
-    icon:        TrendingUp,
-  },
-  {
     id:          'license-plates' as ReportType,
     group:       'Members and companies',
     title:       'License Plates',
@@ -137,7 +129,7 @@ const REPORTS = [
   },
 ]
 
-const REPORT_GROUPS = ['Rooms', 'Day passes', 'Members and companies'] as const
+const REPORT_GROUPS = ['Rooms', 'Members and companies'] as const
 
 // ── Individual report views ───────────────────────────────────────────────────
 
@@ -496,259 +488,6 @@ function ExternalBookingsTable({ month }: { month: string }) {
   )
 }
 
-function DayPassChannelsReport() {
-  const [data, setData]       = useState<DayPassChannelReport | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [failed, setFailed]   = useState(false)
-
-  // Runs once, and `loading` already starts true, so there is nothing to
-  // set on the way in. The other reports here re-fetch when the month
-  // changes and have to; this one always covers the same trailing months.
-  useEffect(() => {
-    fetch('/api/admin/reports/day-pass-channels')
-      .then(r => r.json())
-      .then(d => {
-        // An error response, or a month list this component cannot read a
-        // "latest month" out of, is a failure rather than something to
-        // render half of.
-        if (Array.isArray(d?.months) && d.months.length > 0) setData(d as DayPassChannelReport)
-        else setFailed(true)
-        setLoading(false)
-      })
-      .catch(() => { setFailed(true); setLoading(false) })
-  }, [])
-
-  function exportCSV() {
-    if (!data) return
-    downloadCSV('day-pass-demand-and-channels.csv', data.months.map(m => ({
-      Month:                  m.label,
-      'Total Revenue':        formatMoney(m.totalRevenue),
-      'Total Passes (approx)': m.totalCount,
-      'Self-Serve Revenue':   formatMoney(m.selfServeRevenue),
-      'Self-Serve Passes':    m.selfServeCount,
-      'Front Desk Revenue':   formatMoney(m.deskRevenue),
-      'Front Desk Passes (approx)': m.deskCount,
-      'Self-Serve Share':     m.selfServePct === null ? '' : `${m.selfServePct}%`,
-    })))
-  }
-
-  if (loading) return <div className="py-16 text-center text-gray-400 text-sm">Reading QuickBooks…</div>
-  if (failed || !data) {
-    return (
-      <div className="py-16 text-center text-gray-500 text-sm">
-        Could not load this report. QuickBooks may be unreachable right now. Try again in a minute.
-      </div>
-    )
-  }
-
-  const months   = data.months
-  // The last month is the one running right now, so it is only part of a
-  // month and must not be compared with a full one.
-  const current  = months[months.length - 1]
-  const complete = months.slice(0, -1)
-  const lastFull = complete[complete.length - 1]
-  const baseline = data.baseline
-
-  const vsBaseline = lastFull && baseline.revenuePerMonth > 0
-    ? Math.round(((lastFull.totalRevenue - baseline.revenuePerMonth) / baseline.revenuePerMonth) * 100)
-    : null
-
-  const maxRevenue = Math.max(...months.map(m => m.totalRevenue), baseline.revenuePerMonth, 1)
-  const anyMismatch = months.some(m => !m.reconciles)
-
-  return (
-    <>
-      {/* The two questions, answered before any table. */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
-        <div className="bg-white border border-gray-200 rounded-xl p-5">
-          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Is demand growing?</p>
-          {lastFull ? (
-            <>
-              <p className="text-2xl font-semibold text-gray-900 mt-2">
-                {formatMoney(lastFull.totalRevenue)}
-                <span className="text-sm font-normal text-gray-500"> in {lastFull.label}</span>
-              </p>
-              <p className="text-sm text-gray-600 mt-1">
-                {vsBaseline === null ? 'No baseline to compare with.' : (
-                  <>
-                    <span className={vsBaseline >= 0 ? 'text-green-700 font-medium' : 'text-red-600 font-medium'}>
-                      {vsBaseline >= 0 ? '+' : ''}{vsBaseline}%
-                    </span>{' '}
-                    against the {formatMoney(baseline.revenuePerMonth)} a month the business was doing before the site launched.
-                  </>
-                )}
-              </p>
-            </>
-          ) : (
-            <p className="text-sm text-gray-500 mt-2">No complete month yet.</p>
-          )}
-        </div>
-
-        <div className="bg-white border border-gray-200 rounded-xl p-5">
-          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Is the self-serve site working?</p>
-          {lastFull ? (
-            <>
-              <p className="text-2xl font-semibold text-gray-900 mt-2">
-                {lastFull.selfServePct === null ? 'No sales' : `${lastFull.selfServePct}%`}
-                <span className="text-sm font-normal text-gray-500"> of {lastFull.label} sales</span>
-              </p>
-              <p className="text-sm text-gray-600 mt-1">
-                {formatMoney(lastFull.selfServeRevenue)} booked on the website, {formatMoney(lastFull.deskRevenue)} sold at the desk.
-              </p>
-            </>
-          ) : (
-            <p className="text-sm text-gray-500 mt-2">No complete month yet.</p>
-          )}
-        </div>
-      </div>
-
-      {/* Anything missing from QuickBooks makes the total too low and the
-          self-serve share too high, so it is said plainly rather than left
-          for someone to work out from a number that looks fine. */}
-      {data.issues.length > 0 && (
-        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-6">
-          <div className="flex items-start gap-3">
-            <AlertTriangle size={18} className="text-amber-600 flex-shrink-0 mt-0.5" />
-            <div>
-              <p className="text-sm font-semibold text-amber-900">Some sales are missing from these totals</p>
-              <ul className="mt-1.5 space-y-1">
-                {data.issues.map((i, n) => (
-                  <li key={n} className="text-sm text-amber-800"><span className="font-medium">{i.location}:</span> {i.message}</li>
-                ))}
-              </ul>
-              <p className="text-sm text-amber-800 mt-2">
-                Until that is fixed, the totals below are too low and the self-serve share is too high.
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {anyMismatch && (
-        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-6">
-          <div className="flex items-start gap-3">
-            <AlertTriangle size={18} className="text-amber-600 flex-shrink-0 mt-0.5" />
-            <div>
-              <p className="text-sm font-semibold text-amber-900">One or more months do not add up</p>
-              <p className="text-sm text-amber-800 mt-1">
-                Website sales came out higher than the QuickBooks total for a month marked below, which should be
-                impossible. It usually means a website sale did not reach QuickBooks. Worth asking about before
-                quoting these figures.
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
-
-      <div className="flex items-center justify-between mb-3">
-        <p className="text-sm text-gray-500">Last {months.length} months. Self-serve site launched {data.launchMonthLabel}.</p>
-        <button onClick={exportCSV}
-          className="flex items-center gap-1.5 text-sm text-blue-600 hover:text-blue-800 font-medium">
-          <Download size={14} /> Export CSV
-        </button>
-      </div>
-
-      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="bg-gray-50 border-b border-gray-200">
-              {['Month', 'Total (all sales)', 'Website', 'Front desk', 'Website share'].map(h => (
-                <th key={h} className="text-left px-4 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap">{h}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {months.map(m => {
-              const isCurrent = m.month === current.month
-              return (
-                <tr key={m.month} className="border-b border-gray-100 last:border-0">
-                  <td className="px-4 py-3 whitespace-nowrap">
-                    <span className="font-medium text-gray-900">{m.label}</span>
-                    {isCurrent && <span className="block text-xs text-gray-400">so far this month</span>}
-                    {!m.reconciles && <span className="block text-xs text-amber-700">does not add up</span>}
-                  </td>
-                  <td className="px-4 py-3 whitespace-nowrap">
-                    <span className="font-medium text-gray-900">{formatMoney(m.totalRevenue)}</span>
-                    <span className="block text-xs text-gray-400">about {m.totalCount} pass{m.totalCount !== 1 ? 'es' : ''}</span>
-                    <div className="w-28 h-1.5 bg-gray-100 rounded-full overflow-hidden mt-1.5">
-                      <div className="h-full rounded-full bg-blue-500"
-                        style={{ width: `${(m.totalRevenue / maxRevenue) * 100}%` }} />
-                    </div>
-                  </td>
-                  <td className="px-4 py-3 whitespace-nowrap">
-                    <span className="text-gray-800">{formatMoney(m.selfServeRevenue)}</span>
-                    <span className="block text-xs text-gray-400">{m.selfServeCount} pass{m.selfServeCount !== 1 ? 'es' : ''}</span>
-                  </td>
-                  <td className="px-4 py-3 whitespace-nowrap">
-                    <span className="text-gray-800">{formatMoney(m.deskRevenue)}</span>
-                    <span className="block text-xs text-gray-400">about {m.deskCount} pass{m.deskCount !== 1 ? 'es' : ''}</span>
-                  </td>
-                  <td className="px-4 py-3">
-                    {m.selfServePct === null ? (
-                      <span className="text-gray-300">no sales</span>
-                    ) : (
-                      <div className="flex items-center gap-2">
-                        <div className="w-20 h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                          <div className="h-full rounded-full bg-green-500" style={{ width: `${Math.min(100, m.selfServePct)}%` }} />
-                        </div>
-                        <span className="text-gray-700 text-xs font-medium">{m.selfServePct}%</span>
-                      </div>
-                    )}
-                  </td>
-                </tr>
-              )
-            })}
-
-            {/* The pre-launch baseline, in the same column as the total it
-                should be compared against, so nobody lines it up against
-                the website column by mistake. */}
-            <tr className="bg-gray-50 border-t border-gray-200">
-              <td className="px-4 py-3 whitespace-nowrap">
-                <span className="font-medium text-gray-700">Before launch</span>
-                <span className="block text-xs text-gray-400">{baseline.label}</span>
-              </td>
-              <td className="px-4 py-3 whitespace-nowrap">
-                <span className="font-medium text-gray-700">{formatMoney(baseline.revenuePerMonth)}/mo</span>
-                <span className="block text-xs text-gray-400">about {baseline.passesPerMonth} passes</span>
-                <div className="w-28 h-1.5 bg-gray-200 rounded-full overflow-hidden mt-1.5">
-                  <div className="h-full rounded-full bg-gray-400"
-                    style={{ width: `${(baseline.revenuePerMonth / maxRevenue) * 100}%` }} />
-                </div>
-              </td>
-              <td className="px-4 py-3 text-gray-400">none</td>
-              <td className="px-4 py-3 text-gray-400">all of it</td>
-              <td className="px-4 py-3 text-gray-400">0%</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-
-      <div className="mt-4 bg-gray-50 border border-gray-200 rounded-xl p-4 space-y-2 text-sm text-gray-600">
-        <p className="font-semibold text-gray-800">Where these numbers come from</p>
-        <p>
-          <span className="font-medium text-gray-800">Total</span> comes from QuickBooks, summed across El Segundo,
-          Marina del Rey and Costa Mesa. QuickBooks is the only place that sees every day pass, because a pass sold
-          at the front desk is rung up there and nowhere else.
-        </p>
-        <p>
-          <span className="font-medium text-gray-800">Website</span> comes from this app&apos;s own records, counting
-          confirmed passes only. <span className="font-medium text-gray-800">Front desk</span> is the total minus the
-          website, because desk sales leave no trace in this app.
-        </p>
-        <p>
-          Dollar figures are reliable. Pass counts are marked &quot;about&quot; because QuickBooks mixes multi-day and
-          discounted sales onto single lines, so its quantities cannot be trusted the way the money can. Judge growth
-          on revenue.
-        </p>
-        <p>
-          Months are grouped by the date of sale, not the date of the visit, which is how QuickBooks records it. A
-          cancelled and refunded pass drops out of both columns.
-        </p>
-      </div>
-    </>
-  )
-}
-
 function LicensePlatesTable() {
   const [rows, setRows]       = useState<LicensePlateRow[]>([])
   const [loading, setLoading] = useState(true)
@@ -863,12 +602,9 @@ export default function ReportsHub({ earliestMonth }: { earliestMonth: string | 
       {/* Active report */}
       {active && (
         <>
-          {/* License Plates isn't month-scoped — it's a current snapshot,
-              not a time series, so the month picker doesn't apply to it.
-              Day Pass Demand and Channels is the opposite case: it's a
-              fixed trailing run of months, so picking one month would
-              defeat the point. */}
-          {active !== 'license-plates' && active !== 'day-pass-channels' && (
+          {/* License Plates isn't month-scoped, it's a current snapshot
+              rather than a time series, so the month picker doesn't apply. */}
+          {active !== 'license-plates' && (
             <div className="flex items-center gap-3">
               <label className="text-sm font-medium text-gray-700">Month</label>
               <MonthPicker value={month} onChange={setMonth} earliestMonth={earliestMonth} />
@@ -878,7 +614,6 @@ export default function ReportsHub({ earliestMonth }: { earliestMonth: string | 
           {active === 'company-usage'     && <CompanyUsageTable month={month} />}
           {active === 'room-utilization'  && <RoomUtilTable month={month} />}
           {active === 'external-bookings' && <ExternalBookingsTable month={month} />}
-          {active === 'day-pass-channels' && <DayPassChannelsReport />}
           {active === 'license-plates'    && <LicensePlatesTable />}
         </>
       )}
