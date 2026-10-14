@@ -77,9 +77,10 @@ type UnifiedBooking = {
 }
 
 // One switch for whether customers are offered conference room booking
-// anywhere in their account. Flip to true once /book has been through a
-// real card at each location and a room cancellation has actually run.
-const ROOM_BOOKING_LAUNCHED = false
+// anywhere in their account. Turned on 2026-10-14, once every location had
+// been through a real card and a real cancellation: El Segundo refunded,
+// Costa Mesa held as credit, Marina refunded on its own Stripe account.
+const ROOM_BOOKING_LAUNCHED = true
 
 // Cutoff lives in lib/dayPass.ts — this only controls whether the button
 // shows; /api/day-pass/cancel re-checks for real before refunding anything.
