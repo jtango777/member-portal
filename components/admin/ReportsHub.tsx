@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { format, subMonths } from 'date-fns'
-import { FileText, Building2, LayoutGrid, ChevronLeft, ChevronRight, Download, Globe, CreditCard, Car, TrendingUp, AlertTriangle } from 'lucide-react'
+import { FileText, Building2, LayoutGrid, ChevronLeft, ChevronRight, Download, Globe, Car, TrendingUp, AlertTriangle } from 'lucide-react'
 import { formatMoney } from '@/lib/utils'
 import type { DayPassChannelReport } from '@/lib/dayPassChannels'
 
@@ -36,12 +36,6 @@ type ExternalBookingRow = {
   rooms: { name: string; external_name: string | null; price_per_hour: number | null; locations: { name: string } | null } | null
 }
 
-type DayPassRow = {
-  id: string; date: string; price_cents: number; status: string
-  confirmation_number: string | null; created_at: string
-  booking_customers: { first_name: string; last_name: string; email: string } | null
-  locations: { name: string } | null
-}
 
 type LicensePlateRow = {
   full_name: string | null
@@ -49,7 +43,7 @@ type LicensePlateRow = {
   companies: { name: string } | null
 }
 
-type ReportType = 'reservations' | 'company-usage' | 'room-utilization' | 'external-bookings' | 'day-passes' | 'day-pass-channels' | 'license-plates'
+type ReportType = 'reservations' | 'company-usage' | 'room-utilization' | 'external-bookings' | 'day-pass-channels' | 'license-plates'
 
 // ── CSV helper ────────────────────────────────────────────────────────────────
 
@@ -126,13 +120,6 @@ const REPORTS = [
     title:       'External Bookings',
     description: 'Revenue and booking details from external (non-member) room reservations, by month and location.',
     icon:        Globe,
-  },
-  {
-    id:          'day-passes' as ReportType,
-    group:       'Day passes',
-    title:       'Day Passes',
-    description: 'Revenue and pass details for the selected month, by location.',
-    icon:        CreditCard,
   },
   {
     id:          'day-pass-channels' as ReportType,
@@ -509,112 +496,6 @@ function ExternalBookingsTable({ month }: { month: string }) {
   )
 }
 
-function DayPassesTable({ month }: { month: string }) {
-  const [rows, setRows]       = useState<DayPassRow[]>([])
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    setLoading(true)
-    fetch(`/api/admin/reports/day-passes?month=${month}`)
-      .then(r => r.json()).then(d => { setRows(Array.isArray(d) ? d : []); setLoading(false) })
-  }, [month])
-
-  const confirmed = rows.filter(r => r.status === 'confirmed')
-  const totalRevenue = confirmed.reduce((sum, r) => sum + r.price_cents / 100, 0)
-
-  const byLocation: Record<string, { count: number; revenue: number }> = {}
-  confirmed.forEach(r => {
-    const loc = r.locations?.name ?? 'Unknown'
-    if (!byLocation[loc]) byLocation[loc] = { count: 0, revenue: 0 }
-    byLocation[loc].count++
-    byLocation[loc].revenue += r.price_cents / 100
-  })
-
-  function exportCSV() {
-    downloadCSV(`day-passes-${month}.csv`, rows.map(r => ({
-      Date:          format(new Date(r.date + 'T12:00:00'), 'MMM d, yyyy'),
-      Guest:         r.booking_customers ? `${r.booking_customers.first_name} ${r.booking_customers.last_name}` : '',
-      Email:         r.booking_customers?.email ?? '',
-      Location:      r.locations?.name ?? '',
-      Amount:        `$${(r.price_cents / 100).toFixed(2)}`,
-      Status:        r.status,
-      Confirmation:  r.confirmation_number ?? '',
-    })))
-  }
-
-  if (loading) return <div className="py-16 text-center text-gray-400 text-sm">Loading…</div>
-  if (!rows.length) return <div className="py-16 text-center text-gray-400 text-sm">No day passes in this month.</div>
-
-  return (
-    <>
-      {/* Summary cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
-        <div className="bg-gray-50 rounded-lg p-4">
-          <p className="text-xs text-gray-500">Total passes</p>
-          <p className="text-xl font-medium text-gray-900 mt-1">{confirmed.length}</p>
-        </div>
-        <div className="bg-gray-50 rounded-lg p-4">
-          <p className="text-xs text-gray-500">Total revenue</p>
-          <p className="text-xl font-medium text-gray-900 mt-1">${totalRevenue.toFixed(2)}</p>
-        </div>
-        {Object.entries(byLocation).map(([loc, data]) => (
-          <div key={loc} className="bg-gray-50 rounded-lg p-4">
-            <p className="text-xs text-gray-500">{loc}</p>
-            <p className="text-xl font-medium text-gray-900 mt-1">${data.revenue.toFixed(2)}</p>
-            <p className="text-xs text-gray-400 mt-0.5">{data.count} pass{data.count !== 1 ? 'es' : ''}</p>
-          </div>
-        ))}
-      </div>
-
-      <div className="flex items-center justify-between mb-3">
-        <p className="text-sm text-gray-500">{rows.length} pass{rows.length !== 1 ? 'es' : ''}</p>
-        <button onClick={exportCSV}
-          className="flex items-center gap-1.5 text-sm text-blue-600 hover:text-blue-800 font-medium">
-          <Download size={14} /> Export CSV
-        </button>
-      </div>
-      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="bg-gray-50 border-b border-gray-200">
-              {['Date', 'Guest', 'Location', 'Amount', 'Status', 'Confirmation'].map(h => (
-                <th key={h} className="text-left px-4 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap">{h}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map(r => (
-              <tr key={r.id} className={'border-b border-gray-100 last:border-0'}>
-                <td className="px-4 py-2.5 whitespace-nowrap text-gray-700">{format(new Date(r.date + 'T12:00:00'), 'MMM d')}</td>
-                <td className="px-4 py-2.5 font-medium text-gray-900">
-                  {r.booking_customers ? `${r.booking_customers.first_name} ${r.booking_customers.last_name}` : '—'}
-                </td>
-                <td className="px-4 py-2.5 text-gray-600">{r.locations?.name}</td>
-                <td className="px-4 py-2.5 text-gray-700 font-medium">${(r.price_cents / 100).toFixed(2)}</td>
-                <td className="px-4 py-2.5">
-                  <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${
-                    r.status === 'confirmed' ? 'bg-green-50 text-green-700' :
-                    r.status === 'declined'  ? 'bg-red-50 text-red-700' :
-                                                'bg-yellow-50 text-yellow-700'
-                  }`}>{r.status}</span>
-                </td>
-                <td className="px-4 py-2.5 text-gray-400 text-xs font-mono">{r.confirmation_number ?? '—'}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </>
-  )
-}
-
-// Day pass demand and channel mix.
-//
-// Written for one reader answering two questions: is day pass demand
-// growing, and is the new self-serve site taking any of it. The columns are
-// in that order for that reason, and the note at the bottom says where each
-// number comes from, because the honest answer is that they come from two
-// different systems and only one of them sees every sale.
 function DayPassChannelsReport() {
   const [data, setData]       = useState<DayPassChannelReport | null>(null)
   const [loading, setLoading] = useState(true)
@@ -997,7 +878,6 @@ export default function ReportsHub({ earliestMonth }: { earliestMonth: string | 
           {active === 'company-usage'     && <CompanyUsageTable month={month} />}
           {active === 'room-utilization'  && <RoomUtilTable month={month} />}
           {active === 'external-bookings' && <ExternalBookingsTable month={month} />}
-          {active === 'day-passes'        && <DayPassesTable month={month} />}
           {active === 'day-pass-channels' && <DayPassChannelsReport />}
           {active === 'license-plates'    && <LicensePlatesTable />}
         </>
