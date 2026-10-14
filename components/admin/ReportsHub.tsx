@@ -39,7 +39,7 @@ type ExternalBookingRow = {
 type DayPassRow = {
   id: string; date: string; price_cents: number; status: string
   confirmation_number: string | null; created_at: string
-  day_pass_customers: { first_name: string; last_name: string; email: string } | null
+  booking_customers: { first_name: string; last_name: string; email: string } | null
   locations: { name: string } | null
 }
 
@@ -161,7 +161,7 @@ function ReservationsTable({ month }: { month: string }) {
   useEffect(() => {
     setLoading(true)
     fetch(`/api/admin/reports/reservations?month=${month}`)
-      .then(r => r.json()).then(d => { setRows(d); setLoading(false) })
+      .then(r => r.json()).then(d => { setRows(Array.isArray(d) ? d : []); setLoading(false) })
   }, [month])
 
   function exportCSV() {
@@ -232,7 +232,7 @@ function CompanyUsageTable({ month }: { month: string }) {
   useEffect(() => {
     setLoading(true)
     fetch(`/api/admin/reports/company-usage?month=${month}`)
-      .then(r => r.json()).then(d => { setRows(d); setLoading(false) })
+      .then(r => r.json()).then(d => { setRows(Array.isArray(d) ? d : []); setLoading(false) })
   }, [month])
 
   function exportCSV() {
@@ -328,7 +328,7 @@ function RoomUtilTable({ month }: { month: string }) {
   useEffect(() => {
     setLoading(true)
     fetch(`/api/admin/reports/room-utilization?month=${month}`)
-      .then(r => r.json()).then(d => { setRows(d); setLoading(false) })
+      .then(r => r.json()).then(d => { setRows(Array.isArray(d) ? d : []); setLoading(false) })
   }, [month])
 
   function exportCSV() {
@@ -397,7 +397,7 @@ function ExternalBookingsTable({ month }: { month: string }) {
   useEffect(() => {
     setLoading(true)
     fetch(`/api/admin/reports/external-bookings?month=${month}`)
-      .then(r => r.json()).then(d => { setRows(d); setLoading(false) })
+      .then(r => r.json()).then(d => { setRows(Array.isArray(d) ? d : []); setLoading(false) })
   }, [month])
 
   const confirmed = rows.filter(r => r.status === 'confirmed')
@@ -516,7 +516,7 @@ function DayPassesTable({ month }: { month: string }) {
   useEffect(() => {
     setLoading(true)
     fetch(`/api/admin/reports/day-passes?month=${month}`)
-      .then(r => r.json()).then(d => { setRows(d); setLoading(false) })
+      .then(r => r.json()).then(d => { setRows(Array.isArray(d) ? d : []); setLoading(false) })
   }, [month])
 
   const confirmed = rows.filter(r => r.status === 'confirmed')
@@ -533,8 +533,8 @@ function DayPassesTable({ month }: { month: string }) {
   function exportCSV() {
     downloadCSV(`day-passes-${month}.csv`, rows.map(r => ({
       Date:          format(new Date(r.date + 'T12:00:00'), 'MMM d, yyyy'),
-      Guest:         r.day_pass_customers ? `${r.day_pass_customers.first_name} ${r.day_pass_customers.last_name}` : '',
-      Email:         r.day_pass_customers?.email ?? '',
+      Guest:         r.booking_customers ? `${r.booking_customers.first_name} ${r.booking_customers.last_name}` : '',
+      Email:         r.booking_customers?.email ?? '',
       Location:      r.locations?.name ?? '',
       Amount:        `$${(r.price_cents / 100).toFixed(2)}`,
       Status:        r.status,
@@ -587,7 +587,7 @@ function DayPassesTable({ month }: { month: string }) {
               <tr key={r.id} className={'border-b border-gray-100 last:border-0'}>
                 <td className="px-4 py-2.5 whitespace-nowrap text-gray-700">{format(new Date(r.date + 'T12:00:00'), 'MMM d')}</td>
                 <td className="px-4 py-2.5 font-medium text-gray-900">
-                  {r.day_pass_customers ? `${r.day_pass_customers.first_name} ${r.day_pass_customers.last_name}` : '—'}
+                  {r.booking_customers ? `${r.booking_customers.first_name} ${r.booking_customers.last_name}` : '—'}
                 </td>
                 <td className="px-4 py-2.5 text-gray-600">{r.locations?.name}</td>
                 <td className="px-4 py-2.5 text-gray-700 font-medium">${(r.price_cents / 100).toFixed(2)}</td>
@@ -875,7 +875,7 @@ function LicensePlatesTable() {
   useEffect(() => {
     setLoading(true)
     fetch('/api/admin/reports/license-plates')
-      .then(r => r.json()).then(d => { setRows(d); setLoading(false) })
+      .then(r => r.json()).then(d => { setRows(Array.isArray(d) ? d : []); setLoading(false) })
   }, [])
 
   function exportCSV() {

@@ -27,7 +27,7 @@ export async function GET(request: Request) {
     .from('day_passes')
     .select(`
       id, date, price_cents, status, confirmation_number, created_at,
-      day_pass_customers ( first_name, last_name, email ),
+      booking_customers ( first_name, last_name, email ),
       locations ( name )
     `)
     .gte('date', start)
