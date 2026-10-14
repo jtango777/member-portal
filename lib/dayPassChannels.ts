@@ -172,18 +172,25 @@ export async function readDayPassMonths(
     // the whole query rejected outright, the way "property 'PrivateNote' is
     // not queryable" killed the first payout lookup (2026-10-13). So this
     // filters on TxnDate alone and matches the item in code.
-    for (let page = 0; page < QB_MAX_PAGES; page++) {
-      const startPosition = page * QB_PAGE_SIZE + 1
-      const result = await qbQuery(
-        locationId,
-        `SELECT * FROM SalesReceipt WHERE TxnDate >= '${startDate}' AND TxnDate < '${endDate}'` +
-          ` ORDERBY TxnDate STARTPOSITION ${startPosition} MAXRESULTS ${QB_PAGE_SIZE}`
-      )
+    // Both Sales Receipts and Invoices. A pass paid for on the spot is a
+    // Sales Receipt, which is what the booking site writes, but a pass put on
+    // someone's account is an Invoice. Counting receipts alone made August and
+    // September come out at about half what a QuickBooks export of the same
+    // months showed (Caroline, 2026-10-14).
+    for (const entity of ['SalesReceipt', 'Invoice'] as const) {
+      for (let page = 0; page < QB_MAX_PAGES; page++) {
+        const startPosition = page * QB_PAGE_SIZE + 1
+        const result = await qbQuery(
+          locationId,
+          `SELECT * FROM ${entity} WHERE TxnDate >= '${startDate}' AND TxnDate < '${endDate}'` +
+            ` ORDERBY TxnDate STARTPOSITION ${startPosition} MAXRESULTS ${QB_PAGE_SIZE}`
+        )
 
-      const receipts: QbReceipt[] = result?.QueryResponse?.SalesReceipt ?? []
-      if (receipts.length === 0) break
-      addDayPassLines(receipts, itemIds, itemName, totals)
-      if (receipts.length < QB_PAGE_SIZE) break
+        const docs: QbReceipt[] = result?.QueryResponse?.[entity] ?? []
+        if (docs.length === 0) break
+        addDayPassLines(docs, itemIds, itemName, totals)
+        if (docs.length < QB_PAGE_SIZE) break
+      }
     }
 
     if (!totals.matchedAnything) {
