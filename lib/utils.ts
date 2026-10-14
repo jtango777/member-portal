@@ -30,6 +30,56 @@ export function getPacificMonthBounds(monthStr: string): { start: string; end: s
   return { start: start.toISOString(), end: new Date(nextStart.getTime() - 1).toISOString() }
 }
 
+/** The month after this one, as YYYY-MM. Rolls the year over at December. */
+export function nextMonthKey(monthStr: string): string {
+  const [year, month] = monthStr.split('-').map(Number)
+  return month === 12
+    ? `${year + 1}-01`
+    : `${year}-${String(month + 1).padStart(2, '0')}`
+}
+
+/** The current calendar month in Pacific, as YYYY-MM. */
+export function currentPacificMonth(): string {
+  return new Intl.DateTimeFormat('en-CA', { timeZone: PT, year: 'numeric', month: '2-digit' })
+    .format(new Date())
+    .slice(0, 7)
+}
+
+/**
+ * The last `count` calendar months in Pacific, oldest first, as YYYY-MM.
+ *
+ * Walks the month numbers rather than subtracting from a Date, because a
+ * Date-based walk anchored on "today" lands on a day that may not exist in
+ * the target month (October 31 minus one month) and, on a UTC server in the
+ * evening, starts from tomorrow's month.
+ */
+export function recentPacificMonths(count: number): string[] {
+  const current = currentPacificMonth()
+  let year = Number(current.slice(0, 4))
+  let month = Number(current.slice(5, 7))
+  const out: string[] = []
+  for (let i = 0; i < count; i++) {
+    out.unshift(`${year}-${String(month).padStart(2, '0')}`)
+    month -= 1
+    if (month === 0) { month = 12; year -= 1 }
+  }
+  return out
+}
+
+const MONTH_NAMES = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December',
+]
+
+/**
+ * "October 2026" from "2026-10". Built from the parts rather than by
+ * formatting a parsed Date, so there is no moment to be in the wrong zone.
+ */
+export function formatMonthKey(monthStr: string): string {
+  const [year, month] = monthStr.split('-').map(Number)
+  return `${MONTH_NAMES[month - 1] ?? monthStr} ${year}`
+}
+
 export function toPacificDate(date: Date): Date {
   const pacific = new Date(date.toLocaleString('en-US', { timeZone: 'America/Los_Angeles' }))
   return pacific
