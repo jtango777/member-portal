@@ -36,9 +36,13 @@ export default function ReportsError({
             <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mt-5 mb-1.5">
               What went wrong
             </p>
-            <pre className="bg-gray-50 border border-gray-200 rounded-lg p-3 text-xs text-gray-800 whitespace-pre-wrap break-words">
+            <pre className="bg-gray-50 border border-gray-200 rounded-lg p-3 text-xs text-gray-800 whitespace-pre-wrap break-words max-h-80 overflow-auto">
               {error.message || 'No message was given.'}
               {error.digest ? `\n\nReference: ${error.digest}` : ''}
+              {/* The message alone was not enough to find a crash that could
+                  not be reproduced locally; the stack names the component
+                  (Caroline, 2026-10-14). */}
+              {error.stack ? `\n\n${error.stack}` : ''}
             </pre>
             <p className="text-xs text-gray-400 mt-2">
               Screenshot this. It is what someone needs to fix it.
