@@ -332,7 +332,10 @@ function ReservationFields({
 
           <div className={cn('grid transition-[grid-template-rows] duration-300 ease-in-out', locationOpen ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]')}>
             <div className={cn('overflow-hidden transition-opacity duration-200', locationOpen ? 'opacity-100 delay-100' : 'opacity-0')}>
-              <div className="p-3 border-t border-gray-100 grid grid-cols-3 gap-2">
+              {/* One per row on a phone, three across from sm up. Forcing
+                  three across everywhere squeezed the names off the cards on
+                  mobile (Caroline, 2026-10-15). */}
+              <div className="p-3 border-t border-gray-100 grid grid-cols-1 sm:grid-cols-3 gap-3">
           {LOCATIONS.map(loc => {
             const selected = loc.id === locationId
             return (
@@ -343,7 +346,9 @@ function ReservationFields({
                 key={loc.id}
                 onClick={() => { setLocationId(loc.id); setLocationOpen(false) }}
                 className={cn(
-                  'group relative text-left rounded-xl overflow-hidden transition-all aspect-[4/3]',
+                  // Wider and shorter on a phone, where each card is the full
+                  // width of the panel and 4:3 would be enormous.
+                  'group relative text-left rounded-xl overflow-hidden transition-all aspect-[16/7] sm:aspect-[4/3]',
                   selected
                     ? 'ring-2 ring-booking-600 ring-offset-2 ring-offset-[#FAF9F7]'
                     : 'ring-1 ring-gray-200 hover:ring-gray-300 hover:-translate-y-0.5'
