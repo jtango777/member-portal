@@ -424,6 +424,34 @@ async function findAccountByName(realmId: string, accessToken: string, name: str
   return result.QueryResponse?.Account?.[0] ?? null
 }
 
+/**
+ * The bank account a payout deposits into, matched the same way the admin
+ * picker lists them: AccountType 'Bank' and active.
+ *
+ * This used to be a plain name lookup across every account type, while
+ * /api/admin/qb-bank-accounts only ever offered Bank accounts. The two
+ * could therefore disagree, and did: Marina's saved name matched something
+ * that was not a bank account, so QuickBooks took the deposit and then
+ * rejected it with "Select a bank account for this deposit" (2026-10-15).
+ *
+ * Returns the names it did find when there is no match, so the alert email
+ * says what to pick instead of just that it failed.
+ */
+async function findBankAccountByName(realmId: string, accessToken: string, name: string) {
+  const result = await qbFetch(
+    'GET',
+    `/query?query=${encodeURIComponent(`SELECT Id, Name FROM Account WHERE AccountType = 'Bank' AND Active = true`)}`,
+    realmId,
+    accessToken
+  )
+  const banks: { Id: string; Name: string }[] = result.QueryResponse?.Account ?? []
+  const wanted = name.trim().toLowerCase()
+  return {
+    match: banks.find(a => a.Name.trim().toLowerCase() === wanted) ?? null,
+    available: banks.map(a => a.Name),
+  }
+}
+
 export type PayoutDeposit = {
   /** Stripe's payout id, used to make this idempotent. */
   payoutId: string
@@ -476,9 +504,14 @@ export async function recordPayoutDeposit(
     )
     if (already) return { deposit: already, error: null }
 
-    const bank = await findAccountByName(tokens.realm_id, accessToken, d.bankAccountName)
+    const { match: bank, available } = await findBankAccountByName(
+      tokens.realm_id, accessToken, d.bankAccountName
+    )
     if (!bank) {
-      const msg = `No bank account named "${d.bankAccountName}" in this company file.`
+      const msg = available.length
+        ? `No bank account named "${d.bankAccountName}" in this company file. `
+          + `Set it to one of these at Admin → QuickBooks: ${available.join(', ')}.`
+        : `No bank account named "${d.bankAccountName}", and this company file has no active bank accounts at all.`
       console.error('[qb]', msg)
       return { deposit: null, error: msg }
     }
