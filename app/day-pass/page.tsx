@@ -344,7 +344,10 @@ function ReservationFields({
               // form row with a radio (design pass, 2026-09-17).
               <button
                 key={loc.id}
-                onClick={() => { setLocationId(loc.id); setLocationOpen(false) }}
+                // Deliberately leaves the panel open. Collapsing it the moment
+                // you picked pulled the page out from under you just as the
+                // calendar below was opening (Caroline, 2026-10-15).
+                onClick={() => setLocationId(loc.id)}
                 className={cn(
                   // Wider and shorter on a phone, where each card is the full
                   // width of the panel and 4:3 would be enormous.
