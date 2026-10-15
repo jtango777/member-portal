@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay, addMonths, subMonths, isBefore, isAfter, startOfDay, endOfDay } from 'date-fns'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { cn, isSameDay } from '@/lib/utils'
@@ -17,6 +17,12 @@ type Props = {
   // Days this customer already has a pass for — shown as taken instead of
   // selectable, since buying the same day twice is refused at checkout.
   bookedDates?: string[]
+  // Opens the calendar whenever this value changes to something truthy, so
+  // picking a location can hand the customer straight on to picking a day
+  // instead of leaving them looking at a closed row (Caroline, 2026-10-15).
+  // Never closes it; a customer who has deliberately collapsed it stays
+  // collapsed.
+  openOnChangeOf?: string
 }
 
 function isWeekend(d: Date) {
@@ -42,7 +48,7 @@ function toDate(s: string) {
 // One picker, no modes: pick one day for one day, pick several for several.
 // It used to have Single day / Multiple days tabs, which made choosing a
 // single date a two-step decision for no reason (Caroline, 2026-09-16).
-export default function DayPassDatePicker({ selected, onChange, bookedDates = [] }: Props) {
+export default function DayPassDatePicker({ selected, onChange, bookedDates = [], openOnChangeOf }: Props) {
   // Closed days are editable by staff now, so they arrive at runtime
   // rather than from a constant file (Caroline, 2026-09-25).
   const { closures } = useDayPassSettings()
@@ -57,6 +63,17 @@ export default function DayPassDatePicker({ selected, onChange, bookedDates = []
     if (!open) setPickerMonth(selected[0] ? toDate(selected[0]) : new Date())
     setOpen(v => !v)
   }
+
+  // Skips the first render, so the calendar is not already hanging open for
+  // someone arriving with a location remembered.
+  const firstOpenSignal = useRef(openOnChangeOf)
+  useEffect(() => {
+    if (!openOnChangeOf || openOnChangeOf === firstOpenSignal.current) return
+    firstOpenSignal.current = openOnChangeOf
+    setPickerMonth(selected[0] ? toDate(selected[0]) : new Date())
+    setOpen(true)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [openOnChangeOf])
 
   const today = new Date()
   // Last bookable day — the month arrows stop here too, so there's nothing

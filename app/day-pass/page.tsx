@@ -390,6 +390,9 @@ function ReservationFields({
             selected={selectedDates}
             onChange={setSelectedDates}
             bookedDates={bookedDates}
+            // Picking a location opens the calendar, so the next thing to do
+            // is in front of them rather than behind another click.
+            openOnChangeOf={locationId}
           />
           {/* Right under the picker, not down by Continue — with 16 days
               chosen the day list pushed the old warning miles off screen
