@@ -372,6 +372,33 @@ const STRIPE_FEE_ACCOUNT_NAMES = ['Credit Card Processing Fees', 'Credit Card Fe
  * companies, so finding none means the names here have drifted from the
  * books, and quietly creating one would split the fee history in two.
  */
+/**
+ * The "Stripe" vendor the fee line is attributed to, so the Received From
+ * column names it and the fees are easy to pick out of a deposit. Matches
+ * how the deposits were being entered by hand (Caroline, 2026-10-15).
+ *
+ * Best effort: the sale lines take their Received From from the receipts
+ * themselves, so a missing vendor should cost the fee line its label, not
+ * the whole deposit.
+ */
+async function findOrCreateStripeVendor(realmId: string, accessToken: string) {
+  try {
+    const found = await qbFetch(
+      'GET',
+      `/query?query=${encodeURIComponent(`SELECT Id, DisplayName FROM Vendor WHERE DisplayName = 'Stripe'`)}`,
+      realmId,
+      accessToken
+    )
+    const existing = found.QueryResponse?.Vendor?.[0]
+    if (existing) return existing
+    const made = await qbFetch('POST', '/vendor', realmId, accessToken, { DisplayName: 'Stripe' })
+    return made.Vendor ?? null
+  } catch (err) {
+    console.error('[qb] Could not find or create the Stripe vendor:', err)
+    return null
+  }
+}
+
 async function findExpenseAccount(realmId: string, accessToken: string, names: string[]) {
   const list = names.map(n => `'${n.replace(/'/g, "\\'")}'`).join(', ')
   const result = await qbFetch(
@@ -523,11 +550,17 @@ export async function recordPayoutDeposit(
     }))
 
     if (feeAccount && d.feeTotal > 0) {
+      const stripeVendor = await findOrCreateStripeVendor(tokens.realm_id, accessToken)
       lines.push({
         Amount: -d.feeTotal,
         DetailType: 'DepositLineDetail',
         Description: `Stripe fees — payout ${d.payoutId}`,
-        DepositLineDetail: { AccountRef: { value: feeAccount.Id, name: feeAccount.Name } },
+        DepositLineDetail: {
+          AccountRef: { value: feeAccount.Id, name: feeAccount.Name },
+          // Puts "Stripe" in the Received From column. The sale lines get
+          // theirs from the linked receipt's customer.
+          ...(stripeVendor ? { Entity: { value: stripeVendor.Id, name: 'Stripe', type: 'Vendor' } } : {}),
+        },
       })
     }
 
