@@ -392,27 +392,6 @@ async function findExpenseAccount(realmId: string, accessToken: string, names: s
   return found.sort((a, b) => names.indexOf(a.Name) - names.indexOf(b.Name))[0]
 }
 
-/**
- * The account sales receipts land in before they are deposited. Every QBO
- * company has one; it is called "Undeposited Funds" in older files and
- * "Payments to deposit" in newer ones, so both names are tried. Looked up
- * by AccountSubType as a last resort, which is what it actually is
- * regardless of what the company calls it.
- */
-async function findUndepositedFunds(realmId: string, accessToken: string) {
-  for (const name of ['Undeposited Funds', 'Payments to deposit']) {
-    const found = await findAccountByName(realmId, accessToken, name)
-    if (found) return found
-  }
-  const result = await qbFetch(
-    'GET',
-    `/query?query=${encodeURIComponent(`SELECT Id, Name FROM Account WHERE AccountSubType = 'UndepositedFunds'`)}`,
-    realmId,
-    accessToken
-  )
-  return result.QueryResponse?.Account?.[0] ?? null
-}
-
 async function findAccountByName(realmId: string, accessToken: string, name: string) {
   const safe = name.replace(/'/g, "\\'")
   const result = await qbFetch(
@@ -523,29 +502,24 @@ export async function recordPayoutDeposit(
       ? await findExpenseAccount(tokens.realm_id, accessToken, STRIPE_FEE_ACCOUNT_NAMES)
       : null
 
-    const undeposited = await findUndepositedFunds(tokens.realm_id, accessToken)
-    if (!undeposited) {
-      const msg = 'No Undeposited Funds account in this company file.'
-      console.error('[qb]', msg)
-      return { deposit: null, error: msg }
-    }
-
+    // A line that links an existing sale deliberately carries NO DetailType.
+    //
+    // This looks wrong and is not: QuickBooks' own stored deposits, read back
+    // from the API, have exactly this shape. Including DetailType makes it
+    // demand DepositLineDetail.AccountRef, and supplying one is worse than
+    // failing — the request is accepted, the link is silently dropped, and
+    // you get a deposit that moves money from the bank account into itself
+    // while the sales stay stuck in Undeposited Funds.
+    //
+    // Three formats were shipped and rejected before this one. Proven against
+    // an Intuit sandbox (2026-10-15): three $39 sales plus a -$4.29 fee line
+    // move Undeposited Funds by -$117.00 and the bank by +$112.71, with all
+    // three links kept. Verify balances, not just a 200 response, if this
+    // ever has to change.
     const lines: Record<string, unknown>[] = d.receipts.map(r => ({
       Amount: r.amount,
-      DetailType: 'DepositLineDetail',
-      // Lifts the sale out of Undeposited Funds rather than creating income
-      // a second time.
-      //
-      // TxnLineId is not optional here even though the docs read as though
-      // it were: linking a SalesReceipt without it is reported to fail.
       LinkedTxn: [{ TxnId: r.id, TxnType: 'SalesReceipt', TxnLineId: '0' }],
-      // This was `{}` until 2026-10-15, on the reasoning that a linked line
-      // carries nothing of its own. QuickBooks rejected every such line with
-      // "Required parameter Line.DepositLineDetail is missing" — an empty
-      // object does not count as present. It wants the account the money is
-      // coming OUT of, which for a sale sitting undeposited is Undeposited
-      // Funds; the bank it goes into is DepositToAccountRef below.
-      DepositLineDetail: { AccountRef: { value: undeposited.Id, name: undeposited.Name } },
+      DepositLineDetail: {},
     }))
 
     if (feeAccount && d.feeTotal > 0) {
