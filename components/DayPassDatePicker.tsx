@@ -67,11 +67,23 @@ export default function DayPassDatePicker({ selected, onChange, bookedDates = []
   // Skips the first render, so the calendar is not already hanging open for
   // someone arriving with a location remembered.
   const firstOpenSignal = useRef(openOnChangeOf)
+  const boxRef = useRef<HTMLDivElement>(null)
   useEffect(() => {
     if (!openOnChangeOf || openOnChangeOf === firstOpenSignal.current) return
     firstOpenSignal.current = openOnChangeOf
     setPickerMonth(selected[0] ? toDate(selected[0]) : new Date())
     setOpen(true)
+    // Nudge the page down so the calendar that just opened is actually in
+    // view, rather than opening below the fold where nothing looks to have
+    // happened. 'nearest' scrolls the least it can get away with, and the
+    // delay waits for the expand transition so it measures the real height.
+    const t = setTimeout(() => {
+      boxRef.current?.scrollIntoView({
+        behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
+        block: 'nearest',
+      })
+    }, 320)
+    return () => clearTimeout(t)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [openOnChangeOf])
 
@@ -103,7 +115,7 @@ export default function DayPassDatePicker({ selected, onChange, bookedDates = []
     : `${sortedSelected.length} days selected`
 
   return (
-    <div className={cn('border rounded-lg transition-colors', open ? 'border-booking-600' : 'border-gray-300')}>
+    <div ref={boxRef} className={cn('border rounded-lg transition-colors', open ? 'border-booking-600' : 'border-gray-300')}>
       <button
         type="button"
         onClick={handleToggle}
