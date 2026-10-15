@@ -62,6 +62,23 @@ function todayDateStr(): string {
   return formatDate(new Date(), 'yyyy-MM-dd')
 }
 
+/**
+ * A route that crashes before it can answer returns a 500 with an empty
+ * body, and res.json() then throws "Unexpected end of JSON input". Thrown
+ * inside the effects below, that killed the retry outright: the page kept
+ * whatever error was already on screen, with no form and no way forward,
+ * and the message shown had nothing to do with what actually broke. That
+ * is how a missing Costa Mesa Stripe key showed up as "Missing required
+ * fields." for twenty minutes (2026-10-15).
+ */
+async function readJson(res: Response): Promise<Record<string, any>> {
+  try {
+    return await res.json()
+  } catch {
+    return {}
+  }
+}
+
 export default function DayPassPage() {
   return (
     <DayPassSettingsProvider>
@@ -123,7 +140,9 @@ function DayPassBooking() {
 
   function restart() {
     setPhase('reservation')
-    setLocationId(LOCATIONS[0].id)
+    // Back to no location chosen, same as a fresh page (2026-10-12 decision
+    // — this line was missed at the time).
+    setLocationId('')
     setCustomerId(null)
     setClientSecret(null)
     setGuestName('')
@@ -161,7 +180,7 @@ function DayPassBooking() {
             number={1}
             title="Your Reservation"
             state={phase === 'reservation' ? 'active' : 'complete'}
-            summary={`${selectedLocation.name} · ${formattedDateRange}`}
+            summary={locationId ? `${selectedLocation.name} · ${formattedDateRange}` : formattedDateRange}
             onEdit={() => setPhase('reservation')}
           >
             <ReservationFields
@@ -469,6 +488,16 @@ function DetailsAndPayment({
 
   useEffect(() => {
     if (!existingCustomer) return
+    // Section 2 is mounted from page load (the accordion collapses with a
+    // grid-rows transition rather than unmounting), so for a customer who
+    // is already signed in this effect used to fire the moment their
+    // account came back — before they had picked anything. Neither the
+    // location nor the dates have a default any more, so that request was
+    // {location_id: '', dates: []} and came back 400 "Missing required
+    // fields.", which replaced the whole section with a bare red box.
+    // Two customers were stuck on exactly that and could not pay
+    // (2026-10-15). There is nothing to price until they have chosen.
+    if (!locationId || dates.length === 0) return
     let cancelled = false
     setCustomerId(existingCustomer.id)
     setGuestName(`${existingCustomer.first_name} ${existingCustomer.last_name}`)
@@ -484,9 +513,13 @@ function DetailsAndPayment({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ location_id: locationId, dates, payment_intent_id: paymentIntentId() }),
       })
-      const data = await res.json()
+      const data = await readJson(res)
       if (cancelled) return
       if (!res.ok) { setClientSecret(''); setAccountError(data.error ?? 'Could not set up payment. Please try again.'); return }
+      // Clear on success: changing the booking used to leave the previous
+      // attempt's error on screen, so a failure that had already been
+      // recovered from still looked fatal.
+      setAccountError(null)
       setClientSecret(data.clientSecret)
     })()
     return () => { cancelled = true }
@@ -498,6 +531,7 @@ function DetailsAndPayment({
   const firstBookingKey = useRef(bookingKey)
   useEffect(() => {
     if (existingCustomer || !customerId || bookingKey === firstBookingKey.current) return
+    if (!locationId || dates.length === 0) return
     firstBookingKey.current = bookingKey
     let cancelled = false
     ;(async () => {
@@ -506,9 +540,10 @@ function DetailsAndPayment({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ location_id: locationId, dates, payment_intent_id: paymentIntentId() }),
       })
-      const data = await res.json()
+      const data = await readJson(res)
       if (cancelled) return
       if (!res.ok) { setClientSecret(''); setAccountError(data.error ?? 'Could not set up payment. Please try again.'); return }
+      setAccountError(null)
       setClientSecret(data.clientSecret)
     })()
     return () => { cancelled = true }
@@ -534,7 +569,7 @@ function DetailsAndPayment({
     // account if needed, then the effect above fetches the payment intent
     // and the checkout continues with the days they already chose.
     const res = await fetch('/api/day-pass/my-account', { method: 'POST' })
-    const data = await res.json()
+    const data = await readJson(res)
     if (!res.ok || !data.customer) {
       setAccountError(data.error ?? 'Could not load your account. Please try again.')
       setLoggingIn(false)
@@ -561,7 +596,7 @@ function DetailsAndPayment({
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ first_name: firstName, last_name: lastName, email, password, phone, recaptcha_token: recaptchaToken }),
     })
-    const data = await res.json()
+    const data = await readJson(res)
 
     if (!res.ok) {
       setAccountError(data.error ?? 'Something went wrong creating your account.')
@@ -594,7 +629,7 @@ function DetailsAndPayment({
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ location_id: locationId, dates }),
     })
-    const piData = await piRes.json()
+    const piData = await readJson(piRes)
     if (!piRes.ok) { setAccountError(piData.error ?? 'Could not set up payment. Please try again.'); setCreatingAccount(false); return }
     setClientSecret(piData.clientSecret)
     setCreatingAccount(false)
@@ -638,6 +673,12 @@ function DetailsAndPayment({
   // Signed-in customer, still waiting on the payment intent — don't flash
   // the account-creation form while that fetch is in flight.
   if (existingCustomer) {
+    // Belt and braces alongside the guard in the effect above: this section
+    // is mounted (collapsed) before a reservation exists, and it must never
+    // render as an error on a booking that has not been made yet.
+    if (!locationId || dates.length === 0) {
+      return <div className="text-sm text-gray-400 py-4">Pick a location and a date first.</div>
+    }
     if (accountError) return <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-4 py-3">{accountError}</div>
     return <div className="text-sm text-gray-400 py-4">Loading payment details…</div>
   }
@@ -826,7 +867,7 @@ function PaymentStep({ customerId, locationId, dates, guestName, guestEmail, onS
         recaptcha_token: recaptchaToken,
       }),
     })
-    const data = await res.json()
+    const data = await readJson(res)
 
     if (res.ok) {
       onSuccess(data.confirmation_number)
