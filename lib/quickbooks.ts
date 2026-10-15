@@ -392,6 +392,27 @@ async function findExpenseAccount(realmId: string, accessToken: string, names: s
   return found.sort((a, b) => names.indexOf(a.Name) - names.indexOf(b.Name))[0]
 }
 
+/**
+ * The account sales receipts land in before they are deposited. Every QBO
+ * company has one; it is called "Undeposited Funds" in older files and
+ * "Payments to deposit" in newer ones, so both names are tried. Looked up
+ * by AccountSubType as a last resort, which is what it actually is
+ * regardless of what the company calls it.
+ */
+async function findUndepositedFunds(realmId: string, accessToken: string) {
+  for (const name of ['Undeposited Funds', 'Payments to deposit']) {
+    const found = await findAccountByName(realmId, accessToken, name)
+    if (found) return found
+  }
+  const result = await qbFetch(
+    'GET',
+    `/query?query=${encodeURIComponent(`SELECT Id, Name FROM Account WHERE AccountSubType = 'UndepositedFunds'`)}`,
+    realmId,
+    accessToken
+  )
+  return result.QueryResponse?.Account?.[0] ?? null
+}
+
 async function findAccountByName(realmId: string, accessToken: string, name: string) {
   const safe = name.replace(/'/g, "\\'")
   const result = await qbFetch(
@@ -466,16 +487,29 @@ export async function recordPayoutDeposit(
       ? await findExpenseAccount(tokens.realm_id, accessToken, STRIPE_FEE_ACCOUNT_NAMES)
       : null
 
+    const undeposited = await findUndepositedFunds(tokens.realm_id, accessToken)
+    if (!undeposited) {
+      const msg = 'No Undeposited Funds account in this company file.'
+      console.error('[qb]', msg)
+      return { deposit: null, error: msg }
+    }
+
     const lines: Record<string, unknown>[] = d.receipts.map(r => ({
       Amount: r.amount,
       DetailType: 'DepositLineDetail',
       // Lifts the sale out of Undeposited Funds rather than creating income
       // a second time.
-      LinkedTxn: [{ TxnId: r.id, TxnType: 'SalesReceipt' }],
-      // QuickBooks expects the detail object that matches DetailType even on
-      // a linked line, where it carries nothing of its own. Sending the line
-      // without it is the likeliest remaining rejection (2026-10-13).
-      DepositLineDetail: {},
+      //
+      // TxnLineId is not optional here even though the docs read as though
+      // it were: linking a SalesReceipt without it is reported to fail.
+      LinkedTxn: [{ TxnId: r.id, TxnType: 'SalesReceipt', TxnLineId: '0' }],
+      // This was `{}` until 2026-10-15, on the reasoning that a linked line
+      // carries nothing of its own. QuickBooks rejected every such line with
+      // "Required parameter Line.DepositLineDetail is missing" — an empty
+      // object does not count as present. It wants the account the money is
+      // coming OUT of, which for a sale sitting undeposited is Undeposited
+      // Funds; the bank it goes into is DepositToAccountRef below.
+      DepositLineDetail: { AccountRef: { value: undeposited.Id, name: undeposited.Name } },
     }))
 
     if (feeAccount && d.feeTotal > 0) {
