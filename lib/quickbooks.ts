@@ -476,6 +476,9 @@ export async function recordPayoutDeposit(
 ): Promise<{ deposit: { Id: string } | null; error: string | null }> {
   if (d.receipts.length === 0) return { deposit: null, error: 'No receipts to deposit.' }
 
+  // Set just before the POST, so a rejection can report the exact body.
+  let lastRequest: Record<string, unknown> | null = null
+
   const tokens = await getTokens(locationId)
   if (!tokens) {
     console.error('[qb] No QB tokens for location:', locationId)
@@ -554,12 +557,19 @@ export async function recordPayoutDeposit(
       })
     }
 
-    const deposit = await qbFetch('POST', '/deposit', tokens.realm_id, accessToken, {
+    const payload = {
       DepositToAccountRef: { value: bank.Id, name: bank.Name },
       TxnDate: d.date,
       PrivateNote: `Stripe payout ${d.payoutId}`,
       Line: lines,
-    })
+    }
+    // Kept so the catch below can put it in the alert. Three attempts at
+    // this have each been a guess at what QuickBooks wanted, because the
+    // alert only ever carried QuickBooks' complaint and never what we
+    // actually sent (2026-10-15).
+    lastRequest = payload
+
+    const deposit = await qbFetch('POST', '/deposit', tokens.realm_id, accessToken, payload)
 
     return { deposit: deposit.Deposit, error: null }
   } catch (err) {
@@ -570,6 +580,10 @@ export async function recordPayoutDeposit(
     // (Caroline, 2026-10-13).
     const msg = err instanceof Error ? err.message : String(err)
     console.error('[qb] Could not record payout deposit:', msg)
-    return { deposit: null, error: msg }
+    console.error('[qb] Deposit we sent:', JSON.stringify(lastRequest))
+    return {
+      deposit: null,
+      error: lastRequest ? `${msg}\n\nWhat we sent:\n${JSON.stringify(lastRequest, null, 2)}` : msg,
+    }
   }
 }
