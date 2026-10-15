@@ -315,7 +315,7 @@ function ReservationFields({
             and taking the highlight away left nothing saying a choice was
             needed at all. A row that says "Select a location" does
             (Caroline, 2026-10-15). */}
-        <div className={cn('border rounded-lg transition-colors max-w-[420px]', locationOpen ? 'border-booking-600' : 'border-gray-300')}>
+        <div className={cn('border rounded-lg transition-colors', locationOpen ? 'border-booking-600' : 'border-gray-300')}>
           <button
             type="button"
             onClick={() => setLocationOpen(o => !o)}
@@ -332,7 +332,7 @@ function ReservationFields({
 
           <div className={cn('grid transition-[grid-template-rows] duration-300 ease-in-out', locationOpen ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]')}>
             <div className={cn('overflow-hidden transition-opacity duration-200', locationOpen ? 'opacity-100 delay-100' : 'opacity-0')}>
-              <div className="p-3 border-t border-gray-100 flex flex-col gap-3">
+              <div className="p-3 border-t border-gray-100 grid grid-cols-3 gap-2">
           {LOCATIONS.map(loc => {
             const selected = loc.id === locationId
             return (
@@ -343,9 +343,7 @@ function ReservationFields({
                 key={loc.id}
                 onClick={() => { setLocationId(loc.id); setLocationOpen(false) }}
                 className={cn(
-                  // Short and wide: stacked in the panel, a tall card pushes
-                  // the date picker off screen.
-                  'group relative text-left rounded-xl overflow-hidden transition-all h-[86px]',
+                  'group relative text-left rounded-xl overflow-hidden transition-all aspect-[4/3]',
                   selected
                     ? 'ring-2 ring-booking-600 ring-offset-2 ring-offset-[#FAF9F7]'
                     : 'ring-1 ring-gray-200 hover:ring-gray-300 hover:-translate-y-0.5'
@@ -366,9 +364,12 @@ function ReservationFields({
                   </span>
                 )}
 
-                <div className="absolute inset-x-0 bottom-0 p-3 text-white">
-                  <div className="font-semibold leading-tight text-sm">{loc.name}</div>
-                  <div className="text-[11px] text-white/75 mt-0.5 leading-snug">{loc.address}</div>
+                <div className="absolute inset-x-0 bottom-0 p-3.5 text-white">
+                  <div className="font-semibold leading-tight">{loc.name}</div>
+                  {/* Address only. The phone number crowded the card at this
+                      width and nobody needs it to pick a location; it is on
+                      the confirmation and in the email. */}
+                  <div className="text-[11px] text-white/75 mt-1 leading-snug">{loc.address}</div>
                 </div>
               </button>
             )
