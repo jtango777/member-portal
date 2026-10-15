@@ -298,7 +298,6 @@ function ReservationFields({
   onContinue: () => void
 }) {
   const selectedLocation = LOCATIONS.find(l => l.id === locationId) ?? LOCATIONS[0]
-  const [locationOpen, setLocationOpen] = useState(false)
   // Read the live price. This line used to say "$30" in typed-in text while
   // the total underneath charged the real $39, so step one contradicted step
   // three (reported by a coworker, 2026-10-02).
@@ -308,34 +307,17 @@ function ReservationFields({
     <>
       <div>
         <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3 mt-3">Location</div>
-        {/* Closed until it is opened, exactly like the date picker below.
-            The three photos used to sit here already open, which read as
-            decoration rather than a choice: one customer assumed the
-            highlighted one was simply where she was booking (2026-10-12),
-            and taking the highlight away left nothing saying a choice was
-            needed at all. A row that says "Select a location" does
-            (Caroline, 2026-10-15). */}
-        <div className={cn('border rounded-lg transition-colors', locationOpen ? 'border-booking-600' : 'border-gray-300')}>
-          <button
-            type="button"
-            onClick={() => setLocationOpen(o => !o)}
-            className="w-full flex items-center gap-2.5 text-left px-3.5 py-2.5 text-sm bg-white hover:bg-gray-50 transition-colors rounded-lg"
-          >
-            {/* Deliberately styled identically to the date row below, placeholder
-                included. Greying this one out made the step you have to do
-                first look like the optional one (Caroline, 2026-10-15). */}
-            <span className="flex-1">
-              {locationId ? selectedLocation.name : 'Select a location'}
-            </span>
-            <ChevronRight size={14} className={cn('text-gray-400 transition-transform', locationOpen && 'rotate-90')} />
-          </button>
-
-          <div className={cn('grid transition-[grid-template-rows] duration-300 ease-in-out', locationOpen ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]')}>
-            <div className={cn('overflow-hidden transition-opacity duration-200', locationOpen ? 'opacity-100 delay-100' : 'opacity-0')}>
+        {/* Photos always on show, with a dropdown under them. Hiding them
+            behind the dropdown lost the point of having photos, and showing
+            them on their own read as decoration rather than a choice: one
+            customer assumed the highlighted one was simply where she was
+            booking (2026-10-12). The two stay in step — picking either
+            updates the other (Caroline, 2026-10-15). */}
+        <div>
               {/* One per row on a phone, three across from sm up. Forcing
                   three across everywhere squeezed the names off the cards on
                   mobile (Caroline, 2026-10-15). */}
-              <div className="p-3 border-t border-gray-100 grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           {LOCATIONS.map(loc => {
             const selected = loc.id === locationId
             return (
@@ -382,7 +364,31 @@ function ReservationFields({
               </button>
             )
           })}
-              </div>
+          </div>
+
+          {/* The dropdown is the part that says a choice is required; the
+              photos above are how you tell the places apart. Same width and
+              styling as the date row below, so the two steps match. */}
+          <div className="mt-3 w-full max-w-[420px]">
+            <div className={cn(
+              'relative border rounded-lg transition-colors bg-white',
+              locationId ? 'border-gray-300' : 'border-booking-600'
+            )}>
+              <select
+                id="day-pass-location"
+                value={locationId}
+                onChange={e => setLocationId(e.target.value)}
+                className="w-full appearance-none bg-transparent px-3.5 py-2.5 pr-9 text-sm rounded-lg cursor-pointer focus:outline-none focus:ring-2 focus:ring-booking-500"
+              >
+                <option value="">Select a location</option>
+                {LOCATIONS.map(loc => (
+                  <option key={loc.id} value={loc.id}>{loc.name}</option>
+                ))}
+              </select>
+              <ChevronRight
+                size={14}
+                className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 rotate-90 text-gray-400"
+              />
             </div>
           </div>
         </div>
