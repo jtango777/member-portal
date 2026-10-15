@@ -45,11 +45,17 @@ The app emails `hello@bizhaus.com` when something fails that used to fail
 silently: a QuickBooks receipt that could not be created, a payout that could
 not be recorded, a refund that went through but whose booking did not update.
 
-**These should go to a small group, not the shared inbox.** Nobody on hello@
-can act on them, and they read as alarming noise. Ask Joe to create
-`alerts@bizhaus.com` as a Google group, then set `STAFF_NOTIFICATION_EMAIL`
-in Vercel to it. The variable accepts a comma separated list, so it can hold
-a couple of people in the meantime.
+**As of 2026-10-15 these go to Caroline's address only**, not to
+`hello@bizhaus.com`. Changed during the QuickBooks payout debugging so that
+repeated test runs did not notify the whole team, and deliberately left that
+way: she is the only person who can currently act on one.
+
+**This must be changed before she leaves**, or the alerts go to an inbox
+nobody is reading. Ask Joe to create `alerts@bizhaus.com` as a Google group
+and set `STAFF_NOTIFICATION_EMAIL` in Vercel to it. The variable accepts a
+comma separated list, so it can hold a couple of people in the meantime.
+The previous value was `hello@bizhaus.com`; do not simply restore that,
+nobody on it can act on these.
 
 ---
 
