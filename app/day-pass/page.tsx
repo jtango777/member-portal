@@ -321,7 +321,10 @@ function ReservationFields({
             onClick={() => setLocationOpen(o => !o)}
             className="w-full flex items-center gap-2.5 text-left px-3.5 py-2.5 text-sm bg-white hover:bg-gray-50 transition-colors rounded-lg"
           >
-            <span className={cn('flex-1', !locationId && 'text-gray-500')}>
+            {/* Deliberately styled identically to the date row below, placeholder
+                included. Greying this one out made the step you have to do
+                first look like the optional one (Caroline, 2026-10-15). */}
+            <span className="flex-1">
               {locationId ? selectedLocation.name : 'Select a location'}
             </span>
             <ChevronRight size={14} className={cn('text-gray-400 transition-transform', locationOpen && 'rotate-90')} />
