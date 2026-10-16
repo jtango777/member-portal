@@ -45,17 +45,26 @@ The app emails `hello@bizhaus.com` when something fails that used to fail
 silently: a QuickBooks receipt that could not be created, a payout that could
 not be recorded, a refund that went through but whose booking did not update.
 
-**As of 2026-10-15 these go to Caroline's address only**, not to
-`hello@bizhaus.com`. Changed during the QuickBooks payout debugging so that
-repeated test runs did not notify the whole team, and deliberately left that
-way: she is the only person who can currently act on one.
+**Current value, set 2026-10-16: `hello@bizhaus.com`.**
 
-**This must be changed before she leaves**, or the alerts go to an inbox
-nobody is reading. Ask Joe to create `alerts@bizhaus.com` as a Google group
-and set `STAFF_NOTIFICATION_EMAIL` in Vercel to it. The variable accepts a
-comma separated list, so it can hold a couple of people in the meantime.
-The previous value was `hello@bizhaus.com`; do not simply restore that,
-nobody on it can act on these.
+For one day, 2026-10-15 to 2026-10-16, it was `caroline@bizhaus.com` only.
+That was done during the QuickBooks payout debugging so repeated test runs
+did not notify the whole team, and it was put back before she left, because
+that address stops working when she goes.
+
+**Still worth improving, but no longer urgent.** `hello@bizhaus.com` is the
+whole team inbox, so everyone now sees plumbing failures that only a
+developer can act on: a QuickBooks receipt that did not post, a payout that
+did not record. The better end state is an `alerts@bizhaus.com` Google group
+holding whoever actually maintains the app. Ask Joe to create it and set
+`STAFF_NOTIFICATION_EMAIL` in Vercel to it.
+
+The variable accepts a comma separated list (`lib/email.ts` splits on
+commas), so it can hold several people. Set it in the Vercel `bizhaus`
+project under Production and Preview, then redeploy or it keeps the old
+value. Do **not** mark it as a Secret: Vercel makes secrets write-only, so
+nobody can read or edit the value afterwards, and it has to be deleted and
+recreated. That is what happened to it on 2026-10-16.
 
 ---
 
