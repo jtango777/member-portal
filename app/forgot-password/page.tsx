@@ -2,7 +2,6 @@
 
 import { useState, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
-import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
 import toast from 'react-hot-toast'
 
@@ -32,21 +31,29 @@ function ForgotPasswordForm() {
 
   const [email, setEmail]   = useState('')
   const [loading, setLoading] = useState(false)
-  const [sent, setSent]     = useState(false)
+  // 'reset' is the ordinary case. 'invite' means they were on the member
+  // list but never finished setting up, so an invite went out instead of a
+  // reset: a reset would have had no account to act on.
+  const [sent, setSent]     = useState<null | 'reset' | 'invite'>(null)
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setLoading(true)
-    const supabase = createClient()
     const redirectPath = isDayPass ? '/auth/reset-password?context=day-pass' : '/auth/reset-password'
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}${redirectPath}`,
+    // Goes through our own route rather than straight to Supabase, so
+    // somebody who has never set up an account gets their invite instead of
+    // a reset that cannot do anything for them.
+    const res = await fetch('/api/password-help', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, redirectTo: `${window.location.origin}${redirectPath}` }),
     })
-    if (error) {
-      toast.error(error.message)
+    const data = await res.json()
+    if (!res.ok) {
+      toast.error(data.error ?? 'Something went wrong. Please try again.')
       setLoading(false)
     } else {
-      setSent(true)
+      setSent(data.status === 'invite_sent' ? 'invite' : 'reset')
     }
   }
 
@@ -66,9 +73,17 @@ function ForgotPasswordForm() {
             <div className="text-center space-y-3">
               <div className="text-4xl">✉️</div>
               <h2 className="font-semibold text-gray-900">Check your email</h2>
-              <p className="text-sm text-gray-500">
-                We sent a password reset link to <strong>{email}</strong>. Check your inbox and follow the link.
-              </p>
+              {sent === 'invite' ? (
+                <p className="text-sm text-gray-500">
+                  You have not set up your BizHaus account yet, so there is no password to reset.
+                  We have sent your invite to <strong>{email}</strong> instead. Follow that link to
+                  choose a password and finish setting up.
+                </p>
+              ) : (
+                <p className="text-sm text-gray-500">
+                  We sent a password reset link to <strong>{email}</strong>. Check your inbox and follow the link.
+                </p>
+              )}
               <Link href={backToSignIn} className={`block text-sm mt-4 ${linkAccent}`}>
                 Back to sign in
               </Link>
