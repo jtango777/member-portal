@@ -270,7 +270,7 @@ export default function SetupAccountPage() {
         <div className="flex flex-col items-center justify-center gap-3 mb-8">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/brand/bizhaus-logo-white.png" alt="BizHaus" className="h-8 w-auto" />
-          <span className="text-xs font-bold bg-blue-600 text-white px-2.5 py-1 rounded">Member Portal</span>
+          <span className="text-xs font-bold bg-green-600 text-white px-2.5 py-1 rounded">Member Portal</span>
         </div>
         <Suspense fallback={<div className="text-center text-slate-400">Loading…</div>}>
           <SetupForm />
