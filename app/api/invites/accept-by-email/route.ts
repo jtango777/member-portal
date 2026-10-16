@@ -1,8 +1,9 @@
 import { createAdminClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
-import { suggestCompanyForEmail } from '@/lib/suggestCompany'
 import { passwordError } from '@/lib/password'
 import { verifyRecaptcha } from '@/lib/recaptcha'
+import { findAuthUserByEmail, passwordMatches } from '@/lib/authLookup'
+import { completeMemberSetup } from '@/lib/memberSetup'
 
 export async function POST(request: Request) {
   const { email, first_name, last_name, password, default_location_id, seating, recaptcha_token } = await request.json()
@@ -40,65 +41,70 @@ export async function POST(request: Request) {
     email_confirm: true,
   })
 
+  let userId: string
+
   if (authError) {
     // Match on the stable error code, not the message text — Supabase's
     // actual wording ("...has already been registered") does not contain
     // the substring "already registered", so this test never fired and
     // everyone who already had a login fell through to the generic
-    // "Account setup failed. Please try again." below. That is the message
-    // someone sees after being archived and re-invited: their login still
-    // exists, so the account cannot be created, and nothing told them or
-    // the admin why (Caroline, 2026-10-16). Same fix as lib/bookingAccounts.
-    if (authError.code === 'email_exists' || authError.message.includes('already registered')) {
+    // "Account setup failed. Please try again." below.
+    const alreadyHasLogin =
+      authError.code === 'email_exists' || authError.message.includes('already registered')
+
+    if (!alreadyHasLogin) {
+      console.error('[invites/accept-by-email] Auth create error:', authError.message)
+      return NextResponse.json({ error: 'Account setup failed. Please try again.' }, { status: 500 })
+    }
+
+    // Someone who bought a day pass before being invited as a member already
+    // has a login, so the member portal could never be set up for them: this
+    // route tried to create a second login on the same address and stopped
+    // there. Now it attaches the portal to the login they have.
+    //
+    // Unlike /api/invites/accept there is no emailed token here — this route
+    // identifies people by typed-in email address alone. So it asks for the
+    // password they already have rather than setting a new one: without that
+    // check, anyone who knew a member's email address could take their
+    // account over from the public /register page (Caroline, 2026-10-16).
+    const existing = await findAuthUserByEmail(admin, invite.email)
+    if (!existing) {
+      console.error('[invites/accept-by-email] email_exists but no user found for', invite.email)
+      return NextResponse.json({ error: 'Account setup failed. Please try again.' }, { status: 500 })
+    }
+
+    const { data: profile } = await admin
+      .from('profiles')
+      .select('id')
+      .eq('id', existing.id)
+      .maybeSingle()
+
+    if (profile) {
       return NextResponse.json({
-        error: 'You already have a BizHaus login with this email. Sign in instead, or use "Forgot password" if you cannot remember it.',
+        error: 'You already have a BizHaus member account with this email. Sign in instead, or use "Forgot password" if you cannot remember your password.',
       }, { status: 409 })
     }
-    console.error('[invites/accept-by-email] Auth create error:', authError.message)
-    return NextResponse.json({ error: 'Account setup failed. Please try again.' }, { status: 500 })
+
+    if (!(await passwordMatches(invite.email, password))) {
+      return NextResponse.json({
+        error: 'You already have a BizHaus login with this email, from booking a day pass or a room. Enter that same password here to add the member portal to it, or use "Forgot password" on the sign-in page if you cannot remember it.',
+      }, { status: 409 })
+    }
+
+    userId = existing.id
+  } else {
+    userId = authData!.user!.id
   }
 
-  const userId = authData.user!.id
-
-  // If no company was already set on the invite, check their own booking
-  // history (getaroom-imported reservations) for one before falling back
-  // to no company at all.
-  const companyId = invite.company_id ?? await suggestCompanyForEmail(admin, invite.email, userId)
-
-  // A handful of companies (BizHaus Admin/Staff) are flagged to grant admin
-  // automatically on signup — an explicit per-company switch rather than
-  // inferring it from the company's name, which would be fragile (renames,
-  // typos, duplicates). Doesn't touch anyone already registered.
-  let grantsAdmin = false
-  if (companyId) {
-    const { data: company } = await admin.from('companies').select('grants_admin').eq('id', companyId).single()
-    grantsAdmin = company?.grants_admin ?? false
-  }
-
-  await admin.from('profiles').insert({
-    id:                  userId,
-    company_id:          companyId,
-    individual_hours_allotment: invite.individual_hours_allotment ?? null,
-    first_name:          first_name.trim(),
-    last_name:           last_name.trim(),
-    full_name:           `${first_name.trim()} ${last_name.trim()}`.trim(),
-    is_admin:            grantsAdmin,
-    default_location_id: default_location_id ?? invite.default_location_id ?? null,
-    avatar_url:          invite.avatar_url ?? null,
-    seating:             seating ?? invite.seating ?? null,
+  await completeMemberSetup({
+    admin,
+    userId,
+    invite,
+    firstName: first_name,
+    lastName: last_name,
+    defaultLocationId: default_location_id,
+    seating,
   })
-
-  await admin
-    .from('permitted_emails')
-    .update({ accepted_at: new Date().toISOString(), invite_token: null, company_id: companyId })
-    .eq('id', invite.id)
-
-  // Reassign any historical (pre-signup) bookings tagged with this email to
-  // the real account they just created.
-  await admin
-    .from('reservations')
-    .update({ user_id: userId, historical_email: null })
-    .ilike('historical_email', invite.email)
 
   return NextResponse.json({ ok: true })
 }

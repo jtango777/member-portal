@@ -224,7 +224,14 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
     if (!res.ok) {
       toast.error(data.error ?? 'Failed')
     } else {
-      if (skipEmail) toast.success('Member added — no invite sent.')
+      // An archived person is restored rather than added again, and the
+      // route says so in `message`. Show that instead of "Invite sent!",
+      // which would leave the admin with no idea the archive was involved.
+      if (data.restored) {
+        toast.success(data.message, { duration: 8000 })
+        if (!data.emailSent && data.inviteLink) setLastInviteLink(data.inviteLink)
+      }
+      else if (skipEmail) toast.success('Member added — no invite sent.')
       else if (data.emailSent) toast.success('Invite sent!')
       else { setLastInviteLink(data.inviteLink); toast.success('Member added — copy the link below to invite them manually.') }
       if (markInPipedrive && data.pipedriveMatched === false) {
@@ -233,7 +240,9 @@ export default function MembersManager({ companies, membershipTypes }: Props) {
       // Prompt for a photo right away, same dialog as the per-row "Add
       // picture" action — saves a trip back to find them in the list right
       // after adding them. "Skip for now" in the dialog just closes it.
-      if (data.member_id) {
+      // Not for someone restored from the archive who is already registered:
+      // they are not a pending row, and they may well already have a photo.
+      if (data.member_id && !data.alreadySetUp) {
         const addedName = [addFirstName.trim(), addLastName.trim()].filter(Boolean).join(' ') || email
         setPhotoTarget({ type: 'pending', id: data.member_id, name: addedName, hasPhoto: false, avatarUrl: null })
       }

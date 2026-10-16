@@ -27,28 +27,57 @@ export async function POST(request: Request) {
 
   const admin = createAdminClient()
 
-  // Refuse outright if this address is sitting in the archive.
+  // Adding someone who is sitting in the archive brings them back, rather
+  // than quietly making a mess.
   //
-  // Both paths below upsert on email, which quietly updated the archived
-  // row and left is_active false. The admin saw "invite sent", the person
-  // got an email, clicked it, and was told "an account with this email
-  // already exists" — because archiving never removes their login. Nothing
-  // anywhere said the person was archived, so whoever added them had no way
-  // to work out what had happened (Caroline, 2026-10-16).
+  // Both upserts below key on email, so an archived person was updated in
+  // place and left is_active false. The admin saw "invite sent", the person
+  // got an email, clicked it, and was told their account already existed —
+  // archiving never removes a login. Nothing anywhere mentioned the archive,
+  // so whoever added them had no way to work out what had happened. Nobody
+  // should have to know to go and look under Show Archived Members first:
+  // adding an archived person plainly means you want them back (Caroline,
+  // 2026-10-16).
   const { data: archived } = await admin
     .from('permitted_emails')
-    .select('id, full_name, email')
+    .select('id, full_name, email, accepted_at')
     .eq('email', email.toLowerCase().trim())
     .eq('is_active', false)
     .maybeSingle()
 
   if (archived) {
+    const { error: restoreError } = await admin
+      .from('permitted_emails')
+      .update({ is_active: true })
+      .eq('id', archived.id)
+    if (restoreError) {
+      console.error('[invites/send] restore error:', restoreError.message)
+      return NextResponse.json({ error: 'Failed to restore this member.' }, { status: 500 })
+    }
+  }
+
+  // Someone restored from the archive who already finished setting up has a
+  // working login and a portal profile: there is nothing to invite them to,
+  // and sending one would walk them into "you already have an account".
+  // Their old password still works, so restoring is the whole job.
+  if (archived?.accepted_at) {
     const who = archived.full_name ?? archived.email
+    const { data: row, error } = await admin.from('permitted_emails').upsert(
+      { email: email.toLowerCase().trim(), first_name: firstName, last_name: lastName, full_name: fullName, company_id: companyId, individual_hours_allotment: individualHours, default_location_id: locationId, seating: seatingValue, is_active: true },
+      { onConflict: 'email' }
+    ).select('id').single()
+    if (error) {
+      console.error('[invites/send] restore update error:', error.message)
+      return NextResponse.json({ error: 'Failed to restore this member.' }, { status: 500 })
+    }
     return NextResponse.json({
-      error: `${who} is archived, not new. Restore them from Show Archived Members instead — adding them again sends an invite they cannot accept, because their old login still exists.`,
-      archived: true,
-      member_id: archived.id,
-    }, { status: 409 })
+      ok: true,
+      restored: true,
+      alreadySetUp: true,
+      emailSent: false,
+      message: `${who} was archived, so they have been restored instead of added again. No invite was sent: their old login still works, so they can sign in with the password they already had.`,
+      member_id: row.id,
+    })
   }
 
   // Looked up once, used by the Pipedrive sync below in both branches —
@@ -87,7 +116,13 @@ export async function POST(request: Request) {
       if (!syncResult.ok) console.error('[invites/send] Pipedrive location/seating sync failed:', syncResult.error)
     }
 
-    return NextResponse.json({ ok: true, emailSent: false, skippedEmail: true, pipedriveMatched, member_id: row.id })
+    return NextResponse.json({
+      ok: true, emailSent: false, skippedEmail: true, pipedriveMatched, member_id: row.id,
+      restored: !!archived,
+      message: archived
+        ? `${archived.full_name ?? archived.email} was archived, so they have been restored. They are back in Pending and never finished setting up, so they still need an invite.`
+        : undefined,
+    })
   }
 
   const token = generateToken()
@@ -123,5 +158,11 @@ export async function POST(request: Request) {
     if (!syncResult.ok) console.error('[invites/send] Pipedrive location/seating sync failed:', syncResult.error)
   }
 
-  return NextResponse.json({ ok: true, inviteLink, emailSent, pipedriveMatched, member_id: row.id })
+  return NextResponse.json({
+    ok: true, inviteLink, emailSent, pipedriveMatched, member_id: row.id,
+    restored: !!archived,
+    message: archived
+      ? `${archived.full_name ?? archived.email} was archived, so they have been restored rather than added again, and sent a fresh invite.`
+      : undefined,
+  })
 }

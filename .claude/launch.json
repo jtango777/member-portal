@@ -4,9 +4,72 @@
     {
       "name": "BizHaus",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev"],
+      "runtimeArgs": [
+        "run",
+        "dev"
+      ],
       "port": 3000,
       "autoPort": true
+    },
+    {
+      "name": "BizHaus (staging DB)",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "run",
+        "dev:staging"
+      ],
+      "port": 3001
+    },
+    {
+      "name": "tucson-mail",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "--prefix",
+        "../TucsonMailService",
+        "run",
+        "dev"
+      ],
+      "port": 3100
+    },
+    {
+      "name": "founder-cockpit",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "--prefix",
+        "../founder-cockpit",
+        "run",
+        "dev",
+        "--",
+        "-p",
+        "3200"
+      ],
+      "port": 3200
+    },
+    {
+      "name": "secura-way",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": [
+        "--yes",
+        "serve",
+        "-l",
+        "3300",
+        "/Users/carolinesmith/Desktop/secura-way"
+      ],
+      "port": 3300
+    },
+    {
+      "name": "tucson-therapy-booking",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "--prefix",
+        "../tucson-therapy-booking",
+        "run",
+        "dev",
+        "--",
+        "-p",
+        "3400"
+      ],
+      "port": 3400
     }
   ]
 }

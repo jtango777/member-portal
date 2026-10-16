@@ -2,6 +2,7 @@
 
 import { forwardRef, useEffect, useImperativeHandle, useRef, useId } from 'react'
 import Script from 'next/script'
+import { recaptchaDisabled, RECAPTCHA_DISABLED_TOKEN } from '@/lib/recaptchaDisabled'
 
 declare global {
   interface Window {
@@ -38,11 +39,23 @@ const Recaptcha = forwardRef<RecaptchaHandle, Props>(function Recaptcha({ onChan
       if (widgetId.current !== null && window.grecaptcha) {
         window.grecaptcha.reset(widgetId.current)
       }
-      onChangeRef.current(null)
+      // When the check is off, a reset has to hand the stand-in token back,
+      // not null — otherwise the first failed submission (wrong password,
+      // say) leaves the form permanently unsubmittable.
+      onChangeRef.current(recaptchaDisabled ? RECAPTCHA_DISABLED_TOKEN : null)
     },
   }), [])
 
+  // Turned off on staging and local dev: hand the form a stand-in token so
+  // it submits, and say on screen that this is not how production behaves.
+  // Doing it here rather than in each of the four forms keeps the widget and
+  // the server check reading the same flag.
   useEffect(() => {
+    if (recaptchaDisabled) onChangeRef.current(RECAPTCHA_DISABLED_TOKEN)
+  }, [])
+
+  useEffect(() => {
+    if (recaptchaDisabled) return
     function render() {
       if (widgetId.current !== null) return
       if (!window.grecaptcha || !document.getElementById(containerId)) return
@@ -59,6 +72,15 @@ const Recaptcha = forwardRef<RecaptchaHandle, Props>(function Recaptcha({ onChan
 
     return () => { window.onRecaptchaApiLoad = undefined }
   }, [containerId])
+
+  if (recaptchaDisabled) {
+    return (
+      <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-md px-3 py-2">
+        &ldquo;I&rsquo;m not a robot&rdquo; is turned off here so this form can be tested.
+        It is on in production.
+      </p>
+    )
+  }
 
   return (
     <>

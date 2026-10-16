@@ -1,8 +1,9 @@
 import { createAdminClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 import { verifyRecaptcha } from '@/lib/recaptcha'
-import { suggestCompanyForEmail } from '@/lib/suggestCompany'
 import { passwordError } from '@/lib/password'
+import { findAuthUserByEmail } from '@/lib/authLookup'
+import { completeMemberSetup } from '@/lib/memberSetup'
 
 export async function POST(request: Request) {
   const { token, first_name, last_name, password, default_location_id, seating, recaptcha_token } = await request.json()
@@ -39,71 +40,76 @@ export async function POST(request: Request) {
     email_confirm:  true,
   })
 
+  let userId: string
+
   if (authError) {
     // Match on the stable error code, not the message text — Supabase's
     // actual wording ("...has already been registered") does not contain
     // the substring "already registered", so this test never fired and
     // everyone who already had a login fell through to the generic
-    // "Account setup failed. Please try again." below. That is the message
-    // someone sees after being archived and re-invited: their login still
-    // exists, so the account cannot be created, and nothing told them or
-    // the admin why (Caroline, 2026-10-16). Same fix as lib/bookingAccounts.
-    if (authError.code === 'email_exists' || authError.message.includes('already registered')) {
+    // "Account setup failed. Please try again." below.
+    const alreadyHasLogin =
+      authError.code === 'email_exists' || authError.message.includes('already registered')
+
+    if (!alreadyHasLogin) {
+      console.error('[invites/accept] Auth create error:', authError.message)
+      return NextResponse.json({ error: 'Account setup failed. Please try again.' }, { status: 500 })
+    }
+
+    // Having a login already is not the same as having the member portal,
+    // and until now this route could not tell the difference: it tried to
+    // create a login, failed, and gave up. Anyone who had bought a day pass
+    // before being invited as a member therefore could never accept the
+    // invite — the day pass had already made them a login. Same dead end for
+    // anyone archived and re-added. Both cases are now finished properly
+    // (Caroline, 2026-10-16).
+    //
+    // The invite token is what makes this safe: it was emailed to this
+    // address and nowhere else, so whoever is holding it controls the
+    // mailbox. That is the same proof a password reset runs on, which is why
+    // setting the password below is allowed here and not on the token-less
+    // /api/invites/accept-by-email route.
+    const existing = await findAuthUserByEmail(admin, invite.email)
+    if (!existing) {
+      console.error('[invites/accept] email_exists but no user found for', invite.email)
+      return NextResponse.json({ error: 'Account setup failed. Please try again.' }, { status: 500 })
+    }
+
+    const { data: profile } = await admin
+      .from('profiles')
+      .select('id')
+      .eq('id', existing.id)
+      .maybeSingle()
+
+    if (profile) {
       return NextResponse.json({
-        error: 'You already have a BizHaus login with this email. Sign in instead, or use "Forgot password" if you cannot remember it.',
+        error: 'You already have a BizHaus member account with this email. Sign in instead, or use "Forgot password" if you cannot remember your password.',
       }, { status: 409 })
     }
-    console.error('[invites/accept] Auth create error:', authError.message)
-    return NextResponse.json({ error: 'Account setup failed. Please try again.' }, { status: 500 })
+
+    const { error: pwUpdateError } = await admin.auth.admin.updateUserById(existing.id, {
+      password,
+      email_confirm: true,
+    })
+    if (pwUpdateError) {
+      console.error('[invites/accept] Password set on existing login failed:', pwUpdateError.message)
+      return NextResponse.json({ error: 'Account setup failed. Please try again.' }, { status: 500 })
+    }
+
+    userId = existing.id
+  } else {
+    userId = authData!.user!.id
   }
 
-  const userId = authData.user!.id
-
-  // If no company was already set on the invite, check their own booking
-  // history (getaroom-imported reservations) for one before falling back
-  // to no company at all.
-  const companyId = invite.company_id ?? await suggestCompanyForEmail(admin, invite.email, userId)
-
-  // A handful of companies (BizHaus Admin/Staff) are flagged to grant admin
-  // automatically on signup — an explicit per-company switch rather than
-  // inferring it from the company's name. This route (the invite-link
-  // path, used for basically every real invite) never checked this at
-  // all — only the separate email-lookup signup route did — so a new
-  // BizHaus staff member invited the normal way never actually got admin
-  // automatically, only if someone remembered to flip it by hand
-  // afterward. Caught 2026-09-11, same audit as the room-access bug.
-  let grantsAdmin = false
-  if (companyId) {
-    const { data: company } = await admin.from('companies').select('grants_admin').eq('id', companyId).single()
-    grantsAdmin = company?.grants_admin ?? false
-  }
-
-  // Create profile
-  await admin.from('profiles').insert({
-    id:                  userId,
-    company_id:          companyId,
-    individual_hours_allotment: invite.individual_hours_allotment ?? null,
-    first_name:          first_name.trim(),
-    last_name:           last_name.trim(),
-    full_name:           `${first_name.trim()} ${last_name.trim()}`.trim(),
-    is_admin:            grantsAdmin,
-    default_location_id: default_location_id ?? invite.default_location_id ?? null,
-    avatar_url:          invite.avatar_url ?? null,
-    seating:             seating ?? invite.seating ?? null,
+  await completeMemberSetup({
+    admin,
+    userId,
+    invite,
+    firstName: first_name,
+    lastName: last_name,
+    defaultLocationId: default_location_id,
+    seating,
   })
-
-  // Mark invite as accepted
-  await admin
-    .from('permitted_emails')
-    .update({ accepted_at: new Date().toISOString(), invite_token: null, company_id: companyId })
-    .eq('id', invite.id)
-
-  // Reassign any historical (pre-signup) bookings tagged with this email to
-  // the real account they just created.
-  await admin
-    .from('reservations')
-    .update({ user_id: userId, historical_email: null })
-    .ilike('historical_email', invite.email)
 
   return NextResponse.json({ ok: true })
 }

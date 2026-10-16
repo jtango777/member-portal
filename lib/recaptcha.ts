@@ -1,6 +1,18 @@
+import { recaptchaDisabled } from '@/lib/recaptchaDisabled'
+
 // Server-side verification for Google reCAPTCHA v2 ("I'm not a robot" checkbox).
 // Call this from any API route that accepts a public-facing form submission.
 export async function verifyRecaptcha(token: string | undefined | null): Promise<boolean> {
+  // Staging and local dev can turn this off, so signup, day-pass and /book
+  // can actually be tested end to end — there is no way to click a real
+  // "I'm not a robot" box from a test script, which is why these paths kept
+  // getting checked by hand, or not at all (Caroline, 2026-10-16). See
+  // lib/recaptchaDisabled.ts for what has to be true before this fires.
+  if (recaptchaDisabled) {
+    console.warn('[recaptcha] Verification skipped — staging/dev. Never in production.')
+    return true
+  }
+
   if (!token) return false
 
   const secret = process.env.RECAPTCHA_SECRET_KEY
