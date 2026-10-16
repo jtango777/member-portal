@@ -22,7 +22,7 @@ if it is. Several of these are in Caroline's personal name, not the company's.
 
 | Service | What it does | Who owns it now | What needs to happen |
 |---|---|---|---|
-| **Vercel** | Hosts both sites | `caroline-2678's projects`, a **personal** account, paid plan | Move the `bizhaus` project to a company-owned team, or transfer the account. Billing is attached to whoever owns it. |
+| **Vercel** | Hosts **five** production sites | `caroline-2678's projects`, a **personal** account on the paid Pro plan, confirmed 2026-10-16 | Move every project to a company-owned team. Billing is attached to whoever owns the account. See the note below. |
 | **GitHub** | The code | `carolinebizhaus/portal` (production) and `jtango777/member-portal` (staging, Joe's) | Transfer `carolinebizhaus/portal` to a company account or add owners. Losing this loses the ability to deploy. |
 | **Supabase** | The database: members, companies, bookings, customers | Caroline's login | Add the successor as an owner on both the production and staging projects. |
 | **Resend** | Sends every customer email | Caroline's login | Add the successor. Also holds the verified `bizhaus.com` sending domain. |
@@ -33,6 +33,35 @@ if it is. Several of these are in Caroline's personal name, not the company's.
 | **Google Ads** | Conversion tracking on the booking site | Chris / the ads account | Nothing to move, but tell whoever runs it that the tag lives in this codebase. |
 | **Pipedrive** | An API token used for member imports | Company CRM | Confirm the token is not personal. |
 | **UptimeRobot** | Alerts if the site goes down | Caroline's login | Add the successor or move it. |
+
+### The Vercel account, in detail
+
+Checked 2026-10-16. **Five production projects sit on one personal account**,
+`caroline-2678's projects`, on the paid Pro plan:
+
+| Project | What it serves |
+|---|---|
+| `bizhaus` | The member portal, day passes, `/book` |
+| `tucsontherapysuites` | The Tucson marketing site |
+| `tucson-therapy-booking` | Tucson room bookings |
+| `tucson-mail` | Tucson mail service |
+| `industrialforrent` | Secura Way / M2 listings |
+
+Nobody else can deploy them, read the logs, change an environment variable, or
+see the bill. When that account goes, so does all five.
+
+**Staging is not on this account**, and that is deliberate. Its code lives in
+Joe's GitHub (`jtango777/member-portal`) and its database is Joe's Supabase
+project (`bizhaus-staging`, org "BizHaus"). Whether a staging *Vercel* project
+exists, and whose it is, was never recorded anywhere; if one exists it is
+Joe's. Worth confirming rather than assuming.
+
+**How to move them.** Each project moves separately: Project → Settings →
+General → **Transfer Project**, to a company-owned Vercel team that somebody
+else administers. Create the team first. Environment variables and custom
+domains normally travel with the project, but check both afterwards and
+redeploy, rather than assuming. The new team has its own billing, so the Pro
+subscription on the personal account can then be cancelled.
 
 **Do this before anything else.** Features can wait; losing access cannot be
 undone from outside.
@@ -151,11 +180,68 @@ Honest list. None are on fire, all will surprise someone eventually.
 - **The day pass price on bizhaus.com is typed into the theme by hand** and
   does not follow the price set in admin. Changing one means changing both.
 - **Email sending is rate limited** by Supabase's built-in sender, roughly two
-  password resets an hour. Swapping it to Resend SMTP lifts that.
+  password resets an hour, and its deliverability is poor. Swapping it to
+  Resend SMTP under Authentication → Emails → SMTP Settings lifts both. Not a
+  known cause of any real failure yet, but the next one to do.
+- **Someone can be a day pass customer and a member at the same time, and the
+  two halves do not know much about each other.** One login now covers both
+  (see below), but their name, phone and company are stored separately in
+  `booking_customers` and `profiles`, and nothing keeps them in step.
 - **Nine admin screens render times in the viewer's timezone**, which is
   correct in California and wrong anywhere else.
 - **Conference room booking is built and tested but hidden**, behind
   `ROOM_BOOKING_LAUNCHED` in `app/my-bookings/page.tsx`.
+
+---
+
+## 6a. Fixed on 2026-10-16, worth knowing about
+
+Four dead ends, all of which looked like the app working and were not. Written
+down because the shapes repeat.
+
+**Archiving somebody never removed their login.** Adding an archived person
+back updated the archived row in place and left it archived. The admin saw
+"invite sent", the person got an email, clicked it, and was told their account
+already existed. Nothing anywhere mentioned the archive. Adding someone who is
+archived now **restores them** instead. If they had already finished setting
+up, no invite is sent, because their old password still works and there is
+nothing to invite them to.
+
+**A day pass customer could never become a member.** Accepting an invite always
+tried to create a brand new login, so anyone who already had one, which every
+day pass buyer does, hit the collision and got "Account setup failed. Please
+try again." Two real people were stuck this way. Both accept routes now attach
+the member portal to the login that already exists.
+
+> The two routes prove identity differently, and that difference is
+> deliberate. `/api/invites/accept` has a token that was emailed to that
+> address and nowhere else, which is the same proof a password reset runs on,
+> so it may set the password. `/api/invites/accept-by-email`, reached from the
+> public `/register` page, has no token, so it asks for the password they
+> already have. Without that check anyone who knew a member's email address
+> could have taken their account over. Do not "simplify" these into one.
+
+**Forgot password did nothing for someone who had never set up.** A reset only
+works on a login that exists. Supabase deliberately answers "fine" to an
+address it does not recognise, so nobody can use that form to discover who has
+an account, and the page printed "check your email". A real member sat locked
+out while the page told her mail was on its way. Forgot password now works out
+which of the two things the person needs: a reset if they have a login, their
+**invite** if they are on the member list and never finished, and the same
+generic wording as a reset if neither, so it still cannot be used to find out
+who is a member.
+
+**reCAPTCHA made these flows untestable.** There is no way to click an "I'm not
+a robot" box from a test script, so signup paths were only ever checked by
+hand. `lib/recaptchaDisabled.ts` now turns it off for local `next dev`, and for
+staging when `NEXT_PUBLIC_DISABLE_RECAPTCHA=1` is set there. Two locks on
+purpose: the switch alone would silence the check on anything that inherited
+the variable, and `isStaging` alone would silence it on anything whose URL
+happened to say "staging". **Production satisfies neither, and must never.**
+
+Staging can also be run locally now: `npm run dev:staging` serves on port 3001
+against the staging database, with a banner on every page so it is obvious
+which one you are looking at.
 
 ---
 
