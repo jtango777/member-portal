@@ -70,6 +70,18 @@
         "3400"
       ],
       "port": 3400
+    },
+    {
+      "name": "tucson-therapy-suites",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": [
+        "--yes",
+        "serve",
+        "-l",
+        "3500",
+        "/Users/carolinesmith/Desktop/tucson therapy suites"
+      ],
+      "port": 3500
     }
   ]
 }
