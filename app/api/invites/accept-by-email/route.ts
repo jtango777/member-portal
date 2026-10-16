@@ -41,8 +41,18 @@ export async function POST(request: Request) {
   })
 
   if (authError) {
-    if (authError.message.includes('already registered')) {
-      return NextResponse.json({ error: 'An account with this email already exists.' }, { status: 409 })
+    // Match on the stable error code, not the message text — Supabase's
+    // actual wording ("...has already been registered") does not contain
+    // the substring "already registered", so this test never fired and
+    // everyone who already had a login fell through to the generic
+    // "Account setup failed. Please try again." below. That is the message
+    // someone sees after being archived and re-invited: their login still
+    // exists, so the account cannot be created, and nothing told them or
+    // the admin why (Caroline, 2026-10-16). Same fix as lib/bookingAccounts.
+    if (authError.code === 'email_exists' || authError.message.includes('already registered')) {
+      return NextResponse.json({
+        error: 'You already have a BizHaus login with this email. Sign in instead, or use "Forgot password" if you cannot remember it.',
+      }, { status: 409 })
     }
     console.error('[invites/accept-by-email] Auth create error:', authError.message)
     return NextResponse.json({ error: 'Account setup failed. Please try again.' }, { status: 500 })

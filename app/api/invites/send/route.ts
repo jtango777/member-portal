@@ -27,6 +27,30 @@ export async function POST(request: Request) {
 
   const admin = createAdminClient()
 
+  // Refuse outright if this address is sitting in the archive.
+  //
+  // Both paths below upsert on email, which quietly updated the archived
+  // row and left is_active false. The admin saw "invite sent", the person
+  // got an email, clicked it, and was told "an account with this email
+  // already exists" — because archiving never removes their login. Nothing
+  // anywhere said the person was archived, so whoever added them had no way
+  // to work out what had happened (Caroline, 2026-10-16).
+  const { data: archived } = await admin
+    .from('permitted_emails')
+    .select('id, full_name, email')
+    .eq('email', email.toLowerCase().trim())
+    .eq('is_active', false)
+    .maybeSingle()
+
+  if (archived) {
+    const who = archived.full_name ?? archived.email
+    return NextResponse.json({
+      error: `${who} is archived, not new. Restore them from Show Archived Members instead — adding them again sends an invite they cannot accept, because their old login still exists.`,
+      archived: true,
+      member_id: archived.id,
+    }, { status: 409 })
+  }
+
   // Looked up once, used by the Pipedrive sync below in both branches —
   // the portal stores a location id, but Pipedrive's "Location Desired"
   // field is keyed by name.
