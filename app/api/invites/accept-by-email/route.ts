@@ -18,11 +18,6 @@ export async function POST(request: Request) {
   if (!(await verifyRecaptcha(recaptcha_token))) {
     return NextResponse.json({ error: 'reCAPTCHA verification failed. Please try again.' }, { status: 400 })
   }
-  const pwErr = passwordError(password)
-  if (pwErr) {
-    return NextResponse.json({ error: pwErr }, { status: 400 })
-  }
-
   const admin = createAdminClient()
 
   const { data: invite } = await admin
@@ -33,6 +28,15 @@ export async function POST(request: Request) {
 
   if (!invite || invite.accepted_at) {
     return NextResponse.json({ error: 'This email is not recognized, or already has an account.' }, { status: 400 })
+  }
+
+  // Checked before creating anything, but NOT when they already have a
+  // login below: there the password is one they set long ago, possibly
+  // under day pass signup's looser 8-character rule, and refusing it for
+  // failing today's rules would leave them with no way in at all.
+  if (!(await findAuthUserByEmail(admin, invite.email))) {
+    const pwErr = passwordError(password)
+    if (pwErr) return NextResponse.json({ error: pwErr }, { status: 400 })
   }
 
   const { data: authData, error: authError } = await admin.auth.admin.createUser({

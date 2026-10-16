@@ -33,6 +33,11 @@ function SetupForm() {
   // name and location. `seatingTouched` stops that prefill from stomping
   // on a choice the member has already made themselves.
   const [defaultSeating, setDefaultSeating] = useState<string | null>(null)
+  // True when they already have a BizHaus login from booking a day pass or
+  // a room. The password they set here replaces that one, so the form says
+  // so rather than letting them find out when their saved password stops
+  // working.
+  const [hasExistingLogin, setHasExistingLogin] = useState(false)
   const [seatingTouched, setSeatingTouched] = useState(false)
   const [recaptchaToken, setRecaptchaToken] = useState<string | null>(null)
   const recaptchaRef = useRef<RecaptchaHandle>(null)
@@ -52,6 +57,7 @@ function SetupForm() {
           if (data.first_name) setFirstName(data.first_name)
           if (data.last_name) setLastName(data.last_name)
           if (data.seating) setDefaultSeating(data.seating)
+          setHasExistingLogin(!!data.has_existing_login)
         } else {
           // People re-click an old invite email as their way of getting
           // back to the portal, not knowing the actual URL — so a dead
@@ -178,6 +184,12 @@ function SetupForm() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+            {hasExistingLogin && (
+              <p className="text-xs text-blue-800 bg-blue-50 border border-blue-100 rounded-md px-3 py-2 mb-2">
+                You already have a BizHaus login with this email, from booking a day pass or a
+                room. The password you set here replaces it, and works for everything.
+              </p>
+            )}
             <PasswordInput value={password} onChange={setPassword} required autoComplete="new-password" placeholder="At least 8 characters" />
             <p className="text-xs text-gray-400 mt-1">{PASSWORD_REQUIREMENTS_TEXT}</p>
           </div>

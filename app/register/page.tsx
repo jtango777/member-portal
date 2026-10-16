@@ -16,6 +16,10 @@ type Location = { id: string; name: string }
 
 type FoundInvite = {
   email: string
+  // They already have a BizHaus login from buying a day pass or booking a
+  // room. This flow has no emailed link to prove who they are, so it asks
+  // for that existing password instead of setting a new one.
+  hasExistingLogin: boolean
   defaultLocationId: string | null
   firstName: string | null
   lastName: string | null
@@ -42,6 +46,7 @@ function EmailStep({ onFound }: { onFound: (invite: FoundInvite) => void }) {
     if (data.status === 'ok') {
       onFound({
         email:             data.email,
+        hasExistingLogin:  !!data.has_existing_login,
         defaultLocationId: data.default_location_id ?? null,
         firstName:         data.first_name ?? null,
         lastName:          data.last_name ?? null,
@@ -87,8 +92,9 @@ function EmailStep({ onFound }: { onFound: (invite: FoundInvite) => void }) {
   )
 }
 
-function DetailsStep({ email, defaultLocationId, defaultFirstName, defaultLastName, defaultSeating }: {
+function DetailsStep({ email, hasExistingLogin, defaultLocationId, defaultFirstName, defaultLastName, defaultSeating }: {
   email: string
+  hasExistingLogin: boolean
   defaultLocationId: string | null
   defaultFirstName: string | null
   defaultLastName: string | null
@@ -144,9 +150,16 @@ function DetailsStep({ email, defaultLocationId, defaultFirstName, defaultLastNa
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (password !== password2) { toast.error('Passwords do not match'); return }
-    const pwErr = passwordError(password)
-    if (pwErr) { toast.error(pwErr); return }
+    // When they are signing in with the password they already have, there
+    // is nothing to confirm and nothing to validate: it is whatever it is.
+    // Day pass signup only ever required 8 characters, so running today's
+    // stricter rules over an old password would refuse a perfectly good
+    // one and leave them stuck with no way forward.
+    if (!hasExistingLogin) {
+      if (password !== password2) { toast.error('Passwords do not match'); return }
+      const pwErr = passwordError(password)
+      if (pwErr) { toast.error(pwErr); return }
+    }
     if (!locationId)             { toast.error('Please select a default location'); return }
     if (!seating)                { toast.error('Please select where you sit'); return }
     if (!recaptchaToken)         { toast.error('Please complete the "I\'m not a robot" check'); return }
@@ -205,14 +218,27 @@ function DetailsStep({ email, defaultLocationId, defaultFirstName, defaultLastNa
           </div>
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
-          <PasswordInput value={password} onChange={setPassword} required autoComplete="new-password" placeholder="At least 8 characters" />
-          <p className="text-xs text-gray-400 mt-1">{PASSWORD_REQUIREMENTS_TEXT}</p>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            {hasExistingLogin ? 'Your existing password' : 'Password'}
+          </label>
+          {hasExistingLogin && (
+            <p className="text-xs text-blue-800 bg-blue-50 border border-blue-100 rounded-md px-3 py-2 mb-2">
+              You already have a BizHaus login with this email, from booking a day pass or a room.
+              Enter that same password to add the member portal to it. If you cannot remember it,
+              use <Link href="/forgot-password" className="underline">Forgot password</Link> first.
+            </p>
+          )}
+          <PasswordInput value={password} onChange={setPassword} required
+            autoComplete={hasExistingLogin ? 'current-password' : 'new-password'}
+            placeholder={hasExistingLogin ? 'The password you already use' : 'At least 8 characters'} />
+          {!hasExistingLogin && <p className="text-xs text-gray-400 mt-1">{PASSWORD_REQUIREMENTS_TEXT}</p>}
         </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Confirm Password</label>
-          <PasswordInput value={password2} onChange={setPassword2} required autoComplete="new-password" placeholder="Repeat password" />
-        </div>
+        {!hasExistingLogin && (
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Confirm Password</label>
+            <PasswordInput value={password2} onChange={setPassword2} required autoComplete="new-password" placeholder="Repeat password" />
+          </div>
+        )}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Default Location</label>
           <p className="text-xs text-gray-400 mb-1.5">This will be your default location in Rooms.</p>
@@ -281,6 +307,7 @@ export default function RegisterPage() {
         {invite
           ? <DetailsStep
               email={invite.email}
+              hasExistingLogin={invite.hasExistingLogin}
               defaultLocationId={invite.defaultLocationId}
               defaultFirstName={invite.firstName}
               defaultLastName={invite.lastName}
