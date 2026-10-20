@@ -288,6 +288,23 @@ export default function CalendarView({ locations, profile, company, hourScope, h
   // Admins move a booking to another time or room by dragging its block.
   // Members never get this: their edit path stays the modal, which is where
   // the 12-hour window and hour-allotment warnings live.
+  //
+  // Not on phones and tablets either (Joe, 2026-10-20): a finger is too
+  // easy to land on a block while scrolling, and a mis-drop moves someone's
+  // booking. There a tap opens the modal like it does for members, and a
+  // swipe over a block scrolls the grid. "Mobile" means the main pointer is
+  // a finger — read after mount, like the zoom level, so server and client
+  // render the same thing first.
+  const [touchPrimary, setTouchPrimary] = useState(false)
+  useEffect(() => {
+    const mq = window.matchMedia('(pointer: coarse)')
+    const update = () => setTouchPrimary(mq.matches)
+    update()
+    mq.addEventListener('change', update)
+    return () => mq.removeEventListener('change', update)
+  }, [])
+  const canDrag = profile.is_admin && !touchPrimary
+
   const [drag, setDrag] = useState<DragState | null>(null)
   const dragRef = useRef<DragState | null>(null)
   // Room column elements, measured live on every pointermove — the columns
@@ -320,7 +337,7 @@ export default function CalendarView({ locations, profile, company, hourScope, h
   }
 
   function handleBlockPointerDown(e: React.PointerEvent, res: Reservation, roomId: string) {
-    if (!profile.is_admin || e.button !== 0) return
+    if (!canDrag || e.button !== 0) return
     const col = colRefs.current[roomId]
     if (!col) return
     const startSlot = Math.max(0, timeToSlot(res.start_time))
@@ -912,14 +929,14 @@ export default function CalendarView({ locations, profile, company, hourScope, h
                           onPointerDown={e => handleBlockPointerDown(e, res, room.id)}
                           style={{
                             top: top + 2, height: height - 4, position: 'absolute', left: 3, right: 3,
-                            // Only admins drag, and only they need the browser
-                            // to stop treating a press on a block as the start
+                            // Only someone who can drag needs the browser to
+                            // stop treating a press on a block as the start
                             // of a touch scroll.
-                            touchAction: profile.is_admin ? 'none' : undefined,
+                            touchAction: canDrag ? 'none' : undefined,
                           }}
                           className={cn(
                             'rounded-md px-2 py-1 z-10 overflow-hidden',
-                            profile.is_admin ? 'cursor-grab active:cursor-grabbing' : 'cursor-pointer',
+                            canDrag ? 'cursor-grab active:cursor-grabbing' : 'cursor-pointer',
                             // The original fades while its ghost is out under
                             // the pointer, so it's obvious which one is live.
                             isDragged && 'opacity-40',
