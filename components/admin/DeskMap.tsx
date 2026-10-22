@@ -2,24 +2,36 @@
 
 import { useState } from 'react'
 import toast from 'react-hot-toast'
+import type { StaticImageData } from 'next/image'
+import { Download } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { DESK_NAME_MAX, type DeskPlan, type DeskSeat } from '@/lib/deskPlans'
-import podsImage from '@/assets/floor-plans/el-segundo-main-pods.png'
-import buildingImage from '@/assets/floor-plans/el-segundo-main-building.png'
+import { renderDeskChartJpg, downloadBlob } from '@/lib/deskChartExport'
+import elSegundoPods from '@/assets/floor-plans/el-segundo-main-pods.png'
+import elSegundoBuilding from '@/assets/floor-plans/el-segundo-main-building.png'
+import marinaDelRey from '@/assets/floor-plans/marina-del-rey.png'
 
-// The El Segundo pods with a name box on every desk. Each box sits over its
-// chair: the rooms are too narrow to fit a ten-character box beside a chair
-// without it running into the next pod's boxes (Joe, 2026-10-21).
+// A seating chart: a floor plan with a name box on every seat (Joe,
+// 2026-10-21). Saves when a box loses focus or on Enter; Escape puts back
+// what was there.
 //
-// Saves when a box loses focus or on Enter; Escape puts back what was there.
-// The image is imported rather than served from /public so the plan is not
-// sitting at a guessable public address.
+// Every change is also logged to desk_assignment_history (migration 061).
+// Nothing reads it yet: a "show the chart as of a date" view was built and
+// then taken out (Joe, 2026-10-22), keeping the log so it can come back.
+//
+// Images are imported rather than served from /public so the plans are not
+// sitting at a guessable public address. Kept here rather than in
+// lib/deskPlans.ts, which the API route also imports.
+const IMAGES: Record<string, { plan: StaticImageData; overview?: StaticImageData; overviewAlt?: string }> = {
+  'el-segundo-main': { plan: elSegundoPods, overview: elSegundoBuilding, overviewAlt: 'Floor plan of the El Segundo main building' },
+  'marina-del-rey':  { plan: marinaDelRey },
+}
 
-// Wide enough for ten characters in every box; narrower screens scroll.
-const MIN_WIDTH = 960
-// Box size as a share of the image, so boxes scale with it.
-const BOX_W = 0.088
-const BOX_H = 0.034
+// Text shrinks to fit its box rather than being cut off, but never below
+// this; past it, hover shows the whole name. Widths are in `cqw`, a share of
+// the map's own width, so the fit holds at any size the map is drawn.
+const MIN_FONT_PX = 8
+const CHAR_EM = 0.55
 
 type Status = 'idle' | 'saving' | 'saved' | 'error'
 
@@ -27,10 +39,11 @@ export default function DeskMap({ plan, initialNames }: { plan: DeskPlan; initia
   const [saved, setSaved]   = useState<Record<string, string>>(initialNames)
   const [drafts, setDrafts] = useState<Record<string, string>>(initialNames)
   const [status, setStatus] = useState<Record<string, Status>>({})
-  const [showBuilding, setShowBuilding] = useState(false)
+  const [showOverview, setShowOverview] = useState(false)
+  const [exporting, setExporting] = useState(false)
 
-  const seatCount = plan.pods.reduce((n, p) => n + p.seats.length, 0)
-  const assigned  = Object.values(saved).filter(Boolean).length
+  const images   = IMAGES[plan.id]
+  const assigned = plan.seats.filter(s => saved[s.id]).length
 
   async function save(seat: DeskSeat) {
     const name = (drafts[seat.id] ?? '').trim()
@@ -46,45 +59,96 @@ export default function DeskMap({ plan, initialNames }: { plan: DeskPlan; initia
         body: JSON.stringify({ plan: plan.id, desk: seat.id, name }),
       })
       const json = await res.json().catch(() => ({}))
-      if (!res.ok) throw new Error(json.error ?? 'Could not save that desk.')
+      if (!res.ok) throw new Error(json.error ?? 'Could not save that seat.')
       setSaved(s => ({ ...s, [seat.id]: name }))
       setDrafts(d => ({ ...d, [seat.id]: name }))
       setStatus(s => ({ ...s, [seat.id]: 'saved' }))
       setTimeout(() => setStatus(s => (s[seat.id] === 'saved' ? { ...s, [seat.id]: 'idle' } : s)), 1500)
     } catch (err) {
       setStatus(s => ({ ...s, [seat.id]: 'error' }))
-      toast.error(`Desk ${seat.id}: ${err instanceof Error ? err.message : 'Could not save.'}`)
+      toast.error(`${seat.label ?? seat.id}: ${err instanceof Error ? err.message : 'Could not save.'}`)
     }
   }
 
+  // Saved names only: a box still being typed in isn't on the chart yet.
+  async function exportJpg() {
+    setExporting(true)
+    try {
+      const now = new Date()
+      const blob = await renderDeskChartJpg(plan, images.plan.src, saved, now)
+      const day = now.toLocaleDateString('en-CA')   // YYYY-MM-DD
+      downloadBlob(blob, `${plan.slug}-seating-chart-${day}.jpg`)
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Could not export the chart.')
+    } finally {
+      setExporting(false)
+    }
+  }
+
+  const yellow = plan.boxTone === 'yellow'
+
   return (
     <div className="bg-white rounded-xl border border-gray-200">
-      <div className="px-5 py-4 border-b border-gray-100 flex flex-wrap items-baseline justify-between gap-2">
-        <div>
-          <h2 className="text-sm font-semibold text-gray-900">Desk assignments · {plan.title}</h2>
-          <p className="text-xs text-gray-400 mt-0.5">
-            Type a name in a desk&apos;s box to assign it, or clear the box to free it. Changes save as you leave the box.
-          </p>
+      <div className="px-5 py-4 border-b border-gray-100 flex flex-wrap items-center justify-between gap-2">
+        <p className="text-xs text-gray-400">
+          Type a name in a box to assign that seat, or clear the box to free it. Changes save as you leave the box.
+        </p>
+        <div className="flex items-center gap-3">
+          <p className="text-xs text-gray-500 tabular-nums">{assigned} of {plan.seats.length} assigned</p>
+          {plan.exportable && (
+            <button
+              onClick={exportJpg}
+              disabled={exporting}
+              className="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-md border border-gray-300 text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+            >
+              <Download size={13} />
+              {exporting ? 'Exporting…' : 'Export'}
+            </button>
+          )}
         </div>
-        <p className="text-xs text-gray-500 tabular-nums">{assigned} of {seatCount} desks assigned</p>
       </div>
 
       <div className="overflow-x-auto p-4">
-        <div className="relative mx-auto" style={{ minWidth: MIN_WIDTH, aspectRatio: `${plan.width} / ${plan.height}` }}>
+        <div className="relative mx-auto"
+          style={{ minWidth: plan.minWidth, aspectRatio: `${plan.width} / ${plan.height}`, containerType: 'inline-size' }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={podsImage.src} alt={`Floor plan of pods ${plan.pods[0].number}–${plan.pods[plan.pods.length - 1].number}`}
-            className="absolute inset-0 w-full h-full select-none" draggable={false} />
-          {plan.pods.flatMap(p => p.seats).map(seat => {
+          <img src={images.plan.src} alt={plan.imageAlt} className="absolute inset-0 w-full h-full select-none" draggable={false} />
+          {plan.labels?.map((l, i) => (
+            <span
+              key={i}
+              aria-hidden
+              className="absolute whitespace-pre text-center leading-none text-gray-900 pointer-events-none select-none"
+              style={{
+                left: `${(l.x / plan.width) * 100}%`,
+                top:  `${(l.y / plan.height) * 100}%`,
+                fontSize: `${(l.size / plan.width) * 100}cqw`,
+                fontFamily: 'Arial, Helvetica, sans-serif',
+                transform: `translate(-50%, -50%)${l.rotate ? ` rotate(${l.rotate}deg)` : ''}`,
+              }}
+            >
+              {l.text}
+            </span>
+          ))}
+          {plan.seats.map(seat => {
             const st = status[seat.id] ?? 'idle'
+            const label = seat.label ?? seat.id
+            const value = drafts[seat.id] ?? ''
+            // Sized and placed as if horizontal, then turned about its centre,
+            // so a sideways box's length runs down the plan. The map keeps the
+            // image's aspect ratio, so the length stays the same on screen.
+            const w = seat.w ?? plan.boxW
+            const h = seat.h ?? plan.boxH
+            const hint = seat.placeholder ?? label
+            const fitCqw = ((w / plan.width) * 100 * 0.85) / (Math.max((value || hint).length, 1) * CHAR_EM)
             return (
               <input
                 key={seat.id}
                 type="text"
-                value={drafts[seat.id] ?? ''}
+                value={value}
                 maxLength={DESK_NAME_MAX}
-                placeholder={seat.id}
-                aria-label={`Desk ${seat.id}`}
-                title={`Desk ${seat.id}`}
+                placeholder={hint}
+                aria-label={label}
+                title={value ? `${value} · ${label}` : label}
                 onChange={e => setDrafts(d => ({ ...d, [seat.id]: e.target.value }))}
                 onBlur={() => save(seat)}
                 onKeyDown={e => {
@@ -96,19 +160,23 @@ export default function DeskMap({ plan, initialNames }: { plan: DeskPlan; initia
                 }}
                 style={{
                   position: 'absolute',
-                  left:   `${(seat.x / plan.width - BOX_W / 2) * 100}%`,
-                  top:    `${(seat.y / plan.height - BOX_H / 2) * 100}%`,
-                  width:  `${BOX_W * 100}%`,
-                  height: `${BOX_H * 100}%`,
+                  left:   `${((seat.x - w / 2) / plan.width) * 100}%`,
+                  top:    `${((seat.y - h / 2) / plan.height) * 100}%`,
+                  width:  `${(w / plan.width) * 100}%`,
+                  height: `${(h / plan.height) * 100}%`,
+                  fontSize: `max(${MIN_FONT_PX}px, min(${plan.fontPx}px, ${fitCqw.toFixed(3)}cqw))`,
+                  transform: seat.vertical ? 'rotate(-90deg)' : undefined,
                 }}
                 className={cn(
-                  'rounded px-1 text-xs text-center text-gray-900 shadow-sm outline-none transition-colors',
-                  'placeholder:text-gray-300 focus:ring-2 focus:ring-blue-500',
-                  drafts[seat.id] ? 'bg-white font-medium' : 'bg-white/80',
+                  'rounded px-px text-center text-gray-900 shadow-sm outline-none transition-colors',
+                  'placeholder:text-gray-300 focus:ring-2 focus:ring-blue-500 focus:z-10',
+                  yellow
+                    ? (value ? 'bg-yellow-200 font-medium' : 'bg-yellow-200/70')
+                    : (value ? 'bg-white font-medium' : 'bg-white/80'),
                   st === 'saving' ? 'border border-amber-400'
                     : st === 'saved' ? 'border border-emerald-500'
                     : st === 'error' ? 'border-2 border-red-500'
-                    : 'border border-gray-300',
+                    : yellow ? 'border border-yellow-500' : 'border border-gray-300',
                 )}
               />
             )
@@ -116,15 +184,17 @@ export default function DeskMap({ plan, initialNames }: { plan: DeskPlan; initia
         </div>
       </div>
 
-      <div className="px-5 py-3 border-t border-gray-100">
-        <button onClick={() => setShowBuilding(v => !v)} className="text-xs font-medium text-blue-600 hover:text-blue-700">
-          {showBuilding ? 'Hide' : 'Show'} the whole building
-        </button>
-        {showBuilding && (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={buildingImage.src} alt="Floor plan of the El Segundo main building" className="mt-3 w-full h-auto rounded border border-gray-100" />
-        )}
-      </div>
+      {images.overview && (
+        <div className="px-5 py-3 border-t border-gray-100">
+          <button onClick={() => setShowOverview(v => !v)} className="text-xs font-medium text-blue-600 hover:text-blue-700">
+            {showOverview ? 'Hide' : 'Show'} the whole building
+          </button>
+          {showOverview && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={images.overview.src} alt={images.overviewAlt ?? ''} className="mt-3 w-full h-auto rounded border border-gray-100" />
+          )}
+        </div>
+      )}
     </div>
   )
 }
