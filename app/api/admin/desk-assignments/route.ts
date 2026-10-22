@@ -2,9 +2,10 @@ import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 import { DESK_NAME_MAX, isDeskOnPlan } from '@/lib/deskPlans'
 
-// Saves the name written against one desk on Admin -> Labs. Clearing the
-// box frees the desk, so an empty name deletes the row rather than storing
-// a blank.
+// Saves the name written against one seat on a Labs seating chart. Clearing
+// a box frees the seat, so an empty name deletes the row rather than storing
+// a blank. Every change also lands in desk_assignment_history by trigger
+// (migration 061), kept for a "chart as of a date" view that may come back.
 
 async function assertAdmin() {
   const supabase = await createClient()
@@ -20,7 +21,7 @@ export async function PUT(request: Request) {
 
   const { plan, desk, name: rawName } = await request.json()
   if (typeof plan !== 'string' || typeof desk !== 'string' || !isDeskOnPlan(plan, desk)) {
-    return NextResponse.json({ error: 'Unknown desk.' }, { status: 400 })
+    return NextResponse.json({ error: 'Unknown seat.' }, { status: 400 })
   }
   const name = typeof rawName === 'string' ? rawName.trim() : ''
   if (name.length > DESK_NAME_MAX) {
@@ -28,13 +29,20 @@ export async function PUT(request: Request) {
   }
 
   const admin = createAdminClient()
-  const { error } = name
-    ? await admin.from('desk_assignments').upsert({ plan, desk, name, updated_at: new Date().toISOString(), updated_by: user.id })
-    : await admin.from('desk_assignments').delete().eq('plan', plan).eq('desk', desk)
+  const now = new Date().toISOString()
+  let error
+  if (name) {
+    ;({ error } = await admin.from('desk_assignments').upsert({ plan, desk, name, updated_at: now, updated_by: user.id }))
+  } else {
+    // Stamp who is clearing it first, so the history row the delete writes
+    // says who freed the seat. Same name, so the stamp itself records nothing.
+    await admin.from('desk_assignments').update({ updated_at: now, updated_by: user.id }).eq('plan', plan).eq('desk', desk)
+    ;({ error } = await admin.from('desk_assignments').delete().eq('plan', plan).eq('desk', desk))
+  }
 
   if (error) {
     console.error('[admin/desk-assignments] Save failed:', error.message)
-    return NextResponse.json({ error: 'Could not save that desk. Please try again.' }, { status: 500 })
+    return NextResponse.json({ error: 'Could not save that seat. Please try again.' }, { status: 500 })
   }
   return NextResponse.json({ ok: true, name })
 }
