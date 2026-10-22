@@ -188,7 +188,8 @@ export const MARINA_DEL_REY: DeskPlan = {
   ],
 }
 
-export const DESK_PLAN_LIST: DeskPlan[] = [EL_SEGUNDO_MAIN, MARINA_DEL_REY]
+// In the order the Labs page lists them: Marina first (Joe, 2026-10-22).
+export const DESK_PLAN_LIST: DeskPlan[] = [MARINA_DEL_REY, EL_SEGUNDO_MAIN]
 export const DESK_PLANS: Record<string, DeskPlan> = Object.fromEntries(DESK_PLAN_LIST.map(p => [p.id, p]))
 export const deskPlanBySlug = (slug: string) => DESK_PLAN_LIST.find(p => p.slug === slug)
 

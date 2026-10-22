@@ -11,7 +11,7 @@ export default function AdminLabsPage() {
         <h1 className="text-xl font-bold text-gray-900">Labs</h1>
         <p className="text-sm text-gray-500 mt-1">Experimental tools. Things here may change or move.</p>
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 gap-4 max-w-xl">
         {DESK_PLAN_LIST.map(plan => (
           <Link key={plan.id} href={`/dashboard/admin/labs/${plan.slug}`}
             className="group bg-white rounded-xl border border-gray-200 p-5 hover:border-blue-300 hover:shadow-sm transition">
