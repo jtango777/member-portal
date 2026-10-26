@@ -14,6 +14,7 @@ type BookRoom = {
   capacity: number
   price_per_hour: number
   description?: string | null
+  photo_urls?: string[] | null
 }
 
 type BookLocation = {
@@ -25,23 +26,12 @@ type BookLocation = {
 const CONTACT_PHONE = '(310) 870-1730'
 const CONTACT_EMAIL = 'bookings@bizhaus.com'
 
-// Keyed by "location-slug:external_name" — arrays support carousel; first image is the cover
-const ROOM_IMAGES: Record<string, string[]> = {
-  'el-segundo:Large':     ['/rooms/es-large.jpg'],
-  // DO NOT "FIX" THESE TO MATCH THE FILENAMES. The two El Segundo files are
-  // misnamed: es-medium.jpg is the Medium + room and es-medium-plus.jpg is
-  // the Medium. I swapped them on 2026-09-28 to match their names, counting
-  // chairs in the photos to justify it, and Caroline corrected it on
-  // 2026-10-01 — she knows which room is which, the filenames do not.
-  'el-segundo:Medium +':  ['/rooms/es-medium.jpg'],
-  'el-segundo:Medium':    ['/rooms/es-medium-plus.jpg'],
-  'el-segundo:Small':     ['/rooms/es-small.jpg'],
-  'marina-del-rey:Small': ['/rooms/mdr-conference-3.jpg', '/rooms/mdr-conference-2.jpg'],
-  'costa-mesa:Large':     ['/rooms/cm-large.jpg', '/rooms/cm-large-2.jpg'],
-  'costa-mesa:Medium +':  ['/rooms/cm-medium-plus.jpg'],
-  'costa-mesa:Medium':    ['/rooms/cm-medium.jpg'],
-  'costa-mesa:Small':     ['/rooms/cm-small.jpg'],
-}
+// Room photos come from rooms.photo_urls, chosen by admins on Conference
+// Rooms -> External Rooms (Joe, 2026-10-26); several make a carousel and the
+// first is the cover. They were a list here until then. Note for anyone
+// looking at public/rooms: es-medium.jpg shows the Medium + room and
+// es-medium-plus.jpg the Medium. The filenames are wrong, not the
+// assignment (Caroline, 2026-10-01; see migration 062).
 
 
 
@@ -266,9 +256,9 @@ export default function AvailabilityView({ location, rooms, closures }: { locati
                   <Check size={14} strokeWidth={3} />
                 </span>
               )}
-              {/* ── Room image / carousel ── add arrays to ROOM_IMAGES above as photos become available ── */}
+              {/* ── Room image / carousel ── set by admins, see the note above ── */}
               {(() => {
-                const images = ROOM_IMAGES[`${location.slug}:${room.external_name}`]
+                const images = room.photo_urls
                 const idx = carouselIndex[room.id] ?? 0
                 return (
                   <div className="relative bg-gray-100 aspect-[16/10] overflow-hidden">
