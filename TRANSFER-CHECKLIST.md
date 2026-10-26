@@ -1,131 +1,134 @@
-# Account transfer checklist
+# Transfer checklist
 
-Built from the code on 2026-10-26, not from memory. Every external service
-the five production projects actually depend on, found by reading every
-environment variable and every outbound hostname in all five repositories.
+Caroline's last day is **Wednesday 2026-10-28**. Work down this page in order.
 
-Caroline's last day is **Wednesday 2026-10-28**. Anything still in her name
-after that is reachable only by asking her as a favour.
-
-Mark each line **done** as it is transferred. A line that is not ticked is a
-thing that stops working, or stops being changeable, when her access ends.
-
-**As of 2026-10-26 the list is down to two that genuinely matter:**
-
-1. **Who owns the Intuit developer app.** Unknown, and the only item that
-   could cost money silently.
-2. **The Vercel transfer.** Five production sites on a personal account.
-
-Everything else is either already Joe's or does not bite. Joe has confirmed
-access to GoDaddy, Flywheel and Pipedrive, and has been committing to the
-BizHaus portal repository all month, so he can already ship code.
+Built from the code on 2026-10-26: every environment variable and every
+outbound hostname across all five production repositories, so nothing here is
+from memory.
 
 ---
 
-## The five production projects
+## Step 1 — Send Joe this, now
 
-| Project | What it serves | Repo | Vercel project |
+Seven items below cannot be decided without his answer.
+
+> Joe, before Wednesday I need to know which of these you can already log
+> into, so I only hand over the ones you can't. Just try each and tell me yes
+> or no, you don't need to change anything.
+>
+> 1. Vercel (hosts all five websites)
+> 2. Supabase — BizHaus member database
+> 3. Supabase — Tucson booking database
+> 4. Supabase — Tucson mail database
+> 5. Resend — BizHaus email account
+> 6. Resend — Tucson email account
+> 7. Intuit / QuickBooks developer app
+> 8. Google reCAPTCHA
+> 9. UptimeRobot
+
+- [ ] Sent
+
+---
+
+## Step 2 — The two that bite
+
+### Intuit / QuickBooks
+
+**Why it matters:** if this app sits on Caroline's personal Intuit login,
+every automatic sales receipt and payout deposit stops the day her account
+goes, and stops **silently**. This is the bookkeeping for three legal
+entities.
+
+- [ ] Open developer.intuit.com, find the app whose client ID starts
+      `ABx9nZXS`, and see whose account it belongs to
+- [ ] If it is Caroline's personal login: add Joe, or recreate the app under a
+      company Intuit account and update `QB_CLIENT_ID` / `QB_CLIENT_SECRET` in
+      Vercel
+
+### Vercel
+
+**Why it matters:** five live sites, one personal account. Nobody else can
+change an environment variable, rotate a key, or see the bill. Joe can still
+ship code, because he pushes to GitHub and Vercel builds automatically.
+
+- [ ] Get a name, an email and a company card from Joe
+- [ ] Create a company Vercel team
+- [ ] Transfer each project: Settings → General → **Transfer Project**
+      - [ ] `bizhaus`
+      - [ ] `tucsontherapysuites`
+      - [ ] `tucson-therapy-booking`
+      - [ ] `tucson-mail`
+      - [ ] `industrialforrent`
+- [ ] Check environment variables and domains survived each move, then redeploy
+
+---
+
+## Step 3 — Once Joe answers
+
+Tick the ones he can already reach. For each **no**, do the action.
+
+| # | Service | What it holds | If he says no |
 |---|---|---|---|
-| BizHaus portal | members.bizhaus.com, bookings.bizhaus.com | `carolinebizhaus/portal` | `bizhaus` |
-| Tucson marketing | tucsontherapysuites.com | `carolinebizhaus/TucsonTherapySuites` | `tucsontherapysuites` |
-| Tucson booking | book.tucsontherapysuites.com | `joetherapy/tucsontherapybooking` | `tucson-therapy-booking` |
-| Tucson mail | mail.tucsontherapysuites.com | `carolinebizhaus/tucsonmailservice` | `tucson-mail` |
-| Secura Way | industrialforrent.com | `carolinebizhaus/industrialforrent` | `industrialforrent` |
+| 1 | Supabase, BizHaus production | members, companies, bookings | Add him as owner |
+| 2 | Supabase, Tucson booking | room bookings | Add him as owner |
+| 3 | Supabase, Tucson mail | mail members, suites | Add him as owner |
+| 4 | Resend, BizHaus | sends every member + booking email | Invite as member |
+| 5 | Resend, Tucson | sends every Tucson email | Invite as member |
+| 6 | Google reCAPTCHA | spam protection on booking forms | Move to a company Google account |
+| 7 | UptimeRobot | alert when a site goes down | Invite or move |
+
+- [ ] 1  - [ ] 2  - [ ] 3  - [ ] 4  - [ ] 5  - [ ] 6  - [ ] 7
 
 ---
 
-## 1. Hosting and code
+## Step 4 — GitHub
 
-- [ ] **Vercel.** All five projects are on `caroline-2678's projects`, a
-  personal account on the paid Pro plan. Nobody else can deploy, change a
-  setting, or see the bill. Create a company team, then Project → Settings →
-  General → **Transfer Project** for each of the five. Environment variables
-  and domains normally travel with the project; check both afterwards and
-  redeploy rather than assuming. **Needs a company card from Joe.**
-- [ ] **GitHub.** Four of the five repos are on Caroline's personal account
-  (`carolinebizhaus`). Only the Tucson booking repo is Joe's. Create an
-  organisation and transfer them, or at minimum add an owner.
+Joe already commits to `carolinebizhaus/portal`, so he has that one. The other
+three are unchecked.
 
-## 2. Data
+- [ ] `carolinebizhaus/TucsonTherapySuites`
+- [ ] `carolinebizhaus/tucsonmailservice`
+- [ ] `carolinebizhaus/industrialforrent`
 
-- [ ] **Supabase, BizHaus production.** Project `chynzjrhyuavuuewfcap`. Holds
-  members, companies, bookings, customers. Add the successor as owner.
-- [ ] **Supabase, BizHaus staging.** `urecohfkovxfprtxqchl`, already on Joe's
-  account. Confirm only.
-- [ ] **Supabase, Tucson booking.** Its own project. Add an owner.
-- [ ] **Supabase, Tucson mail.** Its own project. Add an owner.
-- [x] **Vercel Blob storage.** Secura Way uses `BLOB_READ_WRITE_TOKEN` for its
-  listing images. Nothing separate to do: it belongs to the `industrialforrent`
-  project and travels with it when that project transfers.
-
-## 3. Money
-
-- [ ] **Stripe, BizHaus.** Three accounts, one per legal entity (El Segundo,
-  Marina del Rey, Costa Mesa) in one organisation. Joe is the account
-  representative, so access survives. Remove Caroline when she leaves.
-- [x] **Stripe, Tucson.** `acct_1UQ9RtPmqanCGeIo`. Live since 2026-10-26.
-  Two-factor codes go to Joe's phone, which is the right end state: it is his
-  business and his account. Caroline needed him present to administer it,
-  which will not be true of whoever comes next.
-- [ ] **Intuit developer app (QuickBooks).** `QB_CLIENT_ID` starting
-  `ABx9nZXS`. **Owner unconfirmed and this is the sharpest risk on the
-  list.** If it sits on Caroline's personal Intuit login, every automatic
-  sales receipt and payout deposit stops when her account goes, silently.
-  Find out who owns it before Wednesday.
-
-## 4. Email
-
-- [ ] **Resend, BizHaus account.** Holds the verified `bizhaus.com` sending
-  domain. Caroline's login. Invite the successor as a member.
-- [ ] **Resend, Tucson account.** Holds `tucsontherapysuites.com`, verified
-  2026-10-26. Confirm who owns it and add an owner.
-- [ ] **Google Workspace.** Both domains route mail through Google
-  (`aspmx.l.google.com`, `smtp.google.com`). Not Caroline's to transfer, but
-  whoever administers it should be recorded.
-- [ ] **`STAFF_NOTIFICATION_EMAIL`** is `hello@bizhaus.com` as of 2026-10-16.
-  An `alerts@bizhaus.com` group would be better; see `HANDOFF.md` section 2.
-
-## 5. Domains and DNS
-
-- [x] **GoDaddy.** `bizhaus.com`, `tucsontherapysuites.com` and
-  `industrialforrent.com` all use GoDaddy nameservers. **Joe has access,
-  confirmed 2026-10-26.**
-- [x] **Flywheel.** Hosts the bizhaus.com WordPress site. BizHaus owns the
-  account, not Wise. Use Flywheel's WP-ADMIN button for real admin.
-  **Joe has access, confirmed 2026-10-26.**
-
-## 6. Everything else referenced in code
-
-- [x] **Pipedrive.** `PIPEDRIVE_API_TOKEN`, used by the member import to mark
-  people as current members. **Joe has access, confirmed 2026-10-26.** Low
-  risk regardless: if the token stops working the invite still goes out and
-  the failure is logged, so nothing breaks quietly.
-- [ ] **Google reCAPTCHA.** `RECAPTCHA_SECRET_KEY` and site key, on Caroline's
-  Google account. Move to a company Google account.
-- [ ] **UptimeRobot.** Alerts if the site goes down. Caroline's login.
-- [ ] **Google Ads.** Conversion tag lives in this codebase; tell whoever runs
-  the ads account that it does.
+Either transfer them to an organisation, or add Joe as a collaborator on each.
+`joetherapy/tucsontherapybooking` is already his.
 
 ---
 
-## What does not need transferring
+## Step 5 — Last, once Joe has tested
 
-These were checked and are fine:
+- [ ] Add the Book Now link to tucsontherapysuites.com
+- [ ] Add the /book link to bizhaus.com (WordPress, via Flywheel's WP-ADMIN)
 
-- Stripe BizHaus access, because Joe is already the account representative.
-- The staging Supabase project and the staging GitHub repo, both already Joe's.
-- The Tucson booking repo, already on Joe's GitHub.
+Both products are live, tested and taking real payments. They are reachable
+from nowhere until these links exist.
 
 ---
 
-## The test that actually proves it
+## Already confirmed, nothing to do
 
-Transferring is not the same as working. Before Wednesday, watch somebody
-else, in front of you:
+| Service | Status |
+|---|---|
+| GoDaddy (all three domains) | Joe has access, 2026-10-26 |
+| Flywheel (bizhaus.com WordPress) | Joe has access, 2026-10-26 |
+| Pipedrive | Joe has access. Low risk anyway: a dead token logs an error, the invite still sends |
+| Stripe, BizHaus | Joe is the account representative, access survives. Remove Caroline when she goes |
+| Stripe, Tucson | 2FA goes to Joe's phone, which is the right end state |
+| Supabase staging | Already on Joe's account |
+| Vercel Blob (Secura Way images) | Belongs to the `industrialforrent` project, moves with it |
+| Google Workspace | Not Caroline's to transfer |
+| Google Ads | Nothing to move. Tell whoever runs it that the conversion tag lives in this codebase |
 
-1. Deploy a change to one of the five sites.
-2. Log in to Supabase and open a table.
-3. Open the QuickBooks admin page in the portal.
+---
 
-If they cannot do all three without asking Caroline for anything, the
-transfer is not finished, whatever the ticks above say.
+## The test that proves it worked
+
+Transferring is not the same as working. Before Wednesday, watch someone
+else, sitting in front of you, do all three:
+
+- [ ] Deploy a change to one of the five sites
+- [ ] Log in to Supabase and open a table
+- [ ] Open the QuickBooks admin page in the portal
+
+If they need to ask Caroline for anything, it is not finished, whatever is
+ticked above.
