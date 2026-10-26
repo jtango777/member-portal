@@ -73,6 +73,18 @@ export const DAY_PASS_LOCATIONS: readonly DayPassLocation[] = [
   },
 ]
 
+/** El Segundo's front desk: the main line, for anything not tied to one location. */
+export const MAIN_PHONE = '(310) 870-1730'
+
+/**
+ * The number a conference room customer should call about a booking at this
+ * location. Each location's booking page used to show the El Segundo line,
+ * Costa Mesa's included (Joe, 2026-10-26).
+ */
+export function bookingPhoneFor(locationId: string | null | undefined): string {
+  return DAY_PASS_LOCATIONS.find(l => l.id === locationId)?.phone ?? MAIN_PHONE
+}
+
 // Keyed by the exact `locations.name` value, which is what the emails and
 // the bookings list have in hand rather than an id.
 export const DAY_PASS_LOCATIONS_BY_NAME: Record<string, DayPassLocation> =

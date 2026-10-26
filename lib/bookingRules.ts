@@ -10,6 +10,8 @@
 // functions the routes do.
 // Closure days come from the database now (admin can edit them), so they're
 // passed in rather than imported. `{ "2026-12-25": "Christmas Day" }`.
+import { MAIN_PHONE } from '@/lib/locations'
+
 export type ClosureMap = Record<string, string>
 
 /** Bookable hours, Pacific. Anything outside these is arranged by phone. */
@@ -24,7 +26,10 @@ export const MIN_BOOKING_MINUTES = 30
  *  (Caroline, 2026-09-22). */
 export const MAX_BOOKING_MONTHS_AHEAD = 6
 
-export const CONTACT_LINE = 'For anything outside those hours, call (310) 870-1730 or email bookings@bizhaus.com.'
+// The phone number in these messages is the booking's location's, passed
+// in by the caller (see bookingPhoneFor); without one, the main line.
+const contactLine = (phone: string) =>
+  `For anything outside those hours, call ${phone} or email bookings@bizhaus.com.`
 
 const PT = 'America/Los_Angeles'
 
@@ -63,10 +68,10 @@ export function isWeekendDate(date: string): boolean {
 
 /** Why this date can't be booked, or null if it can. Dates only — the time
  *  checks live in roomBookingError below. Used by the date picker too. */
-export function dateUnavailableReason(date: string, closures: ClosureMap = {}): string | null {
+export function dateUnavailableReason(date: string, closures: ClosureMap = {}, phone: string = MAIN_PHONE): string | null {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return 'Please choose a date.'
   if (date < pacificToday()) return 'That date has already passed.'
-  if (isWeekendDate(date)) return 'Weekend bookings are arranged by phone. Call (310) 870-1730 or email bookings@bizhaus.com.'
+  if (isWeekendDate(date)) return `Weekend bookings are arranged by phone. Call ${phone} or email bookings@bizhaus.com.`
   if (closures[date]) return `We're closed on ${closures[date]}. Please pick another day.`
   if (date > lastBookableDate()) return `Rooms can be booked up to ${MAX_BOOKING_MONTHS_AHEAD} months ahead. For something further out, email bookings@bizhaus.com.`
   return null
@@ -76,8 +81,10 @@ export function dateUnavailableReason(date: string, closures: ClosureMap = {}): 
  * The single check both /api/book routes run. Returns an error message to
  * show the customer, or null when the booking is allowed.
  */
-export function roomBookingError(date: string, start: string, end: string, closures: ClosureMap = {}): string | null {
-  const dateProblem = dateUnavailableReason(date, closures)
+export function roomBookingError(
+  date: string, start: string, end: string, closures: ClosureMap = {}, phone: string = MAIN_PHONE,
+): string | null {
+  const dateProblem = dateUnavailableReason(date, closures, phone)
   if (dateProblem) return dateProblem
 
   const startMin = toMinutes(start)
@@ -91,7 +98,7 @@ export function roomBookingError(date: string, start: string, end: string, closu
     return `Bookings are at least ${MIN_BOOKING_MINUTES} minutes long.`
   }
   if (startMin < OPEN_MINUTES || endMin > CLOSE_MINUTES) {
-    return `Rooms are bookable between 9:00 AM and 5:00 PM. ${CONTACT_LINE}`
+    return `Rooms are bookable between 9:00 AM and 5:00 PM. ${contactLine(phone)}`
   }
   if (date === pacificToday() && startMin <= pacificNowMinutes()) {
     return 'That start time has already passed today. Please pick a later time.'
