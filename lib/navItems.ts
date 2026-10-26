@@ -1,5 +1,5 @@
 import {
-  Mail, LayoutDashboard, DoorOpen, Smile, CalendarClock, Users, Building2, Megaphone, BarChart2, BookOpen, Clock, Activity, MessageSquare, CreditCard, UserCircle } from 'lucide-react'
+  Mail, LayoutDashboard, DoorOpen, Smile, CalendarClock, Users, Building2, Megaphone, BarChart2, BookOpen, Clock, Activity, MessageSquare, CreditCard, UserCircle, FlaskConical } from 'lucide-react'
 
 export type NavItem = { href: string; label: string; icon: React.ElementType; indent?: boolean }
 
@@ -64,6 +64,13 @@ export const adminManageGroups: NavGroup[] = [
     label: 'Integrations',
     items: [
       { href: '/dashboard/admin/quickbooks', label: 'QuickBooks', icon: BookOpen },
+    ],
+  },
+  {
+    // Tools being tried out; for now the El Segundo desk map (Joe, 2026-10-21).
+    label: 'Labs',
+    items: [
+      { href: '/dashboard/admin/labs', label: 'Labs', icon: FlaskConical },
     ],
   },
 ]

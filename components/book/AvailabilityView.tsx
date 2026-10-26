@@ -7,6 +7,7 @@ import { ArrowLeft, Check, ImageIcon, Phone, Mail, ChevronLeft, ChevronRight, Cl
 import { cn } from '@/lib/utils'
 import MiniDatePicker from '@/components/MiniDatePicker'
 import { dateUnavailableReason, lastBookableDate, MAX_BOOKING_MONTHS_AHEAD, type ClosureMap } from '@/lib/bookingRules'
+import { bookingPhoneFor } from '@/lib/locations'
 
 type BookRoom = {
   id: string
@@ -14,6 +15,7 @@ type BookRoom = {
   capacity: number
   price_per_hour: number
   description?: string | null
+  photo_urls?: string[] | null
 }
 
 type BookLocation = {
@@ -22,26 +24,14 @@ type BookLocation = {
   slug: string
 }
 
-const CONTACT_PHONE = '(310) 870-1730'
 const CONTACT_EMAIL = 'bookings@bizhaus.com'
 
-// Keyed by "location-slug:external_name" — arrays support carousel; first image is the cover
-const ROOM_IMAGES: Record<string, string[]> = {
-  'el-segundo:Large':     ['/rooms/es-large.jpg'],
-  // DO NOT "FIX" THESE TO MATCH THE FILENAMES. The two El Segundo files are
-  // misnamed: es-medium.jpg is the Medium + room and es-medium-plus.jpg is
-  // the Medium. I swapped them on 2026-09-28 to match their names, counting
-  // chairs in the photos to justify it, and Caroline corrected it on
-  // 2026-10-01 — she knows which room is which, the filenames do not.
-  'el-segundo:Medium +':  ['/rooms/es-medium.jpg'],
-  'el-segundo:Medium':    ['/rooms/es-medium-plus.jpg'],
-  'el-segundo:Small':     ['/rooms/es-small.jpg'],
-  'marina-del-rey:Small': ['/rooms/mdr-conference-3.jpg', '/rooms/mdr-conference-2.jpg'],
-  'costa-mesa:Large':     ['/rooms/cm-large.jpg', '/rooms/cm-large-2.jpg'],
-  'costa-mesa:Medium +':  ['/rooms/cm-medium-plus.jpg'],
-  'costa-mesa:Medium':    ['/rooms/cm-medium.jpg'],
-  'costa-mesa:Small':     ['/rooms/cm-small.jpg'],
-}
+// Room photos come from rooms.photo_urls, chosen by admins on Conference
+// Rooms -> External Rooms (Joe, 2026-10-26); several make a carousel and the
+// first is the cover. They were a list here until then. Note for anyone
+// looking at public/rooms: es-medium.jpg shows the Medium + room and
+// es-medium-plus.jpg the Medium. The filenames are wrong, not the
+// assignment (Caroline, 2026-10-01; see migration 062).
 
 
 
@@ -99,6 +89,8 @@ function pacificNowMinutes(): number {
 
 export default function AvailabilityView({ location, rooms, closures }: { location: BookLocation; rooms: BookRoom[]; closures: ClosureMap }) {
   const today = pacificToday()
+  // This location's own number, not the El Segundo main line.
+  const phone = bookingPhoneFor(location.id)
 
   const [carouselIndex, setCarouselIndex] = useState<Record<string, number>>({})
   const [expandedRoom,  setExpandedRoom]  = useState<string | null>(null)
@@ -129,7 +121,7 @@ export default function AvailabilityView({ location, rooms, closures }: { locati
 
   // Weekends, holidays, past dates and anything past the 6-month window —
   // one shared rule with the API routes (lib/bookingRules).
-  const unavailableReason = dateUnavailableReason(selectedDate, closures)
+  const unavailableReason = dateUnavailableReason(selectedDate, closures, phone)
   const dateClosed = unavailableReason !== null
 
   // Fully booked days for this room, loaded once per room rather than per
@@ -266,9 +258,9 @@ export default function AvailabilityView({ location, rooms, closures }: { locati
                   <Check size={14} strokeWidth={3} />
                 </span>
               )}
-              {/* ── Room image / carousel ── add arrays to ROOM_IMAGES above as photos become available ── */}
+              {/* ── Room image / carousel ── set by admins, see the note above ── */}
               {(() => {
-                const images = ROOM_IMAGES[`${location.slug}:${room.external_name}`]
+                const images = room.photo_urls
                 const idx = carouselIndex[room.id] ?? 0
                 return (
                   <div className="relative bg-gray-100 aspect-[16/10] overflow-hidden">
@@ -412,7 +404,7 @@ export default function AvailabilityView({ location, rooms, closures }: { locati
                           value={selectedDate}
                           onChange={v => { setSelectedDate(v); setSelectedStart(''); setSelectedEnd('') }}
                           maxDate={lastBookableDate()}
-                          dayUnavailable={d => dateUnavailableReason(d, closures) ?? (fullDays.has(d) ? 'Fully booked' : null)}
+                          dayUnavailable={d => dateUnavailableReason(d, closures, phone) ?? (fullDays.has(d) ? 'Fully booked' : null)}
                         />
                       </div>
                       <button onClick={nextDay} disabled={selectedDate >= lastBookableDate()}
@@ -427,9 +419,9 @@ export default function AvailabilityView({ location, rooms, closures }: { locati
                     <div className="bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 space-y-2">
                       <p className="text-sm font-medium text-amber-800">{unavailableReason}</p>
                       <div className="flex flex-col gap-1">
-                        <a href={`tel:${CONTACT_PHONE.replace(/\D/g,'')}`}
+                        <a href={`tel:${phone.replace(/\D/g,'')}`}
                           className="inline-flex items-center gap-1.5 text-sm text-amber-700 hover:text-amber-900">
-                          <Phone size={12} /> {CONTACT_PHONE}
+                          <Phone size={12} /> {phone}
                         </a>
                         <a href={`mailto:${CONTACT_EMAIL}`}
                           className="inline-flex items-center gap-1.5 text-sm text-amber-700 hover:text-amber-900">
@@ -549,7 +541,7 @@ export default function AvailabilityView({ location, rooms, closures }: { locati
               <div className="px-5 py-3 bg-gray-50 border-t border-gray-100">
                 <p className="text-xs text-gray-600">
                   Need outside 9 AM–5 PM Monday–Friday?{' '}
-                  <a href={`tel:${CONTACT_PHONE.replace(/\D/g,'')}`} className="font-medium underline hover:text-gray-900">{CONTACT_PHONE}</a>
+                  <a href={`tel:${phone.replace(/\D/g,'')}`} className="font-medium underline hover:text-gray-900">{phone}</a>
                   {' '}or{' '}
                   <a href={`mailto:${CONTACT_EMAIL}`} className="font-medium underline hover:text-gray-900">{CONTACT_EMAIL}</a>
                 </p>

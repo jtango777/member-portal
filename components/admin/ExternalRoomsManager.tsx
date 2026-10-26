@@ -6,6 +6,7 @@ import { Edit2, Check, X, Globe, EyeOff } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { IconAction } from '@/components/admin/AdminTable'
 import toast from 'react-hot-toast'
+import RoomPhotosEditor from '@/components/admin/RoomPhotosEditor'
 
 type Props = {
   locations: Location[]
@@ -212,6 +213,12 @@ export default function ExternalRoomsManager({ locations, initialRooms }: Props)
                               className="w-full border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
                             />
                           </div>
+                          <RoomPhotosEditor
+                            roomId={room.id}
+                            roomLabel={room.external_name || room.name}
+                            photos={room.photo_urls ?? []}
+                            onChange={photo_urls => setRooms(prev => prev.map(r => r.id === room.id ? { ...r, photo_urls } : r))}
+                          />
                           <div>
                             <label className="block text-xs font-medium text-gray-600 mb-1">
                               Features <span className="font-normal text-gray-400">(comma-separated)</span>

@@ -16,6 +16,8 @@ export type Room = {
   internal_bookable: boolean
   description: string | null
   features: string[]
+  // Booking page photos in display order, first is the cover (migration 062).
+  photo_urls: string[] | null
 }
 
 export type MembershipType = {

@@ -4,6 +4,7 @@ import { stripeFor } from '@/lib/stripe'
 import { createAdminClient } from '@/lib/supabase/server'
 import { rateLimit } from '@/lib/rate-limit'
 import { roomBookingError } from '@/lib/bookingRules'
+import { bookingPhoneFor } from '@/lib/locations'
 import { getClosureMap } from '@/lib/settings'
 
 
@@ -19,13 +20,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Missing required fields.' }, { status: 400 })
   }
 
-  // Weekends, closure days, past dates/times, the 9-5 window, half-hour
-  // increments and the 6-month limit — checked here so no money is ever
-  // taken for a booking the request route is going to reject.
-  const ruleProblem = roomBookingError(date, start, end, await getClosureMap('rooms'))
-  if (ruleProblem) return NextResponse.json({ error: ruleProblem }, { status: 400 })
-
-  // Fetch room to get price
+  // Fetch room to get price, and its location for the phone number below
   const admin = createAdminClient()
   const { data: room } = await admin
     .from('rooms')
@@ -37,6 +32,12 @@ export async function POST(request: Request) {
   if (!room || !room.price_per_hour) {
     return NextResponse.json({ error: 'Room not found.' }, { status: 404 })
   }
+
+  // Weekends, closure days, past dates/times, the 9-5 window, half-hour
+  // increments and the 6-month limit — checked here so no money is ever
+  // taken for a booking the request route is going to reject.
+  const ruleProblem = roomBookingError(date, start, end, await getClosureMap('rooms'), bookingPhoneFor(room.location_id))
+  if (ruleProblem) return NextResponse.json({ error: ruleProblem }, { status: 400 })
 
   // Calculate total
   const [sh, sm] = start.split(':').map(Number)

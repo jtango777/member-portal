@@ -43,7 +43,12 @@ function ResetPasswordForm() {
   //                  uses createBrowserClient, which is PKCE by default.
   //                  Needs exchangeCodeForSession, which nothing called.
   //   ?token_hash=…  The browser-independent recovery link.
-  //   #access_token= The old implicit flow; the client picks this up itself.
+  //   #access_token= The implicit flow. What /api/password-help sends, since
+  //                  it requests the reset server-side with plain
+  //                  supabase-js. The PKCE browser client refuses to pick
+  //                  this up itself ("Not a valid PKCE flow url"), so every
+  //                  such link showed "expired" (Joe, 2026-10-16). Handed to
+  //                  setSession directly instead.
   //
   // Whatever happens, this now finishes: any failure shows a real message
   // with a way to ask for a fresh link, and a backstop timer means it can
@@ -88,13 +93,13 @@ function ResetPasswordForm() {
         return error ? fail(EXPIRED) : succeed()
       }
 
-      // Implicit flow: the client reads the hash itself, so give it a moment.
-      if (hash.get('access_token')) {
-        setTimeout(async () => {
-          const { data: { session: s } } = await supabase.auth.getSession()
-          if (s) succeed(); else fail(EXPIRED)
-        }, 1000)
-        return
+      const accessToken  = hash.get('access_token')
+      const refreshToken = hash.get('refresh_token')
+      if (accessToken && refreshToken) {
+        const { error } = await supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken })
+        // Keep the tokens out of the address bar and browser history.
+        window.history.replaceState(null, '', window.location.pathname + window.location.search)
+        return error ? fail(EXPIRED) : succeed()
       }
 
       fail('This page needs a password reset link to work.')
