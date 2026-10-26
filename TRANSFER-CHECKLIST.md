@@ -10,6 +10,16 @@ after that is reachable only by asking her as a favour.
 Mark each line **done** as it is transferred. A line that is not ticked is a
 thing that stops working, or stops being changeable, when her access ends.
 
+**As of 2026-10-26 the list is down to two that genuinely matter:**
+
+1. **Who owns the Intuit developer app.** Unknown, and the only item that
+   could cost money silently.
+2. **The Vercel transfer.** Five production sites on a personal account.
+
+Everything else is either already Joe's or does not bite. Joe has confirmed
+access to GoDaddy, Flywheel and Pipedrive, and has been committing to the
+BizHaus portal repository all month, so he can already ship code.
+
 ---
 
 ## The five production projects
@@ -44,17 +54,19 @@ thing that stops working, or stops being changeable, when her access ends.
   account. Confirm only.
 - [ ] **Supabase, Tucson booking.** Its own project. Add an owner.
 - [ ] **Supabase, Tucson mail.** Its own project. Add an owner.
-- [ ] **Vercel Blob storage.** Secura Way uses `BLOB_READ_WRITE_TOKEN` for its
-  listing images. Moves with the Vercel project.
+- [x] **Vercel Blob storage.** Secura Way uses `BLOB_READ_WRITE_TOKEN` for its
+  listing images. Nothing separate to do: it belongs to the `industrialforrent`
+  project and travels with it when that project transfers.
 
 ## 3. Money
 
 - [ ] **Stripe, BizHaus.** Three accounts, one per legal entity (El Segundo,
   Marina del Rey, Costa Mesa) in one organisation. Joe is the account
   representative, so access survives. Remove Caroline when she leaves.
-- [ ] **Stripe, Tucson.** `acct_1UQ9RtPmqanCGeIo`. Live since 2026-10-26.
-  **Two-factor codes go to Joe's phone**, so nobody can administer this
-  account without him. Worth adding a second admin with their own 2FA.
+- [x] **Stripe, Tucson.** `acct_1UQ9RtPmqanCGeIo`. Live since 2026-10-26.
+  Two-factor codes go to Joe's phone, which is the right end state: it is his
+  business and his account. Caroline needed him present to administer it,
+  which will not be true of whoever comes next.
 - [ ] **Intuit developer app (QuickBooks).** `QB_CLIENT_ID` starting
   `ABx9nZXS`. **Owner unconfirmed and this is the sharpest risk on the
   list.** If it sits on Caroline's personal Intuit login, every automatic
@@ -75,17 +87,19 @@ thing that stops working, or stops being changeable, when her access ends.
 
 ## 5. Domains and DNS
 
-- [ ] **GoDaddy.** `bizhaus.com`, `tucsontherapysuites.com` and
-  `industrialforrent.com` all use GoDaddy nameservers. Confirm the successor
-  has access. Everything breaks without it and nothing else on this list
-  matters if the domains lapse.
-- [ ] **Flywheel.** Hosts the bizhaus.com WordPress site. BizHaus owns the
+- [x] **GoDaddy.** `bizhaus.com`, `tucsontherapysuites.com` and
+  `industrialforrent.com` all use GoDaddy nameservers. **Joe has access,
+  confirmed 2026-10-26.**
+- [x] **Flywheel.** Hosts the bizhaus.com WordPress site. BizHaus owns the
   account, not Wise. Use Flywheel's WP-ADMIN button for real admin.
+  **Joe has access, confirmed 2026-10-26.**
 
 ## 6. Everything else referenced in code
 
-- [ ] **Pipedrive.** `PIPEDRIVE_API_TOKEN`, used by the member import to mark
-  people as current members. Confirm the token is a company one, not personal.
+- [x] **Pipedrive.** `PIPEDRIVE_API_TOKEN`, used by the member import to mark
+  people as current members. **Joe has access, confirmed 2026-10-26.** Low
+  risk regardless: if the token stops working the invite still goes out and
+  the failure is logged, so nothing breaks quietly.
 - [ ] **Google reCAPTCHA.** `RECAPTCHA_SECRET_KEY` and site key, on Caroline's
   Google account. Move to a company Google account.
 - [ ] **UptimeRobot.** Alerts if the site goes down. Caroline's login.
