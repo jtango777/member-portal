@@ -109,6 +109,43 @@ export default function AvailabilityView({ location, rooms, closures }: { locati
   const [selectedEnd,   setSelectedEnd]   = useState<string>('')
   const widgetRef = useRef<HTMLDivElement>(null)
 
+  // A room is chosen by clicking its photo or from the dropdown in the
+  // booking panel (Joe, 2026-10-28); either way any times picked for the
+  // previous room are cleared.
+  function selectRoom(room: BookRoom) {
+    setSelectedRoom(room)
+    setSelectedStart('')
+    setSelectedEnd('')
+  }
+
+  // Dropdown labels. Two rooms can share a name (Costa Mesa had two
+  // "Small"s), so a repeated name gets #1, #2 in the order the cards show.
+  const roomLabels = (() => {
+    const seen: Record<string, number> = {}
+    const total: Record<string, number> = {}
+    rooms.forEach(r => { total[r.external_name] = (total[r.external_name] ?? 0) + 1 })
+    return Object.fromEntries(rooms.map(r => {
+      const n = (seen[r.external_name] = (seen[r.external_name] ?? 0) + 1)
+      const name = total[r.external_name] > 1 ? `${r.external_name} #${n}` : r.external_name
+      return [r.id, `${name} · up to ${r.capacity} · ${money(r.price_per_hour)}/hr`]
+    }))
+  })()
+
+  const roomPicker = (
+    <select
+      aria-label="Room"
+      value={selectedRoom?.id ?? ''}
+      onChange={e => { const r = rooms.find(x => x.id === e.target.value); if (r) selectRoom(r) }}
+      className={cn(
+        'w-full border rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-booking-600',
+        selectedRoom ? 'border-gray-200 font-semibold text-gray-900' : 'border-gray-300 text-gray-700'
+      )}
+    >
+      {!selectedRoom && <option value="" disabled>Choose a room…</option>}
+      {rooms.map(r => <option key={r.id} value={r.id}>{roomLabels[r.id]}</option>)}
+    </select>
+  )
+
   // On a phone the booking panel sits under every room card — picking a
   // room left the date and time controls about 2,000px down the page with
   // nothing to show anything had happened (found 2026-09-22). On desktop
@@ -242,7 +279,7 @@ export default function AvailabilityView({ location, rooms, closures }: { locati
           {rooms.map(room => (
             <div
               key={room.id}
-              onClick={() => { setSelectedRoom(room); setSelectedStart(''); setSelectedEnd('') }}
+              onClick={() => selectRoom(room)}
               // Same selected/unselected treatment as the day pass location
               // cards: a ring plus a check instead of a heavy border
               // (matches the day pass design pass, 2026-09-17).
@@ -378,16 +415,15 @@ export default function AvailabilityView({ location, rooms, closures }: { locati
             {!selectedRoom ? (
               <div className="px-5 py-6">
                 <div className="text-sm font-semibold text-gray-900">Pick a room to see times</div>
-                <p className="text-sm text-gray-500 mt-1">Whatever you can select is free.</p>
+                <p className="text-sm text-gray-500 mt-1">Click a photo, or choose one here. Whatever you can select is free.</p>
+                <div className="mt-3">{roomPicker}</div>
               </div>
             ) : (
               <div className="divide-y divide-gray-100">
-                {/* Room summary */}
+                {/* Room summary: the dropdown names the room with its size and
+                    price, and switches rooms without going back to the photos. */}
                 <div className="px-5 py-4">
-                  <p className="font-semibold text-gray-900">{selectedRoom.external_name}</p>
-                  <p className="text-sm text-gray-500 mt-0.5">
-                    Up to {selectedRoom.capacity} people · ${selectedRoom.price_per_hour}/hr
-                  </p>
+                  {roomPicker}
                 </div>
 
                 <div className="px-5 py-4 space-y-4">
