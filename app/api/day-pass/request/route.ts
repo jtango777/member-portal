@@ -4,6 +4,7 @@ import { sendDayPassConfirmation, sendDayPassStaffNotification, sendSystemAlert 
 import { rateLimit } from '@/lib/rate-limit'
 import { verifyRecaptcha } from '@/lib/recaptcha'
 import { createSalesReceipt } from '@/lib/quickbooks'
+import { claimForReceipt, releaseReceiptClaim } from '@/lib/qbReceiptClaim'
 import Stripe from 'stripe'
 import { stripeFor } from '@/lib/stripe'
 import { format, getDay } from 'date-fns'
@@ -179,9 +180,13 @@ export async function POST(request: Request) {
   // the insert above has actually landed, since this route and the webhook
   // run concurrently with no guaranteed ordering. Creating receipts here
   // instead means the row is guaranteed to already exist. The webhook keeps
-  // a matching block as a backup, guarded to skip any row that already has
-  // a qb_receipt_id, so nothing gets double-created if both paths run.
+  // a matching block as a backup. Checking qb_receipt_id alone wasn't
+  // enough to keep them apart: it's only written once QuickBooks answers,
+  // and a webhook landing in those seconds made a second receipt and a
+  // second customer (2026-11-02). Each row is now claimed first, and only
+  // the path holding the claim goes on (lib/qbReceiptClaim.ts).
   for (const [i, date] of sortedDates.entries()) {
+    if (!(await claimForReceipt(admin, 'day_passes', dayPasses[i].id))) continue
     try {
       const dateLabel = format(new Date(date + 'T12:00:00'), 'EEEE, MMMM d, yyyy')
       const receipt = await createSalesReceipt(location_id, {
@@ -201,6 +206,7 @@ export async function POST(request: Request) {
         await admin.from('day_passes').update({ qb_receipt_id: receipt.Id }).eq('id', dayPasses[i].id)
       }
     } catch (err: any) {
+      await releaseReceiptClaim(admin, 'day_passes', dayPasses[i].id)
       if (err?.message === 'QB_NEEDS_RECONNECT') {
         console.warn('[qb] Location needs reconnection — skipping day pass sales receipt')
         await sendSystemAlert('QuickBooks needs reconnecting', {

@@ -191,9 +191,17 @@ async function findOrCreateCustomer(
     })
     return newCustomer.Customer
   } catch (err) {
-    // Almost always QuickBooks' "Duplicate Name Exists" (6240): someone else
-    // in the books is already called this. Retry with the email appended,
-    // which is unique by definition, rather than dropping the sale.
+    // Almost always QuickBooks' "Duplicate Name Exists" (6240). That can be
+    // this very guest, created a moment ago by a second booking request
+    // running alongside this one, so look them up by email again before
+    // making anyone new (Joe, 2026-11-04: DeShawn Samad got two customers).
+    const again = await qbFetch('GET', `/query?query=${query}`, realmId, accessToken)
+    if (again.QueryResponse?.Customer?.length > 0) {
+      return again.QueryResponse.Customer[0]
+    }
+    // Someone else in the books is already called this. Retry with the
+    // email appended, which is unique by definition, rather than dropping
+    // the sale.
     console.warn('[quickbooks] Plain customer name rejected, retrying with email suffix:', name, err)
     const newCustomer = await qbFetch('POST', '/customer', realmId, accessToken, {
       DisplayName: `${name} (${email})`,

@@ -4,6 +4,7 @@ import { stripeFor, webhookSecrets } from '@/lib/stripe'
 import { getQbBankAccounts } from '@/lib/settings'
 import { createAdminClient } from '@/lib/supabase/server'
 import { createSalesReceipt, recordPayoutDeposit } from '@/lib/quickbooks'
+import { claimForReceipt, releaseReceiptClaim } from '@/lib/qbReceiptClaim'
 import { sendSystemAlert } from '@/lib/email'
 
 /**
@@ -60,9 +61,11 @@ export async function POST(request: Request) {
     // /api/book/request now creates the QuickBooks sales receipt itself
     // (same reasoning as day passes above — this webhook can fire before
     // that route's own inserts have landed). This is just a backup for the
-    // rare case that route's own receipt creation didn't run, guarded to
-    // skip if a receipt already exists so nothing double-creates.
-    if (booking && !booking.qb_receipt_id) {
+    // rare case that route's own receipt creation didn't run. Skipping when
+    // qb_receipt_id is set wasn't enough: the route writes it only after
+    // QuickBooks answers, so this could land in between and duplicate it.
+    // It must now win the claim on the booking too (lib/qbReceiptClaim.ts).
+    if (booking && !booking.qb_receipt_id && await claimForReceipt(admin, 'external_bookings', booking.id)) {
       try {
         const { data: room } = await admin
           .from('rooms')
@@ -103,6 +106,7 @@ export async function POST(request: Request) {
           console.log('[qb] Sales receipt created successfully')
         }
       } catch (err: any) {
+        await releaseReceiptClaim(admin, 'external_bookings', booking.id)
         if (err?.message === 'QB_NEEDS_RECONNECT') {
           console.warn('[qb] Location needs reconnection — skipping sales receipt')
           await sendSystemAlert('QuickBooks needs reconnecting', { booking_id: booking.id })
@@ -124,8 +128,9 @@ export async function POST(request: Request) {
     // sales receipt itself now (see comment there) since this webhook can
     // fire before that insert has landed — this block is just a backup for
     // the rare case that route's own receipt creation didn't run (e.g. it
-    // errored after the insert but before reaching that code). Guarded to
-    // skip any row that already has a receipt, so nothing double-creates.
+    // errored after the insert but before reaching that code). Rows with a
+    // receipt are skipped, and each remaining row must also be claimed
+    // first, since the route may be waiting on QuickBooks for it right now.
     const { data: dayPasses } = await admin
       .from('day_passes')
       .select('id, customer_id, location_id, date, price_cents, qb_receipt_id')
@@ -150,6 +155,9 @@ export async function POST(request: Request) {
         // One QuickBooks line item per day, same per-instance pattern the
         // rest of this webhook uses — a range just means more calls here.
         for (const dayPass of dayPasses) {
+          // The request route may be partway through this same row; only
+          // the claim holder makes the receipt (lib/qbReceiptClaim.ts).
+          if (!(await claimForReceipt(admin, 'day_passes', dayPass.id))) continue
           try {
             const dateLabel = new Date(dayPass.date + 'T12:00:00').toLocaleDateString('en-US', {
               weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'America/Los_Angeles',
@@ -176,6 +184,7 @@ export async function POST(request: Request) {
             }
             console.log('[qb] Day pass sales receipt created successfully')
           } catch (err: any) {
+            await releaseReceiptClaim(admin, 'day_passes', dayPass.id)
             if (err?.message === 'QB_NEEDS_RECONNECT') {
               console.warn('[qb] Location needs reconnection — skipping day pass sales receipt')
               await sendSystemAlert('QuickBooks needs reconnecting', { day_pass_id: dayPass.id })

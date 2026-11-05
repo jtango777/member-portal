@@ -5,6 +5,7 @@ import { sendExternalBookingReceipt, sendExternalBookingStaffNotification, sendS
 import { rateLimit } from '@/lib/rate-limit'
 import { verifyRecaptcha } from '@/lib/recaptcha'
 import { createSalesReceipt } from '@/lib/quickbooks'
+import { claimForReceipt, releaseReceiptClaim } from '@/lib/qbReceiptClaim'
 import { roomBookingError } from '@/lib/bookingRules'
 import { bookingPhoneFor } from '@/lib/locations'
 import { getClosureMap } from '@/lib/settings'
@@ -258,8 +259,10 @@ export async function POST(request: Request) {
   // the webhook run concurrently with no guaranteed ordering. Creating the
   // receipt here instead means the row is guaranteed to already exist.
   // Free rooms (no price_per_hour) never have a payment intent, so nothing
-  // to receipt for those.
-  if (stripe_payment_intent_id) {
+  // to receipt for those. The webhook's backup could land while this is
+  // waiting on QuickBooks and make a second receipt, so the booking is
+  // claimed first and only the claim holder goes on (lib/qbReceiptClaim.ts).
+  if (stripe_payment_intent_id && await claimForReceipt(admin, 'external_bookings', booking.id)) {
     try {
       // amountPaid was already looked up just above for the emails — reuse
       // it rather than a second Stripe call, unless that lookup itself
@@ -285,6 +288,7 @@ export async function POST(request: Request) {
         await admin.from('external_bookings').update({ qb_receipt_id: receipt.Id }).eq('id', booking.id)
       }
     } catch (err: any) {
+      await releaseReceiptClaim(admin, 'external_bookings', booking.id)
       if (err?.message === 'QB_NEEDS_RECONNECT') {
         console.warn('[qb] Location needs reconnection — skipping sales receipt')
         await sendSystemAlert('QuickBooks needs reconnecting', {
