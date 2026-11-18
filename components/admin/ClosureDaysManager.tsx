@@ -5,6 +5,7 @@ import { format } from 'date-fns'
 import { Trash2, ChevronRight } from 'lucide-react'
 import { AdminTable, Th, tdBase, tdNowrap, Section } from './AdminTable'
 import MiniDatePicker from '@/components/MiniDatePicker'
+import Collapse from '@/components/Collapse'
 import { cn } from '@/lib/utils'
 import toast from 'react-hot-toast'
 
@@ -137,10 +138,11 @@ export default function ClosureDaysManager({ product }: { product: 'day_pass' | 
             {open ? 'Hide' : 'Show'} the {upcoming.length} closed day{upcoming.length === 1 ? '' : 's'} coming up
           </button>
 
-          <div className={cn(
-            'overflow-hidden transition-all duration-300 ease-in-out',
-            open ? 'opacity-100 mt-3' : 'max-h-0 opacity-0'
-          )}>
+          {/* It used to animate shut and snap open: max-h-0 to no max-h
+              at all has nothing to animate towards, so the closing worked
+              and the opening jumped (Caroline, 2026-11-18). */}
+          <Collapse open={open} className="mt-0">
+            <div className="mt-3">
             <AdminTable colWidths={['1fr', '220px', '150px', '80px']} minWidth={640}>
               <thead>
                 <tr>
@@ -181,7 +183,8 @@ export default function ClosureDaysManager({ product }: { product: 'day_pass' | 
                 {showPast ? 'Hide past days' : `Show ${past.length} past day${past.length === 1 ? '' : 's'}`}
               </button>
             )}
-          </div>
+            </div>
+          </Collapse>
         </div>
       </div>
     </Section>

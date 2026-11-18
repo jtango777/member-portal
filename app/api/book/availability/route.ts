@@ -63,13 +63,62 @@ async function fullyBookedDays(roomId: string) {
   return [...taken.entries()].filter(([, slots]) => slots.size >= SLOTS_PER_DAY).map(([day]) => day)
 }
 
+/**
+ * Every room at one location on one date, in a single pair of queries.
+ *
+ * For the suggestions panel: when the room somebody picked cannot do what
+ * they asked, the page offers the ones that can, and that means knowing
+ * about all of them at once. Asking the per-room endpoint four or five
+ * times over would do the same job with four or five round trips
+ * (Caroline, 2026-11-18).
+ *
+ * Same shape of answer as the single-room call, keyed by room: times
+ * only, never who booked them.
+ */
+async function blockedByRoom(locationId: string, date: string) {
+  const admin = createAdminClient()
+  const { start, end } = getPacificDayBounds(date)
+
+  const { data: rooms } = await admin
+    .from('rooms').select('id').eq('location_id', locationId)
+  const roomIds = (rooms ?? []).map(r => r.id)
+  if (!roomIds.length) return {}
+
+  const [{ data: internal }, { data: external }] = await Promise.all([
+    admin.from('reservations').select('room_id, start_time, end_time')
+      .in('room_id', roomIds)
+      .lt('start_time', end.toISOString()).gt('end_time', start.toISOString()),
+    admin.from('external_bookings').select('room_id, start_time, end_time')
+      .in('room_id', roomIds).in('status', ['pending', 'confirmed'])
+      .lt('start_time', end.toISOString()).gt('end_time', start.toISOString()),
+  ])
+
+  const out: Record<string, string[]> = Object.fromEntries(roomIds.map(id => [id, []]))
+  const seen: Record<string, Set<string>> = Object.fromEntries(roomIds.map(id => [id, new Set<string>()]))
+  for (const res of [...(internal ?? []), ...(external ?? [])]) {
+    let cur = new Date(res.start_time)
+    const resEnd = new Date(res.end_time)
+    while (cur < resEnd) {
+      seen[res.room_id]?.add(toSlotValue(cur))
+      cur = new Date(cur.getTime() + 30 * 60 * 1000)
+    }
+  }
+  for (const id of roomIds) out[id] = [...seen[id]]
+  return out
+}
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
   const roomId = searchParams.get('roomId')
+  const locationId = searchParams.get('locationId')
   const date   = searchParams.get('date') // YYYY-MM-DD
 
   if (roomId && searchParams.get('fullDays')) {
     return NextResponse.json({ fullDays: await fullyBookedDays(roomId) })
+  }
+
+  if (locationId && date) {
+    return NextResponse.json({ blockedByRoom: await blockedByRoom(locationId, date) })
   }
 
   if (!roomId || !date) {

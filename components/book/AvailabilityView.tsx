@@ -6,8 +6,13 @@ import { format, addDays, subDays } from 'date-fns'
 import { ArrowLeft, Check, ImageIcon, Phone, Mail, ChevronLeft, ChevronRight, Clock, Users } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import MiniDatePicker from '@/components/MiniDatePicker'
+import Collapse from '@/components/Collapse'
 import { dateUnavailableReason, lastBookableDate, MAX_BOOKING_MONTHS_AHEAD, type ClosureMap } from '@/lib/bookingRules'
 import { bookingPhoneFor } from '@/lib/locations'
+import {
+  freeBlocks, longestBlock, blockHours, describeFreeTime, rankSuggestions,
+  type FreeBlock,
+} from '@/lib/roomSuggestions'
 
 type BookRoom = {
   id: string
@@ -129,6 +134,12 @@ export default function AvailabilityView({ location, rooms, closures }: { locati
   // following the calendar's month as it moves.
   const [fullDays, setFullDays] = useState<Set<string>>(new Set())
   const [loadingSlots,  setLoadingSlots]  = useState(false)
+  /**
+   * Every room's taken slots for the chosen date, for the suggestions
+   * panel. Fetched alongside the selected room's own availability, in one
+   * call rather than one per room (Caroline, 2026-11-18).
+   */
+  const [blockedByRoom, setBlockedByRoom] = useState<Record<string, string[]>>({})
   const [selectedStart, setSelectedStart] = useState<string>('')
   const [selectedEnd,   setSelectedEnd]   = useState<string>('')
   const widgetRef = useRef<HTMLDivElement>(null)
@@ -212,6 +223,11 @@ export default function AvailabilityView({ location, rooms, closures }: { locati
       .then(r => r.json())
       .then(d => { setBlockedSlots(d.blockedSlots ?? []); setLoadingSlots(false) })
       .catch(() => setLoadingSlots(false))
+    // The other rooms, for the moment this one turns out not to work.
+    fetch(`/api/book/availability?locationId=${location.id}&date=${selectedDate}`)
+      .then(r => r.json())
+      .then(d => setBlockedByRoom(d.blockedByRoom ?? {}))
+      .catch(() => setBlockedByRoom({}))
   // allDay deliberately left out: re-running this on every toggle would
   // refetch availability for no reason.
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -275,6 +291,52 @@ export default function AvailabilityView({ location, rooms, closures }: { locati
   // clash and refunds, but there's no reason to take the payment at all.
   const allDayBlocked = allDay && START_SLOTS.some(s => blockedSlots.includes(s.value))
   const canContinue = selectedRoom && selectedStart && selectedEnd && !dateClosed && !allDayBlocked
+
+  /**
+   * When the room they picked cannot do what they asked, say what can.
+   *
+   * Two dead ends: All day on a day with something already in it, and a
+   * day with no free half hour left at all. Both used to end with the
+   * customer being told to go and look for themselves.
+   */
+  const slotValues = START_SLOTS.map(s => s.value)
+  const CLOSE_SLOT = '17:00'
+  const WHOLE_DAY_HOURS = (slotToMinutes(CLOSE_SLOT) - slotToMinutes(slotValues[0])) / 60
+  const noTimeLeft = !loadingSlots && !dateClosed && !!selectedRoom
+    && startSlotsWithStatus.every(s => s.disabled)
+  const showSuggestions = !dateClosed && !loadingSlots && (allDayBlocked || noTimeLeft)
+
+  // What is left in the room they actually wanted, which beats moving
+  // them if there is a decent run of it.
+  const ownBlocks = selectedRoom ? freeBlocks(slotValues, blockedSlots, CLOSE_SLOT) : []
+  const ownBest = longestBlock(ownBlocks)
+  // Worth offering only if it is a real slot of time. Half an hour left at
+  // the end of the day is not an answer to "I wanted the whole day", and
+  // offering it made the list below read "Or these rooms" with nothing
+  // above it.
+  const keepOwn = !!ownBest && blockHours(ownBest) >= 1
+
+  const wantHours = allDay ? WHOLE_DAY_HOURS : (durationHours || 1)
+  const suggestions = showSuggestions && selectedRoom
+    ? rankSuggestions({
+        chosen: selectedRoom,
+        rooms,
+        blockedByRoom,
+        startSlots: slotValues,
+        closeSlot: CLOSE_SLOT,
+        wantHours,
+        wholeDayHours: WHOLE_DAY_HOURS,
+      })
+    : []
+
+  /** Take one of the offers: same date, the times that are actually free. */
+  function takeBlock(room: BookRoom, block: FreeBlock) {
+    setSelectedRoom(room)
+    setAllDay(blockHours(block) >= WHOLE_DAY_HOURS)
+    setSelectedStart(block.start)
+    setSelectedEnd(block.end)
+    warmPhotos(room)
+  }
 
   return (
     <div className="space-y-6">
@@ -411,14 +473,11 @@ export default function AvailabilityView({ location, rooms, closures }: { locati
                     />
                     See details on this room
                   </button>
-                  <div className={cn(
-                    'overflow-hidden transition-all duration-300 ease-in-out',
-                    expandedRoom === room.id ? 'max-h-40 opacity-100 mt-2' : 'max-h-0 opacity-0'
-                  )}>
-                    <p className="text-sm text-gray-500 leading-relaxed">
+                  <Collapse open={expandedRoom === room.id}>
+                    <p className="text-sm text-gray-500 leading-relaxed mt-2">
                       {room.description}
                     </p>
-                  </div>
+                  </Collapse>
                 </div>
               </div>
               )}
@@ -524,15 +583,24 @@ export default function AvailabilityView({ location, rooms, closures }: { locati
                         </div>
                         {loadingSlots ? (
                           <p className="text-sm text-gray-400">Loading availability…</p>
-                        ) : allDay ? (
-                          allDayBlocked ? (
+                        ) : (
+                          <>
+                        {/* The two halves of the All day switch open and
+                            shut rather than swapping in place, so the panel
+                            grows into the time pickers instead of jumping
+                            (Caroline, 2026-11-18). Both stay in the page;
+                            Collapse marks the shut one inert, so its selects
+                            cannot be tabbed into. */}
+                        <Collapse open={allDay} duration={220}>
+                          {allDayBlocked ? (
                             <p className="text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
-                              This room is already booked for part of that day. Turn off All day and pick times that are free.
+                              {selectedRoom?.external_name} is already booked for part of that day.
                             </p>
                           ) : (
                             <p className="text-sm text-gray-500 bg-gray-50 rounded-lg px-3 py-2">9:00 AM – 5:00 PM</p>
-                          )
-                        ) : (
+                          )}
+                        </Collapse>
+                        <Collapse open={!allDay} duration={220}>
                           <div className="grid grid-cols-2 gap-2">
                             <select
                               value={selectedStart}
@@ -560,16 +628,81 @@ export default function AvailabilityView({ location, rooms, closures }: { locati
                               ))}
                             </select>
                           </div>
+                        </Collapse>
+                          </>
                         )}
                       </div>
 
-                      {/* Estimated total */}
-                      {durationHours > 0 && (
+                      {/* ── What can actually be booked instead ──────────
+                          Shown only at the two dead ends: All day on a day
+                          with something in it, and a day with nothing left.
+                          The room they wanted comes first when it still has
+                          a useful run of time, because staying put beats
+                          moving. Then the other rooms, big enough ones
+                          first (see lib/roomSuggestions for why), each
+                          saying what it gives them and what it costs
+                          (Caroline, 2026-11-18). */}
+                      <Collapse open={showSuggestions}>
+                        <div className="rounded-lg border border-gray-200 divide-y divide-gray-100 overflow-hidden">
+                          {keepOwn && ownBest && (
+                            <button
+                              onClick={() => takeBlock(selectedRoom, ownBest)}
+                              className="w-full text-left px-3 py-2.5 hover:bg-gray-50 transition-colors"
+                            >
+                              <span className="block text-sm font-medium text-gray-900">
+                                Keep {selectedRoom.external_name}, {describeFreeTime(ownBlocks, WHOLE_DAY_HOURS)}
+                              </span>
+                              <span className="block text-xs text-gray-500 mt-0.5">
+                                {blockHours(ownBest)}h · {money(blockHours(ownBest) * selectedRoom.price_per_hour)}
+                              </span>
+                            </button>
+                          )}
+
+                          {suggestions.length > 0 && (
+                            <p className="px-3 py-2 text-xs font-medium text-gray-500 bg-gray-50">
+                              {keepOwn ? 'Or these rooms are free' : 'These rooms are free'} on {format(new Date(selectedDate + 'T12:00:00'), 'MMM d')}
+                            </p>
+                          )}
+
+                          {suggestions.map(s => (
+                            <button
+                              key={s.room.id}
+                              onClick={() => takeBlock(s.room, s.best)}
+                              className="w-full text-left px-3 py-2.5 hover:bg-gray-50 transition-colors"
+                            >
+                              <span className="flex items-baseline justify-between gap-3">
+                                <span className="text-sm font-medium text-gray-900">
+                                  {s.room.external_name}
+                                  <span className="font-normal text-gray-500">
+                                    {' · '}up to {s.room.capacity}
+                                    {s.smaller && ' · smaller'}
+                                  </span>
+                                </span>
+                                <span className="shrink-0 text-xs font-semibold text-gray-700">
+                                  ${s.room.price_per_hour}/hr
+                                </span>
+                              </span>
+                              <span className="block text-xs text-gray-500 mt-0.5">{s.summary}</span>
+                            </button>
+                          ))}
+
+                          {!keepOwn && suggestions.length === 0 && (
+                            <p className="px-3 py-2.5 text-sm text-gray-500">
+                              Every room here is booked that day. Try another date, or call {phone}.
+                            </p>
+                          )}
+                        </div>
+                      </Collapse>
+
+                      {/* Estimated total. Not while the selection cannot
+                          be booked: pricing a day that is already taken
+                          reads as an offer. */}
+                      <Collapse open={durationHours > 0 && !allDayBlocked} duration={220}>
                         <div className="flex items-center justify-between text-sm bg-gray-50 rounded-lg px-3 py-2">
                           <span className="text-gray-500">{durationHours}h · ${selectedRoom.price_per_hour}/hr</span>
                           <span className="font-semibold text-gray-900">Est. {money(estimatedTotal)}</span>
                         </div>
-                      )}
+                      </Collapse>
                     </>
                   )}
                 </div>
