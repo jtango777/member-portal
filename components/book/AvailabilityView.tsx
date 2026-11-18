@@ -237,6 +237,30 @@ export default function AvailabilityView({ location, rooms, closures }: { locati
   // All start times — blocked or already-passed (when booking for today)
   // ones shown as disabled
   const isToday = selectedDate === today
+
+  /**
+   * Whether a whole day is even possible on the chosen date.
+   *
+   * All day is 9:00 to 5:00, so once nine has gone it cannot be had
+   * today, whatever any room's calendar says.
+   */
+  const allDayPossible = !(isToday && pacificNowMinutes() >= slotToMinutes('9:00'))
+
+  /**
+   * Turn All day off when it stops being possible.
+   *
+   * Switching it on for tomorrow and then stepping back to today left it
+   * on, and because the toggle is disabled today there was no way to
+   * switch it off again: the panel sat there warning about a booking
+   * nobody could make or undo (Caroline, 2026-11-18).
+   */
+  useEffect(() => {
+    if (!allDayPossible && allDay) {
+      setAllDay(false)
+      setSelectedStart('')
+      setSelectedEnd('')
+    }
+  }, [allDayPossible, allDay])
   const startSlotsWithStatus = START_SLOTS.map(s => ({
     ...s,
     disabled: blockedSlots.includes(s.value) || (isToday && slotToMinutes(s.value) <= pacificNowMinutes()),
@@ -301,6 +325,19 @@ export default function AvailabilityView({ location, rooms, closures }: { locati
    * customer being told to go and look for themselves.
    */
   const slotValues = START_SLOTS.map(s => s.value)
+  /**
+   * Hours that have already gone, which are as unbookable as booked ones.
+   *
+   * The free-time maths is built from what each room has booked, and
+   * nothing in it says what time it is. On today's date that meant a room
+   * with an empty calendar was offered as "free all day" at twenty to
+   * twelve, and the hours counted in "2 hours free, in 3 parts" included
+   * ones that were already over (Caroline, 2026-11-18).
+   */
+  const pastSlots = isToday
+    ? slotValues.filter(v => slotToMinutes(v) <= pacificNowMinutes())
+    : []
+  const unavailableIn = (booked: string[] | undefined) => [...(booked ?? []), ...pastSlots]
   const CLOSE_SLOT = '17:00'
   const WHOLE_DAY_HOURS = (slotToMinutes(CLOSE_SLOT) - slotToMinutes(slotValues[0])) / 60
   const noTimeLeft = !loadingSlots && !dateClosed && !!selectedRoom
@@ -309,7 +346,9 @@ export default function AvailabilityView({ location, rooms, closures }: { locati
 
   // What is left in the room they actually wanted, which beats moving
   // them if there is a decent run of it.
-  const ownBlocks = selectedRoom ? freeBlocks(slotValues, blockedSlots, CLOSE_SLOT) : []
+  const ownBlocks = selectedRoom
+    ? freeBlocks(slotValues, unavailableIn(blockedSlots), CLOSE_SLOT)
+    : []
   const ownBest = longestBlock(ownBlocks)
   // Worth offering only if it is a real slot of time. Half an hour left at
   // the end of the day is not an answer to "I wanted the whole day", and
@@ -322,7 +361,9 @@ export default function AvailabilityView({ location, rooms, closures }: { locati
     ? rankSuggestions({
         chosen: selectedRoom,
         rooms,
-        blockedByRoom,
+        blockedByRoom: Object.fromEntries(
+          rooms.map(r => [r.id, unavailableIn(blockedByRoom[r.id])]),
+        ),
         startSlots: slotValues,
         closeSlot: CLOSE_SLOT,
         wantHours,
@@ -561,7 +602,7 @@ export default function AvailabilityView({ location, rooms, closures }: { locati
                           <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Time</label>
                           <button
                             type="button"
-                            disabled={isToday && pacificNowMinutes() >= slotToMinutes('9:00')}
+                            disabled={!allDayPossible}
                             onClick={() => {
                               const next = !allDay
                               setAllDay(next)
