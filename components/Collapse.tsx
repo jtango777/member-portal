@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import { cn } from '@/lib/utils'
 
 /**
@@ -25,6 +26,24 @@ export default function Collapse({
   /** Milliseconds. Shorter for small swaps, the default for panels. */
   duration?: number
 }) {
+  /**
+   * Clip while moving, and only while moving.
+   *
+   * The height animation needs overflow hidden or the content spills out
+   * of a box that is still growing. But leaving it on at rest cuts off
+   * anything a child draws outside its own edges, and the first thing
+   * that hit was the focus ring on the time dropdowns: they sit flush
+   * against this wrapper, so the ring was sliced away on the outer and
+   * bottom edges and left showing on the inner one. It read as a stray
+   * green sliver rather than a ring (Caroline, 2026-11-18).
+   */
+  const [moving, setMoving] = useState(false)
+  useEffect(() => {
+    setMoving(true)
+    const t = setTimeout(() => setMoving(false), duration)
+    return () => clearTimeout(t)
+  }, [open, duration])
+
   return (
     <div
       inert={!open}
@@ -35,7 +54,7 @@ export default function Collapse({
         className,
       )}
     >
-      <div className="overflow-hidden min-h-0">{children}</div>
+      <div className={cn('min-h-0', (!open || moving) && 'overflow-hidden')}>{children}</div>
     </div>
   )
 }
