@@ -7,6 +7,7 @@ import { ArrowLeft, Check, ImageIcon, Phone, Mail, ChevronLeft, ChevronRight, Cl
 import { cn } from '@/lib/utils'
 import MiniDatePicker from '@/components/MiniDatePicker'
 import Collapse from '@/components/Collapse'
+import SelectField from '@/components/book/SelectField'
 import { dateUnavailableReason, lastBookableDate, MAX_BOOKING_MONTHS_AHEAD, type ClosureMap } from '@/lib/bookingRules'
 import { bookingPhoneFor } from '@/lib/locations'
 import {
@@ -167,18 +168,18 @@ export default function AvailabilityView({ location, rooms, closures }: { locati
   })()
 
   const roomPicker = (
-    <select
+    <SelectField
       aria-label="Room"
       value={selectedRoom?.id ?? ''}
       onChange={e => { const r = rooms.find(x => x.id === e.target.value); if (r) selectRoom(r) }}
       className={cn(
-        'w-full border rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-booking-600',
+        'focus:ring-booking-600',
         selectedRoom ? 'border-gray-200 font-semibold text-gray-900' : 'border-gray-300 text-gray-700'
       )}
     >
       {!selectedRoom && <option value="" disabled>Choose a room…</option>}
       {rooms.map(r => <option key={r.id} value={r.id}>{roomLabels[r.id]}</option>)}
-    </select>
+    </SelectField>
   )
 
   // On a phone the booking panel sits under every room card — picking a
@@ -602,10 +603,10 @@ export default function AvailabilityView({ location, rooms, closures }: { locati
                         </Collapse>
                         <Collapse open={!allDay} duration={220}>
                           <div className="grid grid-cols-2 gap-2">
-                            <select
+                            <SelectField
                               value={selectedStart}
                               onChange={e => { setSelectedStart(e.target.value); setSelectedEnd('') }}
-                              className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-booking-500 bg-white"
+                              className="border-gray-300 focus:ring-booking-500"
                             >
                               <option value="">Start time</option>
                               {startSlotsWithStatus.map(s => (
@@ -613,12 +614,12 @@ export default function AvailabilityView({ location, rooms, closures }: { locati
                                   {s.label}{s.disabled ? ' — Unavailable' : ''}
                                 </option>
                               ))}
-                            </select>
-                            <select
+                            </SelectField>
+                            <SelectField
                               value={selectedEnd}
                               onChange={e => setSelectedEnd(e.target.value)}
                               disabled={!selectedStart || endSlotsWithStatus.length === 0}
-                              className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-booking-500 bg-white disabled:opacity-40"
+                              className="border-gray-300 focus:ring-booking-500 disabled:opacity-40"
                             >
                               <option value="">End time</option>
                               {endSlotsWithStatus.map(s => (
@@ -626,7 +627,7 @@ export default function AvailabilityView({ location, rooms, closures }: { locati
                                   {s.label}{s.disabled ? ' — Unavailable' : ''}
                                 </option>
                               ))}
-                            </select>
+                            </SelectField>
                           </div>
                         </Collapse>
                           </>
