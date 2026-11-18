@@ -93,6 +93,30 @@ export default function AvailabilityView({ location, rooms, closures }: { locati
   const phone = bookingPhoneFor(location.id)
 
   const [carouselIndex, setCarouselIndex] = useState<Record<string, number>>({})
+
+  /**
+   * Fetch a room's other photos before anybody asks for one.
+   *
+   * The carousel swaps the src on a single <img>, so photo 2 was not
+   * requested until the arrow was clicked, and then the click sat there
+   * for about a second and a half while it downloaded. Measured on the
+   * live site: the request starts 6ms after the click and the download is
+   * the whole delay (Caroline, 2026-11-18).
+   *
+   * Pulled in on hover and on the first arrow click rather than on page
+   * load, because a location page is eleven rooms and loading every photo
+   * of every one of them to save a click nobody may make is a worse trade
+   * on a phone than the click itself.
+   */
+  const warmed = useRef<Set<string>>(new Set())
+  function warmPhotos(room: { id: string; photo_urls?: string[] | null }) {
+    if (warmed.current.has(room.id)) return
+    warmed.current.add(room.id)
+    for (const url of (room.photo_urls ?? []).slice(1)) {
+      const img = new Image()
+      img.src = url
+    }
+  }
   const [expandedRoom,  setExpandedRoom]  = useState<string | null>(null)
   const [allDay,        setAllDay]        = useState(false)
   const [selectedRoom,  setSelectedRoom]  = useState<BookRoom | null>(null)
@@ -280,6 +304,10 @@ export default function AvailabilityView({ location, rooms, closures }: { locati
             <div
               key={room.id}
               onClick={() => selectRoom(room)}
+              // Hover is the earliest honest hint that somebody is about to
+              // look through this room's photos. Touch has no hover, so the
+              // first arrow tap warms them instead.
+              onMouseEnter={() => warmPhotos(room)}
               // Same selected/unselected treatment as the day pass location
               // cards: a ring plus a check instead of a heavy border
               // (matches the day pass design pass, 2026-09-17).
@@ -311,17 +339,17 @@ export default function AvailabilityView({ location, rooms, closures }: { locati
                         {images.length > 1 && (
                           <>
                             <button
-                              onClick={e => { e.stopPropagation(); setCarouselIndex(p => ({ ...p, [room.id]: (idx - 1 + images.length) % images.length })) }}
+                              onClick={e => { e.stopPropagation(); warmPhotos(room); setCarouselIndex(p => ({ ...p, [room.id]: (idx - 1 + images.length) % images.length })) }}
                               className="absolute left-2 top-1/2 -translate-y-1/2 z-20 bg-white/80 hover:bg-white rounded-full p-1.5 shadow transition-colors"
                             ><ChevronLeft size={15} /></button>
                             <button
-                              onClick={e => { e.stopPropagation(); setCarouselIndex(p => ({ ...p, [room.id]: (idx + 1) % images.length })) }}
+                              onClick={e => { e.stopPropagation(); warmPhotos(room); setCarouselIndex(p => ({ ...p, [room.id]: (idx + 1) % images.length })) }}
                               className="absolute right-2 top-1/2 -translate-y-1/2 z-20 bg-white/80 hover:bg-white rounded-full p-1.5 shadow transition-colors"
                             ><ChevronRight size={15} /></button>
                             {/* Above the name/price overlay, not behind it. */}
                             <div className="absolute bottom-14 left-1/2 -translate-x-1/2 z-20 flex gap-1.5">
                               {images.map((_, i) => (
-                                <button key={i} onClick={e => { e.stopPropagation(); setCarouselIndex(p => ({ ...p, [room.id]: i })) }}
+                                <button key={i} onClick={e => { e.stopPropagation(); warmPhotos(room); setCarouselIndex(p => ({ ...p, [room.id]: i })) }}
                                   className={cn('w-1.5 h-1.5 rounded-full transition-colors', i === idx ? 'bg-white' : 'bg-white/50')}
                                 />
                               ))}
