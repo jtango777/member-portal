@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { format, addDays, subDays } from 'date-fns'
-import { ArrowLeft, Check, ImageIcon, Phone, Mail, ChevronLeft, ChevronRight, Clock, Users } from 'lucide-react'
+import { ArrowLeft, Check, ImageIcon, Phone, Mail, ChevronLeft, ChevronRight, Clock, Users, CalendarDays } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import MiniDatePicker from '@/components/MiniDatePicker'
 import Collapse from '@/components/Collapse'
@@ -447,30 +447,24 @@ export default function AvailabilityView({ location, rooms, closures }: { locati
         {/* ── Left: Room cards, or the whole day ───────────────────── */}
         <div ref={gridRef} className="lg:col-span-8 space-y-4 scroll-mt-4">
 
-          {/* Which way to look at it. Two words rather than an icon: this
-              is the one control on the page whose meaning has to be
-              obvious to somebody who has never seen it. */}
-          <div className="flex items-center gap-1 text-sm">
-            {(['rooms', 'calendar'] as const).map(v => (
-              <button
-                key={v}
-                type="button"
-                onClick={() => setView(v)}
-                className={cn(
-                  'px-3 py-1.5 rounded-lg transition-colors',
-                  view === v
-                    ? 'bg-white ring-1 ring-gray-200 font-medium text-gray-900'
-                    : 'text-gray-500 hover:text-gray-800',
-                )}
-              >
-                {v === 'rooms' ? 'Rooms' : 'Full calendar'}
-              </button>
-            ))}
-            {view === 'calendar' && (
-              <span className="ml-2 text-xs text-gray-400">
-                {format(new Date(selectedDate + 'T12:00:00'), 'EEEE, MMM d')}
-              </span>
-            )}
+          {/* A heading with a way out underneath, rather than two tabs.
+              The page is a list of rooms; the grid is the other way to
+              look at the same day, and it reads better as an offer than
+              as a second tab of equal weight (Caroline, 2026-11-19). */}
+          <div>
+            <h2 className="text-lg font-semibold text-gray-900 leading-tight">
+              {view === 'rooms' ? 'Rooms' : 'Full calendar'}
+            </h2>
+            <button
+              type="button"
+              onClick={() => setView(view === 'rooms' ? 'calendar' : 'rooms')}
+              className="mt-0.5 inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-800 transition-colors"
+            >
+              <CalendarDays size={14} />
+              {view === 'rooms'
+                ? 'View full calendar'
+                : `Back to rooms · ${format(new Date(selectedDate + 'T12:00:00'), 'EEE, MMM d')}`}
+            </button>
           </div>
 
           {view === 'calendar' ? (
@@ -728,6 +722,24 @@ export default function AvailabilityView({ location, rooms, closures }: { locati
                             All day
                           </button>
                         </div>
+
+                        {/* A greyed switch that says nothing is a dead
+                            end: Caroline hit it four times and each time
+                            the page gave her no reason and no way on
+                            (Caroline, 2026-11-19). */}
+                        <Collapse open={!allDayPossible} duration={220}>
+                          <p className="text-xs text-gray-500 bg-gray-50 rounded-lg px-3 py-2 mb-1.5">
+                            A full day runs 9 AM to 5 PM, so it cannot start today.
+                            Pick times below, or{' '}
+                            <button
+                              type="button"
+                              onClick={nextDay}
+                              className="underline font-medium text-booking-700 hover:text-booking-800"
+                            >
+                              try tomorrow
+                            </button>.
+                          </p>
+                        </Collapse>
                         {loadingSlots ? (
                           <p className="text-sm text-gray-400">Loading availability…</p>
                         ) : (
