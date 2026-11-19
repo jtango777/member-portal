@@ -7,6 +7,7 @@ import { ArrowLeft, Check, ImageIcon, Phone, Mail, ChevronLeft, ChevronRight, Cl
 import { cn } from '@/lib/utils'
 import MiniDatePicker from '@/components/MiniDatePicker'
 import Collapse from '@/components/Collapse'
+import DayGrid from '@/components/book/DayGrid'
 import { dateUnavailableReason, lastBookableDate, MAX_BOOKING_MONTHS_AHEAD, type ClosureMap } from '@/lib/bookingRules'
 import { bookingPhoneFor } from '@/lib/locations'
 import {
@@ -97,6 +98,16 @@ export default function AvailabilityView({ location, rooms, closures }: { locati
   // This location's own number, not the El Segundo main line.
   const phone = bookingPhoneFor(location.id)
 
+  /**
+   * Photos or the whole day's grid.
+   *
+   * Photos first, because most people arrive knowing roughly what they
+   * want and choose with their eyes. The grid is for the harder question,
+   * "what is actually free", and for anybody whose first choice turns out
+   * to be taken (Caroline, 2026-11-19).
+   */
+  const [view, setView] = useState<'rooms' | 'calendar'>('rooms')
+
   const [carouselIndex, setCarouselIndex] = useState<Record<string, number>>({})
 
   /**
@@ -135,14 +146,24 @@ export default function AvailabilityView({ location, rooms, closures }: { locati
   const [fullDays, setFullDays] = useState<Set<string>>(new Set())
   const [loadingSlots,  setLoadingSlots]  = useState(false)
   /**
-   * Every room's taken slots for the chosen date, for the suggestions
-   * panel. Fetched alongside the selected room's own availability, in one
-   * call rather than one per room (Caroline, 2026-11-18).
+   * Every room's taken slots for the chosen date, in one call rather
+   * than one per room (Caroline, 2026-11-18).
    */
   const [blockedByRoom, setBlockedByRoom] = useState<Record<string, string[]>>({})
   const [selectedStart, setSelectedStart] = useState<string>('')
   const [selectedEnd,   setSelectedEnd]   = useState<string>('')
   const widgetRef = useRef<HTMLDivElement>(null)
+  /** The grid, so "see what is free" lands on it rather than near it. */
+  const gridRef = useRef<HTMLDivElement>(null)
+  /**
+   * A time picked off the grid, waiting for its room to finish loading.
+   *
+   * Choosing a room clears the times, which is right when somebody picks
+   * a room from a card and starts again, and wrong here: the grid click
+   * chooses the room AND the time in one go, and the clearing landed
+   * after it and wiped the time (Caroline, 2026-11-19).
+   */
+  const pendingPick = useRef<{ roomId: string; start: string; end: string } | null>(null)
 
   // A room is chosen by clicking its photo or from the dropdown in the
   // booking panel (Joe, 2026-10-28); either way any times picked for the
@@ -208,13 +229,37 @@ export default function AvailabilityView({ location, rooms, closures }: { locati
     return () => { cancelled = true }
   }, [selectedRoom])
 
+  /**
+   * The whole location's day, on its own.
+   *
+   * This used to ride along with the selected room's fetch, which meant
+   * it never ran until somebody picked a room, and the full calendar
+   * showed every room free all day to anyone who opened it first
+   * (Caroline, 2026-11-19).
+   */
+  useEffect(() => {
+    let cancelled = false
+    setBlockedByRoom({})
+    fetch(`/api/book/availability?locationId=${location.id}&date=${selectedDate}`)
+      .then(r => r.json())
+      .then(d => { if (!cancelled) setBlockedByRoom(d.blockedByRoom ?? {}) })
+      .catch(() => { if (!cancelled) setBlockedByRoom({}) })
+    return () => { cancelled = true }
+  }, [location.id, selectedDate])
+
   useEffect(() => {
     if (!selectedRoom) return
     setLoadingSlots(true)
     // "All day" used to survive a date change with the times cleared out,
     // which left Proceed to Payment pointing at a booking with no times —
     // it silently bounced people back to the start (found 2026-09-22).
-    if (allDay) { setSelectedStart('9:00'); setSelectedEnd('17:00') }
+    const pick = pendingPick.current
+    if (pick && pick.roomId === selectedRoom.id) {
+      pendingPick.current = null
+      setSelectedStart(pick.start)
+      setSelectedEnd(pick.end)
+    }
+    else if (allDay) { setSelectedStart('9:00'); setSelectedEnd('17:00') }
     else { setSelectedStart(''); setSelectedEnd('') }
     // Drop the previous day's slots so nothing is labelled unavailable
     // based on a different date while this fetch is in flight.
@@ -223,11 +268,6 @@ export default function AvailabilityView({ location, rooms, closures }: { locati
       .then(r => r.json())
       .then(d => { setBlockedSlots(d.blockedSlots ?? []); setLoadingSlots(false) })
       .catch(() => setLoadingSlots(false))
-    // The other rooms, for the moment this one turns out not to work.
-    fetch(`/api/book/availability?locationId=${location.id}&date=${selectedDate}`)
-      .then(r => r.json())
-      .then(d => setBlockedByRoom(d.blockedByRoom ?? {}))
-      .catch(() => setBlockedByRoom({}))
   // allDay deliberately left out: re-running this on every toggle would
   // refetch availability for no reason.
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -349,11 +389,17 @@ export default function AvailabilityView({ location, rooms, closures }: { locati
     ? freeBlocks(slotValues, unavailableIn(blockedSlots), CLOSE_SLOT)
     : []
   const ownBest = longestBlock(ownBlocks)
-  // Worth offering only if it is a real slot of time. Half an hour left at
-  // the end of the day is not an answer to "I wanted the whole day", and
-  // offering it made the list below read "Or these rooms" with nothing
-  // above it.
-  const keepOwn = !!ownBest && blockHours(ownBest) >= 1
+  /**
+   * Offer to keep this room only when most of the day is still there.
+   *
+   * The floor was an hour, which meant somebody who asked for a whole day
+   * could be offered a single leftover hour in it, dressed up as the
+   * first and best option. Staying put only beats moving when what is
+   * left is close to what they asked for, so the bar is three quarters of
+   * the day: six hours of the eight (Caroline, 2026-11-19).
+   */
+  const KEEP_ROOM_FRACTION = 0.75
+  const keepOwn = !!ownBest && blockHours(ownBest) >= WHOLE_DAY_HOURS * KEEP_ROOM_FRACTION
 
   const wantHours = allDay ? WHOLE_DAY_HOURS : (durationHours || 1)
   const suggestions = showSuggestions && selectedRoom
@@ -398,10 +444,69 @@ export default function AvailabilityView({ location, rooms, closures }: { locati
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
 
-        {/* ── Left: Room cards ─────────────────────────────────────── */}
-        <div className="lg:col-span-8 space-y-4">
+        {/* ── Left: Room cards, or the whole day ───────────────────── */}
+        <div ref={gridRef} className="lg:col-span-8 space-y-4 scroll-mt-4">
 
+          {/* Which way to look at it. Two words rather than an icon: this
+              is the one control on the page whose meaning has to be
+              obvious to somebody who has never seen it. */}
+          <div className="flex items-center gap-1 text-sm">
+            {(['rooms', 'calendar'] as const).map(v => (
+              <button
+                key={v}
+                type="button"
+                onClick={() => setView(v)}
+                className={cn(
+                  'px-3 py-1.5 rounded-lg transition-colors',
+                  view === v
+                    ? 'bg-white ring-1 ring-gray-200 font-medium text-gray-900'
+                    : 'text-gray-500 hover:text-gray-800',
+                )}
+              >
+                {v === 'rooms' ? 'Rooms' : 'Full calendar'}
+              </button>
+            ))}
+            {view === 'calendar' && (
+              <span className="ml-2 text-xs text-gray-400">
+                {format(new Date(selectedDate + 'T12:00:00'), 'EEEE, MMM d')}
+              </span>
+            )}
+          </div>
 
+          {view === 'calendar' ? (
+            /* Nothing is highlighted while the selection cannot be booked:
+               All day on a part-booked room left a green sliver on
+               whatever half hour happened to be free, which read as a
+               booking somebody could have (Caroline, 2026-11-19). */
+            <DayGrid
+              rooms={rooms}
+              slots={slotValues}
+              labelFor={v => START_SLOTS.find(s => s.value === v)?.label ?? v}
+              taken={roomId => new Set(blockedByRoom[roomId] ?? [])}
+              past={new Set(pastSlots)}
+              selectedRoomId={selectedRoom?.id}
+              selectedStart={allDayBlocked ? undefined : selectedStart}
+              selectedEnd={allDayBlocked ? undefined : selectedEnd}
+              onPick={(roomId, slot) => {
+                const room = rooms.find(r => r.id === roomId)
+                if (!room) return
+                // Picking a time on the grid chooses the room as well, and
+                // gives them the half hour they clicked. The panel beside
+                // it is where they stretch it.
+                const next = slotValues[slotValues.indexOf(slot) + 1] ?? CLOSE_SLOT
+                setAllDay(false)
+                if (room.id !== selectedRoom?.id) {
+                  // The room's own availability is about to load and will
+                  // clear the times; leave the pick for it to apply.
+                  pendingPick.current = { roomId: room.id, start: slot, end: next }
+                  setSelectedRoom(room)
+                } else {
+                  setSelectedStart(slot)
+                  setSelectedEnd(next)
+                }
+              }}
+            />
+          ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {rooms.map(room => (
             <div
@@ -525,6 +630,7 @@ export default function AvailabilityView({ location, rooms, closures }: { locati
             </div>
           ))}
           </div>
+          )}
 
         </div>
 
@@ -632,14 +738,13 @@ export default function AvailabilityView({ location, rooms, closures }: { locati
                             (Caroline, 2026-11-18). Both stay in the page;
                             Collapse marks the shut one inert, so its selects
                             cannot be tabbed into. */}
-                        <Collapse open={allDay} duration={220}>
-                          {allDayBlocked ? (
-                            <p className="text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
-                              {selectedRoom?.external_name} is already booked for part of that day.
-                            </p>
-                          ) : (
-                            <p className="text-sm text-gray-500 bg-gray-50 rounded-lg px-3 py-2">9:00 AM – 5:00 PM</p>
-                          )}
+                        {/* Only the good news here. When the day is not
+                            free the panel below says so and offers the
+                            calendar, and saying it twice, once in alarm
+                            colours, made a solvable problem look like an
+                            error (Caroline, 2026-11-19). */}
+                        <Collapse open={allDay && !allDayBlocked} duration={220}>
+                          <p className="text-sm text-gray-500 bg-gray-50 rounded-lg px-3 py-2">9:00 AM – 5:00 PM</p>
                         </Collapse>
                         <Collapse open={!allDay} duration={220}>
                           <div className="grid grid-cols-2 gap-2">
@@ -674,64 +779,30 @@ export default function AvailabilityView({ location, rooms, closures }: { locati
                         )}
                       </div>
 
-                      {/* ── What can actually be booked instead ──────────
-                          Shown only at the two dead ends: All day on a day
-                          with something in it, and a day with nothing left.
-                          The room they wanted comes first when it still has
-                          a useful run of time, because staying put beats
-                          moving. Then the other rooms, big enough ones
-                          first (see lib/roomSuggestions for why), each
-                          saying what it gives them and what it costs
-                          (Caroline, 2026-11-18). */}
+                      {/* ── Taken? Show them the day ─────────────────
+                          This was a ranked list of other rooms. The grid
+                          answers the same question better: instead of
+                          being told three options it shows every room's
+                          whole day, and they pick off it
+                          (Caroline, 2026-11-19). */}
                       <Collapse open={showSuggestions}>
-                        <div className="rounded-lg border border-gray-200 divide-y divide-gray-100 overflow-hidden">
-                          {keepOwn && ownBest && (
-                            <button
-                              onClick={() => takeBlock(selectedRoom, ownBest)}
-                              className="w-full text-left px-3 py-2.5 hover:bg-gray-50 transition-colors"
-                            >
-                              <span className="block text-sm font-medium text-gray-900">
-                                Keep {selectedRoom.external_name}, {describeFreeTime(ownBlocks, WHOLE_DAY_HOURS)}
-                              </span>
-                              <span className="block text-xs text-gray-500 mt-0.5">
-                                {blockHours(ownBest)}h · {money(blockHours(ownBest) * selectedRoom.price_per_hour)}
-                              </span>
-                            </button>
-                          )}
-
-                          {suggestions.length > 0 && (
-                            <p className="px-3 py-2 text-xs font-medium text-gray-500 bg-gray-50">
-                              {keepOwn ? 'Or these rooms are free' : 'These rooms are free'} on {format(new Date(selectedDate + 'T12:00:00'), 'MMM d')}
-                            </p>
-                          )}
-
-                          {suggestions.map(s => (
-                            <button
-                              key={s.room.id}
-                              onClick={() => takeBlock(s.room, s.best)}
-                              className="w-full text-left px-3 py-2.5 hover:bg-gray-50 transition-colors"
-                            >
-                              <span className="flex items-baseline justify-between gap-3">
-                                <span className="text-sm font-medium text-gray-900">
-                                  {s.room.external_name}
-                                  <span className="font-normal text-gray-500">
-                                    {' · '}up to {s.room.capacity}
-                                    {s.smaller && ' · smaller'}
-                                  </span>
-                                </span>
-                                <span className="shrink-0 text-xs font-semibold text-gray-700">
-                                  ${s.room.price_per_hour}/hr
-                                </span>
-                              </span>
-                              <span className="block text-xs text-gray-500 mt-0.5">{s.summary}</span>
-                            </button>
-                          ))}
-
-                          {!keepOwn && suggestions.length === 0 && (
-                            <p className="px-3 py-2.5 text-sm text-gray-500">
-                              Every room here is booked that day. Try another date, or call {phone}.
-                            </p>
-                          )}
+                        <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-3">
+                          <p className="text-sm text-gray-700 m-0">
+                            {noTimeLeft
+                              ? `${selectedRoom.external_name} has nothing left on this day.`
+                              : `${selectedRoom.external_name} is already booked for part of that day.`}
+                          </p>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setView('calendar')
+                              gridRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                            }}
+                            className="mt-2 inline-flex items-center gap-1 text-sm font-medium text-booking-700 hover:text-booking-800"
+                          >
+                            See what is free that day
+                            <ChevronRight size={14} />
+                          </button>
                         </div>
                       </Collapse>
 
