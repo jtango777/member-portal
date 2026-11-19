@@ -162,3 +162,27 @@ export function rankSuggestions(opts: {
       : a.room.capacity - b.room.capacity
   })
 }
+
+/**
+ * The inverse of freeBlocks: somebody else's time, merged into runs.
+ *
+ * The grid draws one block per booking rather than one per half hour, so
+ * contiguous taken slots have to come back joined up. A two hour meeting
+ * drawn as four grey cells reads as four meetings (Caroline, 2026-11-19).
+ */
+export function busyBlocks(startSlots: Slot[], taken: Slot[], closeSlot: Slot): FreeBlock[] {
+  const isTaken = new Set(taken)
+  const out: FreeBlock[] = []
+  let runStart: Slot | null = null
+
+  startSlots.forEach((slot, i) => {
+    const busy = isTaken.has(slot)
+    if (busy && runStart === null) runStart = slot
+    const nextFree = i + 1 >= startSlots.length || !isTaken.has(startSlots[i + 1])
+    if (busy && nextFree && runStart !== null) {
+      out.push({ start: runStart, end: startSlots[i + 1] ?? closeSlot })
+      runStart = null
+    }
+  })
+  return out
+}

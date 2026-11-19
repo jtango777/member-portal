@@ -11,7 +11,7 @@ import DayGrid from '@/components/book/DayGrid'
 import { dateUnavailableReason, lastBookableDate, MAX_BOOKING_MONTHS_AHEAD, type ClosureMap } from '@/lib/bookingRules'
 import { bookingPhoneFor } from '@/lib/locations'
 import {
-  freeBlocks, longestBlock, blockHours, describeFreeTime, rankSuggestions,
+  freeBlocks, longestBlock, blockHours, describeFreeTime, rankSuggestions, busyBlocks,
   type FreeBlock,
 } from '@/lib/roomSuggestions'
 
@@ -107,6 +107,12 @@ export default function AvailabilityView({ location, rooms, closures }: { locati
    * to be taken (Caroline, 2026-11-19).
    */
   const [view, setView] = useState<'rooms' | 'calendar'>('rooms')
+  /** Mid-swap, so the two views cross-fade instead of jumping. */
+  const [swapping, setSwapping] = useState(false)
+  function switchView() {
+    setSwapping(true)
+    setTimeout(() => { setView(v => (v === 'rooms' ? 'calendar' : 'rooms')); setSwapping(false) }, 130)
+  }
 
   const [carouselIndex, setCarouselIndex] = useState<Record<string, number>>({})
 
@@ -447,26 +453,26 @@ export default function AvailabilityView({ location, rooms, closures }: { locati
         {/* ── Left: Room cards, or the whole day ───────────────────── */}
         <div ref={gridRef} className="lg:col-span-8 space-y-4 scroll-mt-4">
 
-          {/* A heading with a way out underneath, rather than two tabs.
-              The page is a list of rooms; the grid is the other way to
-              look at the same day, and it reads better as an offer than
-              as a second tab of equal weight (Caroline, 2026-11-19). */}
-          <div>
-            <h2 className="text-lg font-semibold text-gray-900 leading-tight">
-              {view === 'rooms' ? 'Rooms' : 'Full calendar'}
-            </h2>
-            <button
-              type="button"
-              onClick={() => setView(view === 'rooms' ? 'calendar' : 'rooms')}
-              className="mt-0.5 inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-800 transition-colors"
-            >
-              <CalendarDays size={14} />
-              {view === 'rooms'
-                ? 'View full calendar'
-                : `Back to rooms · ${format(new Date(selectedDate + 'T12:00:00'), 'EEE, MMM d')}`}
-            </button>
-          </div>
+          {/* One control, in one place, saying one thing.
+              A heading that changed AND a link that changed meant two
+              bits of text morphing on every press, and the browser drew
+              a square focus box over the link afterwards
+              (Caroline, 2026-11-19). */}
+          <button
+            type="button"
+            onClick={switchView}
+            className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1 -ml-2 text-sm text-gray-500
+                       hover:text-gray-900 hover:bg-gray-100 transition-colors
+                       focus:outline-none focus-visible:ring-2 focus-visible:ring-booking-500"
+          >
+            <CalendarDays size={14} />
+            {view === 'rooms' ? 'View full calendar' : 'View rooms'}
+          </button>
 
+          <div className={cn(
+            'transition-opacity duration-150',
+            swapping ? 'opacity-0' : 'opacity-100',
+          )}>
           {view === 'calendar' ? (
             /* Nothing is highlighted while the selection cannot be booked:
                All day on a part-booked room left a green sliver on
@@ -475,9 +481,16 @@ export default function AvailabilityView({ location, rooms, closures }: { locati
             <DayGrid
               rooms={rooms}
               slots={slotValues}
-              labelFor={v => START_SLOTS.find(s => s.value === v)?.label ?? v}
-              taken={roomId => new Set(blockedByRoom[roomId] ?? [])}
-              past={new Set(pastSlots)}
+              // END_SLOTS as well as START_SLOTS: a block that runs to
+              // closing ends at 17:00, which is not a start time, and
+              // printed as the raw "17:00".
+              labelFor={v =>
+                START_SLOTS.find(s => s.value === v)?.label
+                ?? END_SLOTS.find(s => s.value === v)?.label
+                ?? v}
+              closeSlot={CLOSE_SLOT}
+              busy={roomId => busyBlocks(slotValues, blockedByRoom[roomId] ?? [], CLOSE_SLOT)}
+              nowMinutes={isToday ? pacificNowMinutes() : null}
               selectedRoomId={selectedRoom?.id}
               selectedStart={allDayBlocked ? undefined : selectedStart}
               selectedEnd={allDayBlocked ? undefined : selectedEnd}
@@ -625,6 +638,7 @@ export default function AvailabilityView({ location, rooms, closures }: { locati
           ))}
           </div>
           )}
+          </div>
 
         </div>
 
