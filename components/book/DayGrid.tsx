@@ -77,8 +77,8 @@ export default function DayGrid({
     <div className="rounded-xl ring-1 ring-gray-200/80 bg-white overflow-hidden">
       {/* The same zoom the portal's calendar has, so a long day can be
           squeezed into one screen or opened out to read. */}
-      <div className="flex items-center justify-end gap-2 px-3 py-2 border-b border-gray-100">
-        <ZoomOut size={13} className="text-gray-400" />
+      <div className="flex items-center justify-end gap-2.5 px-3 py-2 border-b border-gray-100">
+        <ZoomOut size={12} className="text-gray-300" />
         <input
           type="range"
           aria-label="Row height"
@@ -86,9 +86,12 @@ export default function DayGrid({
           max={MAX_SLOT_H}
           value={slotH}
           onChange={e => setSlotH(Number(e.target.value))}
-          className="w-28 accent-booking-600"
+          // The filled part of the track is drawn from the value, since
+          // only Firefox gives you ::-moz-range-progress for free.
+          style={{ ['--fill' as string]: `${((slotH - MIN_SLOT_H) / (MAX_SLOT_H - MIN_SLOT_H)) * 100}%` }}
+          className="zoom-range w-24"
         />
-        <ZoomIn size={13} className="text-gray-400" />
+        <ZoomIn size={12} className="text-gray-300" />
       </div>
 
       <div className="overflow-x-auto">
@@ -108,7 +111,7 @@ export default function DayGrid({
               whole page tall, so the room headings stay put while you
               move through the hours (Caroline, 2026-11-19). */}
           <div className="overflow-y-auto py-2" style={{ maxHeight: 460 }}>
-            <div className="flex relative border-b border-gray-200" style={{ height: bodyH }}>
+            <div className="flex relative" style={{ height: bodyH }}>
               {/* Time rail */}
               <div className="w-[72px] shrink-0 relative">
                 {/* Closing time included. The labels came from the start
@@ -156,6 +159,16 @@ export default function DayGrid({
                         </div>
                       )
                     })}
+
+                    {/* The closing line, drawn the way every other hour
+                        line is: inside the column, so it starts and stops
+                        where they do. As a border on the whole row it ran
+                        under the time rail too and sat adrift of the card
+                        edge (Caroline, 2026-11-19). */}
+                    <div
+                      className="absolute inset-x-0 border-t border-gray-200"
+                      style={{ top: bodyH }}
+                    />
 
                     {blocks.map(b => (
                       <div

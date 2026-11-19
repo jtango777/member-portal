@@ -104,3 +104,58 @@
     border-radius: 3px;
   }
 }
+
+/* The zoom slider on the public booking calendar.
+   The native control is a chunky dark bar with a fat thumb; this is a
+   hairline track that fills as you drag, and a small white knob with a
+   ring, so it reads as a quiet adjustment rather than a feature
+   (Caroline, 2026-11-19). */
+.zoom-range {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 14px;
+  background: transparent;
+  cursor: pointer;
+}
+.zoom-range::-webkit-slider-runnable-track {
+  height: 3px;
+  border-radius: 999px;
+  background: linear-gradient(
+    to right,
+    #6ec664 0%, #6ec664 var(--fill, 0%),
+    #e5e7eb var(--fill, 0%), #e5e7eb 100%
+  );
+}
+.zoom-range::-moz-range-track {
+  height: 3px;
+  border-radius: 999px;
+  background: #e5e7eb;
+}
+.zoom-range::-moz-range-progress {
+  height: 3px;
+  border-radius: 999px;
+  background: #6ec664;
+}
+.zoom-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 12px;
+  height: 12px;
+  margin-top: -4.5px;
+  border-radius: 999px;
+  background: #fff;
+  border: 1px solid #d1d5db;
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.12);
+  transition: transform 120ms ease, border-color 120ms ease;
+}
+.zoom-range::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  border-radius: 999px;
+  background: #fff;
+  border: 1px solid #d1d5db;
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.12);
+}
+.zoom-range:hover::-webkit-slider-thumb { transform: scale(1.12); border-color: #9ca3af; }
+.zoom-range:focus { outline: none; }
+.zoom-range:focus-visible::-webkit-slider-thumb { border-color: #6ec664; box-shadow: 0 0 0 3px rgba(110, 198, 100, 0.25); }
