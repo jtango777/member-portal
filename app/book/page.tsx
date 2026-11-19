@@ -16,13 +16,24 @@ type BookLocation = {
   slug: string
 }
 
-// Same open-space photos the day pass location cards use, matched by name
-// (lowercased) so a new location without a photo just gets a plain header
-// instead of a broken image (matches the day pass design pass, 2026-09-17).
+/**
+ * The best meeting room at each location, as the card's header.
+ *
+ * These were the open-desk coworking shots, the same ones the day pass
+ * cards use. That is right for a day pass, which buys a desk in that
+ * room, and wrong here: this page sells meeting rooms by the hour, and
+ * the picture showed everything except one (Caroline, 2026-11-18).
+ *
+ * The day pass and the account bookings list keep the coworking photos;
+ * they read from lib/locationPhotos.ts, which is deliberately separate.
+ *
+ * Matched on the lowercased name, so a new location with no photo gets a
+ * plain header rather than a broken image.
+ */
 const LOCATION_PHOTOS: Record<string, { src: string; position?: string }> = {
-  'el segundo':     { src: '/rooms/es-open-space.jpg' },
-  'marina del rey': { src: '/rooms/mdr-open-space.jpg', position: 'center 70%' },
-  'costa mesa':     { src: '/rooms/cm-open-space.jpg' },
+  'el segundo':     { src: '/rooms/es-library-room.jpg' },
+  'marina del rey': { src: '/rooms/mdr-conference-room.jpg' },
+  'costa mesa':     { src: '/rooms/cm-board-room.jpg' },
 }
 
 export default async function BookPage() {
@@ -70,7 +81,7 @@ export default async function BookPage() {
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={photo.src}
-                    alt={`${location.name} space`}
+                    alt={`A meeting room at ${location.name}`}
                     className="absolute inset-0 w-full h-full object-cover"
                     style={photo.position ? { objectPosition: photo.position } : undefined}
                   />
