@@ -94,7 +94,7 @@ export default function DayGrid({
       <div className="overflow-x-auto">
         <div style={{ minWidth: 72 + rooms.length * 130 }}>
           {/* Room headings */}
-          <div className="flex border-b border-gray-200">
+          <div className="flex border-b border-gray-200 bg-white">
             <div className="w-[72px] shrink-0" />
             {rooms.map(r => (
               <div key={r.id} className="flex-1 min-w-[130px] px-2 py-2 border-l border-gray-100">
@@ -104,97 +104,97 @@ export default function DayGrid({
             ))}
           </div>
 
-          <div className="flex" style={{ height: bodyH }}>
-            {/* Time rail */}
-            <div className="w-[72px] shrink-0 relative">
-              {slots.filter(s => s.endsWith(':00')).map(s => (
-                <div
-                  key={s}
-                  className="absolute right-2 -translate-y-1/2 text-[11px] text-gray-400 whitespace-nowrap"
-                  style={{ top: top(mins(s)) }}
-                >
-                  {labelFor(s)}
-                </div>
-              ))}
-            </div>
+          {/* The day scrolls inside its own box rather than making the
+              whole page tall, so the room headings stay put while you
+              move through the hours (Caroline, 2026-11-19). */}
+          <div className="overflow-y-auto pt-2" style={{ maxHeight: 460 }}>
+            <div className="flex relative" style={{ height: bodyH }}>
+              {/* Time rail */}
+              <div className="w-[72px] shrink-0 relative">
+                {slots.filter(s => s.endsWith(':00')).map(s => (
+                  <div
+                    key={s}
+                    className="absolute right-2 -translate-y-1/2 text-[11px] text-gray-400 whitespace-nowrap"
+                    style={{ top: top(mins(s)) }}
+                  >
+                    {labelFor(s)}
+                  </div>
+                ))}
+              </div>
 
-            {rooms.map(room => {
-              const blocks = busy(room.id)
-              const selected = room.id === selectedRoomId && selectedStart && selectedEnd
-                ? { start: selectedStart, end: selectedEnd }
-                : null
-              return (
-                <div key={room.id} className="flex-1 min-w-[130px] relative border-l border-gray-100">
-                  {/* Hour lines, and a click target per half hour. A slot
-                      that is taken or gone simply is not a button. */}
-                  {slots.map(s => {
-                    const m = mins(s)
-                    const taken = blocks.some(b => m >= mins(b.start) && m < mins(b.end))
-                    const gone = nowMinutes !== null && m <= nowMinutes
-                    return (
+              {rooms.map(room => {
+                const blocks = busy(room.id)
+                const selected = room.id === selectedRoomId && selectedStart && selectedEnd
+                  ? { start: selectedStart, end: selectedEnd }
+                  : null
+                return (
+                  <div key={room.id} className="flex-1 min-w-[130px] relative border-l border-gray-100">
+                    {slots.map(s => {
+                      const m = mins(s)
+                      const taken = blocks.some(b => m >= mins(b.start) && m < mins(b.end))
+                      const gone = nowMinutes !== null && m <= nowMinutes
+                      return (
+                        <div
+                          key={s}
+                          className={cn(
+                            'absolute inset-x-0 border-t',
+                            s.endsWith(':00') ? 'border-gray-200' : 'border-gray-50',
+                          )}
+                          style={{ top: top(m), height: slotH }}
+                        >
+                          {!taken && !gone && (
+                            <button
+                              type="button"
+                              onClick={() => onPick(room.id, s)}
+                              aria-label={`Book ${room.external_name} from ${labelFor(s)}`}
+                              className="absolute inset-0 w-full hover:bg-booking-600/15 focus:bg-booking-600/15 focus:outline-none transition-colors"
+                            />
+                          )}
+                        </div>
+                      )
+                    })}
+
+                    {blocks.map(b => (
                       <div
-                        key={s}
-                        className={cn(
-                          'absolute inset-x-0 border-t',
-                          s.endsWith(':00') ? 'border-gray-200' : 'border-gray-50',
-                        )}
-                        style={{ top: top(m), height: slotH }}
+                        key={b.start}
+                        className="absolute inset-x-1 rounded-md bg-gray-100 ring-1 ring-gray-200/80 px-1.5 py-0.5 overflow-hidden"
+                        style={{ top: top(mins(b.start)) + 1, height: height(mins(b.start), mins(b.end)) - 2 }}
                       >
-                        {!taken && !gone && (
-                          <button
-                            type="button"
-                            onClick={() => onPick(room.id, s)}
-                            aria-label={`Book ${room.external_name} from ${labelFor(s)}`}
-                            className="absolute inset-0 w-full hover:bg-booking-600/15 focus:bg-booking-600/15 focus:outline-none transition-colors"
-                          />
-                        )}
+                        <div className="text-[10px] font-medium text-gray-500 leading-tight">
+                          {labelFor(b.start)} – {labelFor(b.end)}
+                        </div>
+                        <div className="text-[10px] text-gray-400">Booked</div>
                       </div>
-                    )
-                  })}
+                    ))}
 
-                  {/* Somebody else's time, one block however long it runs. */}
-                  {blocks.map(b => (
-                    <div
-                      key={b.start}
-                      className="absolute inset-x-1 rounded-md bg-gray-100 ring-1 ring-gray-200/80 px-1.5 py-0.5 overflow-hidden"
-                      style={{ top: top(mins(b.start)) + 1, height: height(mins(b.start), mins(b.end)) - 2 }}
-                    >
-                      <div className="text-[10px] font-medium text-gray-500 leading-tight">
-                        {labelFor(b.start)} – {labelFor(b.end)}
+                    {selected && (
+                      <div
+                        className="absolute inset-x-1 rounded-md bg-booking-600 px-1.5 py-0.5 overflow-hidden"
+                        style={{ top: top(mins(selected.start)) + 1, height: height(mins(selected.start), mins(selected.end)) - 2 }}
+                      >
+                        <div className="text-[10px] font-semibold text-white leading-tight">
+                          {labelFor(selected.start)} – {labelFor(selected.end)}
+                        </div>
                       </div>
-                      <div className="text-[10px] text-gray-400">Booked</div>
-                    </div>
-                  ))}
+                    )}
+                  </div>
+                )
+              })}
 
-                  {/* Theirs. */}
-                  {selected && (
-                    <div
-                      className="absolute inset-x-1 rounded-md bg-booking-600 px-1.5 py-0.5 overflow-hidden"
-                      style={{ top: top(mins(selected.start)) + 1, height: height(mins(selected.start), mins(selected.end)) - 2 }}
-                    >
-                      <div className="text-[10px] font-semibold text-white leading-tight">
-                        {labelFor(selected.start)} – {labelFor(selected.end)}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )
-            })}
-
-            {/* Where the day has got to. One line, rather than shading
-                every passed hour the same grey as a booking. */}
-            {nowMinutes !== null && nowMinutes > dayStart && nowMinutes < dayEnd && (
-              <div
-                className="absolute left-0 right-0 pointer-events-none"
-                style={{ marginTop: top(nowMinutes) }}
-              >
-                <div className="relative h-px bg-red-400/70">
-                  <span className="absolute -top-[7px] left-[58px] text-[9px] font-semibold text-red-500 bg-white px-1">
+              {/* Where the day has got to. Inside the columns, not across
+                  the page: it was absolutely positioned against the whole
+                  document and ran edge to edge (Caroline, 2026-11-19). */}
+              {nowMinutes !== null && nowMinutes > dayStart && nowMinutes < dayEnd && (
+                <div
+                  className="absolute left-[56px] right-0 h-px bg-red-400/70 pointer-events-none"
+                  style={{ top: top(nowMinutes) }}
+                >
+                  <span className="absolute -top-[7px] -left-[34px] text-[9px] font-semibold text-red-500">
                     now
                   </span>
                 </div>
-              </div>
-            )}
+              )}
+            </div>
           </div>
         </div>
       </div>
