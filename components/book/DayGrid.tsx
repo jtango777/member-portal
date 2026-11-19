@@ -107,11 +107,14 @@ export default function DayGrid({
           {/* The day scrolls inside its own box rather than making the
               whole page tall, so the room headings stay put while you
               move through the hours (Caroline, 2026-11-19). */}
-          <div className="overflow-y-auto pt-2" style={{ maxHeight: 460 }}>
-            <div className="flex relative" style={{ height: bodyH }}>
+          <div className="overflow-y-auto py-2" style={{ maxHeight: 460 }}>
+            <div className="flex relative border-b border-gray-200" style={{ height: bodyH }}>
               {/* Time rail */}
               <div className="w-[72px] shrink-0 relative">
-                {slots.filter(s => s.endsWith(':00')).map(s => (
+                {/* Closing time included. The labels came from the start
+                    times, which stop at half four, so the day just ran
+                    out with no line at five (Caroline, 2026-11-19). */}
+                {[...slots.filter(s => s.endsWith(':00')), closeSlot].map(s => (
                   <div
                     key={s}
                     className="absolute right-2 -translate-y-1/2 text-[11px] text-gray-400 whitespace-nowrap"
