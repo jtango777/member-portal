@@ -478,6 +478,32 @@ export default function AvailabilityView({ location, rooms, closures }: { locati
                All day on a part-booked room left a green sliver on
                whatever half hour happened to be free, which read as a
                booking somebody could have (Caroline, 2026-11-19). */
+            <>
+            {/* The grid needs its own day controls: the date picker lives
+                in the booking panel, which does not appear until a room
+                is chosen, so the calendar opened on today with no way to
+                move (Caroline, 2026-11-19). */}
+            <div className="flex items-center gap-1 mb-2">
+              <button
+                type="button"
+                onClick={prevDay}
+                disabled={selectedDate <= today}
+                className="p-1.5 rounded-lg text-gray-500 hover:bg-gray-100 disabled:opacity-30 disabled:hover:bg-transparent"
+                aria-label="Previous day"
+              ><ChevronLeft size={16} /></button>
+              <span className="text-sm font-medium text-gray-900 min-w-[150px] text-center">
+                {format(new Date(selectedDate + 'T12:00:00'), 'EEEE, MMM d')}
+              </span>
+              <button
+                type="button"
+                onClick={nextDay}
+                className="p-1.5 rounded-lg text-gray-500 hover:bg-gray-100"
+                aria-label="Next day"
+              ><ChevronRight size={16} /></button>
+              {dateClosed && (
+                <span className="ml-2 text-xs text-amber-700">{unavailableReason}</span>
+              )}
+            </div>
             <DayGrid
               rooms={rooms}
               slots={slotValues}
@@ -494,25 +520,30 @@ export default function AvailabilityView({ location, rooms, closures }: { locati
               selectedRoomId={selectedRoom?.id}
               selectedStart={allDayBlocked ? undefined : selectedStart}
               selectedEnd={allDayBlocked ? undefined : selectedEnd}
-              onPick={(roomId, slot) => {
+              onSelect={(roomId, start, end) => {
                 const room = rooms.find(r => r.id === roomId)
                 if (!room) return
-                // Picking a time on the grid chooses the room as well, and
-                // gives them the half hour they clicked. The panel beside
-                // it is where they stretch it.
-                const next = slotValues[slotValues.indexOf(slot) + 1] ?? CLOSE_SLOT
                 setAllDay(false)
                 if (room.id !== selectedRoom?.id) {
                   // The room's own availability is about to load and will
                   // clear the times; leave the pick for it to apply.
-                  pendingPick.current = { roomId: room.id, start: slot, end: next }
+                  pendingPick.current = { roomId: room.id, start, end }
                   setSelectedRoom(room)
                 } else {
-                  setSelectedStart(slot)
-                  setSelectedEnd(next)
+                  setSelectedStart(start)
+                  setSelectedEnd(end)
                 }
               }}
+              bookHref={(roomId, start, end) =>
+                `/book/request?room=${roomId}&date=${selectedDate}&start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}&location=${location.slug}`}
+              priceFor={(roomId, start, end) => {
+                const r = rooms.find(x => x.id === roomId)
+                if (!r) return ''
+                const hours = (slotToMinutes(end) - slotToMinutes(start)) / 60
+                return `${hours}h · ${money(hours * r.price_per_hour)}`
+              }}
             />
+            </>
           ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {rooms.map(room => (

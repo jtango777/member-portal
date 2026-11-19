@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { ZoomIn, ZoomOut } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -48,7 +48,7 @@ function mins(s: string) {
 
 export default function DayGrid({
   rooms, slots, closeSlot, labelFor, busy, nowMinutes,
-  selectedRoomId, selectedStart, selectedEnd, onPick,
+  selectedRoomId, selectedStart, selectedEnd, onSelect, bookHref, priceFor,
 }: {
   rooms: GridRoom[]
   slots: string[]
@@ -62,9 +62,41 @@ export default function DayGrid({
   selectedRoomId?: string
   selectedStart?: string
   selectedEnd?: string
-  onPick: (roomId: string, slot: string) => void
+  onSelect: (roomId: string, start: string, end: string) => void
+  /** Where "Book" goes, once there is something to book. */
+  bookHref: (roomId: string, start: string, end: string) => string
+  priceFor: (roomId: string, start: string, end: string) => string
 }) {
   const [slotH, setSlotH] = useState(DEFAULT_SLOT_H)
+
+  /**
+   * Dragging down a column to choose a length, the way a calendar is
+   * normally used. A click is the same gesture over one slot, so it
+   * still gives the half hour it landed on (Caroline, 2026-11-19).
+   */
+  const [dragFrom, setDragFrom] = useState<{ roomId: string; index: number } | null>(null)
+  /**
+   * Whether the pointer actually travelled, so the click that follows a
+   * drag does not collapse the range back to the slot it started on.
+   */
+  const dragged = useRef(false)
+  useEffect(() => {
+    if (!dragFrom) return
+    const stop = () => setDragFrom(null)
+    window.addEventListener('pointerup', stop)
+    return () => window.removeEventListener('pointerup', stop)
+  }, [dragFrom])
+
+  /** The run of free slots around an anchor, clamped by whatever blocks it. */
+  function rangeTo(roomId: string, from: number, to: number, blocked: (i: number) => boolean) {
+    const lo = Math.min(from, to)
+    const hi = Math.max(from, to)
+    let start = from
+    let end = from
+    for (let i = from; i >= lo; i--) { if (blocked(i)) break; start = i }
+    for (let i = from; i <= hi; i++) { if (blocked(i)) break; end = i }
+    return { start: slots[start], end: slots[end + 1] ?? closeSlot }
+  }
 
   const dayStart = mins(slots[0] ?? '9:00')
   const dayEnd = mins(closeSlot)
@@ -135,10 +167,16 @@ export default function DayGrid({
                   : null
                 return (
                   <div key={room.id} className="flex-1 min-w-[130px] relative border-l border-gray-100">
-                    {slots.map(s => {
+                    {slots.map((s, i) => {
                       const m = mins(s)
                       const taken = blocks.some(b => m >= mins(b.start) && m < mins(b.end))
                       const gone = nowMinutes !== null && m <= nowMinutes
+                      const dead = taken || gone
+                      const blockedAt = (idx: number) => {
+                        const mm = mins(slots[idx])
+                        return blocks.some(b => mm >= mins(b.start) && mm < mins(b.end))
+                          || (nowMinutes !== null && mm <= nowMinutes)
+                      }
                       return (
                         <div
                           key={s}
@@ -146,14 +184,45 @@ export default function DayGrid({
                             'absolute inset-x-0 border-t',
                             s.endsWith(':00') ? 'border-gray-200' : 'border-gray-50',
                           )}
-                          style={{ top: top(m), height: slotH }}
+                          style={{
+                            top: top(m),
+                            height: slotH,
+                            // Hours already gone are hatched, not filled:
+                            // with no mark at all the grid looked wholly
+                            // clickable and most of it was not
+                            // (Caroline, 2026-11-19).
+                            backgroundImage: gone
+                              ? 'repeating-linear-gradient(45deg, rgba(17,24,39,0.03) 0 4px, transparent 4px 8px)'
+                              : undefined,
+                          }}
                         >
-                          {!taken && !gone && (
+                          {!dead && (
                             <button
                               type="button"
-                              onClick={() => onPick(room.id, s)}
+                              onPointerDown={() => {
+                                dragged.current = false
+                                setDragFrom({ roomId: room.id, index: i })
+                              }}
+                              onPointerEnter={() => {
+                                if (!dragFrom || dragFrom.roomId !== room.id) return
+                                dragged.current = true
+                                const r = rangeTo(room.id, dragFrom.index, i, blockedAt)
+                                onSelect(room.id, r.start, r.end)
+                              }}
+                              /**
+                               * Click, not just pointerdown. Pointer events
+                               * carry the drag, but a plain mouse click is
+                               * what most people do and some environments
+                               * send nothing else, which left the whole
+                               * grid dead to them (Caroline, 2026-11-19).
+                               */
+                              onClick={() => {
+                                if (dragged.current) { dragged.current = false; return }
+                                const r = rangeTo(room.id, i, i, blockedAt)
+                                onSelect(room.id, r.start, r.end)
+                              }}
                               aria-label={`Book ${room.external_name} from ${labelFor(s)}`}
-                              className="absolute inset-0 w-full hover:bg-booking-600/15 focus:bg-booking-600/15 focus:outline-none transition-colors"
+                              className="absolute inset-0 w-full cursor-pointer hover:bg-booking-600/15 focus:bg-booking-600/15 focus:outline-none transition-colors"
                             />
                           )}
                         </div>
@@ -183,16 +252,42 @@ export default function DayGrid({
                       </div>
                     ))}
 
-                    {selected && (
-                      <div
-                        className="absolute inset-x-1 rounded-md bg-booking-600 px-1.5 py-0.5 overflow-hidden"
-                        style={{ top: top(mins(selected.start)) + 1, height: height(mins(selected.start), mins(selected.end)) - 2 }}
-                      >
-                        <div className="text-[10px] font-semibold text-white leading-tight">
-                          {labelFor(selected.start)} – {labelFor(selected.end)}
-                        </div>
-                      </div>
-                    )}
+                    {selected && (() => {
+                      const selTop = top(mins(selected.start))
+                      const selH = height(mins(selected.start), mins(selected.end))
+                      // The action floats under the block rather than
+                      // sitting inside it: half an hour is 26 pixels tall
+                      // and the button was sliced in half
+                      // (Caroline, 2026-11-19).
+                      const below = selTop + selH + 4
+                      const fits = below + 24 < bodyH
+                      return (
+                        <>
+                          <div
+                            className="absolute inset-x-1 rounded-md bg-booking-600 px-1.5 py-0.5 overflow-hidden"
+                            style={{ top: selTop + 1, height: selH - 2 }}
+                          >
+                            <div className="text-[10px] font-semibold text-white leading-tight">
+                              {labelFor(selected.start)} – {labelFor(selected.end)}
+                            </div>
+                          </div>
+                          <div
+                            className="absolute inset-x-1 z-10 flex items-center gap-1.5"
+                            style={{ top: fits ? below : Math.max(selTop - 26, 0) }}
+                          >
+                            <a
+                              href={bookHref(room.id, selected.start, selected.end)}
+                              className="rounded-md bg-booking-600 hover:bg-booking-700 px-2 py-1 text-[11px] font-semibold text-white shadow-sm whitespace-nowrap"
+                            >
+                              Book →
+                            </a>
+                            <span className="text-[10px] text-gray-500 whitespace-nowrap">
+                              {priceFor(room.id, selected.start, selected.end)}
+                            </span>
+                          </div>
+                        </>
+                      )
+                    })()}
                   </div>
                 )
               })}
