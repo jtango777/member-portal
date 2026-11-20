@@ -237,7 +237,7 @@ export default function AvailabilityView({ location, rooms, closures }: { locati
     : closures[selectedDate]
     ? {
         heading: `Closed for ${closures[selectedDate]}`,
-        detail: 'The building is shut that day. Please pick another.',
+        detail: 'We are closed that day. Please pick another.',
       }
     : {
         heading: 'Not available this day',
