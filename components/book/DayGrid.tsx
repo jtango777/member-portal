@@ -153,6 +153,27 @@ export default function DayGrid({
   const bodyH = dayBottom + CAP
   const HATCH = 'repeating-linear-gradient(45deg, rgba(17,24,39,0.03) 0 4px, transparent 4px 8px)'
 
+  /** The line written on each end of the day. Same words at both ends. */
+  const capNote = (lead: string) => (
+    <span className="text-[10px] text-gray-400 text-center whitespace-nowrap">
+      {lead}{' '}
+      {outsideHoursContact ? (
+        <>
+          Call{' '}
+          <a
+            href={`tel:${outsideHoursContact.phone.replace(/\D/g, '')}`}
+            className="text-gray-500 underline underline-offset-2 hover:text-gray-700"
+          >{outsideHoursContact.phone}</a>
+          {' '}or email{' '}
+          <a
+            href={`mailto:${outsideHoursContact.email}`}
+            className="text-gray-500 underline underline-offset-2 hover:text-gray-700"
+          >{outsideHoursContact.email}</a>
+        </>
+      ) : 'Get in touch and we will try to arrange it.'}
+    </span>
+  )
+
   return (
     <div className="rounded-xl ring-1 ring-gray-200/80 bg-white overflow-hidden">
       {/* The same zoom the portal's calendar has, so a long day can be
@@ -427,12 +448,16 @@ export default function DayGrid({
                   has merely gone by today looks like, and the two were
                   identical though they mean different things: these
                   hours are never on sale (Caroline, 2026-11-20). */}
+              {/* Both ends say the same thing, because they mean the
+                  same thing. One of them offering a phone number while
+                  the other just named a time read as two different
+                  rules (Caroline, 2026-11-20). */}
               <div
-                className="absolute left-[72px] right-0 top-0 flex items-center justify-center
-                           bg-gray-100/70 border-b border-gray-200 pointer-events-none"
+                className="absolute left-[72px] right-0 top-0 flex items-center justify-start sm:justify-center px-2
+                           bg-gray-100/70 border-b border-gray-200"
                 style={{ height: CAP }}
               >
-                <span className="text-[10px] text-gray-400">Before {labelFor(slots[0])}</span>
+                {capNote(`Before ${labelFor(slots[0])}?`)}
               </div>
               <div
                 // Left-aligned on a narrow screen, where the grid scrolls
@@ -441,24 +466,7 @@ export default function DayGrid({
                            bg-gray-100/70"
                 style={{ top: dayBottom, height: CAP }}
               >
-                <span className="text-[10px] text-gray-400 text-center">
-                  After {labelFor(closeSlot)}?{' '}
-                  {outsideHoursContact ? (
-                    <>
-                      Call{' '}
-                      <a
-                        href={`tel:${outsideHoursContact.phone.replace(/\D/g, '')}`}
-                        className="text-gray-500 underline underline-offset-2 hover:text-gray-700"
-                      >{outsideHoursContact.phone}</a>
-                      {' '}or email{' '}
-                      <a
-                        href={`mailto:${outsideHoursContact.email}`}
-                        className="text-gray-500 underline underline-offset-2 hover:text-gray-700"
-                      >{outsideHoursContact.email}</a>
-                      {' '}and we will try to arrange it.
-                    </>
-                  ) : 'Get in touch and we will try to arrange it.'}
-                </span>
+                {capNote(`After ${labelFor(closeSlot)}?`)}
               </div>
 
               {/* Where the day has got to. Inside the columns, not across
