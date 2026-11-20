@@ -153,10 +153,17 @@ export default function DayGrid({
   const bodyH = dayBottom + CAP
   const HATCH = 'repeating-linear-gradient(45deg, rgba(17,24,39,0.03) 0 4px, transparent 4px 8px)'
 
-  /** The line written on each end of the day. Same words at both ends. */
-  const capNote = (lead: string) => (
+  /**
+   * The line written on each end of the day, word for word the same.
+   *
+   * It named the hour at each end, "Before 9:00 AM?" and "After 5:00
+   * PM?", which is already obvious from where the strip sits. What a
+   * visitor wants to know is that there is a way to ask
+   * (Caroline, 2026-11-20).
+   */
+  const capNote = (
     <span className="text-[10px] text-gray-400 text-center whitespace-nowrap">
-      {lead}{' '}
+      Need outside hours?{' '}
       {outsideHoursContact ? (
         <>
           Call{' '}
@@ -457,7 +464,7 @@ export default function DayGrid({
                            bg-gray-100/70 border-b border-gray-200"
                 style={{ height: CAP }}
               >
-                {capNote(`Before ${labelFor(slots[0])}?`)}
+                {capNote}
               </div>
               <div
                 // Left-aligned on a narrow screen, where the grid scrolls
@@ -466,7 +473,7 @@ export default function DayGrid({
                            bg-gray-100/70"
                 style={{ top: dayBottom, height: CAP }}
               >
-                {capNote(`After ${labelFor(closeSlot)}?`)}
+                {capNote}
               </div>
 
               {/* Where the day has got to. Inside the columns, not across
