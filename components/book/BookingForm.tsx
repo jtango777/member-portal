@@ -397,13 +397,19 @@ export default function BookingForm(props: Props) {
   const [existingCustomer, setExistingCustomer] = useState<ExistingCustomer | null>(null)
 
   useEffect(() => {
+    // These four come from the URL and do not change while the page is
+    // open, so nothing can race today. Guarded anyway: if they ever do
+    // change, the wrong payment intent is the worst possible thing to
+    // be holding (Caroline, 2026-11-20).
+    let stale = false
     fetch('/api/book/create-payment-intent', {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
       body:    JSON.stringify({ room_id: roomId, date, start, end }),
     })
       .then(r => r.json())
-      .then(d => setClientSecret(d.clientSecret))
+      .then(d => { if (!stale) setClientSecret(d.clientSecret) })
+    return () => { stale = true }
   }, [roomId, date, start, end])
 
   // Same shared booking_customers account system as day-pass — if this

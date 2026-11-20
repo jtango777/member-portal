@@ -138,9 +138,17 @@ function ReservationsTable({ month }: { month: string }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    // Ignore a month's figures once the month has moved on. Clicking
+    // back through months faster than the server answers left several
+    // requests in flight, and whichever landed last won, so one month's
+    // numbers could sit under another month's heading
+    // (Caroline, 2026-11-20).
+    let stale = false
     setLoading(true)
     fetch(`/api/admin/reports/reservations?month=${month}`)
-      .then(r => r.json()).then(d => { setRows(Array.isArray(d) ? d : []); setLoading(false) })
+      .then(r => r.json())
+      .then(d => { if (stale) return; setRows(Array.isArray(d) ? d : []); setLoading(false) })
+    return () => { stale = true }
   }, [month])
 
   function exportCSV() {
@@ -209,9 +217,17 @@ function CompanyUsageTable({ month }: { month: string }) {
   const [showInactive, setShowInactive] = useState(false)
 
   useEffect(() => {
+    // Ignore a month's figures once the month has moved on. Clicking
+    // back through months faster than the server answers left several
+    // requests in flight, and whichever landed last won, so one month's
+    // numbers could sit under another month's heading
+    // (Caroline, 2026-11-20).
+    let stale = false
     setLoading(true)
     fetch(`/api/admin/reports/company-usage?month=${month}`)
-      .then(r => r.json()).then(d => { setRows(Array.isArray(d) ? d : []); setLoading(false) })
+      .then(r => r.json())
+      .then(d => { if (stale) return; setRows(Array.isArray(d) ? d : []); setLoading(false) })
+    return () => { stale = true }
   }, [month])
 
   function exportCSV() {
@@ -305,9 +321,17 @@ function RoomUtilTable({ month }: { month: string }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    // Ignore a month's figures once the month has moved on. Clicking
+    // back through months faster than the server answers left several
+    // requests in flight, and whichever landed last won, so one month's
+    // numbers could sit under another month's heading
+    // (Caroline, 2026-11-20).
+    let stale = false
     setLoading(true)
     fetch(`/api/admin/reports/room-utilization?month=${month}`)
-      .then(r => r.json()).then(d => { setRows(Array.isArray(d) ? d : []); setLoading(false) })
+      .then(r => r.json())
+      .then(d => { if (stale) return; setRows(Array.isArray(d) ? d : []); setLoading(false) })
+    return () => { stale = true }
   }, [month])
 
   function exportCSV() {
@@ -374,9 +398,17 @@ function ExternalBookingsTable({ month }: { month: string }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    // Ignore a month's figures once the month has moved on. Clicking
+    // back through months faster than the server answers left several
+    // requests in flight, and whichever landed last won, so one month's
+    // numbers could sit under another month's heading
+    // (Caroline, 2026-11-20).
+    let stale = false
     setLoading(true)
     fetch(`/api/admin/reports/external-bookings?month=${month}`)
-      .then(r => r.json()).then(d => { setRows(Array.isArray(d) ? d : []); setLoading(false) })
+      .then(r => r.json())
+      .then(d => { if (stale) return; setRows(Array.isArray(d) ? d : []); setLoading(false) })
+    return () => { stale = true }
   }, [month])
 
   const confirmed = rows.filter(r => r.status === 'confirmed')

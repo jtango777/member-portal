@@ -486,18 +486,23 @@ export default function DayGrid({
               (Caroline, 2026-11-20). */}
           {closedNote && (
             <div className="absolute inset-0 bg-white/75 backdrop-blur-[1px] flex items-start justify-center px-4 py-10">
-              <div className="max-w-xs rounded-xl bg-white ring-1 ring-amber-200 shadow-sm px-4 py-3.5 text-center">
-                <p className="text-sm font-semibold text-amber-900">{closedNote.heading}</p>
-                <p className="mt-1 text-xs leading-relaxed text-gray-600">{closedNote.detail}</p>
+              {/* The page's own card, not a warning panel. Brown text on
+                  a yellow ring belonged to no other part of this site
+                  (Caroline, 2026-11-20). */}
+              <div className="max-w-xs rounded-xl bg-white ring-1 ring-gray-200/80
+                              shadow-[0_1px_3px_rgba(16,24,40,0.06),0_8px_24px_-8px_rgba(16,24,40,0.12)]
+                              px-5 py-4 text-center">
+                <p className="text-sm font-semibold text-gray-900">{closedNote.heading}</p>
+                <p className="mt-1.5 text-xs leading-relaxed text-gray-500">{closedNote.detail}</p>
                 {closedNote.contact && (
-                  <div className="mt-2.5 flex flex-col items-center gap-0.5">
+                  <div className="mt-3 pt-3 border-t border-gray-100 flex flex-col items-center gap-1">
                     <a
                       href={`tel:${closedNote.contact.phone.replace(/\D/g, '')}`}
-                      className="text-sm font-medium text-amber-800 hover:text-amber-900"
+                      className="text-sm font-semibold text-booking-700 hover:text-booking-800"
                     >{closedNote.contact.phone}</a>
                     <a
                       href={`mailto:${closedNote.contact.email}`}
-                      className="text-sm font-medium text-amber-800 hover:text-amber-900"
+                      className="text-sm font-medium text-booking-700 hover:text-booking-800"
                     >{closedNote.contact.email}</a>
                   </div>
                 )}

@@ -225,11 +225,17 @@ export default function CalendarView({ locations, profile, company, hourScope, h
   // (not just the currently selected day) so every cell in the grid can
   // show what's booked, not just the one day the desktop view cares about.
   useEffect(() => {
+    // Ignore a month once it is no longer the month on screen. Paging
+    // through months faster than the server answers left several
+    // requests in flight and the last to land won, which could paint
+    // one month's bookings onto another (Caroline, 2026-11-20).
+    let stale = false
     const monthStr = format(pickerMonth, 'yyyy-MM')
     fetch(`/api/reservations?locationId=${selectedLocation.id}&month=${monthStr}`)
       .then(r => r.json())
-      .then(setAllMonthReservations)
-      .catch(() => setAllMonthReservations([]))
+      .then(d => { if (!stale) setAllMonthReservations(d) })
+      .catch(() => { if (!stale) setAllMonthReservations([]) })
+    return () => { stale = true }
   }, [selectedLocation, pickerMonth])
 
   function getReservationsForDay(day: Date) {
@@ -248,14 +254,18 @@ export default function CalendarView({ locations, profile, company, hourScope, h
   // Recalculate hours used from month reservations whenever selectedDate month changes
   useEffect(() => {
     if (!company || profile.is_admin) return
+    // As above: an earlier month's total could land last and be shown
+    // as this month's hours used (Caroline, 2026-11-20).
+    let stale = false
     const month = selectedDate.getMonth()
     const year = selectedDate.getFullYear()
     fetch(`/api/reservations/month-hours?month=${year}-${String(month + 1).padStart(2, '0')}&scope=${hourScope}&id=${company.id}`)
       .then(r => r.json())
       .then((data: any) => {
-        if (typeof data.hours === 'number') setUsedHours(data.hours)
+        if (!stale && typeof data.hours === 'number') setUsedHours(data.hours)
       })
       .catch(() => {})
+    return () => { stale = true }
   }, [selectedDate, company, hourScope, profile.is_admin, reservations])
 
 

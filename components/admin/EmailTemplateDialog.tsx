@@ -31,6 +31,10 @@ export default function EmailTemplateDialog({
   // Debounced: re-rendering on every keystroke would be a request per letter.
   useEffect(() => {
     if (!template) return
+    // The debounce cancels a pending request, not one already away. Two
+    // typing pauses in a row could leave two renders in flight and show
+    // whichever came back last (Caroline, 2026-11-20).
+    let stale = false
     if (timer.current) clearTimeout(timer.current)
     timer.current = setTimeout(() => {
       fetch('/api/admin/email-copy', {
@@ -39,10 +43,10 @@ export default function EmailTemplateDialog({
         body: JSON.stringify({ templateId: template.id, copy, variant }),
       })
         .then(r => r.json())
-        .then(d => { setHtml(d.html ?? null); setSubject(d.subject ?? '') })
-        .catch(() => setHtml(null))
+        .then(d => { if (stale) return; setHtml(d.html ?? null); setSubject(d.subject ?? '') })
+        .catch(() => { if (!stale) setHtml(null) })
     }, 350)
-    return () => { if (timer.current) clearTimeout(timer.current) }
+    return () => { stale = true; if (timer.current) clearTimeout(timer.current) }
   }, [template, copy, variant])
 
   async function save() {

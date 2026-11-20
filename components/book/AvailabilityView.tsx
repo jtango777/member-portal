@@ -763,19 +763,26 @@ export default function AvailabilityView({ location, rooms, closures }: { locati
 
                   {/* Weekend, holiday, past date or beyond the booking window */}
                   {dateClosed ? (
-                    <div className="bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 space-y-2">
-                      <p className="text-sm font-medium text-amber-800">{unavailableReason}</p>
+                    /* Nothing here on the calendar: the day itself is
+                       covered with this, and saying it twice on one
+                       screen, in a colour the rest of the site does not
+                       use, was the loudest thing on the page
+                       (Caroline, 2026-11-20). */
+                    view === 'calendar' ? null : (
+                    <div className="bg-gray-50 border border-gray-200 rounded-lg px-4 py-3 space-y-2">
+                      <p className="text-sm font-medium text-gray-800">{unavailableReason}</p>
                       <div className="flex flex-col gap-1">
                         <a href={`tel:${phone.replace(/\D/g,'')}`}
-                          className="inline-flex items-center gap-1.5 text-sm text-amber-700 hover:text-amber-900">
+                          className="inline-flex items-center gap-1.5 text-sm font-medium text-booking-700 hover:text-booking-800">
                           <Phone size={12} /> {phone}
                         </a>
                         <a href={`mailto:${CONTACT_EMAIL}`}
-                          className="inline-flex items-center gap-1.5 text-sm text-amber-700 hover:text-amber-900">
+                          className="inline-flex items-center gap-1.5 text-sm font-medium text-booking-700 hover:text-booking-800">
                           <Mail size={12} /> {CONTACT_EMAIL}
                         </a>
                       </div>
                     </div>
+                    )
                   ) : (
                     <>
                       {/* Start / End time */}
