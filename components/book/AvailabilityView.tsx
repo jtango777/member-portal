@@ -279,6 +279,16 @@ export default function AvailabilityView({ location, rooms, closures }: { locati
 
   useEffect(() => {
     if (!selectedRoom) return
+    /**
+     * Ignore this fetch once the date has moved on.
+     *
+     * Without it, stepping through days faster than the network answers
+     * left several requests in flight and whichever landed last won. An
+     * older day's reply would overwrite the day on screen, so a room
+     * with a morning booked was offered as free all day and the booking
+     * was only refused at the payment page (Caroline, 2026-11-20).
+     */
+    let stale = false
     setLoadingSlots(true)
     // "All day" used to survive a date change with the times cleared out,
     // which left Proceed to Payment pointing at a booking with no times —
@@ -296,8 +306,9 @@ export default function AvailabilityView({ location, rooms, closures }: { locati
     setBlockedSlots([])
     fetch(`/api/book/availability?roomId=${selectedRoom.id}&date=${selectedDate}`)
       .then(r => r.json())
-      .then(d => { setBlockedSlots(d.blockedSlots ?? []); setLoadingSlots(false) })
-      .catch(() => setLoadingSlots(false))
+      .then(d => { if (stale) return; setBlockedSlots(d.blockedSlots ?? []); setLoadingSlots(false) })
+      .catch(() => { if (!stale) setLoadingSlots(false) })
+    return () => { stale = true }
   // allDay deliberately left out: re-running this on every toggle would
   // refetch availability for no reason.
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -771,6 +782,12 @@ export default function AvailabilityView({ location, rooms, closures }: { locati
                       <div>
                         <div className="flex items-center justify-between mb-1.5">
                           <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Time</label>
+                          {/* The reason, on the wrapper rather than the
+                              button, because a disabled button swallows
+                              the hover a title needs. The only way this
+                              switch is ever disabled is that nine has
+                              already gone today (Caroline, 2026-11-20). */}
+                          <span title={allDayPossible ? undefined : 'A full day runs 9 AM to 5 PM, so it cannot start today.'}>
                           <button
                             type="button"
                             disabled={!allDayPossible}
@@ -782,9 +799,15 @@ export default function AvailabilityView({ location, rooms, closures }: { locati
                             }}
                             className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-gray-700 disabled:opacity-40 disabled:cursor-not-allowed"
                           >
+                            {/* Amber while the day cannot actually take a
+                                full booking. A green switch said yes to
+                                something the page was about to refuse,
+                                and amber is already this page's colour
+                                for a day you cannot have
+                                (Caroline, 2026-11-20). */}
                             <span className={cn(
                               'relative inline-flex h-4 w-7 items-center rounded-full transition-colors',
-                              allDay ? 'bg-booking-600' : 'bg-gray-300'
+                              !allDay ? 'bg-gray-300' : allDayBlocked ? 'bg-amber-500' : 'bg-booking-600'
                             )}>
                               <span className={cn(
                                 'inline-block h-3 w-3 rounded-full bg-white shadow transition-transform',
@@ -793,6 +816,7 @@ export default function AvailabilityView({ location, rooms, closures }: { locati
                             </span>
                             All day
                           </button>
+                          </span>
                         </div>
 
                         {/* The greyed switch is explanation enough. It
