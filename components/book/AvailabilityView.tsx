@@ -225,7 +225,7 @@ export default function AvailabilityView({ location, rooms, closures }: { locati
       value={selectedRoom?.id ?? ''}
       onChange={e => { const r = rooms.find(x => x.id === e.target.value); if (r) selectRoom(r) }}
       className={cn(
-        'w-full border rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-booking-600',
+        'select-tight w-full border rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-booking-600',
         selectedRoom ? 'border-gray-200 font-semibold text-gray-900' : 'border-gray-300 text-gray-700'
       )}
     >
@@ -890,7 +890,7 @@ export default function AvailabilityView({ location, rooms, closures }: { locati
                             <select
                               value={selectedStart}
                               onChange={e => { setSelectedStart(e.target.value); setSelectedEnd('') }}
-                              className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-booking-500 bg-white"
+                              className="select-tight border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-booking-500 bg-white"
                             >
                               <option value="">Start time</option>
                               {startSlotsWithStatus.map(s => (
@@ -903,7 +903,7 @@ export default function AvailabilityView({ location, rooms, closures }: { locati
                               value={selectedEnd}
                               onChange={e => setSelectedEnd(e.target.value)}
                               disabled={!selectedStart || endSlotsWithStatus.length === 0}
-                              className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-booking-500 bg-white disabled:opacity-40"
+                              className="select-tight border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-booking-500 bg-white disabled:opacity-40"
                             >
                               <option value="">End time</option>
                               {endSlotsWithStatus.map(s => (

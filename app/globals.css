@@ -159,3 +159,28 @@
 .zoom-range:hover::-webkit-slider-thumb { transform: scale(1.12); border-color: #9ca3af; }
 .zoom-range:focus { outline: none; }
 .zoom-range:focus-visible::-webkit-slider-thumb { border-color: #6ec664; box-shadow: 0 0 0 3px rgba(110, 198, 100, 0.25); }
+
+/*
+ * A select whose arrow sits where you would draw it, not out at the
+ * edge of the control.
+ *
+ * A native select's arrow belongs to the browser and cannot be moved,
+ * so this hides it and paints one at a sensible distance from the right
+ * edge instead. Defined here but applied only on /book for now, since
+ * the day pass and the admin share this stylesheet and are not ready
+ * for a visual change (Caroline, 2026-11-20).
+ */
+.select-tight {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  /* chevron-down, stroke #9ca3af (gray-400) */
+  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%239ca3af' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.625rem center;
+  background-size: 14px 14px;
+  padding-right: 1.875rem;
+}
+.select-tight:hover { background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E"); }
+/* Firefox keeps a focus ring inside the control; the ring below is ours. */
+.select-tight:-moz-focusring { color: transparent; text-shadow: 0 0 0 #111827; }
