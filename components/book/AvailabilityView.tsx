@@ -8,7 +8,8 @@ import { cn } from '@/lib/utils'
 import MiniDatePicker from '@/components/MiniDatePicker'
 import Collapse from '@/components/Collapse'
 import DayGrid from '@/components/book/DayGrid'
-import { dateUnavailableReason, lastBookableDate, MAX_BOOKING_MONTHS_AHEAD, type ClosureMap } from '@/lib/bookingRules'
+import MonthPanel from '@/components/book/MonthPanel'
+import { dateUnavailableReason, isWeekendDate, lastBookableDate, MAX_BOOKING_MONTHS_AHEAD, type ClosureMap } from '@/lib/bookingRules'
 import { bookingPhoneFor } from '@/lib/locations'
 import {
   freeBlocks, longestBlock, blockHours, describeFreeTime, rankSuggestions, busyBlocks,
@@ -222,6 +223,29 @@ export default function AvailabilityView({ location, rooms, closures }: { locati
   // one shared rule with the API routes (lib/bookingRules).
   const unavailableReason = dateUnavailableReason(selectedDate, closures, phone)
   const dateClosed = unavailableReason !== null
+
+  /**
+   * What the calendar says over a day nobody can book. The grid used to
+   * draw a shut day as a completely empty building and hand out a Book
+   * button on it (Caroline, 2026-11-20).
+   */
+  const closedNote = !dateClosed ? null
+    : isWeekendDate(selectedDate)
+    ? {
+        heading: 'Weekends are not self-serve',
+        detail: 'Online booking runs Monday to Friday, 9 AM to 5 PM. We do open at weekends by arrangement, so call or email and we will set it up.',
+        // The one closed day where getting in touch leads somewhere.
+        contact: { phone, email: CONTACT_EMAIL },
+      }
+    : closures[selectedDate]
+    ? {
+        heading: `Closed for ${closures[selectedDate]}`,
+        detail: 'The building is shut that day. Please pick another.',
+      }
+    : {
+        heading: 'Not available this day',
+        detail: unavailableReason,
+      }
 
   // Fully booked days for this room, loaded once per room rather than per
   // date, since the picker shows a whole month at a time.
@@ -443,31 +467,36 @@ export default function AvailabilityView({ location, rooms, closures }: { locati
           a meeting room, and it pushed the rooms below the fold for 300px of
           nothing (Caroline, 2026-09-22). People land here having already
           picked the location, so a heading is enough. */}
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900 tracking-tight">{location.name}</h1>
-        <p className="text-sm text-gray-500 mt-1">Meeting rooms by the hour · Monday to Friday, 9:00 AM – 5:00 PM</p>
+      {/* The view switch belongs to the page, not to the left column. Sat
+          inside the column it pushed the rooms and the calendar a row
+          further down than the panel beside them, so the two halves of
+          the page never started level (Caroline, 2026-11-20). */}
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900 tracking-tight">{location.name}</h1>
+          <p className="text-sm text-gray-500 mt-1">Meeting rooms by the hour · Monday to Friday, 9:00 AM – 5:00 PM</p>
+        </div>
+        {/* One control, in one place, saying one thing.
+            A heading that changed AND a link that changed meant two
+            bits of text morphing on every press, and the browser drew
+            a square focus box over the link afterwards
+            (Caroline, 2026-11-19). */}
+        <button
+          type="button"
+          onClick={switchView}
+          className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-sm text-gray-500
+                     hover:text-gray-900 hover:bg-gray-100 transition-colors
+                     focus:outline-none focus-visible:ring-2 focus-visible:ring-booking-500"
+        >
+          <CalendarDays size={14} />
+          {view === 'rooms' ? 'View full calendar' : 'View rooms'}
+        </button>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
 
         {/* ── Left: Room cards, or the whole day ───────────────────── */}
         <div ref={gridRef} className="lg:col-span-8 space-y-4 scroll-mt-4">
-
-          {/* One control, in one place, saying one thing.
-              A heading that changed AND a link that changed meant two
-              bits of text morphing on every press, and the browser drew
-              a square focus box over the link afterwards
-              (Caroline, 2026-11-19). */}
-          <button
-            type="button"
-            onClick={switchView}
-            className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1 -ml-2 text-sm text-gray-500
-                       hover:text-gray-900 hover:bg-gray-100 transition-colors
-                       focus:outline-none focus-visible:ring-2 focus-visible:ring-booking-500"
-          >
-            <CalendarDays size={14} />
-            {view === 'rooms' ? 'View full calendar' : 'View rooms'}
-          </button>
 
           <div className={cn(
             'transition-opacity duration-150',
@@ -479,32 +508,17 @@ export default function AvailabilityView({ location, rooms, closures }: { locati
                whatever half hour happened to be free, which read as a
                booking somebody could have (Caroline, 2026-11-19). */
             <>
-            {/* The grid needs its own day controls: the date picker lives
-                in the booking panel, which does not appear until a room
-                is chosen, so the calendar opened on today with no way to
-                move (Caroline, 2026-11-19). */}
-            <div className="flex items-center gap-1 mb-2">
-              <button
-                type="button"
-                onClick={prevDay}
-                disabled={selectedDate <= today}
-                className="p-1.5 rounded-lg text-gray-500 hover:bg-gray-100 disabled:opacity-30 disabled:hover:bg-transparent"
-                aria-label="Previous day"
-              ><ChevronLeft size={16} /></button>
-              <span className="text-sm font-medium text-gray-900 min-w-[150px] text-center">
-                {format(new Date(selectedDate + 'T12:00:00'), 'EEEE, MMM d')}
-              </span>
-              <button
-                type="button"
-                onClick={nextDay}
-                className="p-1.5 rounded-lg text-gray-500 hover:bg-gray-100"
-                aria-label="Next day"
-              ><ChevronRight size={16} /></button>
-              {dateClosed && (
-                <span className="ml-2 text-xs text-amber-700">{unavailableReason}</span>
-              )}
-            </div>
             <DayGrid
+              closedNote={closedNote}
+              // The grid carries its own day controls: the date picker
+              // lives in the booking panel, which does not appear until a
+              // room is chosen, so the calendar opened on today with no
+              // way to move (Caroline, 2026-11-19).
+              dayLabel={format(new Date(selectedDate + 'T12:00:00'), 'EEEE, MMM d')}
+              onPrevDay={prevDay}
+              onNextDay={nextDay}
+              canPrevDay={selectedDate > today}
+              canNextDay={selectedDate < lastBookableDate()}
               rooms={rooms}
               slots={slotValues}
               // END_SLOTS as well as START_SLOTS: a block that runs to
@@ -677,7 +691,18 @@ export default function AvailabilityView({ location, rooms, closures }: { locati
         {/* Sticky on the grid column itself (as on the day pass) — sticky on
             the inner card did nothing, since its wrapper was only as tall as
             the card. Desktop only; on phones it just stacks below the rooms. */}
-        <div ref={widgetRef} className="lg:col-span-4 lg:sticky lg:top-6 scroll-mt-4">
+        <div ref={widgetRef} className="lg:col-span-4 lg:sticky lg:top-6 scroll-mt-4 space-y-3">
+          {/* The month, open on the page, beside the day. Which days this
+              building takes bookings on at all was only discoverable by
+              landing on one and reading a warning (Caroline, 2026-11-20). */}
+          {view === 'calendar' && (
+            <MonthPanel
+              value={selectedDate}
+              onChange={v => { setSelectedDate(v); setSelectedStart(''); setSelectedEnd('') }}
+              maxDate={lastBookableDate()}
+              dayUnavailable={d => dateUnavailableReason(d, closures, phone)}
+            />
+          )}
           <div className={cn(
             'bg-white rounded-xl overflow-hidden transition-all',
             selectedRoom

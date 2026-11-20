@@ -33,7 +33,7 @@ type BookLocation = {
 const LOCATION_PHOTOS: Record<string, { src: string; position?: string }> = {
   'el segundo':     { src: '/rooms/es-library-room.jpg' },
   'marina del rey': { src: '/rooms/mdr-conference-room.jpg' },
-  'costa mesa':     { src: '/rooms/cm-board-room.jpg' },
+  'costa mesa':     { src: '/rooms/cm-servco-room.jpg' },
 }
 
 export default async function BookPage() {

@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { ZoomIn, ZoomOut } from 'lucide-react'
+import { ChevronLeft, ChevronRight, ZoomIn, ZoomOut } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 /**
@@ -39,7 +39,10 @@ export type Busy = { start: string; end: string }
 
 const MIN_SLOT_H = 18
 const MAX_SLOT_H = 56
-const DEFAULT_SLOT_H = 28
+// Opens at roughly a third of the way up the slider: tight enough to see
+// most of the working day without scrolling, loose enough that a half hour
+// is a real target rather than a hairline (Caroline, 2026-11-20).
+const DEFAULT_SLOT_H = 34
 
 function mins(s: string) {
   const [h, m] = s.split(':').map(Number)
@@ -49,6 +52,7 @@ function mins(s: string) {
 export default function DayGrid({
   rooms, slots, closeSlot, labelFor, busy, nowMinutes,
   selectedRoomId, selectedStart, selectedEnd, onSelect, bookHref, priceFor,
+  closedNote, dayLabel, onPrevDay, onNextDay, canPrevDay, canNextDay,
 }: {
   rooms: GridRoom[]
   slots: string[]
@@ -66,7 +70,28 @@ export default function DayGrid({
   /** Where "Book" goes, once there is something to book. */
   bookHref: (roomId: string, start: string, end: string) => string
   priceFor: (roomId: string, start: string, end: string) => string
+  /**
+   * Why the whole day is shut — a weekend, a holiday, a closure. The grid
+   * then shows the day as entirely unavailable and refuses every click,
+   * rather than looking wide open and handing out a Book button for a day
+   * the checkout would turn away (Caroline, 2026-11-20).
+   */
+  closedNote?: {
+    heading: string
+    detail: string
+    /** Only where getting in touch would actually achieve something. A
+     *  holiday is shut, full stop, and inviting a call about it just
+     *  makes work for somebody (Caroline, 2026-11-20). */
+    contact?: { phone: string; email: string }
+  } | null
+  /** The day on show, e.g. "Friday, Nov 20". */
+  dayLabel: string
+  onPrevDay: () => void
+  onNextDay: () => void
+  canPrevDay: boolean
+  canNextDay: boolean
 }) {
+  const closed = !!closedNote
   const [slotH, setSlotH] = useState(DEFAULT_SLOT_H)
 
   /**
@@ -109,7 +134,29 @@ export default function DayGrid({
     <div className="rounded-xl ring-1 ring-gray-200/80 bg-white overflow-hidden">
       {/* The same zoom the portal's calendar has, so a long day can be
           squeezed into one screen or opened out to read. */}
-      <div className="flex items-center justify-end gap-2.5 px-3 py-2 border-b border-gray-100">
+      <div className="flex items-center justify-between gap-2 px-3 py-2 border-b border-gray-100">
+        {/* The day controls live in the card's own bar. As a separate row
+            above it they pushed the calendar out of line with everything
+            in the column beside it (Caroline, 2026-11-20). */}
+        <div className="flex items-center gap-0.5">
+          <button
+            type="button"
+            onClick={onPrevDay}
+            disabled={!canPrevDay}
+            aria-label="Previous day"
+            className="p-1 rounded-md text-gray-500 hover:bg-gray-100 disabled:opacity-30 disabled:hover:bg-transparent"
+          ><ChevronLeft size={15} /></button>
+          <span className="text-sm font-semibold text-gray-900 min-w-[140px] text-center">{dayLabel}</span>
+          <button
+            type="button"
+            onClick={onNextDay}
+            disabled={!canNextDay}
+            aria-label="Next day"
+            className="p-1 rounded-md text-gray-500 hover:bg-gray-100 disabled:opacity-30 disabled:hover:bg-transparent"
+          ><ChevronRight size={15} /></button>
+        </div>
+
+        <div className="flex items-center gap-2.5">
         <ZoomOut size={12} className="text-gray-300" />
         <input
           type="range"
@@ -124,6 +171,7 @@ export default function DayGrid({
           className="zoom-range w-24"
         />
         <ZoomIn size={12} className="text-gray-300" />
+        </div>
       </div>
 
       <div className="overflow-x-auto">
@@ -142,6 +190,7 @@ export default function DayGrid({
           {/* The day scrolls inside its own box rather than making the
               whole page tall, so the room headings stay put while you
               move through the hours (Caroline, 2026-11-19). */}
+          <div className="relative">
           <div className="overflow-y-auto py-2" style={{ maxHeight: 460 }}>
             <div className="flex relative" style={{ height: bodyH }}>
               {/* Time rail */}
@@ -162,7 +211,7 @@ export default function DayGrid({
 
               {rooms.map(room => {
                 const blocks = busy(room.id)
-                const selected = room.id === selectedRoomId && selectedStart && selectedEnd
+                const selected = !closed && room.id === selectedRoomId && selectedStart && selectedEnd
                   ? { start: selectedStart, end: selectedEnd }
                   : null
                 return (
@@ -170,7 +219,7 @@ export default function DayGrid({
                     {slots.map((s, i) => {
                       const m = mins(s)
                       const taken = blocks.some(b => m >= mins(b.start) && m < mins(b.end))
-                      const gone = nowMinutes !== null && m <= nowMinutes
+                      const gone = closed || (nowMinutes !== null && m <= nowMinutes)
                       const dead = taken || gone
                       const blockedAt = (idx: number) => {
                         const mm = mins(slots[idx])
@@ -297,15 +346,44 @@ export default function DayGrid({
                   document and ran edge to edge (Caroline, 2026-11-19). */}
               {nowMinutes !== null && nowMinutes > dayStart && nowMinutes < dayEnd && (
                 <div
-                  className="absolute left-[56px] right-0 h-px bg-red-400/70 pointer-events-none"
+                  className="absolute left-[72px] right-0 h-px bg-red-400/70 pointer-events-none"
                   style={{ top: top(nowMinutes) }}
                 >
-                  <span className="absolute -top-[7px] -left-[34px] text-[9px] font-semibold text-red-500">
+                  {/* On the line inside the columns, not out in the time
+                      rail, where it landed on top of whichever hour label
+                      it happened to pass (Caroline, 2026-11-20). */}
+                  <span className="absolute -top-[7px] left-1 bg-white/90 px-1 rounded text-[9px] font-semibold text-red-500">
                     now
                   </span>
                 </div>
               )}
             </div>
+          </div>
+
+          {/* A day the building does not take bookings on is covered, not
+              merely un-clickable. Saturday looked like a completely free
+              building: every column empty, every cell inviting
+              (Caroline, 2026-11-20). */}
+          {closedNote && (
+            <div className="absolute inset-0 bg-white/75 backdrop-blur-[1px] flex items-start justify-center px-4 py-10">
+              <div className="max-w-xs rounded-xl bg-white ring-1 ring-amber-200 shadow-sm px-4 py-3.5 text-center">
+                <p className="text-sm font-semibold text-amber-900">{closedNote.heading}</p>
+                <p className="mt-1 text-xs leading-relaxed text-gray-600">{closedNote.detail}</p>
+                {closedNote.contact && (
+                  <div className="mt-2.5 flex flex-col items-center gap-0.5">
+                    <a
+                      href={`tel:${closedNote.contact.phone.replace(/\D/g, '')}`}
+                      className="text-sm font-medium text-amber-800 hover:text-amber-900"
+                    >{closedNote.contact.phone}</a>
+                    <a
+                      href={`mailto:${closedNote.contact.email}`}
+                      className="text-sm font-medium text-amber-800 hover:text-amber-900"
+                    >{closedNote.contact.email}</a>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
           </div>
         </div>
       </div>
