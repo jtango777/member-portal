@@ -15,6 +15,7 @@ import { cn } from '@/lib/utils'
 import Recaptcha, { RecaptchaHandle } from '@/components/Recaptcha'
 import { createClient } from '@/lib/supabase/client'
 import { AUTH_CHANGED_EVENT } from '@/components/day-pass/HeaderAccountLink'
+import { money } from '@/lib/money'
 
 
 type ExistingCustomer = { id: string; first_name: string; last_name: string; email: string }
@@ -33,12 +34,6 @@ type Props = {
   end:          string
   startLabel:   string
   endLabel:     string
-}
-
-// Half-hour bookings charge cents ($97.50), so don't round the display up
-// to "$98" the way this page used to (found in testing, 2026-09-22).
-function money(amount: number) {
-  return amount % 1 === 0 ? `$${amount}` : `$${amount.toFixed(2)}`
 }
 
 function slotToMinutes(slot: string): number {
@@ -377,7 +372,10 @@ function CheckoutForm({
             : 'bg-booking-600 hover:bg-booking-700 text-white'
         )}
       >
-        {loading ? 'Processing…' : `Pay ${money(estimatedTotal)}`}
+        {/* The amount is already on the summary beside this button, in
+            full, and the deed is reserving the room rather than handing
+            over a figure (Caroline, 2026-11-20). */}
+        {loading ? 'Processing…' : 'Complete Reservation'}
       </button>
     </form>
   )

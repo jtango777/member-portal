@@ -15,6 +15,7 @@ import {
   freeBlocks, longestBlock, blockHours, describeFreeTime, rankSuggestions, busyBlocks,
   type FreeBlock,
 } from '@/lib/roomSuggestions'
+import { money } from '@/lib/money'
 
 type BookRoom = {
   id: string
@@ -45,10 +46,6 @@ const CONTACT_EMAIL = 'bookings@bizhaus.com'
 // Whole dollars stay clean ($75), half hours show the cents that are
 // actually charged — the summary used to round $97.50 up to "$98"
 // (found in testing, 2026-09-22).
-function money(amount: number) {
-  return amount % 1 === 0 ? `$${amount}` : `$${amount.toFixed(2)}`
-}
-
 function slotToMinutes(s: string) {
   const [h, m] = s.split(':').map(Number)
   return h * 60 + m
