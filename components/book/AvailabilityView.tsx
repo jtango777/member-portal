@@ -420,6 +420,22 @@ export default function AvailabilityView({ location, rooms, closures }: { locati
   const unavailableIn = (booked: string[] | undefined) => [...(booked ?? []), ...pastSlots]
   const CLOSE_SLOT = '17:00'
   const WHOLE_DAY_HOURS = (slotToMinutes(CLOSE_SLOT) - slotToMinutes(slotValues[0])) / 60
+
+  /**
+   * Nine to five is a full day, however it was chosen.
+   *
+   * Picking those two times by hand, or dragging the whole column on the
+   * calendar, left the All day switch off, so the page disagreed with
+   * itself about what had just been booked (Caroline, 2026-11-20).
+   *
+   * Guarded on allDayPossible: on a day that cannot take a full booking
+   * the effect above turns All day straight back off, and the two would
+   * have flipped each other back and forth forever.
+   */
+  useEffect(() => {
+    if (allDay || !allDayPossible) return
+    if (selectedStart === slotValues[0] && selectedEnd === CLOSE_SLOT) setAllDay(true)
+  }, [allDay, allDayPossible, selectedStart, selectedEnd, slotValues, CLOSE_SLOT])
   const noTimeLeft = !loadingSlots && !dateClosed && !!selectedRoom
     && startSlotsWithStatus.every(s => s.disabled)
   const showSuggestions = !dateClosed && !loadingSlots && (allDayBlocked || noTimeLeft)
@@ -738,7 +754,13 @@ export default function AvailabilityView({ location, rooms, closures }: { locati
                 </div>
 
                 <div className="px-5 py-4 space-y-4">
-                  {/* Date */}
+                  {/* Date. Not on the calendar view: a month is already
+                      open on the page right above this card, and the day
+                      with its arrows sits across the top of the grid, so
+                      a third date control, and a popup calendar on top of
+                      a calendar, was two too many
+                      (Caroline, 2026-11-20). */}
+                  {view === 'rooms' && (
                   <div>
                     <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Date</label>
                     <div className="flex items-center gap-1.5">
@@ -760,6 +782,7 @@ export default function AvailabilityView({ location, rooms, closures }: { locati
                       </button>
                     </div>
                   </div>
+                  )}
 
                   {/* Weekend, holiday, past date or beyond the booking window */}
                   {dateClosed ? (
@@ -907,6 +930,16 @@ export default function AvailabilityView({ location, rooms, closures }: { locati
                           <button
                             type="button"
                             onClick={() => {
+                              // Let go of the room on the way over. The
+                              // whole reason for the trip is that this
+                              // one will not do, and leaving it selected
+                              // left the panel insisting on a room the
+                              // notice had just ruled out
+                              // (Caroline, 2026-11-20).
+                              setSelectedRoom(null)
+                              setSelectedStart('')
+                              setSelectedEnd('')
+                              setAllDay(false)
                               setView('calendar')
                               gridRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
                             }}
