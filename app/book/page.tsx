@@ -127,13 +127,10 @@ export default async function BookPage() {
         })}
       </div>
 
-      <p className="mt-10 text-xs text-gray-400 text-center">
-        Bookings are non-refundable. Need to cancel?{' '}
-        <a href="mailto:bookings@bizhaus.com" className="underline hover:text-gray-600">
-          Contact us
-        </a>{' '}
-        to inquire about credit toward a future booking.
-      </p>
+      {/* No cancellation policy here. This page lists buildings; the
+          policy belongs where the money is, beside the payment button on
+          the location page and, with its tick box, on the payment page
+          itself (Caroline, 2026-11-20). */}
     </div>
   )
 }

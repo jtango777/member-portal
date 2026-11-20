@@ -423,16 +423,23 @@ export default function DayGrid({
               {/* The hours either side of the bookable day. Written on,
                   not left to a hover: a tooltip is only found by people
                   who already suspect it is there (Caroline, 2026-11-20). */}
+              {/* Flat grey, not hatched. Hatching is what a slot that
+                  has merely gone by today looks like, and the two were
+                  identical though they mean different things: these
+                  hours are never on sale (Caroline, 2026-11-20). */}
               <div
                 className="absolute left-[72px] right-0 top-0 flex items-center justify-center
-                           border-b border-gray-200 pointer-events-none"
-                style={{ height: CAP, backgroundImage: HATCH }}
+                           bg-gray-100/70 border-b border-gray-200 pointer-events-none"
+                style={{ height: CAP }}
               >
                 <span className="text-[10px] text-gray-400">Before {labelFor(slots[0])}</span>
               </div>
               <div
-                className="absolute left-[72px] right-0 flex items-center justify-center px-2"
-                style={{ top: dayBottom, height: CAP, backgroundImage: HATCH }}
+                // Left-aligned on a narrow screen, where the grid scrolls
+                // sideways and anything centred in it starts off-screen.
+                className="absolute left-[72px] right-0 flex items-center justify-start sm:justify-center px-2
+                           bg-gray-100/70"
+                style={{ top: dayBottom, height: CAP }}
               >
                 <span className="text-[10px] text-gray-400 text-center">
                   After {labelFor(closeSlot)}?{' '}

@@ -857,22 +857,31 @@ export default function AvailabilityView({ location, rooms, closures }: { locati
                           being told three options it shows every room's
                           whole day, and they pick off it
                           (Caroline, 2026-11-19). */}
-                      <Collapse open={showSuggestions}>
+                      {/* Only while they are looking at the photos. On
+                            the calendar they are already looking at every
+                            room's day, so an invitation to go and look at
+                            it is noise (Caroline, 2026-11-20). */}
+                      <Collapse open={showSuggestions && view === 'rooms'}>
                         <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-3">
                           <p className="text-sm text-gray-700 m-0">
                             {noTimeLeft
-                              ? `${selectedRoom.external_name} has nothing left on this day.`
-                              : `${selectedRoom.external_name} is already booked for part of that day.`}
+                              ? `${selectedRoom.external_name} is booked all day.`
+                              : `${selectedRoom.external_name} is booked for part of that day.`}
                           </p>
+                          {/* Named for where it goes, with the same icon
+                              as the switch at the top of the page, rather
+                              than "see other options", which sounded like
+                              a list of rooms (Caroline, 2026-11-20). */}
                           <button
                             type="button"
                             onClick={() => {
                               setView('calendar')
                               gridRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
                             }}
-                            className="mt-2 inline-flex items-center gap-1 text-sm font-medium text-booking-700 hover:text-booking-800"
+                            className="mt-2 inline-flex items-center gap-1.5 text-sm font-medium text-booking-700 hover:text-booking-800"
                           >
-                            See what is free that day
+                            <CalendarDays size={14} />
+                            View full calendar
                             <ChevronRight size={14} />
                           </button>
                         </div>
@@ -912,13 +921,26 @@ export default function AvailabilityView({ location, rooms, closures }: { locati
                         {selectedStart ? 'Select an end time' : 'Select a time'}
                       </button>
                     )}
+                    {/* The policy where the money is. It was fine print
+                        at the very bottom of the page, which is the one
+                        place nobody about to pay is looking; the binding
+                        version, with its tick box, is on the payment page
+                        (Caroline, 2026-11-20). */}
+                    {canContinue && (
+                      <p className="mt-2.5 text-[11px] leading-snug text-gray-500 text-center">
+                        Non-refundable. If you need to cancel we can usually
+                        put the amount toward a future booking.
+                      </p>
+                    )}
                   </div>
                 )}
               </div>
             )}
 
-            {/* After-hours note */}
-            {selectedRoom && !dateClosed && (
+            {/* After-hours note. Only on the rooms view: the calendar
+                carries the same offer along its own five o'clock edge,
+                and two of them on one screen is one too many. */}
+            {view === 'rooms' && selectedRoom && !dateClosed && (
               <div className="px-5 py-3 bg-gray-50 border-t border-gray-100">
                 <p className="text-xs text-gray-600">
                   Need outside 9 AM–5 PM Monday–Friday?{' '}
@@ -933,14 +955,12 @@ export default function AvailabilityView({ location, rooms, closures }: { locati
 
       </div>
 
-      {/* Fine print */}
+      {/* Fine print. Only what has not already been said: the hours are
+          in the heading, on the calendar's two edges and in the panel,
+          and the policy now sits with the payment button
+          (Caroline, 2026-11-20). */}
       <p className="text-xs text-gray-500 pt-4 border-t border-gray-200">
-        Rooms are bookable Monday to Friday, 9:00 AM to 5:00 PM, up to {MAX_BOOKING_MONTHS_AHEAD} months ahead.
-      </p>
-      <p className="text-xs font-semibold text-gray-800">
-        Bookings are non-refundable. Need to cancel?{' '}
-        <a href={`mailto:${CONTACT_EMAIL}`} className="underline hover:text-gray-600">Contact us</a>
-        {' '}to inquire about credit toward a future booking.
+        Bookable up to {MAX_BOOKING_MONTHS_AHEAD} months ahead.
       </p>
     </div>
   )
