@@ -868,10 +868,11 @@ export default function AvailabilityView({ location, rooms, closures }: { locati
                               ? `${selectedRoom.external_name} is booked all day.`
                               : `${selectedRoom.external_name} is booked for part of that day.`}
                           </p>
-                          {/* Named for where it goes, with the same icon
-                              as the switch at the top of the page, rather
-                              than "see other options", which sounded like
-                              a list of rooms (Caroline, 2026-11-20). */}
+                          {/* Says what is on the other side of it. "View
+                              full calendar" named the thing rather than
+                              the answer, and the whole point here is that
+                              the other rooms might be free
+                              (Caroline, 2026-11-20). */}
                           <button
                             type="button"
                             onClick={() => {
@@ -881,7 +882,7 @@ export default function AvailabilityView({ location, rooms, closures }: { locati
                             className="mt-2 inline-flex items-center gap-1.5 text-sm font-medium text-booking-700 hover:text-booking-800"
                           >
                             <CalendarDays size={14} />
-                            View full calendar
+                            View availability for all rooms
                             <ChevronRight size={14} />
                           </button>
                         </div>
