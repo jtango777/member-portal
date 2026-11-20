@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { format, eachDayOfInterval, getDay } from 'date-fns'
-import { CheckCircle, Clock, XCircle, Ban, MapPin } from 'lucide-react'
+import { CheckCircle, Clock, XCircle, Ban, MapPin, Ticket, Presentation, ArrowRight } from 'lucide-react'
 import { cn, formatTime, formatDate, formatDayAndMonth, pacificDateKey } from '@/lib/utils'
 import { isDayPassCancellable } from '@/lib/dayPass'
 import { DAY_PASS_LOCATIONS_BY_NAME, directionsUrl } from '@/lib/locations'
@@ -258,21 +258,53 @@ export default async function DayPassAccountPage() {
         <SignOutButton />
       </div>
 
-      <div className="flex items-center justify-between gap-4 mb-3">
+      {/* Book again, as something you press rather than something you
+          find. Two small green words at the end of a heading row were
+          the only way on from this page, and they read as labels
+          (Caroline, 2026-11-20).
+
+          Conference rooms are built and running on the live Stripe key,
+          but no real card has ever been through /book and the admin
+          cancellation for a room booking has never run. This was the one
+          public route into it, straight from every day pass customer's
+          account page. Hidden until rooms are tested for real (Caroline,
+          2026-09-30). Put it back by flipping the flag; nothing else
+          needs changing. */}
+      <div className={cn('grid gap-3 mb-8', ROOM_BOOKING_LAUNCHED ? 'sm:grid-cols-2' : 'sm:grid-cols-1')}>
+        {([
+          // A ticket, because that is what a day pass is. It was a sun, for
+          // "a whole day", which reads as weather (Caroline, 2026-11-20).
+          { href: '/day-pass', icon: Ticket, title: 'Book a day pass', line: 'Coworking access for a whole day, 9 AM to 5 PM.', on: true },
+          // A screen on a stand. It was the people glyph, which says nothing
+          // these two cards do not share, and which already means capacity
+          // on the room cards (Caroline, 2026-11-20).
+          { href: '/book', icon: Presentation, title: 'Book a meeting room', line: 'By the hour, at any of our locations.', on: ROOM_BOOKING_LAUNCHED },
+        ] as const).filter(c => c.on).map(card => (
+          <a
+            key={card.href}
+            href={card.href}
+            className="group flex items-center gap-3.5 rounded-xl bg-white ring-1 ring-gray-200/80 px-4 py-3.5
+                       hover:ring-booking-600/40 hover:-translate-y-0.5 transition-all
+                       focus:outline-none focus-visible:ring-2 focus-visible:ring-booking-500"
+          >
+            <span className="shrink-0 h-9 w-9 rounded-lg bg-gray-100 text-gray-500 flex items-center justify-center
+                             group-hover:bg-booking-50 group-hover:text-booking-700 transition-colors">
+              <card.icon size={17} />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-sm font-semibold text-gray-900">{card.title}</span>
+              <span className="block text-xs text-gray-500 leading-snug">{card.line}</span>
+            </span>
+            <ArrowRight
+              size={16}
+              className="shrink-0 text-gray-300 group-hover:text-booking-600 group-hover:translate-x-0.5 transition-all"
+            />
+          </a>
+        ))}
+      </div>
+
+      <div className="mb-3">
         <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Your Bookings</h2>
-        <div className="flex items-center gap-4 text-sm font-medium">
-          <a href="/day-pass" className="text-booking-600 hover:text-booking-700">+ Day Pass</a>
-          {/* Conference rooms are built and running on the live Stripe key,
-              but no real card has ever been through /book and the admin
-              cancellation for a room booking has never run. This link was
-              the one public route into it, straight from every day pass
-              customer's account page. Hidden until rooms are tested for
-              real (Caroline, 2026-09-30). Put it back by flipping this to
-              true; nothing else needs changing. */}
-          {ROOM_BOOKING_LAUNCHED && (
-            <a href="/book" className="text-booking-600 hover:text-booking-700">+ Room Booking</a>
-          )}
-        </div>
       </div>
 
       {!bookings.length && (
