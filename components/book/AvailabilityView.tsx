@@ -548,6 +548,8 @@ export default function AvailabilityView({ location, rooms, closures }: { locati
                   setSelectedEnd(end)
                 }
               }}
+              onClear={() => { setAllDay(false); setSelectedStart(''); setSelectedEnd('') }}
+              outsideHoursContact={{ phone, email: CONTACT_EMAIL }}
               bookHref={(roomId, start, end) =>
                 `/book/request?room=${roomId}&date=${selectedDate}&start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}&location=${location.slug}`}
               priceFor={(roomId, start, end) => {

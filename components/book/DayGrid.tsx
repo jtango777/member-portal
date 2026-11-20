@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { ChevronLeft, ChevronRight, ZoomIn, ZoomOut } from 'lucide-react'
+import { ChevronLeft, ChevronRight, X, ZoomIn, ZoomOut } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 /**
@@ -51,8 +51,9 @@ function mins(s: string) {
 
 export default function DayGrid({
   rooms, slots, closeSlot, labelFor, busy, nowMinutes,
-  selectedRoomId, selectedStart, selectedEnd, onSelect, bookHref, priceFor,
+  selectedRoomId, selectedStart, selectedEnd, onSelect, onClear, bookHref, priceFor,
   closedNote, dayLabel, onPrevDay, onNextDay, canPrevDay, canNextDay,
+  outsideHoursContact,
 }: {
   rooms: GridRoom[]
   slots: string[]
@@ -67,6 +68,8 @@ export default function DayGrid({
   selectedStart?: string
   selectedEnd?: string
   onSelect: (roomId: string, start: string, end: string) => void
+  /** Drop the chosen time and leave nothing highlighted. */
+  onClear: () => void
   /** Where "Book" goes, once there is something to book. */
   bookHref: (roomId: string, start: string, end: string) => string
   priceFor: (roomId: string, start: string, end: string) => string
@@ -90,6 +93,8 @@ export default function DayGrid({
   onNextDay: () => void
   canPrevDay: boolean
   canNextDay: boolean
+  /** Who to ask about an hour outside the bookable day. */
+  outsideHoursContact?: { phone: string; email: string }
 }) {
   const closed = !!closedNote
   const [slotH, setSlotH] = useState(DEFAULT_SLOT_H)
@@ -105,6 +110,16 @@ export default function DayGrid({
    * drag does not collapse the range back to the slot it started on.
    */
   const dragged = useRef(false)
+
+  // Escape clears the selection too, since that is what Escape does.
+  const hasSelection = !!(selectedRoomId && selectedStart && selectedEnd)
+  useEffect(() => {
+    if (!hasSelection) return
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClear() }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [hasSelection, onClear])
+
   useEffect(() => {
     if (!dragFrom) return
     const stop = () => setDragFrom(null)
@@ -126,9 +141,17 @@ export default function DayGrid({
   const dayStart = mins(slots[0] ?? '9:00')
   const dayEnd = mins(closeSlot)
   const perMinute = slotH / 30
-  const top = (minute: number) => (minute - dayStart) * perMinute
+  /**
+   * A strip at each end of the day, so nine to five reads as a window
+   * with edges. The grid simply stopped at both ends, which said nothing
+   * about whether the hours outside existed (Caroline, 2026-11-20).
+   */
+  const CAP = Math.max(slotH, 28)
+  const top = (minute: number) => CAP + (minute - dayStart) * perMinute
   const height = (from: number, to: number) => (to - from) * perMinute
-  const bodyH = (dayEnd - dayStart) * perMinute
+  const dayBottom = top(dayEnd)
+  const bodyH = dayBottom + CAP
+  const HATCH = 'repeating-linear-gradient(45deg, rgba(17,24,39,0.03) 0 4px, transparent 4px 8px)'
 
   return (
     <div className="rounded-xl ring-1 ring-gray-200/80 bg-white overflow-hidden">
@@ -191,7 +214,11 @@ export default function DayGrid({
               whole page tall, so the room headings stay put while you
               move through the hours (Caroline, 2026-11-19). */}
           <div className="relative">
-          <div className="overflow-y-auto py-2" style={{ maxHeight: 460 }}>
+          {/* Tall enough that the whole day, both caps included, is there
+              at the zoom it opens on. At 460 the line about hours outside
+              nine to five sat below the fold of a box nobody would think
+              to scroll (Caroline, 2026-11-20). */}
+          <div className="overflow-y-auto py-2" style={{ maxHeight: 640 }}>
             <div className="flex relative" style={{ height: bodyH }}>
               {/* Time rail */}
               <div className="w-[72px] shrink-0 relative">
@@ -240,9 +267,7 @@ export default function DayGrid({
                             // with no mark at all the grid looked wholly
                             // clickable and most of it was not
                             // (Caroline, 2026-11-19).
-                            backgroundImage: gone
-                              ? 'repeating-linear-gradient(45deg, rgba(17,24,39,0.03) 0 4px, transparent 4px 8px)'
-                              : undefined,
+                            backgroundImage: gone ? HATCH : undefined,
                           }}
                         >
                           {!dead && (
@@ -285,7 +310,7 @@ export default function DayGrid({
                         edge (Caroline, 2026-11-19). */}
                     <div
                       className="absolute inset-x-0 border-t border-gray-200"
-                      style={{ top: bodyH }}
+                      style={{ top: dayBottom }}
                     />
 
                     {blocks.map(b => (
@@ -309,17 +334,59 @@ export default function DayGrid({
                       // and the button was sliced in half
                       // (Caroline, 2026-11-19).
                       const below = selTop + selH + 4
-                      const fits = below + 24 < bodyH
+                      const fits = below + 24 < dayBottom
+                      // Room inside the block for the button, and for the
+                      // hours and price under the time.
+                      const roomy = selH >= 78
+                      const mid = selH >= 46
                       return (
                         <>
+                          {/* Tinted, with a solid rail down the side,
+                              rather than a solid slab. A saturated green
+                              block with a saturated green button under it
+                              read as two shapes of the same thing
+                              (Caroline, 2026-11-20). */}
                           <div
-                            className="absolute inset-x-1 rounded-md bg-booking-600 px-1.5 py-0.5 overflow-hidden"
+                            className="absolute inset-x-1 rounded-md bg-booking-50 border border-booking-300
+                                       border-l-[3px] border-l-booking-600 px-1.5 py-1 overflow-hidden"
                             style={{ top: selTop + 1, height: selH - 2 }}
                           >
-                            <div className="text-[10px] font-semibold text-white leading-tight">
-                              {labelFor(selected.start)} – {labelFor(selected.end)}
+                            <div className="flex items-start gap-1">
+                              <div className="min-w-0 flex-1">
+                                <div className="text-[11px] font-semibold text-booking-800 leading-tight truncate">
+                                  {labelFor(selected.start)} – {labelFor(selected.end)}
+                                </div>
+                                {mid && (
+                                  <div className="text-[10px] text-booking-700/80 leading-tight truncate">
+                                    {priceFor(room.id, selected.start, selected.end)}
+                                  </div>
+                                )}
+                              </div>
+                              {/* A way back out. Clicking elsewhere only
+                                  moves the selection, so without this
+                                  there was no way to undo one
+                                  (Caroline, 2026-11-20). */}
+                              <button
+                                type="button"
+                                onClick={onClear}
+                                aria-label="Clear this time"
+                                className="shrink-0 -mr-0.5 -mt-0.5 rounded p-0.5 text-booking-700/60
+                                           hover:text-booking-800 hover:bg-booking-100 transition-colors"
+                              ><X size={12} /></button>
                             </div>
+
+                            {roomy && (
+                              <a
+                                href={bookHref(room.id, selected.start, selected.end)}
+                                className="absolute left-1.5 bottom-1.5 rounded-md bg-booking-600 hover:bg-booking-700
+                                           px-2 py-1 text-[11px] font-semibold text-white shadow-sm whitespace-nowrap"
+                              >
+                                Book →
+                              </a>
+                            )}
                           </div>
+
+                          {!roomy && (
                           <div
                             className="absolute inset-x-1 z-10 flex items-center gap-1.5"
                             style={{ top: fits ? below : Math.max(selTop - 26, 0) }}
@@ -330,16 +397,53 @@ export default function DayGrid({
                             >
                               Book →
                             </a>
-                            <span className="text-[10px] text-gray-500 whitespace-nowrap">
-                              {priceFor(room.id, selected.start, selected.end)}
-                            </span>
+                            {!mid && (
+                              <span className="text-[10px] text-gray-500 whitespace-nowrap">
+                                {priceFor(room.id, selected.start, selected.end)}
+                              </span>
+                            )}
                           </div>
+                          )}
                         </>
                       )
                     })()}
                   </div>
                 )
               })}
+
+              {/* The hours either side of the bookable day. Written on,
+                  not left to a hover: a tooltip is only found by people
+                  who already suspect it is there (Caroline, 2026-11-20). */}
+              <div
+                className="absolute left-[72px] right-0 top-0 flex items-center justify-center
+                           border-b border-gray-200 pointer-events-none"
+                style={{ height: CAP, backgroundImage: HATCH }}
+              >
+                <span className="text-[10px] text-gray-400">Before {labelFor(slots[0])}</span>
+              </div>
+              <div
+                className="absolute left-[72px] right-0 flex items-center justify-center px-2"
+                style={{ top: dayBottom, height: CAP, backgroundImage: HATCH }}
+              >
+                <span className="text-[10px] text-gray-400 text-center">
+                  After {labelFor(closeSlot)}?{' '}
+                  {outsideHoursContact ? (
+                    <>
+                      Call{' '}
+                      <a
+                        href={`tel:${outsideHoursContact.phone.replace(/\D/g, '')}`}
+                        className="text-gray-500 underline underline-offset-2 hover:text-gray-700"
+                      >{outsideHoursContact.phone}</a>
+                      {' '}or email{' '}
+                      <a
+                        href={`mailto:${outsideHoursContact.email}`}
+                        className="text-gray-500 underline underline-offset-2 hover:text-gray-700"
+                      >{outsideHoursContact.email}</a>
+                      {' '}and we will try to arrange it.
+                    </>
+                  ) : 'Get in touch and we will try to arrange it.'}
+                </span>
+              </div>
 
               {/* Where the day has got to. Inside the columns, not across
                   the page: it was absolutely positioned against the whole
