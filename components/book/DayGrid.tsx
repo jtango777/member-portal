@@ -499,18 +499,23 @@ export default function DayGrid({
                   (Caroline, 2026-11-20). */}
               <div className="max-w-xs rounded-xl bg-white ring-1 ring-gray-200/80
                               shadow-[0_1px_3px_rgba(16,24,40,0.06),0_8px_24px_-8px_rgba(16,24,40,0.12)]
-                              px-5 py-4 text-center">
+                              px-5 py-3.5 text-center">
                 <p className="text-sm font-semibold text-gray-900">{closedNote.heading}</p>
-                <p className="mt-1.5 text-xs leading-relaxed text-gray-500">{closedNote.detail}</p>
+                <p className="mt-1 text-xs leading-relaxed text-gray-500">{closedNote.detail}</p>
+                {/* One quiet line, not two headlines. At text-sm and
+                    stacked, the phone number and the address were bigger
+                    than the sentence telling you why you need them
+                    (Caroline, 2026-11-20). */}
                 {closedNote.contact && (
-                  <div className="mt-3 pt-3 border-t border-gray-100 flex flex-col items-center gap-1">
+                  <div className="mt-2.5 flex flex-wrap items-center justify-center gap-x-2 gap-y-0.5 text-xs">
                     <a
                       href={`tel:${closedNote.contact.phone.replace(/\D/g, '')}`}
-                      className="text-sm font-semibold text-booking-700 hover:text-booking-800"
+                      className="font-medium text-booking-700 hover:text-booking-800"
                     >{closedNote.contact.phone}</a>
+                    <span className="text-gray-300">·</span>
                     <a
                       href={`mailto:${closedNote.contact.email}`}
-                      className="text-sm font-medium text-booking-700 hover:text-booking-800"
+                      className="font-medium text-booking-700 hover:text-booking-800"
                     >{closedNote.contact.email}</a>
                   </div>
                 )}

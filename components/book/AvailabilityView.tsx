@@ -51,6 +51,11 @@ function slotToMinutes(s: string) {
   return h * 60 + m
 }
 
+// The two ends of the bookable day, named once so "all day" can be
+// worked out from the chosen times rather than tracked beside them.
+const DAY_OPEN = '9:00'
+const DAY_CLOSE = '17:00'
+
 // Start times: 9:00 AM – 4:30 PM
 const START_SLOTS: { value: string; label: string }[] = []
 for (let h = 9; h < 17; h++) {
@@ -138,7 +143,6 @@ export default function AvailabilityView({ location, rooms, closures }: { locati
     }
   }
   const [expandedRoom,  setExpandedRoom]  = useState<string | null>(null)
-  const [allDay,        setAllDay]        = useState(false)
   const [selectedRoom,  setSelectedRoom]  = useState<BookRoom | null>(null)
   const [selectedDate,  setSelectedDate]  = useState(today)
   const [blockedSlots,  setBlockedSlots]  = useState<string[]>([])
@@ -156,6 +160,25 @@ export default function AvailabilityView({ location, rooms, closures }: { locati
   const [blockedByRoom, setBlockedByRoom] = useState<Record<string, string[]>>({})
   const [selectedStart, setSelectedStart] = useState<string>('')
   const [selectedEnd,   setSelectedEnd]   = useState<string>('')
+
+  /**
+   * All day is not a thing you can be in as well as having times. It
+   * IS the times: nine to five and nothing else.
+   *
+   * It used to be its own piece of state kept in step with the two
+   * dropdowns by hand, and they came apart. Pressing All day on a room
+   * that could not take one, then clicking a free half hour in another
+   * room on the grid, left the switch on and showing 9:00 AM to 5:00 PM
+   * above an estimate for half an hour: the switch was turned off and
+   * the new time applied in two steps, and a rule that turns the switch
+   * back on for a nine-to-five selection fired in the gap between them
+   * (Caroline, 2026-11-20). Derived, there is no gap to fire in.
+   */
+  const allDay = selectedStart === DAY_OPEN && selectedEnd === DAY_CLOSE
+  function setAllDay(on: boolean) {
+    if (on) { setSelectedStart(DAY_OPEN); setSelectedEnd(DAY_CLOSE) }
+    else if (allDay) { setSelectedStart(''); setSelectedEnd('') }
+  }
   const widgetRef = useRef<HTMLDivElement>(null)
   /** The grid, so "see what is free" lands on it rather than near it. */
   const gridRef = useRef<HTMLDivElement>(null)
@@ -180,15 +203,20 @@ export default function AvailabilityView({ location, rooms, closures }: { locati
 
   // Dropdown labels. Two rooms can share a name (Costa Mesa had two
   // "Small"s), so a repeated name gets #1, #2 in the order the cards show.
-  const roomLabels = (() => {
+  const [roomNames, roomLabels] = (() => {
     const seen: Record<string, number> = {}
     const total: Record<string, number> = {}
     rooms.forEach(r => { total[r.external_name] = (total[r.external_name] ?? 0) + 1 })
-    return Object.fromEntries(rooms.map(r => {
+    const names: Record<string, string> = {}
+    const labels: Record<string, string> = {}
+    rooms.forEach(r => {
       const n = (seen[r.external_name] = (seen[r.external_name] ?? 0) + 1)
-      const name = total[r.external_name] > 1 ? `${r.external_name} #${n}` : r.external_name
-      return [r.id, `${name} · up to ${r.capacity} · ${money(r.price_per_hour)}/hr`]
-    }))
+      names[r.id] = total[r.external_name] > 1 ? `${r.external_name} #${n}` : r.external_name
+      labels[r.id] = `${names[r.id]} · up to ${r.capacity} · ${money(r.price_per_hour)}/hr`
+    })
+    // The bare disambiguated name too: "Small is booked" is no use at a
+    // location with two Smalls (Caroline, 2026-11-20).
+    return [names, labels]
   })()
 
   const roomPicker = (
@@ -230,7 +258,10 @@ export default function AvailabilityView({ location, rooms, closures }: { locati
     : isWeekendDate(selectedDate)
     ? {
         heading: 'Weekends are not self-serve',
-        detail: 'Online booking runs Monday to Friday, 9 AM to 5 PM. We do open at weekends by arrangement, so call or email and we will set it up.',
+        // Three sentences, two of which the page already says elsewhere.
+        // The heading carries the fact; this only has to point at the
+        // way through (Caroline, 2026-11-20).
+        detail: 'For a weekend booking, please contact us.',
         // The one closed day where getting in touch leads somewhere.
         contact: { phone, email: CONTACT_EMAIL },
       }
@@ -332,8 +363,9 @@ export default function AvailabilityView({ location, rooms, closures }: { locati
    * nobody could make or undo (Caroline, 2026-11-18).
    */
   useEffect(() => {
+    // Clearing the times is what turning All day off means now that the
+    // switch is read from them rather than stored beside them.
     if (!allDayPossible && allDay) {
-      setAllDay(false)
       setSelectedStart('')
       setSelectedEnd('')
     }
@@ -415,24 +447,8 @@ export default function AvailabilityView({ location, rooms, closures }: { locati
     ? slotValues.filter(v => slotToMinutes(v) <= pacificNowMinutes())
     : []
   const unavailableIn = (booked: string[] | undefined) => [...(booked ?? []), ...pastSlots]
-  const CLOSE_SLOT = '17:00'
+  const CLOSE_SLOT = DAY_CLOSE
   const WHOLE_DAY_HOURS = (slotToMinutes(CLOSE_SLOT) - slotToMinutes(slotValues[0])) / 60
-
-  /**
-   * Nine to five is a full day, however it was chosen.
-   *
-   * Picking those two times by hand, or dragging the whole column on the
-   * calendar, left the All day switch off, so the page disagreed with
-   * itself about what had just been booked (Caroline, 2026-11-20).
-   *
-   * Guarded on allDayPossible: on a day that cannot take a full booking
-   * the effect above turns All day straight back off, and the two would
-   * have flipped each other back and forth forever.
-   */
-  useEffect(() => {
-    if (allDay || !allDayPossible) return
-    if (selectedStart === slotValues[0] && selectedEnd === CLOSE_SLOT) setAllDay(true)
-  }, [allDay, allDayPossible, selectedStart, selectedEnd, slotValues, CLOSE_SLOT])
   const noTimeLeft = !loadingSlots && !dateClosed && !!selectedRoom
     && startSlotsWithStatus.every(s => s.disabled)
   const showSuggestions = !dateClosed && !loadingSlots && (allDayBlocked || noTimeLeft)
@@ -473,7 +489,7 @@ export default function AvailabilityView({ location, rooms, closures }: { locati
   /** Take one of the offers: same date, the times that are actually free. */
   function takeBlock(room: BookRoom, block: FreeBlock) {
     setSelectedRoom(room)
-    setAllDay(blockHours(block) >= WHOLE_DAY_HOURS)
+    // Nothing to say about All day here: it follows from the times.
     setSelectedStart(block.start)
     setSelectedEnd(block.end)
     warmPhotos(room)
@@ -491,25 +507,31 @@ export default function AvailabilityView({ location, rooms, closures }: { locati
           a meeting room, and it pushed the rooms below the fold for 300px of
           nothing (Caroline, 2026-09-22). People land here having already
           picked the location, so a heading is enough. */}
-      {/* The view switch belongs to the page, not to the left column. Sat
-          inside the column it pushed the rooms and the calendar a row
-          further down than the panel beside them, so the two halves of
-          the page never started level (Caroline, 2026-11-20). */}
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 tracking-tight">{location.name}</h1>
-          <p className="text-sm text-gray-500 mt-1">Meeting rooms by the hour · Monday to Friday, 9:00 AM – 5:00 PM</p>
-        </div>
-        {/* One control, in one place, saying one thing.
-            A heading that changed AND a link that changed meant two
-            bits of text morphing on every press, and the browser drew
-            a square focus box over the link afterwards
-            (Caroline, 2026-11-19). */}
+      <div>
+        <h1 className="text-2xl font-bold text-gray-900 tracking-tight">{location.name}</h1>
+        <p className="text-sm text-gray-500 mt-1">Meeting rooms by the hour · Monday to Friday, 9:00 AM – 5:00 PM</p>
+      </div>
+
+      {/* Under the heading rather than off to its right, where it was
+          easy to miss, with a gap above it so it reads as its own thing
+          and not a third line of the heading (Caroline, 2026-11-20).
+
+          Still outside the two columns, though: inside the left one it
+          pushed the rooms and the calendar a row further down than the
+          panel beside them, and the two halves of the page never
+          started level (Caroline, 2026-11-20).
+
+          One control, in one place, saying one thing. A heading that
+          changed AND a link that changed meant two bits of text morphing
+          on every press, and the browser drew a square focus box over
+          the link afterwards (Caroline, 2026-11-19). */}
+      <div className="-mt-1">
         <button
           type="button"
           onClick={switchView}
-          className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-sm text-gray-500
-                     hover:text-gray-900 hover:bg-gray-100 transition-colors
+          className="inline-flex items-center gap-1.5 -ml-2.5 rounded-lg px-2.5 py-1.5 text-sm font-medium text-gray-600
+                     ring-1 ring-gray-200/80 bg-white
+                     hover:text-gray-900 hover:ring-gray-300 transition-colors
                      focus:outline-none focus-visible:ring-2 focus-visible:ring-booking-500"
         >
           <CalendarDays size={14} />
@@ -561,7 +583,6 @@ export default function AvailabilityView({ location, rooms, closures }: { locati
               onSelect={(roomId, start, end) => {
                 const room = rooms.find(r => r.id === roomId)
                 if (!room) return
-                setAllDay(false)
                 if (room.id !== selectedRoom?.id) {
                   // The room's own availability is about to load and will
                   // clear the times; leave the pick for it to apply.
@@ -818,12 +839,7 @@ export default function AvailabilityView({ location, rooms, closures }: { locati
                           <button
                             type="button"
                             disabled={!allDayPossible}
-                            onClick={() => {
-                              const next = !allDay
-                              setAllDay(next)
-                              if (next) { setSelectedStart('9:00'); setSelectedEnd('17:00') }
-                              else      { setSelectedStart('');     setSelectedEnd('')      }
-                            }}
+                            onClick={() => setAllDay(!allDay)}
                             className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-gray-700 disabled:opacity-40 disabled:cursor-not-allowed"
                           >
                             {/* Amber while the day cannot actually take a
@@ -912,13 +928,19 @@ export default function AvailabilityView({ location, rooms, closures }: { locati
                             the calendar they are already looking at every
                             room's day, so an invitation to go and look at
                             it is noise (Caroline, 2026-11-20). */}
-                      <Collapse open={showSuggestions && view === 'rooms'}>
+                      <Collapse open={showSuggestions}>
                         <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-3">
                           <p className="text-sm text-gray-700 m-0">
                             {noTimeLeft
-                              ? `${selectedRoom.external_name} is booked all day.`
-                              : `${selectedRoom.external_name} is booked for part of that day.`}
+                              ? `${roomNames[selectedRoom.id]} is booked all day.`
+                              : `${roomNames[selectedRoom.id]} is booked for part of that day.`}
                           </p>
+                          {/* The sentence belongs on both views. Only the
+                              link is redundant on the calendar, where the
+                              other rooms are already on screen; cutting
+                              the whole box left a greyed button with
+                              nothing saying why (Caroline, 2026-11-20). */}
+                          {view === 'rooms' && (<>
                           {/* Says what is on the other side of it. "View
                               full calendar" named the thing rather than
                               the answer, and the whole point here is that
@@ -946,6 +968,7 @@ export default function AvailabilityView({ location, rooms, closures }: { locati
                             View availability for all rooms
                             <ChevronRight size={14} />
                           </button>
+                          </>)}
                         </div>
                       </Collapse>
 
