@@ -9,7 +9,7 @@ import MiniDatePicker from '@/components/MiniDatePicker'
 import Collapse from '@/components/Collapse'
 import DayGrid from '@/components/book/DayGrid'
 import MonthPanel from '@/components/book/MonthPanel'
-import { dateUnavailableReason, isWeekendDate, lastBookableDate, MAX_BOOKING_MONTHS_AHEAD, type ClosureMap } from '@/lib/bookingRules'
+import { dateUnavailableReason, isWeekendDate, lastBookableDate, type ClosureMap } from '@/lib/bookingRules'
 import { bookingPhoneFor } from '@/lib/locations'
 import {
   freeBlocks, longestBlock, blockHours, describeFreeTime, rankSuggestions, busyBlocks,
@@ -955,13 +955,11 @@ export default function AvailabilityView({ location, rooms, closures }: { locati
 
       </div>
 
-      {/* Fine print. Only what has not already been said: the hours are
-          in the heading, on the calendar's two edges and in the panel,
-          and the policy now sits with the payment button
-          (Caroline, 2026-11-20). */}
-      <p className="text-xs text-gray-500 pt-4 border-t border-gray-200">
-        Bookable up to {MAX_BOOKING_MONTHS_AHEAD} months ahead.
-      </p>
+      {/* No fine print. What was left of it, the booking window, is a
+          rule the controls already keep: the month's arrow stops at the
+          last bookable month and the days past it are greyed. A lone
+          sentence under a rule across an empty page said it twice and
+          looked like an offcut (Caroline, 2026-11-20). */}
     </div>
   )
 }
