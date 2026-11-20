@@ -296,7 +296,11 @@ export default function DayGrid({
                                 onSelect(room.id, r.start, r.end)
                               }}
                               aria-label={`Book ${room.external_name} from ${labelFor(s)}`}
-                              className="absolute inset-0 w-full cursor-pointer hover:bg-booking-600/15 focus:bg-booking-600/15 focus:outline-none transition-colors"
+                              // Grey, not green. A green hover tint was
+                              // the same family as the chosen block, so
+                              // whatever the mouse passed over looked
+                              // half chosen too (Caroline, 2026-11-20).
+                              className="absolute inset-0 w-full cursor-pointer hover:bg-gray-900/[0.05] focus:bg-gray-900/[0.05] focus:outline-none transition-colors"
                             />
                           )}
                         </div>
@@ -334,22 +338,21 @@ export default function DayGrid({
                       // and the button was sliced in half
                       // (Caroline, 2026-11-19).
                       const below = selTop + selH + 4
-                      const fits = below + 24 < dayBottom
+                      const fits = below + 34 < dayBottom
                       // Room inside the block for the button, and for the
                       // hours and price under the time.
                       const roomy = selH >= 78
                       const mid = selH >= 46
                       return (
                         <>
-                          {/* Tinted, with a solid rail down the side,
-                              rather than a solid slab. A saturated green
-                              block with a saturated green button under it
-                              read as two shapes of the same thing
+                          {/* The chosen slots, filled. Not a card floating
+                              over them: an inset box left the cell's own
+                              tint showing round its edges, so the fill
+                              looked ragged and half a step out of place
                               (Caroline, 2026-11-20). */}
                           <div
-                            className="absolute inset-x-1 rounded-md bg-booking-50 border border-booking-300
-                                       border-l-[3px] border-l-booking-600 px-1.5 py-1 overflow-hidden"
-                            style={{ top: selTop + 1, height: selH - 2 }}
+                            className="absolute inset-x-0 bg-booking-100 px-1.5 py-1 overflow-hidden"
+                            style={{ top: selTop, height: selH }}
                           >
                             <div className="flex items-start gap-1">
                               <div className="min-w-0 flex-1">
@@ -370,8 +373,8 @@ export default function DayGrid({
                                 type="button"
                                 onClick={onClear}
                                 aria-label="Clear this time"
-                                className="shrink-0 -mr-0.5 -mt-0.5 rounded p-0.5 text-booking-700/60
-                                           hover:text-booking-800 hover:bg-booking-100 transition-colors"
+                                className="shrink-0 -mr-0.5 -mt-0.5 rounded p-0.5 text-booking-700/70
+                                           hover:text-booking-800 hover:bg-booking-200 transition-colors"
                               ><X size={12} /></button>
                             </div>
 
@@ -386,10 +389,16 @@ export default function DayGrid({
                             )}
                           </div>
 
+                          {/* Too short to hold the button, so it sits
+                              under the fill as its own small card. On its
+                              own it landed half across whatever was booked
+                              below and the two ran together
+                              (Caroline, 2026-11-20). */}
                           {!roomy && (
                           <div
-                            className="absolute inset-x-1 z-10 flex items-center gap-1.5"
-                            style={{ top: fits ? below : Math.max(selTop - 26, 0) }}
+                            className="absolute left-1 z-20 flex items-center gap-1.5
+                                       rounded-lg bg-white ring-1 ring-gray-200 shadow-md px-1.5 py-1"
+                            style={{ top: fits ? below : Math.max(selTop - 32, 0) }}
                           >
                             <a
                               href={bookHref(room.id, selected.start, selected.end)}

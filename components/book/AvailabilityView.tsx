@@ -795,23 +795,11 @@ export default function AvailabilityView({ location, rooms, closures }: { locati
                           </button>
                         </div>
 
-                        {/* A greyed switch that says nothing is a dead
-                            end: Caroline hit it four times and each time
-                            the page gave her no reason and no way on
-                            (Caroline, 2026-11-19). */}
-                        <Collapse open={!allDayPossible} duration={220}>
-                          <p className="text-xs text-gray-500 bg-gray-50 rounded-lg px-3 py-2 mb-1.5">
-                            A full day runs 9 AM to 5 PM, so it cannot start today.
-                            Pick times below, or{' '}
-                            <button
-                              type="button"
-                              onClick={nextDay}
-                              className="underline font-medium text-booking-700 hover:text-booking-800"
-                            >
-                              try tomorrow
-                            </button>.
-                          </p>
-                        </Collapse>
+                        {/* The greyed switch is explanation enough. It
+                            briefly carried a paragraph saying why a full
+                            day cannot start part way through one; the
+                            paragraph was more noise than the switch was
+                            mystery (Caroline, 2026-11-20). */}
                         {loadingSlots ? (
                           <p className="text-sm text-gray-400">Loading availability…</p>
                         ) : (
