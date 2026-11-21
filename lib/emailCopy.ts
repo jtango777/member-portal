@@ -205,7 +205,7 @@ export const EMAIL_TEMPLATES: CopyTemplate[] = [
     variants: [{ id: 'refunded', label: 'Refunded' }, { id: 'credited', label: 'Held as credit' }],
     product: 'rooms',
     name: 'Room booking cancellation',
-    description: 'Sent when staff cancel a conference room booking. Rooms are sold non-refundable, so the credit version is the usual one.',
+    description: 'Sent when a conference room booking is cancelled. Cancelling before 9 PM the night before returns full credit toward a future date, so the credit version is the usual one; the refunded version is a staff exception.',
     fields: [
       {
         key: 'room_cancellation.refunded_note',

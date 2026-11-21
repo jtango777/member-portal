@@ -272,7 +272,7 @@ export function roomReceiptHtml(
       <a href="${BOOKINGS_URL}/my-bookings" style="display:inline-block;background:#6ec664;color:white;padding:13px 28px;border-radius:7px;text-decoration:none;font-weight:600;font-size:15px;margin-bottom:24px;">View My Reservations →</a>
 
       <p style="color:#94a3b8;font-size:13px;margin:0;border-top:1px solid #f1f5f9;padding-top:20px;">
-        <strong style="color:#64748b;">Cancellation policy:</strong> Bookings are non-refundable. To inquire about credit toward a future booking, contact us at
+        <strong style="color:#64748b;">Cancellation policy:</strong> Bookings can be cancelled up to 9 PM the night before for full credit toward a future date. To cancel, contact us at
         <a href="mailto:hello@bizhaus.com" style="color:#4f9645;text-decoration:none;">hello@bizhaus.com</a>.
       </p>
     `, 'Bookings')
