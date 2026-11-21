@@ -760,7 +760,14 @@ export default function AvailabilityView({ location, rooms, closures }: { locati
             {!selectedRoom ? (
               <div className="px-5 py-6">
                 <div className="text-sm font-semibold text-gray-900">Pick a room to see times</div>
-                <p className="text-sm text-gray-500 mt-1">Click a photo, or choose one here. Whatever you can select is free.</p>
+                {/* There are no photos on the calendar view, so telling
+                    someone to click one sends them looking for something
+                    that is not there (Caroline, 2026-11-20). */}
+                <p className="text-sm text-gray-500 mt-1">
+                  {view === 'calendar'
+                    ? 'Click any free time on the calendar, or choose a room here.'
+                    : 'Click a photo, or choose one here. Whatever you can select is free.'}
+                </p>
                 <div className="mt-3">{roomPicker}</div>
               </div>
             ) : (
