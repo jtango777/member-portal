@@ -190,12 +190,22 @@ export const EMAIL_TEMPLATES: CopyTemplate[] = [
         hint: 'One per line, written as "Heading: what it says". Tags: {doorCode}, {address}. Keep {doorCode} so the code only ever has to be changed in one place.',
         multiline: true,
         rows: 8,
+        // Ordered the way somebody actually arrives: in the door, up the
+        // stairs, into the room, and out again at the end. Taken from the
+        // email Joe used to send conference room guests by hand, which
+        // had several things this did not: pressing # before the code,
+        // which stairs, which room, the thermostat, and the green button
+        // you need to get back out (Caroline, 2026-11-20).
         default: [
-          'Building Access: BizHaus MDR is at {address}. Your code for the day is **#{doorCode}**, the same for both the building and Suite C215.',
-          'Parking: Visitor parking out front is limited to 2 hours. Street parking is available nearby, or park in the AMC structure next door.',
+          'Building Access: BizHaus MDR is at {address}. Press # first, then **{doorCode}**, to unlock the main door. Take the first set of stairs on your right up to Suite C215, which the same code opens.',
+          'Your Room: The conference room is the first room on your left as you come in.',
+          'Parking: The guest lot out front is limited to 2 hours. Street parking is available nearby, or use the AMC structure next door.',
           'WiFi Password: bizhauswifi',
-          'Restrooms: Down the hallway, keys hang next to each door (pink bear for women, blue bear for men).',
-          'Kitchen: Enjoy the Nespresso and purified water. Just place used cups and dishes in the dishwasher.',
+          'Air Conditioning: The thermostat for the conference room is on the same wall as the printer.',
+          'Restrooms: In the hallway, with the keys hanging next to the door (pink bear for the ladies\u2019 room, blue bear for the men\u2019s).',
+          'Kitchen: Help yourself to the Nespresso and the purified water. Mugs and glasses are in the cabinets above the machines, and used ones go in the dishwasher.',
+          'Printer: Search for &ldquo;BizHaus Printer&rdquo; on the network. Our policy: please be kind to trees and print only when you have to!',
+          'Leaving: Press the green button on the inside to unlock the door.',
         ].join('\n'),
       },
     ],
