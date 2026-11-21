@@ -226,6 +226,17 @@ export const EMAIL_TEMPLATES: CopyTemplate[] = [
     description: 'Sent when a conference room booking is cancelled, by the customer before the 9 PM cutoff or by staff. The money is always held as credit against the cancellation code, never refunded.',
     fields: [
       {
+        key: 'room_cancellation.opening',
+        label: 'Opening line',
+        // It used to be hardcoded, so the preview showed a sentence that
+        // appeared in no box and the editor looked like it was lying
+        // about what you could change (Caroline, 2026-11-20).
+        hint: 'Tags: {room}, {location}, {when}',
+        multiline: true,
+        rows: 3,
+        default: "We've cancelled your booking of **{room}** at our **{location}** location on {when}.",
+      },
+      {
         key: 'room_cancellation.credited_note',
         label: 'Note about the credit',
         // The credit is not a balance anywhere and cannot be spent online,

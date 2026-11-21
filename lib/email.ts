@@ -657,7 +657,9 @@ export function roomCancellationHtml(
   return letterEmailWrapper(`
       <p style="font-family:${FONT};font-size:15px;color:#3a3f3a;line-height:1.7;margin:0 0 22px;">Hi ${firstName},</p>
       <p style="font-family:${FONT};font-size:15px;color:#3a3f3a;line-height:1.7;margin:0 0 28px;">
-        We've cancelled your booking of <strong>${details.room}</strong> at our <strong>${details.location}</strong> location on ${details.when}.
+        ${emphasise(fillTags(copy['room_cancellation.opening'], {
+          room: details.room, location: details.location, when: details.when,
+        }))}
         ${emphasise(fillTags(
           // Always the credit wording: a cancelled room is never refunded.
           copy['room_cancellation.credited_note'],
