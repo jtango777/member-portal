@@ -140,7 +140,7 @@ export default function EmailTemplateDialog({
               {/* The email */}
               <div className="overflow-y-auto bg-gray-50 flex flex-col">
                 {template?.variants && (
-                  <div className="flex items-center gap-1 px-4 py-2.5 border-b border-gray-200 bg-white flex-shrink-0">
+                  <div className="flex items-center gap-1 px-6 py-2.5 border-b border-gray-200 bg-white flex-shrink-0">
                     <span className="text-[11px] uppercase tracking-wide text-gray-400 mr-1.5">Showing</span>
                     {template.variants.map(v => (
                       <button
@@ -159,7 +159,7 @@ export default function EmailTemplateDialog({
                   </div>
                 )}
                 {subject && (
-                  <div className="px-4 py-2.5 border-b border-gray-200 bg-white flex-shrink-0">
+                  <div className="px-6 py-2.5 border-b border-gray-200 bg-white flex-shrink-0">
                     <span className="text-[11px] uppercase tracking-wide text-gray-400 mr-2">Subject</span>
                     <span className="text-sm text-gray-800">{subject}</span>
                   </div>
