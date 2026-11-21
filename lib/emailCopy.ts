@@ -166,6 +166,41 @@ export const EMAIL_TEMPLATES: CopyTemplate[] = [
     ],
   },
   {
+    id: 'marina_room_access',
+    product: 'rooms',
+    name: 'Room booking — Marina del Rey arrival',
+    description: 'Added to the Marina del Rey room confirmations only. Marina is a satellite space with nobody at the desk in the morning, so a room booking there needs the door code and the way in, exactly as a day pass does. Its own wording rather than the day pass one, because a conference room booking is not a day of coworking (Caroline, 2026-11-20).',
+    fields: [
+      {
+        key: 'marina_room_access.heading',
+        label: 'Heading',
+        default: 'Getting in',
+      },
+      {
+        key: 'marina_room_access.intro',
+        label: 'Opening',
+        hint: 'Leave a blank line between paragraphs.',
+        multiline: true,
+        rows: 4,
+        default: "Marina del Rey is a satellite space, so there may be nobody at the desk when you arrive. Here is how to let yourself in.",
+      },
+      {
+        key: 'marina_room_access.details',
+        label: 'Arrival details',
+        hint: 'One per line, written as "Heading: what it says". Tags: {doorCode}, {address}. Keep {doorCode} so the code only ever has to be changed in one place.',
+        multiline: true,
+        rows: 8,
+        default: [
+          'Building Access: BizHaus MDR is at {address}. Your code for the day is **#{doorCode}**, the same for both the building and Suite C215.',
+          'Parking: Visitor parking out front is limited to 2 hours. Street parking is available nearby, or park in the AMC structure next door.',
+          'WiFi Password: bizhauswifi',
+          'Restrooms: Down the hallway, keys hang next to each door (pink bear for women, blue bear for men).',
+          'Kitchen: Enjoy the Nespresso and purified water. Just place used cups and dishes in the dishwasher.',
+        ].join('\n'),
+      },
+    ],
+  },
+  {
     id: 'room_cancellation',
     variants: [{ id: 'refunded', label: 'Refunded' }, { id: 'credited', label: 'Held as credit' }],
     product: 'rooms',
