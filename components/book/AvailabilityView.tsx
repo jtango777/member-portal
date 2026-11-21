@@ -257,7 +257,7 @@ export default function AvailabilityView({ location, rooms, closures }: { locati
   const closedNote = !dateClosed ? null
     : isWeekendDate(selectedDate)
     ? {
-        heading: 'Weekends are not self-serve',
+        heading: 'Weekends cannot be booked online',
         // Three sentences, two of which the page already says elsewhere.
         // The heading carries the fact; this only has to point at the
         // way through (Caroline, 2026-11-20).
@@ -1006,17 +1006,10 @@ export default function AvailabilityView({ location, rooms, closures }: { locati
                         {selectedStart ? 'Select an end time' : 'Select a time'}
                       </button>
                     )}
-                    {/* The policy where the money is. It was fine print
-                        at the very bottom of the page, which is the one
-                        place nobody about to pay is looking; the binding
-                        version, with its tick box, is on the payment page
-                        (Caroline, 2026-11-20). */}
-                    {canContinue && (
-                      <p className="mt-2.5 text-[11px] leading-snug text-gray-500 text-center">
-                        Non-refundable. If you need to cancel we can usually
-                        put the amount toward a future booking.
-                      </p>
-                    )}
+                    {/* No cancellation line here. The payment page says
+                        it once, in full, right before the card details,
+                        and that is the only place it should be said
+                        before paying (Caroline, 2026-11-20). */}
                   </div>
                 )}
               </div>

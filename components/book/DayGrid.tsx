@@ -269,18 +269,42 @@ export default function DayGrid({
                 const selected = !closed && room.id === selectedRoomId && selectedStart && selectedEnd
                   ? { start: selectedStart, end: selectedEnd }
                   : null
+                const blockedAt = (idx: number) => {
+                  const mm = mins(slots[idx])
+                  return blocks.some(b => mm >= mins(b.start) && mm < mins(b.end))
+                    || (nowMinutes !== null && mm <= nowMinutes)
+                }
                 return (
-                  <div key={room.id} className="flex-1 min-w-[130px] relative border-l border-gray-100">
+                  <div
+                    key={room.id}
+                    className="flex-1 min-w-[130px] relative border-l border-gray-100"
+                    /**
+                     * The drag is read from where the pointer is, not from
+                     * which cell it entered.
+                     *
+                     * Hanging it off each cell's pointerenter meant the
+                     * range could only grow: coming back up to undo an
+                     * overshoot passes over cells the pointer has already
+                     * entered once, and a fast drag can skip a cell's
+                     * enter event altogether (Caroline, 2026-11-20). A
+                     * column knows its own geometry, so the slot under the
+                     * cursor is arithmetic and always right.
+                     */
+                    onPointerMove={e => {
+                      if (!dragFrom || dragFrom.roomId !== room.id) return
+                      const rect = e.currentTarget.getBoundingClientRect()
+                      const idx = Math.max(0, Math.min(slots.length - 1,
+                        Math.floor((e.clientY - rect.top - CAP) / slotH)))
+                      dragged.current = true
+                      const r = rangeTo(room.id, dragFrom.index, idx, blockedAt)
+                      onSelect(room.id, r.start, r.end)
+                    }}
+                  >
                     {slots.map((s, i) => {
                       const m = mins(s)
                       const taken = blocks.some(b => m >= mins(b.start) && m < mins(b.end))
                       const gone = closed || (nowMinutes !== null && m <= nowMinutes)
                       const dead = taken || gone
-                      const blockedAt = (idx: number) => {
-                        const mm = mins(slots[idx])
-                        return blocks.some(b => mm >= mins(b.start) && mm < mins(b.end))
-                          || (nowMinutes !== null && mm <= nowMinutes)
-                      }
                       return (
                         <div
                           key={s}
@@ -304,12 +328,6 @@ export default function DayGrid({
                               onPointerDown={() => {
                                 dragged.current = false
                                 setDragFrom({ roomId: room.id, index: i })
-                              }}
-                              onPointerEnter={() => {
-                                if (!dragFrom || dragFrom.roomId !== room.id) return
-                                dragged.current = true
-                                const r = rangeTo(room.id, dragFrom.index, i, blockedAt)
-                                onSelect(room.id, r.start, r.end)
                               }}
                               /**
                                * Click, not just pointerdown. Pointer events
@@ -378,8 +396,16 @@ export default function DayGrid({
                               tint showing round its edges, so the fill
                               looked ragged and half a step out of place
                               (Caroline, 2026-11-20). */}
+                          {/* The fill takes no pointer events, so the
+                              cells underneath keep getting them. Without
+                              that it covered its own slots: dragging back
+                              up to undo an overshoot landed on the fill
+                              rather than a cell, so nothing recalculated
+                              and the range would only ever grow, and
+                              pressing inside a finished selection did
+                              nothing at all (Caroline, 2026-11-20). */}
                           <div
-                            className="absolute inset-x-0 bg-booking-100 px-1.5 py-1 overflow-hidden"
+                            className="absolute inset-x-0 bg-booking-100 px-1.5 py-1 overflow-hidden pointer-events-none"
                             style={{ top: selTop, height: selH }}
                           >
                             <div className="flex items-start gap-1">
@@ -401,7 +427,7 @@ export default function DayGrid({
                                 type="button"
                                 onClick={onClear}
                                 aria-label="Clear this time"
-                                className="shrink-0 -mr-0.5 -mt-0.5 rounded p-0.5 text-booking-700/70
+                                className="pointer-events-auto shrink-0 -mr-0.5 -mt-0.5 rounded p-0.5 text-booking-700/70
                                            hover:text-booking-800 hover:bg-booking-200 transition-colors"
                               ><X size={12} /></button>
                             </div>
@@ -409,7 +435,7 @@ export default function DayGrid({
                             {roomy && (
                               <a
                                 href={bookHref(room.id, selected.start, selected.end)}
-                                className="absolute left-1.5 bottom-1.5 rounded-md bg-booking-600 hover:bg-booking-700
+                                className="pointer-events-auto absolute left-1.5 bottom-1.5 rounded-md bg-booking-600 hover:bg-booking-700
                                            px-2 py-1 text-[11px] font-semibold text-white shadow-sm whitespace-nowrap"
                               >
                                 Book →

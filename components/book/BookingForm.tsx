@@ -58,7 +58,6 @@ function CheckoutForm({
   const [phone,   setPhone]   = useState('')
   const [company, setCompany] = useState('')
   const [notes,   setNotes]   = useState('')
-  const [agreed,  setAgreed]  = useState(false)
   const [loading, setLoading] = useState(false)
   const [error,   setError]   = useState<string | null>(null)
   const [recaptchaToken, setRecaptchaToken] = useState<string | null>(null)
@@ -106,7 +105,6 @@ function CheckoutForm({
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!stripe || !elements) return
-    if (!agreed) { setError('Please agree to the cancellation policy.'); return }
     if (!existingCustomer && !acctRecaptchaToken) { setError('Please complete the "I\'m not a robot" check.'); return }
     if (!recaptchaToken) { setError('Please complete the "I\'m not a robot" check.'); return }
 
@@ -342,16 +340,13 @@ function CheckoutForm({
         </div>
       </div>
 
-      {/* Cancellation policy */}
-      <div className="bg-white ring-1 ring-gray-200/80 rounded-xl p-4 text-sm text-gray-600 space-y-3">
-        <p><span className="font-semibold text-gray-900">Cancellation policy:</span> Bookings are non-refundable. If you need to cancel, contact us at{' '}
-          <a href="mailto:bookings@bizhaus.com" className="text-booking-600 hover:underline">bookings@bizhaus.com</a>{' '}
-          to inquire about credit toward a future booking.</p>
-        <label className="flex items-start gap-2.5 cursor-pointer">
-          <input type="checkbox" checked={agreed} onChange={e => setAgreed(e.target.checked)}
-            className="mt-0.5 rounded border-gray-300" />
-          <span>I understand and agree to the cancellation policy.</span>
-        </label>
+      {/* Cancellation policy. One sentence, no tick box: this is now the
+          only place cancellation is mentioned before paying, so the
+          availability page no longer carries a line of its own
+          (Caroline, 2026-11-20). */}
+      <div className="bg-white ring-1 ring-gray-200/80 rounded-xl p-4 text-sm text-gray-600">
+        <p><span className="font-semibold text-gray-900">Cancellation policy:</span> Bookings can be cancelled up to 9 PM the night before for full credit toward a future date. To cancel, contact us at{' '}
+          <a href="mailto:bookings@bizhaus.com" className="text-booking-600 hover:underline">bookings@bizhaus.com</a>.</p>
       </div>
 
       <div className="flex justify-center">
@@ -364,10 +359,10 @@ function CheckoutForm({
 
       <button
         type="submit"
-        disabled={loading || !agreed || !stripe || !recaptchaToken || (!existingCustomer && (password.length < 8 || !acctRecaptchaToken))}
+        disabled={loading || !stripe || !recaptchaToken || (!existingCustomer && (password.length < 8 || !acctRecaptchaToken))}
         className={cn(
           'w-full py-3.5 rounded-lg text-sm font-semibold transition-colors',
-          loading || !agreed || !stripe || !recaptchaToken || (!existingCustomer && (password.length < 8 || !acctRecaptchaToken))
+          loading || !stripe || !recaptchaToken || (!existingCustomer && (password.length < 8 || !acctRecaptchaToken))
             ? 'bg-booking-300 text-white cursor-not-allowed'
             : 'bg-booking-600 hover:bg-booking-700 text-white'
         )}
