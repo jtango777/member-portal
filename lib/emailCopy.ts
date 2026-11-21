@@ -147,8 +147,8 @@ export const EMAIL_TEMPLATES: CopyTemplate[] = [
   {
     id: 'room_receipt',
     product: 'rooms',
-    name: 'Room booking receipt',
-    description: 'Sent to the customer after a conference room booking is paid for.',
+    name: 'Room booking receipt — El Segundo & Costa Mesa',
+    description: 'Sent to the customer after a conference room booking is paid for. Marina del Rey gets this same receipt with an arrival section added; see below.',
     fields: [
       {
         key: 'room_receipt.subject',
@@ -162,6 +162,41 @@ export const EMAIL_TEMPLATES: CopyTemplate[] = [
         hint: 'Tags: {firstName}, {room}, {location}',
         multiline: true,
         default: 'Your booking is confirmed. Here are the details and your receipt.',
+      },
+    ],
+  },
+  {
+    id: 'marina_room_access',
+    product: 'rooms',
+    name: 'Room booking receipt — Marina del Rey',
+    description: 'Marina is a satellite space with nobody at the desk in the morning, so a room booking there needs the door code and the way in, exactly as a day pass does. The preview shows the whole email. Its subject and opening line are shared with the receipt above; the lines below are the part only Marina gets.',
+    fields: [
+      {
+        key: 'marina_room_access.heading',
+        label: 'Heading',
+        default: 'Getting in',
+      },
+      {
+        key: 'marina_room_access.intro',
+        label: 'Opening',
+        hint: 'Leave a blank line between paragraphs.',
+        multiline: true,
+        rows: 4,
+        default: "Marina del Rey is a satellite space, so there may be nobody at the desk when you arrive. Here is how to let yourself in.",
+      },
+      {
+        key: 'marina_room_access.details',
+        label: 'Arrival details',
+        hint: 'One per line, written as "Heading: what it says". Tags: {doorCode}, {address}. Keep {doorCode} so the code only ever has to be changed in one place.',
+        multiline: true,
+        rows: 8,
+        default: [
+          'Building Access: BizHaus MDR is at {address}. Your code for the day is **#{doorCode}**, the same for both the building and Suite C215.',
+          'Parking: Visitor parking out front is limited to 2 hours. Street parking is available nearby, or park in the AMC structure next door.',
+          'WiFi Password: bizhauswifi',
+          'Restrooms: Down the hallway, keys hang next to each door (pink bear for women, blue bear for men).',
+          'Kitchen: Enjoy the Nespresso and purified water. Just place used cups and dishes in the dishwasher.',
+        ].join('\n'),
       },
     ],
   },

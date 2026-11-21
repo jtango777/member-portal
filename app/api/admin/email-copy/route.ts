@@ -8,6 +8,7 @@ import {
   marinaConfirmationEmail,
   wrapLetterEmail,
   roomReceiptHtml,
+  marinaRoomAccessBlock,
   roomCancellationHtml,
 } from '@/lib/email'
 import { DAY_PASS_LOCATIONS_BY_NAME } from '@/lib/locations'
@@ -124,6 +125,20 @@ export async function PUT(request: Request) {
         date: 'Friday, October 9, 2026', time: '9:00 AM – 10:00 AM',
         guestName: 'Alex Rivera', amountPaid: '$50.00', paymentDate: 'October 1, 2026',
       }, 'Visa ending in 4242', merged),
+    })
+  }
+
+  // The whole Marina receipt, not just the part that differs: the point of
+  // the preview is to read what the customer reads (Caroline, 2026-11-20).
+  if (templateId === 'marina_room_access') {
+    return NextResponse.json({
+      subject: fillTags(merged['room_receipt.subject'], { room: 'Small', date: sample.date }),
+      html: roomReceiptHtml({
+        confirmationNumber: 'ABC12345', room: 'Small', location: 'Marina del Rey',
+        date: 'Friday, October 9, 2026', time: '9:00 AM – 10:00 AM',
+        guestName: 'Alex Rivera', amountPaid: '$65.00', paymentDate: 'October 1, 2026',
+      }, 'Visa ending in 4242', merged,
+        marinaRoomAccessBlock('Marina del Rey', '1234', merged)),
     })
   }
 

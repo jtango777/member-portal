@@ -167,10 +167,50 @@ export async function sendConfirmationEmail(
         <tr style="border-top:1px solid #e2e8f0;"><td style="padding:10px 14px;color:#64748b;font-size:13px;">Time</td><td style="padding:10px 14px;color:#1e293b;">${details.time}</td></tr>
         <tr style="border-top:1px solid #e2e8f0;"><td style="padding:10px 14px;color:#64748b;font-size:13px;">Booked by</td><td style="padding:10px 14px;color:#1e293b;">${details.booker}</td></tr>
       </table>
+      ${marinaRoomAccessBlock(details.location, (await getDoorCodes())[details.location] ?? '', await getEmailCopy())}
       <p style="color:#94a3b8;font-size:13px;margin:0;border-top:1px solid #f1f5f9;padding-top:20px;">Need to cancel? Log in to BizHaus and cancel from the calendar — at least 12 hours before your reservation.</p>
     `),
   })
   if (error) console.error('[email] Resend error sending confirmation email:', error)
+}
+
+/**
+ * How to let yourself in at Marina del Rey, for a room booking.
+ *
+ * Marina is a satellite space with nobody at the desk in the morning,
+ * which is why a day pass there already gets its own confirmation with
+ * the door code on it. A conference room booking had no access
+ * information at all, at any location: someone could pay for the Marina
+ * room and be told the time and the price and nothing about the door
+ * (Caroline, 2026-11-20).
+ *
+ * Returns an empty string for every other location, so the caller can
+ * drop it in unconditionally.
+ */
+export function marinaRoomAccessBlock(
+  locationName: string,
+  doorCode: string,
+  copy: Record<string, string> = DEFAULT_COPY,
+): string {
+  const loc = DAY_PASS_LOCATIONS_BY_NAME[locationName]
+  if (!loc?.isMarina) return ''
+  const tags = { doorCode: doorCode || loc.doorCode || '', address: loc.address }
+  const line = (key: string) => emphasise(fillTags(copy[`marina_room_access.${key}`], tags))
+  return `
+      <div style="border-top:1px solid #e2e8f0;margin:0 0 24px;padding-top:20px;">
+        <h3 style="color:#0f172a;margin:0 0 8px;font-size:15px;font-weight:700;">${line('heading')}</h3>
+        ${paragraphs(line('intro')).map(para =>
+          `<p style="color:#475569;font-size:14px;line-height:1.65;margin:0 0 14px;">${para}</p>`).join('')}
+        <table style="border-collapse:collapse;width:100%;">
+          ${bulletLines(line('details')).map(b => `
+            <tr>
+              <td style="padding:0 0 12px;font-size:14px;color:#334155;line-height:1.6;vertical-align:top;">
+                ${b.label ? `<span style="color:#3f7a37;font-weight:700;">${b.label}:</span> ` : ''}${b.text}
+              </td>
+            </tr>`).join('')}
+        </table>
+      </div>
+`
 }
 
 /** The room receipt's body, exported so the admin preview renders the real email. */
@@ -181,6 +221,7 @@ export function roomReceiptHtml(
   },
   cardLine: string,
   copy: Record<string, string> = DEFAULT_COPY,
+  accessBlock = '',
 ): string {
   return bookingEmailWrapper(`
       <h2 style="color:#0f172a;margin:0 0 4px;font-size:22px;font-weight:700;">Booking Confirmed ✓</h2>
@@ -226,6 +267,8 @@ export function roomReceiptHtml(
         </tr>
       </table>
 
+      ${accessBlock}
+
       <a href="${BOOKINGS_URL}/my-bookings" style="display:inline-block;background:#6ec664;color:white;padding:13px 28px;border-radius:7px;text-decoration:none;font-weight:600;font-size:15px;margin-bottom:24px;">View My Reservations →</a>
 
       <p style="color:#94a3b8;font-size:13px;margin:0;border-top:1px solid #f1f5f9;padding-top:20px;">
@@ -258,7 +301,10 @@ export async function sendExternalBookingReceipt(
     from: FROM,
     to,
     subject: fillTags((await getEmailCopy())['room_receipt.subject'], { room: details.room, date: details.date }),
-    html: roomReceiptHtml(details, cardLine, await getEmailCopy()),
+    html: roomReceiptHtml(details, cardLine, await getEmailCopy(),
+      // The code comes from the locations table, so staff change it in
+      // one place for both day passes and rooms.
+      marinaRoomAccessBlock(details.location, (await getDoorCodes())[details.location] ?? '', await getEmailCopy())),
   })
   if (error) console.error('[email] Resend error sending external booking receipt:', error)
 }
