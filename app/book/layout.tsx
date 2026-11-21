@@ -28,7 +28,7 @@ export default async function BookLayout({ children }: { children: React.ReactNo
       <header className="bg-white border-b border-gray-200 min-h-16 flex items-center flex-shrink-0 px-4 sm:px-6 gap-2 flex-wrap py-2">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <a href="https://bizhaus.com" className="flex-shrink-0"><img src="/brand/bizhaus-logo.png" alt="BizHaus" className="h-5 w-auto" /></a>
-        <span className="text-xs font-bold bg-booking-600 text-white px-2.5 py-1 rounded flex-shrink-0">Bookings</span>
+        <span className="text-xs font-bold bg-booking-600 text-white px-2.5 py-1 rounded flex-shrink-0 whitespace-nowrap">Meeting Rooms</span>
         <div className="flex-1" />
         <HeaderAccountLink initial={isBookingCustomer} />
       </header>
