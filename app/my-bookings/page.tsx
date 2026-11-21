@@ -319,10 +319,32 @@ export default async function DayPassAccountPage() {
           {/* One card per booking. These used to share a single bordered
               container with dividers between them, so two separate
               purchases read as one card with two rows (Caroline,
-              2026-09-30). */}
-          <div className="flex flex-col gap-4">
-            {list.map(b => <BookingCard key={b.id} b={b} isPast={heading === 'Past'} />)}
-          </div>
+              2026-09-30).
+
+              Split by what was booked, because a day pass and a room are
+              different things and a flat list made you read every card to
+              find one of them (Caroline, 2026-11-20). The labels only
+              appear when there is actually more than one kind in the
+              section: a heading over the whole list says nothing. */}
+          {(() => {
+            const groups = [
+              ['Day passes', list.filter(b => b.kind === 'day-pass')],
+              ['Meeting rooms', list.filter(b => b.kind === 'room')],
+            ] as const
+            const labelled = groups.every(([, g]) => g.length > 0)
+            return (
+              <div className="flex flex-col gap-6">
+                {groups.map(([label, g]) => g.length > 0 && (
+                  <div key={label} className="flex flex-col gap-4">
+                    {labelled && (
+                      <div className="text-xs font-medium text-gray-500">{label}</div>
+                    )}
+                    {g.map(b => <BookingCard key={b.id} b={b} isPast={heading === 'Past'} />)}
+                  </div>
+                ))}
+              </div>
+            )
+          })()}
         </div>
       ))}
 
