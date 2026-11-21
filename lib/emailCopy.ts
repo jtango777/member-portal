@@ -117,18 +117,24 @@ export const EMAIL_TEMPLATES: CopyTemplate[] = [
   },
   {
     id: 'day_pass_cancellation',
+    variants: [{ id: 'refunded', label: 'Refunded' }, { id: 'credited', label: 'Held as credit' }],
     product: 'day_pass',
     name: 'Day pass cancellation',
-    // One version only. A cancelled day pass is always refunded to the
-    // card, so there is nothing to switch between; the staff option to
-    // hold one as credit went with this (Caroline, 2026-11-20).
-    description: 'Sent when a day pass is cancelled, whether by the customer or by staff. The money always goes back to the card.',
+    description: 'Sent when a day pass is cancelled, whether by the customer or by staff. The refunded and credited versions differ.',
     fields: [
       {
         key: 'day_pass_cancellation.refunded_note',
-        label: 'Note about the refund',
+        label: 'Note when the money is refunded',
+        onlyIn: 'refunded',
         multiline: true,
         default: 'Refunds usually show up on your statement within 5 to 10 business days, depending on your bank.',
+      },
+      {
+        key: 'day_pass_cancellation.credited_note',
+        label: 'Note when the money is held as credit',
+        onlyIn: 'credited',
+        multiline: true,
+        default: "Just reply to this email when you know the day you'd like instead, and we'll apply the credit to it.",
       },
       {
         key: 'day_pass_cancellation.signoff',

@@ -566,11 +566,10 @@ export function dayPassCancellationEmailHtml(details: { guestName: string; locat
   const firstName = details.guestName.trim().split(/\s+/)[0] || details.guestName
   const loc = DAY_PASS_LOCATIONS_BY_NAME[details.location]
   const dateLabel = details.dates.join('<br/>')
-  // Always a refund. Holding a day pass as credit was a staff option
-  // nobody used, and leaving the wording behind meant an email could
-  // promise the opposite of what happened to the money
-  // (Caroline, 2026-11-20).
-  const credited = false
+  // `credited` is the staff override path: the booking is cancelled but the
+  // money stays with us as credit toward a future visit, so every line that
+  // would promise a card refund has to say something else.
+  const credited = details.credited === true
   const partial = (details.remainingDates?.length ?? 0) > 0
   const opening = credited
     ? (partial
