@@ -1,5 +1,6 @@
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
+import { selectAll } from '@/lib/selectAll'
 
 export async function GET() {
   const supabase = await createClient()
@@ -25,7 +26,14 @@ export async function GET() {
     // account (user_id, e.g. they self-registered and booked before an
     // admin ever set their company). Both cases should surface a suggestion
     // when the member record itself still has no company on file.
-    admin.from('reservations').select('user_id, historical_email, company_id, companies(name)').not('company_id', 'is', null),
+    // Paged. PostgREST stops at 1000 rows without saying so, and this
+    // table passed that in November, so the newest bookings stopped
+    // counting toward the suggestion (Caroline, 2026-11-20).
+    selectAll((from, to) =>
+      admin.from('reservations')
+        .select('user_id, historical_email, company_id, companies(name)')
+        .not('company_id', 'is', null)
+        .range(from, to)),
   ])
 
   // Build lookup: email → auth user id
