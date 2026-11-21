@@ -147,9 +147,14 @@ export async function PUT(request: Request) {
   if (templateId === 'room_cancellation') {
     return NextResponse.json({
       subject: 'Your BizHaus room booking has been cancelled',
+      // The sample code matters: without it {confirmation} filled in as
+      // nothing and the preview showed a bare **** where the real email
+      // has the code, which reads as the editor being broken
+      // (Caroline, 2026-11-20).
       html: roomCancellationHtml({
         guestName: 'Alex Rivera', room: 'Small', location: 'El Segundo',
-        when: 'Friday, October 9 at 9:00AM', amount: '$50.00', credited,
+        when: 'Friday, October 9 at 9:00AM', amount: '$50.00', credited: true,
+        confirmationNumber: 'ABC12345',
       }, merged),
     })
   }
