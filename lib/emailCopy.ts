@@ -117,24 +117,18 @@ export const EMAIL_TEMPLATES: CopyTemplate[] = [
   },
   {
     id: 'day_pass_cancellation',
-    variants: [{ id: 'refunded', label: 'Refunded' }, { id: 'credited', label: 'Held as credit' }],
     product: 'day_pass',
     name: 'Day pass cancellation',
-    description: 'Sent when a day pass is cancelled, whether by the customer or by staff. The refunded and credited versions differ.',
+    // One version only. A cancelled day pass is always refunded to the
+    // card, so there is nothing to switch between; the staff option to
+    // hold one as credit went with this (Caroline, 2026-11-20).
+    description: 'Sent when a day pass is cancelled, whether by the customer or by staff. The money always goes back to the card.',
     fields: [
       {
         key: 'day_pass_cancellation.refunded_note',
-        label: 'Note when the money is refunded',
-        onlyIn: 'refunded',
+        label: 'Note about the refund',
         multiline: true,
         default: 'Refunds usually show up on your statement within 5 to 10 business days, depending on your bank.',
-      },
-      {
-        key: 'day_pass_cancellation.credited_note',
-        label: 'Note when the money is held as credit',
-        onlyIn: 'credited',
-        multiline: true,
-        default: "Just reply to this email when you know the day you'd like instead, and we'll apply the credit to it.",
       },
       {
         key: 'day_pass_cancellation.signoff',
@@ -212,23 +206,16 @@ export const EMAIL_TEMPLATES: CopyTemplate[] = [
   },
   {
     id: 'room_cancellation',
-    variants: [{ id: 'refunded', label: 'Refunded' }, { id: 'credited', label: 'Held as credit' }],
     product: 'rooms',
     name: 'Room booking cancellation',
-    description: 'Sent when a conference room booking is cancelled. Cancelling before 9 PM the night before returns full credit toward a future date, so the credit version is the usual one; the refunded version is a staff exception.',
+    // One version only. A cancelled room is always held as credit, never
+    // refunded, so there is nothing to switch between
+    // (Caroline, 2026-11-20).
+    description: 'Sent when a conference room booking is cancelled, by the customer before the 9 PM cutoff or by staff. The money is always held as credit against the cancellation code, never refunded.',
     fields: [
       {
-        key: 'room_cancellation.refunded_note',
-        label: 'Note when the money is refunded',
-        onlyIn: 'refunded',
-        hint: 'Tags: {amount}',
-        multiline: true,
-        default: "We've refunded **{amount}** to your original payment method. It usually shows up within 5 to 10 business days, depending on your bank.",
-      },
-      {
         key: 'room_cancellation.credited_note',
-        label: 'Note when the money is held as credit',
-        onlyIn: 'credited',
+        label: 'Note about the credit',
         // The credit is not a balance anywhere and cannot be spent online,
         // so this sentence is the only record of it. It has to name the
         // amount and the number they will be asked for on the phone

@@ -4,10 +4,9 @@ import { useState } from 'react'
 import { format } from 'date-fns'
 import { useRouter } from 'next/navigation'
 import * as Dialog from '@radix-ui/react-dialog'
-import { X, Trash2, RefreshCw } from 'lucide-react'
+import { X, Trash2 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { IconAction } from './AdminTable'
-import TabPanel from '@/components/TabPanel'
 
 // Staff cancellation override (Caroline, 2026-09-28).
 //
@@ -52,10 +51,13 @@ function CancelBookingDialog({ target, open, onOpenChange }: {
   const isPass = target.type === 'day_pass'
   const allDates = isPass ? target.dates : []
   const [dates, setDates] = useState<string[]>(allDates)
-  // Off by default. Refunding is the rare exception, not the norm, so the
-  // money never moves unless someone deliberately flips this (Caroline,
-  // 2026-09-28).
-  const [refund, setRefund] = useState(false)
+  // Not a choice any more. A day pass is always refunded to the card and
+  // a room is always held as credit, which is the only thing either has
+  // ever been used for, and the cancellation emails now each have a
+  // single version saying exactly that. A toggle here could make the
+  // email describe the opposite of what happened to the money
+  // (Caroline, 2026-11-20).
+  const refund = isPass
   const [notify, setNotify] = useState(true)
   const [busy, setBusy] = useState(false)
 
@@ -123,28 +125,11 @@ function CancelBookingDialog({ target, open, onOpenChange }: {
               </div>
             )}
 
-            <label className="flex items-center gap-2 cursor-pointer select-none mb-4">
-              <RefreshCw size={14} className={`transition-colors duration-200 ${refund ? 'text-blue-600' : 'text-gray-300'}`} />
-              <span className="relative inline-flex h-4 w-7 flex-shrink-0 items-center">
-                <input type="checkbox" checked={refund} onChange={e => setRefund(e.target.checked)} className="peer sr-only" />
-                <span className="absolute inset-0 rounded-full bg-gray-300 peer-checked:bg-blue-600 transition-colors duration-200" />
-                <span className="absolute left-0.5 top-0.5 h-3 w-3 rounded-full bg-white shadow transition-transform duration-200 peer-checked:translate-x-3" />
-              </span>
-              <span className="text-sm text-gray-700">Refund {amount} to their card?</span>
-            </label>
-            {/* Fixed height so flipping the toggle doesn't shove everything
-                below it up and down, and the wording cross-fades on the
-                same easing as the tab panels rather than swapping hard
-                (Caroline, 2026-09-28). */}
-            <div className="mb-6 -mt-2 ml-8 h-10">
-              <TabPanel key={refund ? 'refund' : 'credit'}>
-                <p className="text-xs text-gray-400 leading-relaxed">
-                  {refund
-                    ? 'Back on their statement in 5 to 10 days, and the QuickBooks receipt is voided.'
-                    : `No money moves. ${amount} stays with us toward a future booking.`}
-                </p>
-              </TabPanel>
-            </div>
+            <p className="mb-6 text-xs text-gray-400 leading-relaxed">
+              {isPass
+                ? `${amount} goes back to their card, and the QuickBooks receipt is voided.`
+                : `No money moves. ${amount} stays with us as credit, and they are emailed a cancellation code to quote when they rebook.`}
+            </p>
 
             <label className="flex items-center gap-2 cursor-pointer select-none mb-6">
               <span className="relative inline-flex h-4 w-7 flex-shrink-0 items-center ml-[22px]">
