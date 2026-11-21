@@ -68,19 +68,5 @@ export function buildIcs(events: CalendarEvent[], prodId = '-//BizHaus//Bookings
 // Buffer, and this file is also imported by the day pass page in the
 // browser, where Buffer does not exist.
 
-/**
- * The line in the email body. Deliberately plain: the day pass email is a
- * letter and the room receipt is a styled receipt, and this sits in both,
- * inheriting each one's font rather than fighting it.
- */
-export function calendarBlockHtml(googleUrl: string | null, dayCount = 1): string {
-  const google = googleUrl
-    ? `<a href="${googleUrl}" style="color:#4f9645;text-decoration:none;font-weight:600;">Google Calendar</a>, or the`
-    : 'The'
-  const what = dayCount > 1 ? `invite covering all ${dayCount} days is` : 'invite is'
-  return `
-      <p style="font-size:14px;color:#64748b;line-height:1.6;margin:0 0 24px;">
-        <strong style="color:#334155;">Add to your calendar:</strong>
-        ${google} ${what} attached for Apple Calendar and Outlook.
-      </p>`
-}
+// How this looks in the email is in lib/email.ts, with the rest of the
+// email presentation and the font the rest of the message uses.

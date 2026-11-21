@@ -3,8 +3,8 @@ import { getEmailCopy, getDoorCodes } from '@/lib/settings'
 import { fillTags, paragraphs, bulletLines, emphasise, DEFAULT_COPY } from '@/lib/emailCopy'
 import { ROOM_CANCEL_CUTOFF_LABEL } from '@/lib/roomCancel'
 import { DAY_PASS_LOCATIONS_BY_NAME, DayPassLocation } from './locations'
-import { buildIcs, googleCalendarUrl, calendarBlockHtml, type CalendarEvent } from './calendar'
-import { buildDayPassIcs, dayPassGoogleCalendarUrl } from './dayPassCalendar'
+import { buildIcs, googleCalendarUrl, type CalendarEvent } from './calendar'
+import { buildDayPassIcs, dayPassGoogleCalendarUrl, dayPassDayBounds } from './dayPassCalendar'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 
@@ -15,6 +15,50 @@ const resend = new Resend(process.env.RESEND_API_KEY)
  */
 function icsAttachment(filename: string, ics: string) {
   return { filename, content: Buffer.from(ics, 'utf8').toString('base64') }
+}
+
+/**
+ * The "add to your calendar" block: a little date tile beside the links.
+ *
+ * It was one long sentence and read as an afterthought (Caroline,
+ * 2026-11-21). The tile does double duty, showing the date it would add.
+ *
+ * Built out of nested tables with explicit fonts and background colours,
+ * which is the only layout email clients agree on. Outlook ignores
+ * border-radius, so it squares the corners off there and is otherwise
+ * identical. Nothing here is an image: an icon file would be blocked by
+ * every client that blocks remote images by default.
+ */
+function calendarBlockHtml(googleUrl: string | null, start: Date, dayCount = 1): string {
+  // Explicitly Pacific. Vercel runs UTC, and a late booking would otherwise
+  // show tomorrow's date on the tile.
+  const pacific = (opts: Intl.DateTimeFormatOptions) =>
+    new Intl.DateTimeFormat('en-US', { timeZone: 'America/Los_Angeles', ...opts }).format(start)
+  const month = pacific({ month: 'short' }).toUpperCase()
+  const day = pacific({ day: 'numeric' })
+
+  const second = dayCount > 1
+    ? `All ${dayCount} days are in the attached invite.`
+    : googleUrl
+      ? `<a href="${googleUrl}" style="color:#4f9645;text-decoration:none;font-weight:600;">Google Calendar</a>`
+        + `, or open the attached invite.`
+      : 'Open the attached invite.'
+
+  return `
+    <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 26px;border-collapse:collapse;">
+      <tr>
+        <td style="vertical-align:middle;padding:0 13px 0 0;">
+          <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="width:46px;border-collapse:separate;border:1px solid #e3e6e3;border-radius:8px;overflow:hidden;background:#ffffff;">
+            <tr><td align="center" style="background:#4f9645;color:#ffffff;font-family:${FONT};font-size:9.5px;font-weight:bold;letter-spacing:0.09em;padding:3px 0;line-height:1.3;">${month}</td></tr>
+            <tr><td align="center" style="color:#232823;font-family:${FONT};font-size:19px;font-weight:bold;padding:3px 0 5px;line-height:1.2;">${day}</td></tr>
+          </table>
+        </td>
+        <td style="vertical-align:middle;">
+          <div style="font-family:${FONT};font-size:14px;font-weight:600;color:#334155;padding-bottom:3px;">Add to your calendar</div>
+          <div style="font-family:${FONT};font-size:13px;color:#64748b;line-height:1.5;">${second}</div>
+        </td>
+      </tr>
+    </table>`
 }
 const FROM = process.env.RESEND_FROM_EMAIL ?? 'BizHaus <noreply@bizhaus.com>'
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
@@ -338,7 +382,7 @@ export async function sendExternalBookingReceipt(
       // The code comes from the locations table, so staff change it in
       // one place for both day passes and rooms.
       marinaRoomAccessBlock(details.location, (await getDoorCodes())[details.location] ?? '', await getEmailCopy()),
-      event ? calendarBlockHtml(googleCalendarUrl(event)) : ''),
+      event ? calendarBlockHtml(googleCalendarUrl(event), event.start) : ''),
     ...(event && {
       attachments: [icsAttachment(
         `bizhaus-${details.confirmationNumber}.ics`,
@@ -394,6 +438,8 @@ export async function sendDayPassConfirmation(
   const calendarBlock = calEvent
     ? calendarBlockHtml(
         dates.length === 1 ? dayPassGoogleCalendarUrl({ ...calEvent, date: dates[0] }) : null,
+        // The tile shows the first day; several days say so in the text.
+        dayPassDayBounds(dates[0]).start,
         dates.length,
       )
     : ''
