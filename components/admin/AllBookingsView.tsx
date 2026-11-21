@@ -12,6 +12,7 @@ import { CancelRowButton } from './CancelBookingDialog'
 
 type ExternalBooking = {
   id: string
+  confirmation_number: string | null
   external_name: string
   external_email: string
   external_phone: string
@@ -275,6 +276,11 @@ export default function AllBookingsView({ reservations: initialRes, externalBook
     const [search, setSearch] = useState('')
     const q = search.trim().toLowerCase()
     const allRows = q ? sourceRows.filter(b =>
+      // The confirmation number first: somebody reading it down the
+      // phone is the whole reason this search exists, and until now it
+      // matched nothing at all (Caroline, 2026-11-20).
+      b.confirmation_number?.toLowerCase().includes(q) ||
+      b.id?.toLowerCase().startsWith(q) ||
       b.external_name?.toLowerCase().includes(q) ||
       b.external_email?.toLowerCase().includes(q) ||
       b.company_name?.toLowerCase().includes(q) ||

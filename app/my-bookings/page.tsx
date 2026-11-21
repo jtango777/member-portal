@@ -214,7 +214,10 @@ export default async function DayPassAccountPage() {
         dateLabel: formatDate(new Date(b.start_time)),
         amount: '',
         hours: `${formatTime(new Date(b.start_time))} – ${formatTime(new Date(b.end_time))}`,
-        reference: b.id.slice(0, 8).toUpperCase(),
+        // The stored number, falling back to the id prefix for the
+        // handful of bookings taken before there was a column
+        // (Caroline, 2026-11-20).
+        reference: b.confirmation_number ?? b.id.slice(0, 8).toUpperCase(),
         status: b.status as UnifiedBooking['status'],
         address: loc?.address,
         // No door code on a room booking even at Marina: the code is the day

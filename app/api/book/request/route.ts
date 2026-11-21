@@ -185,10 +185,16 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Something went wrong creating your reservation, so we refunded that charge. Please try again.' }, { status: 500 })
   }
 
+  // Generated here, not derived from the row's id, so it is a real stored
+  // value staff can search for when somebody rings up quoting it
+  // (Caroline, 2026-11-20). Same shape as a day pass number.
+  const confirmationNumber = crypto.randomUUID().slice(0, 8).toUpperCase()
+
   // Create the external booking record
   const { data: booking, error: bookingError } = await admin
     .from('external_bookings')
     .insert({
+      confirmation_number: confirmationNumber,
       room_id,
       reservation_id:  reservation.id,
       customer_id,
@@ -251,7 +257,6 @@ export async function POST(request: Request) {
   const loc = room.location as { name: string; qb_room_item?: string } | { name: string; qb_room_item?: string }[] | null
   const locationName = Array.isArray(loc) ? loc[0]?.name ?? '' : loc?.name ?? ''
   const roomItemName = (Array.isArray(loc) ? loc[0]?.qb_room_item : loc?.qb_room_item) ?? 'Event / Conference Rm Fee'
-  const confirmationNumber = booking.id.slice(0, 8).toUpperCase()
 
   // Create the QuickBooks sales receipt right here, not in the Stripe
   // webhook — the webhook fires the instant Stripe confirms payment, often
