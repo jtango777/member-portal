@@ -1,6 +1,7 @@
 import { Resend } from 'resend'
 import { getEmailCopy, getDoorCodes } from '@/lib/settings'
 import { fillTags, paragraphs, bulletLines, emphasise, DEFAULT_COPY } from '@/lib/emailCopy'
+import { ROOM_CANCEL_CUTOFF_LABEL } from '@/lib/roomCancel'
 import { DAY_PASS_LOCATIONS_BY_NAME, DayPassLocation } from './locations'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
@@ -644,7 +645,7 @@ export async function sendDayPassCancellationEmail(
 // for whatever date they rebook.
 /** The room cancellation body, exported so the admin preview renders it. */
 export function roomCancellationHtml(
-  details: { guestName: string; room: string; location: string; when: string; amount: string; credited: boolean },
+  details: { guestName: string; room: string; location: string; when: string; amount: string; credited: boolean; confirmationNumber?: string },
   copy: Record<string, string> = DEFAULT_COPY,
 ): string {
   const firstName = details.guestName.trim().split(/\s+/)[0] || details.guestName
@@ -654,7 +655,7 @@ export function roomCancellationHtml(
         We've cancelled your booking of <strong>${details.room}</strong> at our <strong>${details.location}</strong> location on ${details.when}.
         ${emphasise(fillTags(
           details.credited ? copy['room_cancellation.credited_note'] : copy['room_cancellation.refunded_note'],
-          { amount: details.amount },
+          { amount: details.amount, confirmation: details.confirmationNumber ?? '' },
         ))}
       </p>
       <p style="font-family:${FONT};font-size:15px;color:#3a3f3a;line-height:1.7;margin:24px 0 0;">
@@ -668,7 +669,7 @@ export function roomCancellationHtml(
 // chosen to make an exception.
 export async function sendRoomBookingCancellationEmail(
   to: string,
-  details: { guestName: string; room: string; location: string; when: string; amount: string; credited: boolean }
+  details: { guestName: string; room: string; location: string; when: string; amount: string; credited: boolean; confirmationNumber?: string }
 ) {
   const { error } = await resend.emails.send({
     from: FROM,
@@ -700,6 +701,43 @@ export async function sendCancellationEmail(
     `),
   })
   if (error) console.error('[email] Resend error sending cancellation email:', error)
+}
+
+/**
+ * Staff copy of a customer cancelling their own room booking.
+ *
+ * A cancellation is the moment somebody needs to know a room has come
+ * free, and it is also the only warning that a credit now exists which
+ * will be redeemed by telephone against this number
+ * (Caroline, 2026-11-20).
+ */
+export async function sendRoomCancellationStaffNotification(details: {
+  guestName: string; guestEmail: string; room: string; location: string
+  when: string; amount: string; confirmationNumber: string
+}) {
+  const recipients = STAFF_EMAIL.split(',').map(a => a.trim()).filter(Boolean)
+  const { error } = await resend.emails.send({
+    from: FROM,
+    to: recipients,
+    subject: `Room booking cancelled: ${details.room} ${details.when} (${details.location})`,
+    html: emailWrapper(`
+      <h2 style="color:#0f172a;margin:0 0 8px;font-size:22px;font-weight:700;">Room booking cancelled</h2>
+      <p style="color:#475569;line-height:1.6;margin:0 0 20px;">
+        Cancelled by the customer before the ${ROOM_CANCEL_CUTOFF_LABEL} cutoff, so the room is back on sale.
+        No money has moved: <strong>${details.amount}</strong> stays with us as credit, to be claimed by phone or email
+        against cancellation code <strong>${details.confirmationNumber}</strong>.
+      </p>
+      <table style="border-collapse:collapse;width:100%;margin-bottom:24px;background:#f8fafc;border-radius:7px;overflow:hidden;">
+        <tr><td style="padding:10px 14px;color:#64748b;font-size:13px;width:120px;">Guest</td><td style="padding:10px 14px;font-weight:600;color:#0f172a;">${details.guestName}</td></tr>
+        <tr style="border-top:1px solid #e2e8f0;"><td style="padding:10px 14px;color:#64748b;font-size:13px;">Email</td><td style="padding:10px 14px;color:#1e293b;">${details.guestEmail}</td></tr>
+        <tr style="border-top:1px solid #e2e8f0;"><td style="padding:10px 14px;color:#64748b;font-size:13px;">Room</td><td style="padding:10px 14px;color:#1e293b;">${details.room} — ${details.location}</td></tr>
+        <tr style="border-top:1px solid #e2e8f0;"><td style="padding:10px 14px;color:#64748b;font-size:13px;">Was booked for</td><td style="padding:10px 14px;color:#1e293b;">${details.when}</td></tr>
+        <tr style="border-top:1px solid #e2e8f0;"><td style="padding:10px 14px;color:#64748b;font-size:13px;">Cancellation code</td><td style="padding:10px 14px;color:#1e293b;">${details.confirmationNumber}</td></tr>
+        <tr style="border-top:1px solid #e2e8f0;"><td style="padding:10px 14px;color:#64748b;font-size:13px;">Credit held</td><td style="padding:10px 14px;font-weight:700;color:#0f172a;">${details.amount}</td></tr>
+      </table>
+    `),
+  })
+  if (error) console.error('[email] Resend error sending room cancellation staff notification:', error)
 }
 
 export async function sendRoomAccessGrantedEmail(to: string, name: string) {

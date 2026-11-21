@@ -7,6 +7,8 @@ import { isDayPassCancellable } from '@/lib/dayPass'
 import { DAY_PASS_LOCATIONS_BY_NAME, directionsUrl } from '@/lib/locations'
 import SignOutButton from '@/components/day-pass/SignOutButton'
 import CancelDayPassButton from '@/components/day-pass/CancelDayPassButton'
+import CancelRoomBookingButton from '@/components/book/CancelRoomBookingButton'
+import { isRoomBookingCancellable } from '@/lib/roomCancel'
 import AddToCalendarLinks from '@/components/day-pass/AddToCalendarLinks'
 import { getOrLinkBookingCustomer } from '@/lib/bookingAccounts'
 
@@ -63,6 +65,8 @@ type UnifiedBooking = {
   // never are (Caroline, 2026-08-31). Present only for day-pass entries
   // that are still before their 9pm-night-before cancellation cutoff.
   cancellableConfirmationNumber?: string
+  /** Room bookings only: still before the 9 PM cutoff. */
+  cancellableRoomConfirmation?: string
   // Every booking lists its own day rows — one for a single day, several
   // for a multi-day pass. Both the per-day cancel and the whole-booking
   // cancel route through CancelDayPassButton.
@@ -218,6 +222,15 @@ export default async function DayPassAccountPage() {
         // handful of bookings taken before there was a column
         // (Caroline, 2026-11-20).
         reference: b.confirmation_number ?? b.id.slice(0, 8).toUpperCase(),
+        // Rooms can be cancelled by the customer up to 9 PM the night
+        // before, the same cutoff day passes use. What comes back is
+        // credit, which is not shown anywhere on this page and cannot be
+        // spent online: the email is the only record of it
+        // (Caroline, 2026-11-20).
+        cancellableRoomConfirmation:
+          b.status === 'confirmed' && b.confirmation_number && isRoomBookingCancellable(b.start_time)
+            ? b.confirmation_number
+            : undefined,
         status: b.status as UnifiedBooking['status'],
         address: loc?.address,
         // No door code on a room booking even at Marina: the code is the day
@@ -462,6 +475,14 @@ function BookingCard({ b, isPast }: { b: UnifiedBooking; isPast: boolean }) {
         <span className="text-xs text-gray-400 tracking-wide font-mono truncate">
           {b.reference ? `#${b.reference}` : ''}
         </span>
+        {b.cancellableRoomConfirmation && (
+          <CancelRoomBookingButton
+            confirmationNumber={b.cancellableRoomConfirmation}
+            label="Cancel booking"
+            className={CANCEL_BUTTON}
+            wrapperClassName="h-9 flex-shrink-0"
+          />
+        )}
         {b.cancellableConfirmationNumber && (
           <CancelDayPassButton
             confirmationNumber={b.cancellableConfirmationNumber}

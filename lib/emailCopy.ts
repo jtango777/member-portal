@@ -229,9 +229,14 @@ export const EMAIL_TEMPLATES: CopyTemplate[] = [
         key: 'room_cancellation.credited_note',
         label: 'Note when the money is held as credit',
         onlyIn: 'credited',
-        hint: 'Tags: {amount}',
+        // The credit is not a balance anywhere and cannot be spent online,
+        // so this sentence is the only record of it. It has to name the
+        // amount and the number they will be asked for on the phone
+        // (Caroline, 2026-11-20).
+        hint: 'Tags: {amount}, {confirmation}. This is the only place the credit is written down, so keep both.',
         multiline: true,
-        default: "We're holding **{amount}** toward a future booking. Just reply to this email when you know the day and time you'd like instead.",
+        rows: 4,
+        default: "We're holding **{amount}** as credit toward a future booking. Your cancellation code is **{confirmation}**. Whenever you're ready to use it, call or email us with that code and we'll put it toward your new date. Credit can't be applied online.",
       },
     ],
   },
