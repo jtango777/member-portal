@@ -604,11 +604,16 @@ export function dayPassCancellationEmailHtml(details: { guestName: string; locat
       </tr>
     </table>
 
-    <p style="font-family:${FONT};font-size:15px;color:#3a3f3a;line-height:1.7;margin:0 0 18px;">
-      ${credited
-        ? emphasise(copy['day_pass_cancellation.credited_note'])
-        : emphasise(copy['day_pass_cancellation.refunded_note'])}
-    </p>
+    ${(() => {
+      // No paragraph at all when the note is blank, rather than an empty
+      // one leaving a gap (Caroline, 2026-11-20).
+      const note = credited
+        ? copy['day_pass_cancellation.credited_note']
+        : copy['day_pass_cancellation.refunded_note']
+      return note?.trim()
+        ? `<p style="font-family:${FONT};font-size:15px;color:#3a3f3a;line-height:1.7;margin:0 0 18px;">${emphasise(note)}</p>`
+        : ''
+    })()}
     <p style="font-family:${FONT};font-size:15px;color:#3a3f3a;line-height:1.7;margin:0 0 6px;">
       ${credited
         ? emphasise(copy['day_pass_cancellation.signoff']).replace(/you can book another day pass\.?$/i, "we'll see you another day.")

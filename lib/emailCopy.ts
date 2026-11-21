@@ -126,8 +126,14 @@ export const EMAIL_TEMPLATES: CopyTemplate[] = [
         key: 'day_pass_cancellation.refunded_note',
         label: 'Note when the money is refunded',
         onlyIn: 'refunded',
+        hint: 'Optional. Left empty, the email simply does not have this line.',
         multiline: true,
-        default: 'Refunds usually show up on your statement within 5 to 10 business days, depending on your bank.',
+        // Empty on purpose. It used to promise "5 to 10 business days,
+        // depending on your bank", which is not true of how these
+        // refunds actually land, and clearing the box in the admin only
+        // restored the default, so the sentence had to go from here
+        // (Caroline, 2026-11-20).
+        default: '',
       },
       {
         key: 'day_pass_cancellation.credited_note',
