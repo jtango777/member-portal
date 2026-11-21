@@ -27,7 +27,9 @@ async function assertAdmin() {
 
 export async function GET() {
   if (!await assertAdmin()) return NextResponse.json({ error: 'Admins only' }, { status: 403 })
-  return NextResponse.json({ copy: await getEmailCopy(), defaults: DEFAULT_COPY })
+  // Straight from the database: staff should never be shown a stale
+  // version of their own edit (Caroline, 2026-11-20).
+  return NextResponse.json({ copy: await getEmailCopy({ fresh: true }), defaults: DEFAULT_COPY })
 }
 
 export async function POST(request: Request) {

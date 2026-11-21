@@ -58,8 +58,19 @@ export async function getDoorCodes(): Promise<Record<string, string>> {
  * staff have not overridden. A blank override counts as not set, so clearing
  * a box in the admin screen restores the default.
  */
-export async function getEmailCopy(): Promise<Record<string, string>> {
-  if (copyCache && Date.now() - copyCache.at < CACHE_MS) return copyCache.copy
+export async function getEmailCopy({ fresh = false } = {}): Promise<Record<string, string>> {
+  // `fresh` skips the cache. The admin screen passes it, because the cache
+  // lives in one server instance's memory and Vercel runs several: saving
+  // clears it on whichever instance took the write, then the next read
+  // lands on a different one that still has the old wording and the save
+  // looks like it did not happen. It appears half a minute later when that
+  // instance's cache expires, which is exactly what Caroline saw
+  // (Caroline, 2026-11-20).
+  //
+  // Only the admin pays for the extra read. Sending still goes through the
+  // cache, so a change can take up to CACHE_MS to reach an email, which is
+  // the trade that cache was always making.
+  if (!fresh && copyCache && Date.now() - copyCache.at < CACHE_MS) return copyCache.copy
 
   const { data, error } = await createAdminClient()
     .from('app_settings')
