@@ -3,8 +3,19 @@ import { getEmailCopy, getDoorCodes } from '@/lib/settings'
 import { fillTags, paragraphs, bulletLines, emphasise, DEFAULT_COPY } from '@/lib/emailCopy'
 import { ROOM_CANCEL_CUTOFF_LABEL } from '@/lib/roomCancel'
 import { DAY_PASS_LOCATIONS_BY_NAME, DayPassLocation } from './locations'
+import { buildIcs, googleCalendarUrl, calendarBlockHtml, type CalendarEvent } from './calendar'
+import { buildDayPassIcs, dayPassGoogleCalendarUrl } from './dayPassCalendar'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
+
+/**
+ * An .ics as a Resend attachment. Lives here rather than in lib/calendar
+ * because Buffer is Node-only and that file is also bundled for the
+ * browser by the day pass page (2026-11-21).
+ */
+function icsAttachment(filename: string, ics: string) {
+  return { filename, content: Buffer.from(ics, 'utf8').toString('base64') }
+}
 const FROM = process.env.RESEND_FROM_EMAIL ?? 'BizHaus <noreply@bizhaus.com>'
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
 // Customer-facing links (day pass, /book, My Bookings) live on the booking
@@ -223,6 +234,7 @@ export function roomReceiptHtml(
   cardLine: string,
   copy: Record<string, string> = DEFAULT_COPY,
   accessBlock = '',
+  calendarBlock = '',
 ): string {
   return bookingEmailWrapper(`
       <h2 style="color:#0f172a;margin:0 0 4px;font-size:22px;font-weight:700;">Booking Confirmed ✓</h2>
@@ -251,7 +263,7 @@ export function roomReceiptHtml(
           <td style="padding:10px 14px;color:#1e293b;">${details.time}</td>
         </tr>
       </table>
-
+${calendarBlock}
       <h3 style="color:#0f172a;margin:0 0 12px;font-size:15px;font-weight:700;">Payment Receipt</h3>
       <table style="border-collapse:collapse;width:100%;margin-bottom:24px;background:#f8fafc;border-radius:7px;overflow:hidden;">
         <tr>
@@ -292,11 +304,31 @@ export async function sendExternalBookingReceipt(
     cardLast4: string | null
     cardBrand: string | null
     paymentDate: string
+    /**
+     * The real start and end, as UTC instants. Separate from the `date` and
+     * `time` strings above, which are already formatted for reading and
+     * cannot be turned back into a timestamp (Joe's list, 2026-11-21).
+     */
+    startTime?: Date
+    endTime?: Date
   }
 ) {
   const cardLine = details.cardLast4
     ? `${(details.cardBrand ?? 'Card').charAt(0).toUpperCase() + (details.cardBrand ?? 'card').slice(1)} ending in ${details.cardLast4}`
     : 'Card on file'
+
+  // No times, no calendar entry. The booking still confirms: an older
+  // caller that does not pass them should not lose its receipt.
+  const event: CalendarEvent | null = details.startTime && details.endTime
+    ? {
+        uid: `room-${details.confirmationNumber}@bizhaus.com`,
+        title: `${details.room} at BizHaus ${details.location}`,
+        start: details.startTime,
+        end: details.endTime,
+        location: DAY_PASS_LOCATIONS_BY_NAME[details.location]?.address ?? details.location,
+        details: `Confirmation #${details.confirmationNumber}`,
+      }
+    : null
 
   const { error } = await resend.emails.send({
     from: FROM,
@@ -305,7 +337,14 @@ export async function sendExternalBookingReceipt(
     html: roomReceiptHtml(details, cardLine, await getEmailCopy(),
       // The code comes from the locations table, so staff change it in
       // one place for both day passes and rooms.
-      marinaRoomAccessBlock(details.location, (await getDoorCodes())[details.location] ?? '', await getEmailCopy())),
+      marinaRoomAccessBlock(details.location, (await getDoorCodes())[details.location] ?? '', await getEmailCopy()),
+      event ? calendarBlockHtml(googleCalendarUrl(event)) : ''),
+    ...(event && {
+      attachments: [icsAttachment(
+        `bizhaus-${details.confirmationNumber}.ics`,
+        buildIcs([event], '-//BizHaus//Meeting Rooms//EN'),
+      )],
+    }),
   })
   if (error) console.error('[email] Resend error sending external booking receipt:', error)
 }
@@ -326,6 +365,12 @@ export async function sendDayPassConfirmation(
     cardLast4: string | null
     cardBrand: string | null
     paymentDate: string
+    /**
+     * The booked days as plain ISO dates, in order. The `date` field above
+     * is already a sentence ("3 days: Wed, Nov 25, ...") and cannot be read
+     * back as dates (Joe's list, 2026-11-21).
+     */
+    dates?: string[]
   }
 ) {
   const firstName = details.guestName.trim().split(/\s+/)[0] || details.guestName
@@ -335,15 +380,39 @@ export async function sendDayPassConfirmation(
   // The code comes from the database, so staff can change it themselves.
   const doorCode = (await getDoorCodes())[details.location] ?? loc?.doorCode ?? ''
 
+  // The same two options My Bookings has offered since September. Google's
+  // template URL carries one event only, so several days get the .ics
+  // alone, which holds every day in one file.
+  //
+  // Handed into the letter rather than appended to it: this is a letter,
+  // and appending put "Add to your calendar" below "See you soon, The
+  // BizHaus Team" (2026-11-21).
+  const dates = details.dates ?? []
+  const calEvent = dates.length && loc
+    ? { locationName: loc.name, address: loc.address, confirmationNumber: details.confirmationNumber }
+    : null
+  const calendarBlock = calEvent
+    ? calendarBlockHtml(
+        dates.length === 1 ? dayPassGoogleCalendarUrl({ ...calEvent, date: dates[0] }) : null,
+        dates.length,
+      )
+    : ''
+
   const html = loc?.isMarina
-    ? marinaConfirmationEmail(firstName, details, loc, copy, doorCode)
-    : standardConfirmationEmail(firstName, details, loc, copy, tags)
+    ? marinaConfirmationEmail(firstName, details, loc, copy, doorCode, calendarBlock)
+    : standardConfirmationEmail(firstName, details, loc, copy, tags, calendarBlock)
 
   const { data, error } = await resend.emails.send({
     from: FROM,
     to,
     subject: fillTags(copy['day_pass_confirmation.subject'], tags),
     html: letterEmailWrapper(html),
+    ...(calEvent && {
+      attachments: [icsAttachment(
+        `bizhaus-day-pass-${details.confirmationNumber}.ics`,
+        buildDayPassIcs({ ...calEvent, dates }),
+      )],
+    }),
   })
   if (error) {
     console.error('[email] Resend error sending day pass confirmation:', error)
@@ -356,7 +425,8 @@ export function standardConfirmationEmail(
   details: { confirmationNumber: string; location: string; date: string; amountPaid: string },
   loc: DayPassLocation | undefined,
   copy: Record<string, string>,
-  tags: Record<string, string>
+  tags: Record<string, string>,
+  calendarBlock = '',
 ) {
   return `
     <p style="font-family:${FONT};font-size:15px;color:#3a3f3a;line-height:1.7;margin:0 0 22px;">Hi ${firstName},</p>
@@ -383,6 +453,7 @@ export function standardConfirmationEmail(
       </tr>
     </table>
 
+${calendarBlock}
     <p style="font-family:${FONT};font-size:15px;color:#3a3f3a;line-height:1.7;margin:0 0 6px;">
       Reply to this email if you have any questions${loc ? `, or give us a call at ${loc.phone}` : ''}.
     </p>
@@ -400,7 +471,8 @@ export function marinaConfirmationEmail(
   details: { confirmationNumber: string; date: string },
   loc: DayPassLocation,
   copy: Record<string, string> = DEFAULT_COPY,
-  doorCode?: string
+  doorCode?: string,
+  calendarBlock = '',
 ) {
   // The code comes from the locations table when one is passed in; the value
   // in lib/locations is only the fallback for a preview or a failed read.
@@ -441,6 +513,7 @@ export function marinaConfirmationEmail(
       <tr><td style="padding:12px 16px;color:#8b948d;font-size:12.5px;">Date</td><td style="padding:12px 16px;color:#232823;font-size:13px;text-align:right;">${details.date}</td></tr>
     </table>
 
+${calendarBlock}
     <p style="font-family:${FONT};font-size:15px;color:#3a3f3a;line-height:1.7;margin:0 0 6px;">
       Reply to this email if you have any questions, or give us a call.
     </p>

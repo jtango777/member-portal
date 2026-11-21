@@ -242,6 +242,9 @@ export async function POST(request: Request) {
       confirmationNumber,
       location: location.name,
       date: dateLabel,
+      // The raw days as well as the sentence, so the email can attach a
+      // calendar invite for them.
+      dates: sortedDates,
       guestName: guest_name.trim(),
       amountPaid: `$${(pi.amount / 100).toFixed(2)}`,
       cardLast4,

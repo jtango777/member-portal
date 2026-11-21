@@ -317,6 +317,10 @@ export async function POST(request: Request) {
       location: locationName,
       date: formattedDate,
       time: `${startLabel} – ${endLabel}`,
+      // The real instants as well as the labels, so the email can attach a
+      // calendar invite for the booking.
+      startTime,
+      endTime,
       guestName: name.trim(),
       amountPaid,
       cardLast4,
