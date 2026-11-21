@@ -147,8 +147,8 @@ export const EMAIL_TEMPLATES: CopyTemplate[] = [
   {
     id: 'room_receipt',
     product: 'rooms',
-    name: 'Room booking receipt',
-    description: 'Sent to the customer after a conference room booking is paid for.',
+    name: 'Room booking receipt — El Segundo & Costa Mesa',
+    description: 'Sent to the customer after a conference room booking is paid for. Marina del Rey gets this same receipt with an arrival section added; see below.',
     fields: [
       {
         key: 'room_receipt.subject',
@@ -168,8 +168,8 @@ export const EMAIL_TEMPLATES: CopyTemplate[] = [
   {
     id: 'marina_room_access',
     product: 'rooms',
-    name: 'Room booking — Marina del Rey arrival',
-    description: 'Added to the Marina del Rey room confirmations only. Marina is a satellite space with nobody at the desk in the morning, so a room booking there needs the door code and the way in, exactly as a day pass does. Its own wording rather than the day pass one, because a conference room booking is not a day of coworking (Caroline, 2026-11-20).',
+    name: 'Room booking receipt — Marina del Rey',
+    description: 'Marina is a satellite space with nobody at the desk in the morning, so a room booking there needs the door code and the way in, exactly as a day pass does. The preview shows the whole email. Its subject and opening line are shared with the receipt above; the lines below are the part only Marina gets.',
     fields: [
       {
         key: 'marina_room_access.heading',
