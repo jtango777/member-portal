@@ -332,7 +332,7 @@ ${calendarBlock}
         <strong style="color:#64748b;">Cancellation policy:</strong> Bookings can be cancelled up to 9 PM the night before for full credit toward a future date. To cancel, contact us at
         <a href="mailto:bookings@bizhaus.com" style="color:#4f9645;text-decoration:none;">bookings@bizhaus.com</a>.
       </p>
-    `, 'Bookings')
+    `, 'Meeting Rooms')
 }
 
 export async function sendExternalBookingReceipt(
@@ -605,7 +605,7 @@ export async function sendExternalBookingStaffNotification(
         </tr>
       </table>
       <a href="${APP_URL}/dashboard/admin/reservations" style="display:inline-block;background:#6ec664;color:white;padding:13px 28px;border-radius:7px;text-decoration:none;font-weight:600;font-size:15px;">View Bookings →</a>
-    `, 'Bookings'),
+    `, 'Meeting Rooms'),
   })
   if (error) console.error('[email] Resend error sending external booking staff notification:', error)
 }
