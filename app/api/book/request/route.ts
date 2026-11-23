@@ -54,10 +54,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Missing required fields.' }, { status: 400 })
   }
 
-  // Confirm the account is real before trusting anything else in the body.
-  const { data: customer } = await admin.from('booking_customers').select('id').eq('id', customer_id).single()
-  if (!customer) return NextResponse.json({ error: 'Account not found.' }, { status: 404 })
-
   /**
    * Proof of who is booking, which replaced a second "I'm not a robot"
    * check here (Caroline, 2026-11-23).
@@ -77,6 +73,11 @@ export async function POST(request: Request) {
   if (!user || user.id !== customer_id) {
     return NextResponse.json({ error: 'Please sign in again and retry your booking.' }, { status: 401 })
   }
+
+  // Confirm the account is real before trusting anything else in the body.
+  const { data: customer } = await admin.from('booking_customers').select('id').eq('id', customer_id).single()
+  if (!customer) return NextResponse.json({ error: 'Account not found.' }, { status: 404 })
+
 
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     return NextResponse.json({ error: 'Invalid email address.' }, { status: 400 })
