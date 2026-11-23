@@ -773,20 +773,30 @@ export function roomCancellationHtml(
   copy: Record<string, string> = DEFAULT_COPY,
 ): string {
   const firstName = details.guestName.trim().split(/\s+/)[0] || details.guestName
+  // Both optional in the sense that an emptied box leaves them out rather
+  // than printing nothing where a sentence should be (Caroline, 2026-11-23).
+  const closing = (copy['room_cancellation.closing'] ?? '').trim()
+  const signoff = (copy['room_cancellation.signoff'] ?? '').trim()
   return letterEmailWrapper(`
       <p style="font-family:${FONT};font-size:15px;color:#3a3f3a;line-height:1.7;margin:0 0 22px;">Hi ${firstName},</p>
-      <p style="font-family:${FONT};font-size:15px;color:#3a3f3a;line-height:1.7;margin:0 0 28px;">
+      <p style="font-family:${FONT};font-size:15px;color:#3a3f3a;line-height:1.7;margin:0 0 22px;">
         ${emphasise(fillTags(copy['room_cancellation.opening'], {
           room: details.room, location: details.location, when: details.when,
         }))}
+      </p>
+      <p style="font-family:${FONT};font-size:15px;color:#3a3f3a;line-height:1.7;margin:0 0 22px;">
         ${emphasise(fillTags(
           // Always the credit wording: a cancelled room is never refunded.
           copy['room_cancellation.credited_note'],
           { amount: details.amount, confirmation: details.confirmationNumber ?? '' },
         ))}
       </p>
+      ${closing ? `
+      <p style="font-family:${FONT};font-size:15px;color:#3a3f3a;line-height:1.7;margin:0 0 22px;">
+        ${emphasise(closing)}
+      </p>` : ''}
       <p style="font-family:${FONT};font-size:15px;color:#3a3f3a;line-height:1.7;margin:24px 0 0;">
-        Thanks,<br/>The BizHaus Team
+        ${emphasise(signoff).split('\n').join('<br/>')}
       </p>
   `)
 }

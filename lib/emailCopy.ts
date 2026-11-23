@@ -234,7 +234,7 @@ export const EMAIL_TEMPLATES: CopyTemplate[] = [
         hint: 'Tags: {room}, {location}, {when}',
         multiline: true,
         rows: 3,
-        default: "We've cancelled your booking of **{room}** at our **{location}** location on {when}.",
+        default: 'Your **{room}** at **{location}** on {when} is cancelled.',
       },
       {
         key: 'room_cancellation.credited_note',
@@ -246,7 +246,27 @@ export const EMAIL_TEMPLATES: CopyTemplate[] = [
         hint: 'Tags: {amount}, {confirmation}. This is the only place the credit is written down, so keep both.',
         multiline: true,
         rows: 4,
-        default: "We're holding **{amount}** as credit toward a future booking. Your cancellation code is **{confirmation}**. Whenever you're ready to use it, call or email us with that code and we'll put it toward your new date. Credit can't be applied online.",
+        default: "We'll hold a credit for you for **{amount}**. When you know your new date, just call or email us with your cancellation code, **{confirmation}**, and we'll put it toward that booking. Credits can only be applied by calling or emailing us directly.",
+      },
+      {
+        key: 'room_cancellation.closing',
+        label: 'Closing line',
+        // The day pass cancellation has had one of these since launch
+        // ("Plans change, we get it"). The room one read as paperwork
+        // because it had nowhere to say anything human (Caroline,
+        // 2026-11-23). Empty by default: it only appears once written.
+        hint: 'Optional. Leave empty and it is left out entirely.',
+        multiline: true,
+        rows: 3,
+        default: '',
+      },
+      {
+        key: 'room_cancellation.signoff',
+        label: 'Sign-off',
+        hint: 'Each line appears on its own line.',
+        multiline: true,
+        rows: 2,
+        default: 'See you next time,\nThe BizHaus Team',
       },
     ],
   },
