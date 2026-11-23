@@ -70,6 +70,8 @@ function CheckoutForm({
   // in the way.
   const [acctRecaptchaToken, setAcctRecaptchaToken] = useState<string | null>(null)
   const acctRecaptchaRef = useRef<RecaptchaHandle>(null)
+  // The box itself, so an expired check can be scrolled back into view.
+  const acctRecaptchaBox = useRef<HTMLDivElement>(null)
   // Logging in happens in a dialog over the page, same as day pass — being
   // sent to /my-bookings/login mid-checkout means losing the room and time
   // you picked (Caroline, 2026-09-17).
@@ -105,8 +107,20 @@ function CheckoutForm({
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!stripe || !elements) return
-    if (!existingCustomer && !acctRecaptchaToken) { setError('Please complete the "I\'m not a robot" check.'); return }
-    if (!recaptchaToken) { setError('Please complete the "I\'m not a robot" check.'); return }
+    if (!existingCustomer && password.length < 8) {
+      setError('Your password needs to be at least 8 characters.')
+      return
+    }
+    // Google expires a ticked box after about two minutes, and filling in a
+    // card takes longer than that. The box quietly unticks itself, so say
+    // which one and take them to it rather than leaving them to hunt
+    // (Chris, testing, 2026-11-23).
+    if (!existingCustomer && !acctRecaptchaToken) {
+      setError('The "I\'m not a robot" check in your account details expired. Please tick it again.')
+      acctRecaptchaBox.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      return
+    }
+    if (!recaptchaToken) { setError('Please tick the "I\'m not a robot" check below.'); return }
 
     setLoading(true)
     setError(null)
@@ -324,7 +338,9 @@ function CheckoutForm({
               </div>
               <p className="text-xs text-gray-400 mt-1.5">Must be at least 8 characters.</p>
             </div>
-            <Recaptcha ref={acctRecaptchaRef} onChange={setAcctRecaptchaToken} />
+            <div ref={acctRecaptchaBox}>
+              <Recaptcha ref={acctRecaptchaRef} onChange={setAcctRecaptchaToken} />
+            </div>
             <p className="text-xs text-gray-400 leading-relaxed">
               By continuing, I agree to the <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-booking-600 hover:text-booking-700">Website Terms of Service</a> and the <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-booking-600 hover:text-booking-700">Privacy Policy</a>.
             </p>
@@ -357,12 +373,17 @@ function CheckoutForm({
         <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-4 py-3">{error}</p>
       )}
 
+      {/* Only the states the customer cannot do anything about disable this.
+          An unticked or expired robot check used to disable it too, which
+          made the button dead with nothing on screen saying why: the checks
+          for that in handleSubmit could never run, because you could not
+          click the thing that runs them (Chris, testing, 2026-11-23). */}
       <button
         type="submit"
-        disabled={loading || !stripe || !recaptchaToken || (!existingCustomer && (password.length < 8 || !acctRecaptchaToken))}
+        disabled={loading || !stripe}
         className={cn(
           'w-full py-3.5 rounded-lg text-sm font-semibold transition-colors',
-          loading || !stripe || !recaptchaToken || (!existingCustomer && (password.length < 8 || !acctRecaptchaToken))
+          loading || !stripe
             ? 'bg-booking-300 text-white cursor-not-allowed'
             : 'bg-booking-600 hover:bg-booking-700 text-white'
         )}
