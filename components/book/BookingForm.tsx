@@ -68,10 +68,12 @@ function CheckoutForm({
   // this (2026-08-31) — someone could hit /api/book/create-account
   // directly and mass-create accounts with nothing but the IP rate limit
   // in the way.
-  const [acctRecaptchaToken, setAcctRecaptchaToken] = useState<string | null>(null)
-  const acctRecaptchaRef = useRef<RecaptchaHandle>(null)
-  // The box itself, so an expired check can be scrolled back into view.
-  const acctRecaptchaBox = useRef<HTMLDivElement>(null)
+  // One "I'm not a robot" box, and only for someone making an account. A
+  // tick is good for a single use, which is why there used to be two: one
+  // for the account, one for the booking. The booking now proves who you
+  // are with your session instead, so one tick is enough and somebody
+  // already signed in needs none (Caroline, 2026-11-23).
+  const recaptchaBox = useRef<HTMLDivElement>(null)
   // Logging in happens in a dialog over the page, same as day pass — being
   // sent to /my-bookings/login mid-checkout means losing the room and time
   // you picked (Caroline, 2026-09-17).
@@ -111,16 +113,14 @@ function CheckoutForm({
       setError('Your password needs to be at least 8 characters.')
       return
     }
-    // Google expires a ticked box after about two minutes, and filling in a
-    // card takes longer than that. The box quietly unticks itself, so say
-    // which one and take them to it rather than leaving them to hunt
-    // (Chris, testing, 2026-11-23).
-    if (!existingCustomer && !acctRecaptchaToken) {
-      setError('The "I\'m not a robot" check in your account details expired. Please tick it again.')
-      acctRecaptchaBox.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    // Google expires a tick after about two minutes, so it can lapse while
+    // a card is being filled in. Say so and go to it rather than leaving
+    // someone to hunt for what is wrong (Chris, testing, 2026-11-23).
+    if (!existingCustomer && !recaptchaToken) {
+      setError('Please tick the "I\'m not a robot" check. It expires after a couple of minutes, so it may need doing again.')
+      recaptchaBox.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
       return
     }
-    if (!recaptchaToken) { setError('Please tick the "I\'m not a robot" check below.'); return }
 
     setLoading(true)
     setError(null)
@@ -144,12 +144,12 @@ function CheckoutForm({
       const accRes = await fetch('/api/book/create-account', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ first_name: firstName, last_name: lastName, email, password, phone, recaptcha_token: acctRecaptchaToken }),
+        body: JSON.stringify({ first_name: firstName, last_name: lastName, email, password, phone, recaptcha_token: recaptchaToken }),
       })
       const accData = await accRes.json()
       if (!accRes.ok) {
         setError(accData.error ?? 'Something went wrong creating your account.')
-        acctRecaptchaRef.current?.reset()
+        recaptchaRef.current?.reset()
         setLoading(false)
         return
       }
@@ -196,7 +196,6 @@ function CheckoutForm({
         company_name:       company.trim() || null,
         notes:              notes.trim() || null,
         stripe_payment_intent_id: paymentIntent.id,
-        recaptcha_token:    recaptchaToken,
       }),
     })
 
@@ -338,9 +337,6 @@ function CheckoutForm({
               </div>
               <p className="text-xs text-gray-400 mt-1.5">Must be at least 8 characters.</p>
             </div>
-            <div ref={acctRecaptchaBox}>
-              <Recaptcha ref={acctRecaptchaRef} onChange={setAcctRecaptchaToken} />
-            </div>
             <p className="text-xs text-gray-400 leading-relaxed">
               By continuing, I agree to the <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-booking-600 hover:text-booking-700">Website Terms of Service</a> and the <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-booking-600 hover:text-booking-700">Privacy Policy</a>.
             </p>
@@ -366,7 +362,11 @@ function CheckoutForm({
       </div>
 
       <div className="flex justify-center">
-        <Recaptcha ref={recaptchaRef} onChange={setRecaptchaToken} />
+        {!existingCustomer && (
+          <div ref={recaptchaBox}>
+            <Recaptcha ref={recaptchaRef} onChange={setRecaptchaToken} />
+          </div>
+        )}
       </div>
 
       {error && (

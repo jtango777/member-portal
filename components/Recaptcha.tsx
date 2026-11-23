@@ -10,7 +10,7 @@ declare global {
       render: (container: string | HTMLElement, params: Record<string, unknown>) => number
       reset: (widgetId?: number) => void
     }
-    onRecaptchaApiLoad?: () => void
+    // Deliberately no onRecaptchaApiLoad: see the render effect below.
   }
 }
 
@@ -54,23 +54,43 @@ const Recaptcha = forwardRef<RecaptchaHandle, Props>(function Recaptcha({ onChan
     if (recaptchaDisabled) onChangeRef.current(RECAPTCHA_DISABLED_TOKEN)
   }, [])
 
+  // Waits for Google's script by looking, rather than by being called back.
+  //
+  // This used to park its render function on window.onRecaptchaApiLoad, the
+  // single global the script's onload calls. That works for one box on a
+  // page and quietly fails for two: the second one to mount overwrites the
+  // first, the script calls the global once, and only the last box ever
+  // gets drawn. /book asks for two, so the one in the account details has
+  // never appeared, which left every new customer with a check they could
+  // not tick and a button that would not go (Caroline spotted the missing
+  // box, 2026-11-23).
+  //
+  // Polling has no shared state, so any number of boxes on a page each
+  // render themselves.
   useEffect(() => {
     if (recaptchaDisabled) return
-    function render() {
-      if (widgetId.current !== null) return
-      if (!window.grecaptcha || !document.getElementById(containerId)) return
-      widgetId.current = window.grecaptcha.render(containerId, {
-        sitekey: process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY,
-        callback: (token: string) => onChangeRef.current(token),
-        'expired-callback': () => onChangeRef.current(null),
-        'error-callback': () => onChangeRef.current(null),
-      })
+    let cancelled = false
+    let timer: ReturnType<typeof setTimeout> | null = null
+
+    function tryRender() {
+      if (cancelled || widgetId.current !== null) return
+      const el = document.getElementById(containerId)
+      // children.length guards against a double render into one container,
+      // which grecaptcha rejects outright.
+      if (window.grecaptcha?.render && el && el.children.length === 0) {
+        widgetId.current = window.grecaptcha.render(el, {
+          sitekey: process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY,
+          callback: (token: string) => onChangeRef.current(token),
+          'expired-callback': () => onChangeRef.current(null),
+          'error-callback': () => onChangeRef.current(null),
+        })
+        return
+      }
+      timer = setTimeout(tryRender, 150)
     }
 
-    if (window.grecaptcha) render()
-    else window.onRecaptchaApiLoad = render
-
-    return () => { window.onRecaptchaApiLoad = undefined }
+    tryRender()
+    return () => { cancelled = true; if (timer) clearTimeout(timer) }
   }, [containerId])
 
   if (recaptchaDisabled) {
@@ -85,7 +105,9 @@ const Recaptcha = forwardRef<RecaptchaHandle, Props>(function Recaptcha({ onChan
   return (
     <>
       <Script
-        src="https://www.google.com/recaptcha/api.js?onload=onRecaptchaApiLoad&render=explicit"
+        // No onload callback: each box watches for grecaptcha itself, so
+        // there is no single global for a second box to overwrite.
+        src="https://www.google.com/recaptcha/api.js?render=explicit"
         strategy="afterInteractive"
       />
       <div id={containerId} />

@@ -1,9 +1,8 @@
-import { createAdminClient } from '@/lib/supabase/server'
+import { createAdminClient, createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 import { getPacificDayBounds, formatReceiptDate } from '@/lib/utils'
 import { sendExternalBookingReceipt, sendExternalBookingStaffNotification, sendSystemAlert } from '@/lib/email'
 import { rateLimit } from '@/lib/rate-limit'
-import { verifyRecaptcha } from '@/lib/recaptcha'
 import { createSalesReceipt } from '@/lib/quickbooks'
 import { claimForReceipt, releaseReceiptClaim } from '@/lib/qbReceiptClaim'
 import { roomBookingError } from '@/lib/bookingRules'
@@ -49,7 +48,7 @@ export async function POST(request: Request) {
   const admin = createAdminClient()
   const body  = await request.json()
 
-  const { room_id, date, start, end, name, email, phone, company_name, notes, customer_id, stripe_payment_intent_id, recaptcha_token } = body
+  const { room_id, date, start, end, name, email, phone, company_name, notes, customer_id, stripe_payment_intent_id } = body
 
   if (!room_id || !date || !start || !end || !name || !email || !phone || !customer_id) {
     return NextResponse.json({ error: 'Missing required fields.' }, { status: 400 })
@@ -59,8 +58,24 @@ export async function POST(request: Request) {
   const { data: customer } = await admin.from('booking_customers').select('id').eq('id', customer_id).single()
   if (!customer) return NextResponse.json({ error: 'Account not found.' }, { status: 404 })
 
-  if (!(await verifyRecaptcha(recaptcha_token))) {
-    return NextResponse.json({ error: 'reCAPTCHA verification failed. Please try again.' }, { status: 400 })
+  /**
+   * Proof of who is booking, which replaced a second "I'm not a robot"
+   * check here (Caroline, 2026-11-23).
+   *
+   * The page used to carry two of those boxes, one for the account and one
+   * for this call, because a tick is good for a single use. It also meant
+   * this route took `customer_id` on trust: it checked such a customer
+   * existed, never that the sender was that customer. The box was doing
+   * the guarding, and badly.
+   *
+   * The session does it properly. booking_customers.id is the auth user's
+   * id (lib/bookingAccounts), so these must be the same person. New
+   * customers are signed in by the form right after their account is made,
+   * before this runs, so there is always a session by now.
+   */
+  const { data: { user } } = await (await createClient()).auth.getUser()
+  if (!user || user.id !== customer_id) {
+    return NextResponse.json({ error: 'Please sign in again and retry your booking.' }, { status: 401 })
   }
 
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
