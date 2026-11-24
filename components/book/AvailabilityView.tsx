@@ -979,13 +979,20 @@ export default function AvailabilityView({ location, rooms, closures }: { locati
                         </div>
                       </Collapse>
 
-                      {/* Estimated total. Not while the selection cannot
-                          be booked: pricing a day that is already taken
-                          reads as an offer. */}
+                      {/* The total. Not while the selection cannot be
+                          booked: pricing a day that is already taken reads
+                          as an offer.
+
+                          It said "Est." until somebody asked what the
+                          estimate was hedging against (Caroline,
+                          2026-11-24). Nothing: the hours times the rate is
+                          what checkout shows and what the server charges,
+                          to the cent. Calling it an estimate only made
+                          people wonder what else was coming. */}
                       <Collapse open={durationHours > 0 && !allDayBlocked} duration={220}>
                         <div className="flex items-center justify-between text-sm bg-gray-50 rounded-lg px-3 py-2">
                           <span className="text-gray-500">{durationHours}h · ${selectedRoom.price_per_hour}/hr</span>
-                          <span className="font-semibold text-gray-900">Est. {money(estimatedTotal)}</span>
+                          <span className="font-semibold text-gray-900">Total {money(estimatedTotal)}</span>
                         </div>
                       </Collapse>
                     </>
