@@ -366,7 +366,11 @@ export async function sendExternalBookingReceipt(
   const event: CalendarEvent | null = details.startTime && details.endTime
     ? {
         uid: `room-${details.confirmationNumber}@bizhaus.com`,
-        title: `${details.room} at BizHaus ${details.location}`,
+        // "Small conference room at BizHaus El Segundo". The room names on
+        // their own ("Small", "Medium +") say nothing once the event is
+        // sitting in somebody's calendar a fortnight later
+        // (Caroline, 2026-11-24).
+        title: `${details.room} conference room at BizHaus ${details.location}`,
         start: details.startTime,
         end: details.endTime,
         location: DAY_PASS_LOCATIONS_BY_NAME[details.location]?.address ?? details.location,
