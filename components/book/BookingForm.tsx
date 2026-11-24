@@ -45,8 +45,8 @@ function slotToMinutes(slot: string): number {
 function CheckoutForm({
   roomId, roomName, locationName, locationSlug,
   capacity, pricePerHour, date, start, end, startLabel, endLabel,
-  estimatedTotal, formattedDate, existingCustomer, setExistingCustomer, onSuccess,
-}: Props & { estimatedTotal: number; formattedDate: string; existingCustomer: ExistingCustomer | null; setExistingCustomer: (c: ExistingCustomer) => void; onSuccess: (email: string) => void }) {
+  estimatedTotal, formattedDate, existingCustomer, setExistingCustomer, accountKnown, onSuccess,
+}: Props & { estimatedTotal: number; formattedDate: string; existingCustomer: ExistingCustomer | null; setExistingCustomer: (c: ExistingCustomer) => void; accountKnown: boolean; onSuccess: (email: string) => void }) {
   const stripe   = useStripe()
   const elements = useElements()
 
@@ -119,6 +119,12 @@ function CheckoutForm({
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!stripe || !elements) return
+    // Belt and braces: the sign-up fields and the robot check are not on
+    // screen until this is known, so nothing should be demanded of them yet.
+    if (!accountKnown) {
+      setError('One moment, still checking whether you have an account.')
+      return
+    }
     if (!existingCustomer && password.length < 8) {
       setError('Your password needs to be at least 8 characters.')
       return
@@ -276,7 +282,7 @@ function CheckoutForm({
       <div className="space-y-5 bg-white rounded-xl ring-1 ring-gray-200/80 p-5 sm:p-6">
         <div className="flex items-baseline justify-between">
           <h2 className="font-semibold text-gray-900 text-lg">Your details</h2>
-          {!existingCustomer && (
+          {accountKnown && !existingCustomer && (
             <button type="button" onClick={() => { setShowLogin(true); setLoginError(null) }} className="text-sm text-gray-500">
               Have an account? <span className="font-semibold text-booking-600 hover:text-booking-700">Log in</span>
             </button>
@@ -291,7 +297,7 @@ function CheckoutForm({
         )}
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-          {!existingCustomer && (
+          {accountKnown && !existingCustomer && (
             <>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1.5">First name <span className="text-red-500">*</span></label>
@@ -338,7 +344,7 @@ function CheckoutForm({
             className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-booking-500 resize-none" />
         </div>
 
-        {!existingCustomer && (
+        {accountKnown && !existingCustomer && (
           <div className="border-t border-gray-100 pt-5 space-y-3">
             <div>
               <h3 className="font-semibold text-gray-900">Create a password</h3>
@@ -401,7 +407,7 @@ function CheckoutForm({
       </div>
 
       <div className="flex justify-center">
-        {!existingCustomer && (
+        {accountKnown && !existingCustomer && (
           <div ref={recaptchaBox}>
             <Recaptcha ref={recaptchaRef} onChange={setRecaptchaToken} />
           </div>
@@ -469,11 +475,21 @@ export default function BookingForm(props: Props) {
   // visitor is already signed in (e.g. came from day-pass, or booking
   // again), skip straight past account creation.
   // Also covers staff/member logins that don't have a booking account yet.
+  // Until this answers, the form does not know which it is dealing with.
+  // It used to assume "new customer" and correct itself a moment later,
+  // which flashed the sign-up fields and the robot check at somebody
+  // already signed in and then took them away again (a tester booked at
+  // Marina, came back for El Segundo, and found the box gone, 2026-11-24).
+  //
+  // `finally` rather than `then`: a failed request has to release the form
+  // too, or a network blip leaves a new customer with no way to sign up.
+  const [accountKnown, setAccountKnown] = useState(false)
   useEffect(() => {
     fetch('/api/day-pass/my-account')
       .then(res => res.json())
       .then(data => { if (data.customer) setExistingCustomer(data.customer) })
       .catch(() => {})
+      .finally(() => setAccountKnown(true))
   }, [])
 
   // ── Confirmation ────────────────────────────────────────────────────────
@@ -562,6 +578,7 @@ export default function BookingForm(props: Props) {
             estimatedTotal={estimatedTotal}
             formattedDate={formattedDate}
             existingCustomer={existingCustomer}
+            accountKnown={accountKnown}
             setExistingCustomer={setExistingCustomer}
             onSuccess={(email) => { setConfirmed(true); setConfirmedEmail(email) }}
           />
