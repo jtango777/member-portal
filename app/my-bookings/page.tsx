@@ -260,10 +260,21 @@ export default async function DayPassAccountPage() {
     return aUpcoming ? a.sortKey.localeCompare(b.sortKey) : b.sortKey.localeCompare(a.sortKey)
   })
 
-  // Anything still ahead and not cancelled is what people came here for;
-  // cancelled and finished bookings drop into Past.
+  // Anything still ahead and not cancelled is what people came here for.
+  //
+  // Cancelled bookings get their own section rather than being filed under
+  // Past, which read oddly for a cancelled booking whose date has not
+  // happened yet: "Past" above "Monday, November 30, 2026"
+  // (Caroline, 2026-11-24). Past means you had it; Cancelled means you
+  // did not.
   const upcoming = bookings.filter(b => b.sortKey >= todayPacific && b.status !== 'cancelled')
-  const past = bookings.filter(b => !(b.sortKey >= todayPacific && b.status !== 'cancelled'))
+  // Sorted on its own: the main sort puts future dates ascending and past
+  // ones descending, which mixes both orders inside this one list. Most
+  // recently dated first throughout.
+  const cancelled = bookings
+    .filter(b => b.status === 'cancelled')
+    .sort((a, b) => b.sortKey.localeCompare(a.sortKey))
+  const past = bookings.filter(b => b.sortKey < todayPacific && b.status !== 'cancelled')
 
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 py-10 sm:py-12">
@@ -332,7 +343,7 @@ export default async function DayPassAccountPage() {
         </div>
       )}
 
-      {([['Upcoming', upcoming], ['Past', past]] as const).map(([heading, list]) => list.length > 0 && (
+      {([['Upcoming', upcoming], ['Past', past], ['Cancelled', cancelled]] as const).map(([heading, list]) => list.length > 0 && (
         <div key={heading} className="mb-8 last:mb-0">
           <div className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">{heading}</div>
           {/* One card per booking. These used to share a single bordered
