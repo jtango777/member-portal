@@ -62,12 +62,22 @@ function CheckoutForm({
   const [error,   setError]   = useState<string | null>(null)
   const [recaptchaToken, setRecaptchaToken] = useState<string | null>(null)
   const recaptchaRef = useRef<RecaptchaHandle>(null)
-  // A separate widget for account creation, only shown for a new signup —
-  // a v2 token is single-use, so the same one can't also verify the
-  // booking request below. Account creation had no captcha at all before
-  // this (2026-08-31) — someone could hit /api/book/create-account
-  // directly and mass-create accounts with nothing but the IP rate limit
-  // in the way.
+
+  // Name on the card, asked for separately because the card is often not
+  // in the name of the person booking (Caroline, 2026-11-24). Same shape
+  // as Tucson's checkout.
+  //
+  // It follows the account name until somebody edits it, rather than being
+  // copied once: a new customer types their name a few fields above this,
+  // so a one-off copy at mount would only ever catch an empty string.
+  const [cardFirst, setCardFirst] = useState('')
+  const [cardLast,  setCardLast]  = useState('')
+  const [cardNameEdited, setCardNameEdited] = useState(false)
+  const accountFirst = existingCustomer ? existingCustomer.first_name : firstName
+  const accountLast  = existingCustomer ? existingCustomer.last_name  : lastName
+  const shownCardFirst = cardNameEdited ? cardFirst : accountFirst
+  const shownCardLast  = cardNameEdited ? cardLast  : accountLast
+  const cardName = `${shownCardFirst.trim()} ${shownCardLast.trim()}`.trim()
   // One "I'm not a robot" box, and only for someone making an account. A
   // tick is good for a single use, which is why there used to be two: one
   // for the account, one for the booking. The booking now proves who you
@@ -111,6 +121,10 @@ function CheckoutForm({
     if (!stripe || !elements) return
     if (!existingCustomer && password.length < 8) {
       setError('Your password needs to be at least 8 characters.')
+      return
+    }
+    if (!shownCardFirst.trim() || !shownCardLast.trim()) {
+      setError('Please give the first and last name on the card.')
       return
     }
     // Google expires a tick after about two minutes, so it can lapse while
@@ -168,6 +182,11 @@ function CheckoutForm({
     const { error: stripeError, paymentIntent } = await stripe.confirmPayment({
       elements,
       redirect: 'if_required',
+      // Stripe is told not to collect the name (see the PaymentElement
+      // options), so it has to be handed over here.
+      confirmParams: {
+        payment_method_data: { billing_details: { name: cardName } },
+      },
     })
 
     if (stripeError) {
@@ -347,8 +366,28 @@ function CheckoutForm({
       {/* Payment */}
       <div className="space-y-4">
         <h2 className="font-semibold text-gray-900 text-lg">Payment</h2>
-        <div className="bg-white ring-1 ring-gray-200/80 rounded-xl p-5">
-          <PaymentElement />
+        <div className="bg-white ring-1 ring-gray-200/80 rounded-xl p-5 space-y-4">
+          {/* Ours rather than Stripe's own name field, which it shows only
+              for some payment methods and cannot prefill from the account. */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">First name on card <span className="text-red-500">*</span></label>
+              <input required value={shownCardFirst}
+                onChange={e => { setCardNameEdited(true); setCardFirst(e.target.value); setCardLast(shownCardLast) }}
+                placeholder="Jane" autoComplete="cc-given-name"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-booking-500" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Last name on card <span className="text-red-500">*</span></label>
+              <input required value={shownCardLast}
+                onChange={e => { setCardNameEdited(true); setCardLast(e.target.value); setCardFirst(shownCardFirst) }}
+                placeholder="Smith" autoComplete="cc-family-name"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-booking-500" />
+            </div>
+          </div>
+          {/* The name is asked for above, so Stripe must not ask again.
+              'never' is also what allows passing it in confirmParams. */}
+          <PaymentElement options={{ fields: { billingDetails: { name: 'never' } } }} />
         </div>
       </div>
 
