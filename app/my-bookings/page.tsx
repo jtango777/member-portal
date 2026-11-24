@@ -61,6 +61,8 @@ type UnifiedBooking = {
   // database, which has no columns for either. Missing for a location name
   // that isn't one of the three day pass locations, so every use is guarded.
   address?: string
+  /** The location's own number, for the credit note on a cancelled room. */
+  phone?: string
   // Only day passes are self-serve cancellable — conference room bookings
   // never are (Caroline, 2026-08-31). Present only for day-pass entries
   // that are still before their 9pm-night-before cancellation cutoff.
@@ -233,6 +235,7 @@ export default async function DayPassAccountPage() {
             : undefined,
         status: b.status as UnifiedBooking['status'],
         address: loc?.address,
+        phone: loc?.phone,
         // No door code on a room booking even at Marina: the code is the day
         // pass code, and a room booking is let in by whoever is hosting it.
         days: [{
@@ -462,6 +465,36 @@ function BookingCard({ b, isPast }: { b: UnifiedBooking; isPast: boolean }) {
               </div>
             </>
           )}
+        </div>
+      )}
+
+      {/* Before cancelling, the only thing anyone needs to decide is
+          whether credit instead of their money back is acceptable. How to
+          redeem it is no use yet and becomes the point once it is done, so
+          that half waits until after (Caroline, 2026-11-24). */}
+      {b.kind === 'room' && b.cancellableRoomConfirmation && (
+        <div className="px-4 sm:px-5 py-2.5 border-t border-gray-100 text-[13px] leading-relaxed text-gray-500">
+          Cancelling holds this booking&rsquo;s value as credit toward a future date. It is not refunded to your card.
+        </div>
+      )}
+
+      {/* A cancelled room is holding credit, and this is the only place a
+          customer will come looking for it. The credit is not a balance
+          anywhere and cannot be spent online, so the one useful thing to
+          say is who to contact and what to quote (Caroline, 2026-11-24).
+          Sits directly above the reference number they need. */}
+      {b.kind === 'room' && b.status === 'cancelled' && (
+        <div className="px-4 sm:px-5 py-3 border-t border-gray-100 text-[13px] leading-relaxed text-gray-500">
+          <span className="font-medium text-gray-700">Ready to rebook?</span>{' '}
+          We&rsquo;re holding this booking&rsquo;s value as credit. Call{' '}
+          {b.phone && (
+            <>
+              <a href={`tel:${b.phone.replace(/[^\d+]/g, '')}`} className="text-booking-600 hover:text-booking-700 font-medium whitespace-nowrap">{b.phone}</a>
+              {' '}or{' '}
+            </>
+          )}
+          <a href="mailto:bookings@bizhaus.com" className="text-booking-600 hover:text-booking-700 font-medium">bookings@bizhaus.com</a>
+          {b.reference && <> and quote <span className="font-mono text-gray-700">#{b.reference}</span></>}, and we&rsquo;ll put it toward your new date.
         </div>
       )}
 
